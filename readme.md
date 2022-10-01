@@ -10,10 +10,10 @@
   <h3 align="center">aep-parser</h3>
 
   <p align="center">
-    An awesome README template to jumpstart your projects!
-    <br />
+    An After Effects file parser in Python!
+    <!-- <br />
     <a href="https://gitlab.com/delaunay.ben/aep-parser"><strong>Explore the docs »</strong></a>
-    <br />
+    <br /> -->
     <br />
     <!-- <a href="https://gitlab.com/delaunay.ben/aep-parser">View Demo</a>
     · -->
@@ -54,15 +54,14 @@
 ## About The Project
 
 
-This as a .aep (After Effects Project) parser in Python. After Effects files (.aep) are encoded in RIFX format. This parser uses [Kaitai Struct](https://kaitai.io/) to parse .aep files and return a Project object conataining items, layers, effects and properties. It is based on the Go equivalent [aftereffects-aep-parser](https://github.com/boltframe/aftereffects-aep-parser).
+This as a .aep (After Effects Project) parser in Python. After Effects files (.aep) are encoded in RIFX format. This parser uses [Kaitai Struct](https://kaitai.io/) to parse .aep files and return a Project object containing items, layers, effects and properties. It is based on the Go equivalent [aftereffects-aep-parser](https://github.com/boltframe/aftereffects-aep-parser).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
+
 <!-- GETTING STARTED -->
 ## Getting Started
-
-To get a local copy up and running follow these simple steps.
 
 ### Prerequisites
 
@@ -83,6 +82,7 @@ To get a local copy up and running follow these simple steps.
 
 
 
+
 <!-- USAGE EXAMPLES -->
 ## Usage
 
@@ -94,6 +94,7 @@ project = parse_project(aep__file_path)
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 
 
@@ -114,6 +115,7 @@ See the [open issues](https://gitlab.com/delaunay.ben/aep-parser/-/issues) for a
 
 
 
+
 <!-- CONTRIBUTING -->
 ## Contributing
 
@@ -131,12 +133,14 @@ If you have a suggestion that would make this better, please fork the repo and c
 
 
 
+
 <!-- LICENSE -->
 ## License
 
 Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 
 
@@ -148,6 +152,7 @@ Benoit Delaunay - benoit.delaunay@forticheprod.com
 Project Link: [https://gitlab.com/delaunay.ben/aep-parser](https://gitlab.com/delaunay.ben/aep-parser)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 
 
