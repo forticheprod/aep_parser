@@ -32,12 +32,13 @@ types:
         type: 
           switch-on: block_type
           cases:
-            'chunk_type::list': list_body
+            'chunk_type::lst': list_body
             'chunk_type::utf8': utf8_body
             'chunk_type::cdta': cdta_body
             'chunk_type::idta': idta_body
             'chunk_type::cmta': utf8_body
             'chunk_type::fdta': fdta_body
+            'chunk_type::nhed': nhed_body
             _: ascii_body
       - id: padding
         type: u1
@@ -60,11 +61,11 @@ types:
     seq:
       - id: data
         type: str
-        encoding: ascii
+        encoding: utf8
         size-eos: true
   idta_body:
     seq:
-      - id: unknown1
+      - id: unknown01
         type: str
         size: 18
         encoding: ascii
@@ -72,13 +73,13 @@ types:
         type: u2
   fdta_body:
     seq:
-      - id: unknown1
+      - id: unknown01
         type: str
         encoding: ascii
         size: 1
   cdta_body:
     seq:
-      - id: unknown1
+      - id: unknown01
         type: str
         size: 140
         encoding: ascii
@@ -86,18 +87,28 @@ types:
         type: u2
       - id: height
         type: u2
-      - id: unknown2
+      - id: unknown02
         type: str
         size: 12
         encoding: ascii
       - id: frame_rate
         type: u2
+  nhed_body:
+    seq:
+      - id: unknown01
+        type: str
+        size: 30
+        encoding: utf8
+      - id: data
+        type: u2
+        
         
 enums:
   chunk_type:
-    0x4c495354: list
+    0x4c495354: lst # List data
     0x55746638: utf8
     0x63647461: cdta # Composition data
     0x69647461: idta # Item data
     0x636d7461: cmta # Comment data
     0x66647461: fdta # Folder data
+    0x6E686564: nhed

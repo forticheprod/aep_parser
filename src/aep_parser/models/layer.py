@@ -1,5 +1,5 @@
 class Layer(object):
-    def __init__(self, index, name, source_id, quality, sampling_mode, frame_blend_mode, guide_enabled, solo_enabled, three_d_enabled, adjustment_layer_enabled, collapse_transform_enabled, shy_enabled, lock_enabled, frame_blend_enabled, motion_blur_enabled, effects_enabled, audio_enabled, video_enabled, effects=[], text):
+    def __init__(self, index, name, source_id, quality, sampling_mode, frame_blend_mode, guide_enabled, solo_enabled, three_d_enabled, adjustment_layer_enabled, collapse_transform_enabled, shy_enabled, lock_enabled, frame_blend_enabled, motion_blur_enabled, effects_enabled, audio_enabled, video_enabled, text, effects=[]):
         """
         """
         self.index = index

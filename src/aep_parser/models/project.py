@@ -1,5 +1,5 @@
 class Project(object):
-    def __init__(self, depth=None, root_folder=None, items=None, expression_engine=None):
+    def __init__(self, depth=None, root_folder=None, items=dict(), expression_engine=None):
         self.depth = depth
         self.root_folder = root_folder
         self.items = items

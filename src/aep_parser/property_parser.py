@@ -2,140 +2,115 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 from __future__ import print_function
 
-import collections
+from aep_parser.kaitai.aep import Aep
+from aep_parser.models.property import Property
+from aep_parser.models.property_type import PropertyTypeName
+from aep_parser.rifx.utils import (
+    find_by_type,
+    sublist_merge,
+)
 
-from aep_parser.models.property_type_name import PropertyTypeName
 
-
-def parse_property(propData interface{}, matchName string):
-    prop = Property()
+def parse_property(prop_data, match_name):
+    prop = Property(
+        property_type=PropertyTypeName.PROPERTY_TYPE_CUSTOM,
+        select_options=[],
+        match_name=match_name,
+        name=match_name,
+    )
 
     # Apply some sensible default values
-    prop.PropertyType = PropertyTypeCustom
-    prop.SelectOptions = make([]string, 0)
-    prop.MatchName = matchName
-    prop.name = matchName
-    switch matchName {
-    case "ADBE Effect Parade":
+    if match_name == "ADBE Effect Parade":
         prop.name = "Effects"
-    }
 
     # Handle different types of property data
-    switch propData.(type) {
-    case *rifx.List:
-        propHead := propData.(*rifx.List)
+    if isinstance(prop_data, Aep.ChunkType.lst):
+        prop_head = prop_data
         # Parse sub-properties
-        prop.Properties = make([]*Property, 0)
-        tdgpMap, orderedMatchNames := indexedGroupToMap(propHead)
-        for idx, mn := range orderedMatchNames {
-            subProp, err := parseProperty(tdgpMap[mn], mn)
-            if err == nil {
-                subProp.index = uint32(idx) + 1
-                prop.Properties = append(prop.Properties, subProp)
-            }
-        }
+        tdgp_map, ordered_match_names = indexed_group_to_map(prop_head)
+        for i, mn in enumerate(ordered_match_names):
+            sub_prop = parse_property(tdgp_map[mn], mn)
+            if sub_prop is not None:
+                sub_prop.index = i + 1
+                prop.properties.append(sub_prop)
 
         # Parse effect sub-properties
-        if propHead.Identifier == "sspc" {
-            prop.PropertyType = PropertyTypeGroup
-            fnamBlock, err := propHead.FindByType("fnam")
-            if err == nil {
-                prop.name = fnamBlock.ToString()
-            }
-            tdgpBlock, err := propHead.SublistFind("tdgp")
-            if err == nil {
+        if prop_head.identifier == "sspc":
+            prop.property_type = PropertyTypeName.PROPERTY_TYPE_GROUP
+            fnam_block = find_by_type(prop_head, "fnam")
+            if fnam_block is not None:
+                prop.name = fnam_block.ToString()
+            tdgp_block = prop_head.SublistFind("tdgp")
+            if tdgp_block is not None:
 
                 # Look for a tdsn which specifies the user-defined label of the property
-                tdsnBlock, err := tdgpBlock.FindByType("tdsn")
-                if err == nil {
-                    label := fmt.Sprintf("%s", tdsnBlock.ToString())
+                tdsn_block = find_by_type(tdgp_block, "tdsn")
+                if tdsn_block is not None:
+                    label = tdsn_block.ToString()
 
                     # Check if there is a custom user defined label added. The default if there
                     # is not is "-_0_/-" for some unknown reason.
-                    if label != "-_0_/-" {
-                        prop.Label = label
-                    }
-                }
-            }
-            parTList := propHead.SublistMerge("parT")
-            subPropMatchNames, subPropPards := pairMatchNames(parTList)
-            for idx, mn := range subPropMatchNames {
+                    if label != "-_0_/-":
+                        prop.label = label
+            par_t_list = sublist_merge(prop_head, "parT")
+            sub_prop_match_names, sub_prop_pards = pair_match_names(par_t_list)
+            for i, mn in enumerate(sub_prop_match_names):
                 # Skip first pard entry (describes parent)
-                if idx == 0 {
+                if i == 0:
                     continue
-                }
-                subProp, err := parseProperty(subPropPards[idx], mn)
-                if err == nil {
-                    subProp.index = uint32(idx)
-                    prop.Properties = append(prop.Properties, subProp)
-                }
-            }
-        }
-    case []interface{}:
-        for _, entry := range propData.([]interface{}) {
-            if block, ok := entry.(*rifx.Block); ok {
-                switch block.Type {
-                case "pdnm":
-                    strContent := block.ToString()
-                    if prop.PropertyType == PropertyTypeSelect {
-                        prop.SelectOptions = strings.Split(strContent, "|")
-                    } else if strContent != "" {
-                        prop.name = strContent
-                    }
-                case "pard":
-                    blockData := block.Data.([]byte)
-                    prop.PropertyType = PropertyTypeName(binary.BigEndian.Uint16(blockData[14:16]))
-                    if prop.PropertyType == 0x0a {
-                        prop.PropertyType = PropertyTypeOneD
-                    }
-                    pardName := fmt.Sprintf("%s", bytes.Trim(blockData[16:48], "\x00"))
-                    if pardName != "" {
-                        prop.name = pardName
-                    }
-                }
-            }
-        }
-    }
+                sub_prop, err = parse_property(sub_prop_pards[i], mn)
+                if err is None:
+                    sub_prop.index = i
+                    prop.properties.append(sub_prop)
+    elif isinstance(prop_data, interface):  # FIXME I don't understand this one...
+        for entry in prop_data:
+            block = entry.block
+            if block:
+                if block.type_ == "pdnm":
+                    str_content = str(block.data)  # bytes.Trim(data, "\x00"))
+                    if prop.property_type == PropertyTypeName.PROPERTY_TYPE_SELECT:
+                        prop.select_options = str_content.split("|")
+                    elif str_content != "":
+                        prop.name = str_content
+                if block.type_ == "pard":
+                    prop.property_type = PropertyTypeName(int(block.data[14:16]))  # binary.BigEndian.Uint16
+                    if prop.property_type == 0x0a:
+                        prop.property_type = PropertyTypeName.PROPERTY_TYPE_ONE_D
+                    pard_name = block.data[16:48]  # bytes.Trim(block.data[16:48], "\x00")
+                    if pard_name != "":
+                        prop.name = pard_name
 
-    return prop, nil
-}
+    return prop
 
-func pairMatchNames(head *rifx.List) ([]string, [][]interface{}) {
-    matchNames := make([]string, 0)
-    datum := make([][]interface{}, 0)
-    if head != nil {
-        groupIdx := -1
-        skipToNextTDMNFlag := false
-        for _, block := range head.Blocks {
-            if block.Type == "tdmn" {
-                matchName := fmt.Sprintf("%s", bytes.Trim(block.Data.([]byte), "\x00"))
-                if matchName == "ADBE Group End" || matchName == "ADBE Effect Built In Params" {
-                    skipToNextTDMNFlag = true
+
+def pair_match_names(head):
+    match_names = []
+    datum = [[]]
+    if head is not None:
+        group_idx = -1
+        skip_to_next_tdmn_flag = False
+        for block in head.blocks:
+            if block.type_ == "tdmn":
+                match_name = block.data  # trim(block.data, "\x00")
+                if match_name in ("ADBE Group End", "ADBE Effect Built In Params"):
+                    skip_to_next_tdmn_flag = True
                     continue
-                }
-                matchNames = append(matchNames, matchName)
-                skipToNextTDMNFlag = false
-                groupIdx++
-            } else if groupIdx >= 0 && !skipToNextTDMNFlag {
-                if groupIdx >= len(datum) {
-                    datum = append(datum, make([]interface{}, 0))
-                }
-                switch block.Data.(type) {
-                case *rifx.List:
-                    datum[groupIdx] = append(datum[groupIdx], block.Data)
-                default:
-                    datum[groupIdx] = append(datum[groupIdx], block)
-                }
-            }
-        }
-    }
-    return matchNames, datum
-}
+                match_names.append(match_name)
+                skip_to_next_tdmn_flag = False
+                group_idx += 1
+            elif group_idx >= 0 and not skip_to_next_tdmn_flag:
+                if group_idx >= len(datum):
+                    datum.append([])
+                if isinstance(block.data, Aep.ChunkType.lst):
+                    datum[group_idx].append(block.data)
+                else:
+                    datum[group_idx].append(block)
+    return match_names, datum
 
-func indexedGroupToMap(tdgpHead *rifx.List) (map[string]*rifx.List, []string) {
-    tdgpMap := make(map[string]*rifx.List, 0)
-    matchNames, contents := pairMatchNames(tdgpHead)
-    for idx, matchName := range matchNames {
-        tdgpMap[matchName] = contents[idx][0].(*rifx.List)
-    }
-    return tdgpMap, matchNames
+
+def indexed_group_to_map(tdgp_head):
+    tdgp_map = dict()
+    match_names, contents = pair_match_names(tdgp_head)
+    for i, match_name in enumerate(match_names):
+        tdgp_map[match_name] = contents[i][0]
+    return tdgp_map, match_names

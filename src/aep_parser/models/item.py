@@ -1,5 +1,7 @@
 class Item(object):
-    def __init__(self, name, id_, item_type, folder_contents, footage_dimensions, footage_framerate, footage_seconds, footage_type, background_color, composition_layers):
+    def __init__(self, name="", id_=0, item_type=None, folder_contents=[],
+                 footage_dimensions=[0, 0], footage_framerate=0, footage_seconds=0,
+                 footage_type="", background_color="", composition_layers=[]):
         self.name = name
         self.id_ = id_
         self.item_type = item_type

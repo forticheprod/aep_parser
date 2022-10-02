@@ -30,4 +30,4 @@ class PropertyTypeName(Enum):
     PROPERTY_TYPE_LAYER_SELECT = "LayerSelect"  # single-valued layer selection property
     PROPERTY_TYPE_SELECT = "Select"  # single-valued selection property
     PROPERTY_TYPE_GROUP = "Group"  # collection/group property
-    PROPERTY_TYPE_CUSTOM ="Custom"  # unknown/custom property type (default)
+    PROPERTY_TYPE_CUSTOM = "Custom"  # unknown/custom property type (default)

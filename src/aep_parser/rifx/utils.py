@@ -6,20 +6,22 @@ from __future__ import print_function
 from aep_parser.kaitai.aep import Aep
 
 
+"""
+based on https://github.com/rioam2/rifx/blob/a8114e272da2bbedae9b869d16b0d4ff45a91b12/types.go
+"""
+
+
 def sublist_filter(blocks, identifier):
     """
     Return a slice of child lists that have the provided identifier.
     """
-    filtered = [
-        block
+    result = [
+        block.data
         for block in blocks
-        if block.block_type == Aep.ChunkType.LIST
+        if block.block_type == Aep.ChunkType.lst
         and block.data.identifier == identifier
     ]
-    return [
-        block.data
-        for block in filtered
-    ]
+    return result
 
 
 def find(blocks, func):
@@ -51,8 +53,8 @@ def sublist_find(blocks, identifier):
     Perform a basic find operation over a list's child list elements based on identifer.
     """
     return [
-        block.data
+        block
         for block in blocks
-        if block.block_type == Aep.ChunkType.LIST
+        if block.block_type == Aep.ChunkType.lst
         and block.data.identifier == identifier
     ]
