@@ -4,13 +4,9 @@ from __future__ import print_function
 
 from aep_parser.item_parser import parse_item
 from aep_parser.kaitai.aep import Aep
-from aep_parser.models.depth import Depth
-from aep_parser.models.item_type import (
-    ItemTypeName,
-)
 from aep_parser.models.project import Project
 from aep_parser.rifx.utils import (
-    sublist_find,
+    find_by_identifier,
     find_by_type,
 )
 
@@ -22,13 +18,12 @@ based on https://github.com/boltframe/aftereffects-aep-parser/blob/70803375303cc
 
 def parse_project(path):
     with Aep.from_file(path) as aep:
-        root_blocks = aep.data.entries
-
         project = Project()
 
-        expression_engines = sublist_find(root_blocks, "ExEn")
-        if expression_engines:
-            project.expression_engine = expression_engines[0]
+        root_blocks = aep.data.blocks
+        expression_engine = find_by_identifier(root_blocks, "ExEn") 
+        if expression_engine:
+            project.expression_engine = expression_engine
 
         # get project depth in BPC (8, 16 or 32)
         nhed_block = find_by_type(root_blocks, Aep.ChunkType.nhed)
@@ -40,10 +35,10 @@ def parse_project(path):
                 )
             )
             raise Exception(msg)
-        project.depth = Depth(nhed_block.data.data)
+        project.depth = nhed_block.data.depth
 
-        root_folder_list = sublist_find(root_blocks, "Fold")
-        if not root_folder_list:
+        root_folder_block = find_by_identifier(root_blocks, "Fold")
+        if root_folder_block is None:
             msg = (
                 "Could not find 'Fold' block in project {path}"
                 .format(
@@ -51,16 +46,25 @@ def parse_project(path):
                 )
             )
             raise Exception(msg)
-        root_folder_block = root_folder_list[0]
 
         folder = parse_item(root_folder_block, project)
+        if folder is None:
+            msg = (
+                "Could not parse 'Fold' block in project {path}"
+                .format(
+                    path=path,
+                )
+            )
+            raise Exception(msg)
+
         project.root_folder = folder
 
+        # TODO move to layer_parser
         # Layers that have not been given an explicit name should be named after their source
-        for item_id, item in project.items.items():
-            if item.item_type == ItemTypeName.ITEM_TYPE_COMPOSITION:
+        for item in project.items.values():
+            if item.item_type == Aep.ItemType.COMPOSITION:
                 for layer in item.composition_layers:
-                    if layer.name == "":
+                    if not layer.name:
                         layer.name = project.items[layer.source_id].name
 
         return project

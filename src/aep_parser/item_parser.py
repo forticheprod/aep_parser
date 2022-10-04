@@ -1,143 +1,105 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 from __future__ import print_function
+from __future__ import division
 
+from aep_parser.kaitai.aep import Aep
 from aep_parser.layer_parser import parse_layer
-from aep_parser.models.cdta import CDTA
-from aep_parser.models.footage_type_name import FootageTypeName
 from aep_parser.models.item import Item
-from aep_parser.models.item_type import (
-    ItemType,
-    ItemTypeName,
-)
-from aep_parser.models.sspc import SSPC
 from aep_parser.rifx.utils import (
     find_by_type,
-    sublist_filter,
-    sublist_find,
-    sublist_merge,
+    sublist_find_by_type,
+    sublist_filter_by_identifier,
 )
 
 
 def parse_item(item_block, project):
     item = Item()
+    print('item_block.data.identifier: ', item_block.data.identifier)
     is_root = item_block.data.identifier == "Fold"
 
     # Parse item metadata
     if is_root:
-        item.id_ = 0
+        item.item_id = 0
         item.name = "root"
-        item.item_type = ItemTypeName.ITEM_TYPE_FOLDER
+        item.item_type = Aep.ItemType.folder
     else:
-        name_block = find_by_type([item_block], "utf8")
+        name_block = sublist_find_by_type([item_block], Aep.ChunkType.utf8)
         if name_block is None:
             # TODO add warning
-            return None
-        item.name = name_block  # TODO .data ? str() ?
+            return
+        item.name = name_block.data.data
 
-        idta_block = find_by_type([item_block], "idta")
+        idta_block = sublist_find_by_type([item_block], Aep.ChunkType.idta)
         if idta_block is None:
             # TODO add warning
-            return None
+            return
 
-        item.id_ = idta_block.id_
-        if idta_block.type_ == ItemType.ITEM_TYPE_FOLDER:
-            item.item_type = ItemTypeName.ITEM_TYPE_FOLDER
-        elif idta_block.type_ == ItemType.ITEM_TYPE_COMPOSITION:
-            item.item_type = ItemTypeName.ITEM_TYPE_COMPOSITION
-        elif idta_block.type_ == ItemType.ITEM_TYPE_FOOTAGE:
-            item.item_type = ItemTypeName.ITEM_TYPE_FOOTAGE
+        item.item_id = idta_block.data.item_id
+        item.item_type = Aep.ItemType(idta_block.data.item_type)
 
     # Parse unique item type information
-    if item.item_type == ItemTypeName.ITEM_TYPE_FOLDER:
-        print('sublist_filter([item_block], "Item"): ', sublist_filter([item_block], "Item"))
-        print('sublist_merge([item_block], "Sfdr"): ', sublist_merge([item_block], "Sfdr"))
-        child_item_lists = (
-            sublist_filter([item_block], "Item")
-            + sublist_filter(sublist_merge([item_block], "Sfdr"), "Item")
+    if item.item_type == Aep.ItemType.folder:
+        child_item_list_blocks = sublist_filter_by_identifier(
+            [item_block] + sublist_filter_by_identifier([item_block], "Sfdr"),
+            "Item"
         )
-        print('child_item_lists: ', child_item_lists)
-        for child_item_list in child_item_lists:
-            child_item = parse_item(child_item_list, project)
+        for child_item_list_block in child_item_list_blocks:
+            child_item = parse_item(child_item_list_block, project)
             if child_item is None:
                 # TODO add warning
                 continue
 
             item.folder_contents.append(child_item)
 
-    elif item.item_type == ItemTypeName.ITEM_TYPE_FOOTAGE:
-        pin_list = sublist_find(item_block, "Pin ")
-        if pin_list is None:
+    elif item.item_type == Aep.ItemType.footage:
+        pin_blocks = sublist_filter_by_identifier([item_block], "Pin ")
+        if not pin_blocks:
             # TODO add warning
-            return None
+            return
 
-        sspc_block = find_by_type([pin_list], "sspc")
+        sspc_block = sublist_filter_by_type(pin_blocks, "sspc")
         if sspc_block is None:
             # TODO add warning
-            return None
+            return
+        sspec_data = sspc_block.data
 
-        sspc_desc = SSPC(
-            unknown01=sspc_block.unknown01,
-            width=sspc_block.width,
-            height=sspc_block.height,
-            seconds_dividend=sspc_block.seconds_dividend,
-            seconds_divisor=sspc_block.seconds_divisor,
-            unknown02=sspc_block.unknown02,
-            framerate=sspc_block.framerate,
-            framerate_dividend=sspc_block.framerate_dividend,
-        )
+        item.footage_dimensions = [sspec_data.width, sspec_data.height]
+        item.footage_framerate = sspec_data.Framerate + sspec_data.framerate_dividend / (1 << 16)  # TODO check if float() needed
+        item.footage_seconds = sspec_data.seconds_dividend / sspec_data.seconds_divisor  # TODO check if float() needed
 
-        item.footage_dimensions = [sspc_desc.width, sspc_desc.height]
-        item.footage_framerate = sspc_desc.Framerate + sspc_desc.framerate_dividend / (1 << 16)  # TODO check if float() needed
-        item.footage_seconds = sspc_desc.seconds_dividend / sspc_desc.seconds_divisor  # TODO check if float() needed
-
-        optiBlock = find_by_type([pin_list], "opti")
-        if optiBlock is None:
+        opti_block = find_by_type(pin_blocks, Aep.ChunkType.opti)
+        if opti_block is None:
             # TODO add warning
-            return None
+            return
 
-        optiData = optiBlock.data
-        item.footage_type = FootageTypeName(optiData[4:6])  # TODO check this
-        if item.footage_type == FootageTypeName.FOOTAGE_TYPE_SOLID:
-            item.name = optiData[26:255]  # TODO check this
-        elif item.footage_type == FootageTypeName.FOOTAGE_TYPE_PLACEHOLDER:
-            item.name = optiData[10:]  # TODO check this
+        opti_data = opti_block.data
+        item.footage_type = opti_data.footage_type  # TODO check this
+        item.name = opti_data.name  # TODO check this
 
-    elif item.item_type == ItemTypeName.ITEM_TYPE_COMPOSITION:
-        cdata_block = find_by_type([item_block], "cdta")
-        if cdata_block is None:
+    elif item.item_type == Aep.ItemType.composition:
+        cdta_block = sublist_find_by_type([item_block], Aep.ChunkType.cdta)
+        if cdta_block is None:
             # TODO add warning
-            return None
+            return
+        cdta_data = cdta_block.data
 
-        comp_desc = CDTA(
-            unknown01=cdata_block.unknown01,
-            framerate_divisor=cdata_block.framerate_divisor,
-            framerate_dividend=cdata_block.framerate_dividend,
-            unknown02=cdata_block.unknown02,
-            seconds_dividend=cdata_block.seconds_dividend,
-            seconds_divisor=cdata_block.seconds_divisor,
-            background_color=cdata_block.background_color,
-            unknown03=cdata_block.unknown03,
-            width=cdata_block.width,
-            height=cdata_block.height,
-            unknown04=cdata_block.unknown04,
-            framerate=cdata_block.framerate,
-        )
-
-        item.footage_dimensions = [comp_desc.width, comp_desc.height]
-        item.footage_framerate = comp_desc.framerate_dividend / comp_desc.framerate_divisor  # TODO check if float() needed
-        item.footage_seconds = comp_desc.seconds_dividend / comp_desc.seconds_divisor  # TODO check if float() needed
-        item.background_color = comp_desc.background_color
+        item.footage_dimensions = [cdta_data.width, cdta_data.height]
+        item.footage_framerate = cdta_data.framerate_dividend / cdta_data.framerate_divisor
+        item.footage_seconds = cdta_data.seconds_dividend / cdta_data.seconds_divisor
+        item.background_color = cdta_data.background_color
 
         # Parse composition's layers
-        for index, layer_list_head in enumerate(sublist_filter(item_block, "Layr")):
-            layer = parse_layer(layer_list_head)
+        layer_sub_blocks = sublist_filter_by_identifier([item_block], "Layr")
+        print('layer_sub_blocks: ', layer_sub_blocks)
+        for index, layer_block in enumerate(layer_sub_blocks, start=1):
+            layer = parse_layer(layer_block)
             if layer is None:
                 # TODO add warning
-                return None
-            layer.index = index + 1
+                return
+            layer.index = index
             item.composition_layers.append(layer)
 
-    project.items[item.id_] = item
+    project.items[item.item_id] = item
 
     return item

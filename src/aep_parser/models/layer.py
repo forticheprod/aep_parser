@@ -1,6 +1,13 @@
 class Layer(object):
-    def __init__(self, index, name, source_id, quality, sampling_mode, frame_blend_mode, guide_enabled, solo_enabled, three_d_enabled, adjustment_layer_enabled, collapse_transform_enabled, shy_enabled, lock_enabled, frame_blend_enabled, motion_blur_enabled, effects_enabled, audio_enabled, video_enabled, text, effects=[]):
+    def __init__(self, index=0, name="", source_id=0, quality=None, sampling_mode=None,
+                 frame_blend_mode=None, guide_enabled=False, solo_enabled=False,
+                 three_d_enabled=False, adjustment_layer_enabled=False,
+                 collapse_transform_enabled=False, shy_enabled=False,
+                 lock_enabled=False, frame_blend_enabled=False,
+                 motion_blur_enabled=False, effects_enabled=False, audio_enabled=False,
+                 video_enabled=False, text=None, effects=[]):
         """
+        A single layer in a composition
         """
         self.index = index
         self.name = name

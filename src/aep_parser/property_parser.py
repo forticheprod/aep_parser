@@ -4,17 +4,16 @@ from __future__ import print_function
 
 from aep_parser.kaitai.aep import Aep
 from aep_parser.models.property import Property
-from aep_parser.models.property_type import PropertyTypeName
+from aep_parser.models.property_type import PropertyType
 from aep_parser.rifx.utils import (
     find_by_type,
-    sublist_merge,
+    sublist_filter_by_identifier,
 )
 
 
 def parse_property(prop_data, match_name):
     prop = Property(
-        property_type=PropertyTypeName.PROPERTY_TYPE_CUSTOM,
-        select_options=[],
+        property_type=PropertyType.CUSTOM,
         match_name=match_name,
         name=match_name,
     )
@@ -36,7 +35,7 @@ def parse_property(prop_data, match_name):
 
         # Parse effect sub-properties
         if prop_head.identifier == "sspc":
-            prop.property_type = PropertyTypeName.PROPERTY_TYPE_GROUP
+            prop.property_type = PropertyType.GROUP
             fnam_block = find_by_type(prop_head, "fnam")
             if fnam_block is not None:
                 prop.name = fnam_block.ToString()
@@ -52,30 +51,30 @@ def parse_property(prop_data, match_name):
                     # is not is "-_0_/-" for some unknown reason.
                     if label != "-_0_/-":
                         prop.label = label
-            par_t_list = sublist_merge(prop_head, "parT")
+            par_t_list = sublist_filter_by_identifier([prop_head], "parT")
             sub_prop_match_names, sub_prop_pards = pair_match_names(par_t_list)
             for i, mn in enumerate(sub_prop_match_names):
                 # Skip first pard entry (describes parent)
                 if i == 0:
                     continue
-                sub_prop, err = parse_property(sub_prop_pards[i], mn)
-                if err is None:
+                sub_prop = parse_property(sub_prop_pards[i], mn)
+                if sub_prop is not None:
                     sub_prop.index = i
                     prop.properties.append(sub_prop)
     elif isinstance(prop_data, interface):  # FIXME I don't understand this one...
         for entry in prop_data:
             block = entry.block
             if block:
-                if block.type_ == "pdnm":
+                if block.block_type == "pdnm":
                     str_content = str(block.data)  # bytes.Trim(data, "\x00"))
-                    if prop.property_type == PropertyTypeName.PROPERTY_TYPE_SELECT:
+                    if prop.property_type == PropertyType.SELECT:
                         prop.select_options = str_content.split("|")
                     elif str_content != "":
                         prop.name = str_content
-                if block.type_ == "pard":
-                    prop.property_type = PropertyTypeName(int(block.data[14:16]))  # binary.BigEndian.Uint16
+                if block.block_type == "pard":
+                    prop.property_type = PropertyType(int(block.data[14:16]))  # binary.BigEndian.Uint16
                     if prop.property_type == 0x0a:
-                        prop.property_type = PropertyTypeName.PROPERTY_TYPE_ONE_D
+                        prop.property_type = PropertyType.ONE_D
                     pard_name = block.data[16:48]  # bytes.Trim(block.data[16:48], "\x00")
                     if pard_name != "":
                         prop.name = pard_name
@@ -90,7 +89,7 @@ def pair_match_names(head):
         group_idx = -1
         skip_to_next_tdmn_flag = False
         for block in head.blocks:
-            if block.type_ == "tdmn":
+            if block.block_type == "tdmn":
                 match_name = block.data  # trim(block.data, "\x00")
                 if match_name in ("ADBE Group End", "ADBE Effect Built In Params"):
                     skip_to_next_tdmn_flag = True

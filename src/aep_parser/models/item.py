@@ -1,9 +1,12 @@
 class Item(object):
-    def __init__(self, name="", id_=0, item_type=None, folder_contents=[],
-                 footage_dimensions=[0, 0], footage_framerate=0, footage_seconds=0,
-                 footage_type="", background_color="", composition_layers=[]):
+    def __init__(self, name="", item_id=0, item_type=None, folder_contents=[],
+                 footage_dimensions=[0, 0], footage_framerate=0.0, footage_seconds=0.0,
+                 footage_type=None, background_color=[], composition_layers=[]):
+        """
+        Generalized object storing information about folders, compositions, or footage
+        """
         self.name = name
-        self.id_ = id_
+        self.item_id = item_id
         self.item_type = item_type
         self.folder_contents = folder_contents
         self.footage_dimensions = footage_dimensions

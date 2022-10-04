@@ -11,22 +11,9 @@ based on https://github.com/rioam2/rifx/blob/a8114e272da2bbedae9b869d16b0d4ff45a
 """
 
 
-def sublist_filter(blocks, identifier):
-    """
-    Return a slice of child lists that have the provided identifier.
-    """
-    result = [
-        block.data
-        for block in blocks
-        if block.block_type == Aep.ChunkType.lst
-        and block.data.identifier == identifier
-    ]
-    return result
-
-
 def find(blocks, func):
     """
-    Perform a basic find operation over a list's blocks.
+    Perform a basic find operation over a blocks list.
     """
     for block in blocks:
         if func(block):
@@ -35,26 +22,98 @@ def find(blocks, func):
 
 def find_by_type(blocks, block_type):
     """
-    Perform a find operation over a list's blocks predicated upon block type.
+    Perform a find operation over a blocks list predicated upon block type.
     """
-    return find(blocks, lambda block: block.block_type == block_type)
+    return find(
+        blocks,
+        lambda block: block.block_type == block_type
+    )
 
 
-def sublist_merge(blocks, identifier):
+def find_by_identifier(blocks, identifier):
     """
-    Filter sublists with the specified identifier and concatenates their blocks in a new list.
+    Perform a find operation over a blocks list predicated upon block type.
     """
-    sublists = sublist_filter(blocks, identifier)
-    return sum(sublists, [])
+    return find(
+        blocks,
+        lambda block: (
+            block.block_type == Aep.ChunkType.lst
+            and block.data.identifier == identifier
+        )
+    )
 
 
-def sublist_find(blocks, identifier):
+def sublist_find(blocks, func):
     """
-    Perform a basic find operation over a list's child list elements based on identifer.
+    Perform a basic find operation over a blocks list's child elements.
     """
-    return [
-        block
-        for block in blocks
-        if block.block_type == Aep.ChunkType.lst
-        and block.data.identifier == identifier
-    ]
+    for block in blocks:
+        if block.block_type != Aep.ChunkType.lst:
+            continue
+        for sub_block in block.data.blocks.blocks:
+            if func(sub_block):
+                return sub_block
+
+
+def sublist_find_by_identifier(blocks, identifier):
+    """
+    Perform a find operation over a blocks list's child list elements based on identifer.
+    """
+    return sublist_find(
+        blocks,
+        lambda block: (
+            block.block_type == Aep.ChunkType.lst
+            and block.data.identifier == identifier
+        )
+    )
+
+
+def sublist_find_by_type(blocks, block_type):
+    """
+    Perform a find operation over a blocks list's child list elements based on block type.
+    """
+    return sublist_find(
+        blocks,
+        lambda block: (
+            block.block_type == block_type
+        )
+    )
+
+
+def sublist_filter(blocks, func):
+    """
+    Perform a basic filter operation over a blocks list's child elements.
+    """
+    result = []
+    for block in blocks:
+        if block.block_type != Aep.ChunkType.lst:
+            continue
+        for sub_block in block.data.blocks.blocks:
+            if func(sub_block):
+                result.append(sub_block)
+    return result
+
+
+def sublist_filter_by_identifier(blocks, identifier):
+    """
+    Return child list blocks that have the provided identifier.
+    """
+    return sublist_filter(
+        blocks,
+        lambda block: (
+            block.block_type == Aep.ChunkType.lst
+            and block.data.identifier == identifier
+        )
+    )
+
+
+def sublist_filter_by_type(blocks, block_type):
+    """
+    Return child list blocks that have the provided block type.
+    """
+    return sublist_filter(
+        blocks,
+        lambda block: (
+            block.block_type == block_type
+        )
+    )
