@@ -5,11 +5,13 @@ meta:
 
 seq:
   - id: magic1
-    contents: RIFX
+    contents: [0x52, 0x49, 0x46, 0x58]
+    doc: RIFF
   - id: file_size
     type: u4
   - id: magic2
-    contents: Egg!
+    contents: [0x45, 0x67, 0x67, 0x21]
+    doc: Egg!
   - id: data
     type: blocks
     size: file_size - 4
@@ -155,35 +157,35 @@ types:
         size: 3 # 37-40
       - id: source_id
         type: u4 # 40-44
-    instances:
-      guide_enabled:
-        value: '((layer_attr_bits[0] & (1 << 1)) >> 1) == 1'
-      frame_blend_mode:
-        value: '((layer_attr_bits[0] & (1 << 2)) >> 2)'
-      sampling_mode:
-        value: '((layer_attr_bits[0] & (1 << 6)) >> 6)'
-      adjustment_layer_enabled:
-        value: '((layer_attr_bits[1] & (1 << 1)) >> 1) == 1'
-      three_d_enabled:
-        value: '((layer_attr_bits[1] & (1 << 2)) >> 2) == 1'
-      solo_enabled:
-        value: '((layer_attr_bits[1] & (1 << 3)) >> 3) == 1'
-      video_enabled:
-        value: '((layer_attr_bits[2] & (1 << 0)) >> 0) == 1'
-      audio_enabled:
-        value: '((layer_attr_bits[2] & (1 << 1)) >> 1) == 1'
-      effects_enabled:
-        value: '((layer_attr_bits[2] & (1 << 2)) >> 2) == 1'
-      motion_blur_enabled:
-        value: '((layer_attr_bits[2] & (1 << 3)) >> 3) == 1'
-      frame_blend_enabled:
-        value: '((layer_attr_bits[2] & (1 << 4)) >> 4) == 1'
-      lock_enabled:
-        value: '((layer_attr_bits[2] & (1 << 5)) >> 5) == 1'
-      shy_enabled:
-        value: '((layer_attr_bits[2] & (1 << 6)) >> 6) == 1'
-      collapse_transform_enabled:
-        value: '((layer_attr_bits[2] & (1 << 7)) >> 7) == 1'
+    # instances:
+    #   guide_enabled:
+    #     value: '((layer_attr_bits[0] & (1 << 1)) >> 1) == 1'
+    #   frame_blend_mode:
+    #     value: '((layer_attr_bits[0] & (1 << 2)) >> 2)'
+    #   sampling_mode:
+    #     value: '((layer_attr_bits[0] & (1 << 6)) >> 6)'
+    #   adjustment_layer_enabled:
+    #     value: '((layer_attr_bits[1] & (1 << 1)) >> 1) == 1'
+    #   three_d_enabled:
+    #     value: '((layer_attr_bits[1] & (1 << 2)) >> 2) == 1'
+    #   solo_enabled:
+    #     value: '((layer_attr_bits[1] & (1 << 3)) >> 3) == 1'
+    #   video_enabled:
+    #     value: '((layer_attr_bits[2] & (1 << 0)) >> 0) == 1'
+    #   audio_enabled:
+    #     value: '((layer_attr_bits[2] & (1 << 1)) >> 1) == 1'
+    #   effects_enabled:
+    #     value: '((layer_attr_bits[2] & (1 << 2)) >> 2) == 1'
+    #   motion_blur_enabled:
+    #     value: '((layer_attr_bits[2] & (1 << 3)) >> 3) == 1'
+    #   frame_blend_enabled:
+    #     value: '((layer_attr_bits[2] & (1 << 4)) >> 4) == 1'
+    #   lock_enabled:
+    #     value: '((layer_attr_bits[2] & (1 << 5)) >> 5) == 1'
+    #   shy_enabled:
+    #     value: '((layer_attr_bits[2] & (1 << 6)) >> 6) == 1'
+    #   collapse_transform_enabled:
+    #     value: '((layer_attr_bits[2] & (1 << 7)) >> 7) == 1'
 
 enums:
   chunk_type:

@@ -13,7 +13,6 @@ from aep_parser.property_parser import (
     indexed_group_to_map,
 )
 from aep_parser.rifx.utils import (
-    find_by_type,
     sublist_find_by_type,
     sublist_filter_by_identifier,
 )
@@ -26,22 +25,22 @@ def parse_layer(layer_block):
     ldta_data = ldta_block.data
 
     layer = Layer(
-        source_id = ldta_data.source_id,
-        quality = LayerQualityLevel(ldta_data.quality),
-        guide_enabled = ldta_data.guide_enabled,
-        frame_blend_mode = LayerFrameBlendMode(ldta_data.frame_blend_mode),
-        sampling_mode = LayerSamplingMode(ldta_data.sampling_mode),
-        adjustment_layer_enabled = ldta_data.adjustment_layer_enabled,
-        three_d_enabled = ldta_data.three_d_enabled,
-        solo_enabled = ldta_data.solo_enabled,
-        video_enabled = ldta_data.video_enabled,
-        audio_enabled = ldta_data.audio_enabled,
-        effects_enabled = ldta_data.effects_enabled,
-        motion_blur_enabled = ldta_data.motion_blur_enabled,
-        frame_blend_enabled = ldta_data.frame_blend_enabled,
-        lock_enabled = ldta_data.lock_enabled,
-        shy_enabled = ldta_data.shy_enabled,
-        collapse_transform_enabled = ldta_data.collapse_transform_enabled,
+        source_id=ldta_data.source_id,
+        quality=LayerQualityLevel(ldta_data.quality),
+        guide_enabled=ldta_data.guide_enabled,
+        frame_blend_mode=LayerFrameBlendMode(ldta_data.frame_blend_mode),
+        sampling_mode=LayerSamplingMode(ldta_data.sampling_mode),
+        adjustment_layer_enabled=ldta_data.adjustment_layer_enabled,
+        three_d_enabled=ldta_data.three_d_enabled,
+        solo_enabled=ldta_data.solo_enabled,
+        video_enabled=ldta_data.video_enabled,
+        audio_enabled=ldta_data.audio_enabled,
+        effects_enabled=ldta_data.effects_enabled,
+        motion_blur_enabled=ldta_data.motion_blur_enabled,
+        frame_blend_enabled=ldta_data.frame_blend_enabled,
+        lock_enabled=ldta_data.lock_enabled,
+        shy_enabled=ldta_data.shy_enabled,
+        collapse_transform_enabled=ldta_data.collapse_transform_enabled,
     )
 
     name_block = sublist_find_by_type([layer_block], Aep.ChunkType.utf8)
@@ -53,7 +52,7 @@ def parse_layer(layer_block):
     print('layer_block.data.identifier: ', layer_block.data.identifier)
     tdgp_blocks = sublist_filter_by_identifier([layer_block], Aep.ChunkType.tdgp)
     print('tdgp_blocks: ', tdgp_blocks)
-    root_tdgp = indexed_group_to_map(tdgp_block)
+    root_tdgp = indexed_group_to_map(tdgp_blocks)
 
     # Parse effects stack
     effects_tdgp = root_tdgp["ADBE Effect Parade"]
