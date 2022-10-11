@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
-from __future__ import print_function
 
 from aep_parser.item_parser import parse_item
 from aep_parser.kaitai.aep import Aep
@@ -23,7 +22,7 @@ def parse_project(path):
         root_blocks = aep.data.blocks
         expression_engine = find_by_identifier(root_blocks, "ExEn") 
         if expression_engine:
-            project.expression_engine = expression_engine
+            project.expression_engine = to_string(expression_engine)  # FIXME
 
         # get project depth in BPC (8, 16 or 32)
         nhed_block = find_by_type(root_blocks, Aep.ChunkType.nhed)
@@ -62,7 +61,7 @@ def parse_project(path):
         # TODO move to layer_parser
         # Layers that have not been given an explicit name should be named after their source
         for item in project.items.values():
-            if item.item_type == Aep.ItemType.COMPOSITION:
+            if item.item_type == Aep.ItemType.composition:
                 for layer in item.composition_layers:
                     if not layer.name:
                         layer.name = project.items[layer.source_id].name

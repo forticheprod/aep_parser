@@ -27,8 +27,8 @@ class Layer(object):
         self.effects_enabled = effects_enabled
         self.audio_enabled = audio_enabled
         self.video_enabled = video_enabled
-        self.effects = effects
         self.text = text
+        self.effects = effects
 
     def __repr__(self):
         return str(self.__dict__)

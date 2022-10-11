@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
-from __future__ import print_function
 
 
 from aep_parser.kaitai.aep import Aep
@@ -47,29 +46,26 @@ def parse_layer(layer_block):
     if name_block is None:
         return
 
-    layer.name = name_block.data.data
+    layer.name = to_string(name_block.data.data)  # FIXME
 
-    print('layer_block.data.identifier: ', layer_block.data.identifier)
-    tdgp_blocks = sublist_filter_by_identifier([layer_block], Aep.ChunkType.tdgp)
-    print('tdgp_blocks: ', tdgp_blocks)
-    root_tdgp = indexed_group_to_map(tdgp_blocks)
+    tdgp_blocks = sublist_filter_by_identifier([layer_block], "tdgp")
+    root_tdgp_block = tdgp_blocks[0]
+    tdgp_map, match_names = indexed_group_to_map(root_tdgp_block)
 
     # Parse effects stack
-    effects_tdgp = root_tdgp["ADBE Effect Parade"]
+    effects_tdgp = tdgp_map.get("ADBE Effect Parade")
     if effects_tdgp is not None:
         effects_prop = parse_property(effects_tdgp, "ADBE Effect Parade")
         if effects_prop is None:
             return
         layer.effects = effects_prop.properties
-    else:
-        layer.effects = []
 
     # Parse text layer properties
-    text_tdgp = root_tdgp["ADBE Text Properties"]
+    text_tdgp = tdgp_map.get("ADBE Text Properties")
     if text_tdgp is not None:
         text_prop = parse_property(text_tdgp, "ADBE Text Properties")
         if text_prop is None:
             return
-        layer.Text = text_prop
+        layer.text = text_prop
 
     return layer

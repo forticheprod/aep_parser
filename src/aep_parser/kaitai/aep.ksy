@@ -43,7 +43,8 @@ types:
             'chunk_type::nhed': nhed_body
             'chunk_type::sspc': sspc_body
             'chunk_type::ldta': ldta_body
-            'chunk_type::opti': opti_body
+            # 'chunk_type::opti': opti_body
+            'chunk_type::pard': pard_body
             _: ascii_body
       - id: padding
         type: u1
@@ -52,7 +53,7 @@ types:
     seq:
       - id: identifier
         type: str
-        encoding: cp1252
+        encoding: cp1250
         size: 4
       - id: blocks
         type: blocks
@@ -96,7 +97,7 @@ types:
       - id: background_color
         type: str
         size: 3 # 52-55
-        encoding: cp1252
+        encoding: cp1250
       - id: unknown03
         size: 85 # 55-140
       - id: width
@@ -132,19 +133,32 @@ types:
         type: u4 # 56-60
       - id: framerate_dividend
         type: u2 # 60-62
-  opti_body:
-    seq:
-      - id: unknown01
-        size: 4 # 0-4
-      - id: footage_type
-        type: u2 # 4-6
-        enum: footage_type
-      - id: unknown02
-        size: 'footage_type == footage_type::solid ? 20 : 4' # 6-26 or 6-10
-      - id: name
-        type: str
-        encoding: cp1252
-        size: 'footage_type == footage_type::solid ? 229 : 245' #26-255 or 10-255
+  # opti_body:
+  #   seq:
+  #     - id: unknown01
+  #       size: 4 # 0-4
+  #     - id: footage_type
+  #       type: u2 # 4-6
+  #       enum: footage_type
+  #     - id: unknown02
+  #       size: 20 # 6-26
+  #       if: footage_type == footage_type::solid
+  #     - id: solid_name
+  #       type: str
+  #       encoding: cp1250
+  #       size: 229 #26-255
+  #       if: footage_type == footage_type::solid
+  #     - id: unknown04
+  #       size-eos: true # 255-xx
+  #       if: footage_type == footage_type::solid
+  #     - id: unknown03
+  #       size: 4 # 6-10
+  #       if: footage_type == footage_type::placeholder
+  #     - id: placeholder_name
+  #       type: str
+  #       encoding: cp1250
+  #       size-eos: true # 10-xx
+  #       if: footage_type == footage_type::placeholder
   ldta_body:
     seq:
       - id: unknown01
@@ -157,35 +171,47 @@ types:
         size: 3 # 37-40
       - id: source_id
         type: u4 # 40-44
-    # instances:
-    #   guide_enabled:
-    #     value: '((layer_attr_bits[0] & (1 << 1)) >> 1) == 1'
-    #   frame_blend_mode:
-    #     value: '((layer_attr_bits[0] & (1 << 2)) >> 2)'
-    #   sampling_mode:
-    #     value: '((layer_attr_bits[0] & (1 << 6)) >> 6)'
-    #   adjustment_layer_enabled:
-    #     value: '((layer_attr_bits[1] & (1 << 1)) >> 1) == 1'
-    #   three_d_enabled:
-    #     value: '((layer_attr_bits[1] & (1 << 2)) >> 2) == 1'
-    #   solo_enabled:
-    #     value: '((layer_attr_bits[1] & (1 << 3)) >> 3) == 1'
-    #   video_enabled:
-    #     value: '((layer_attr_bits[2] & (1 << 0)) >> 0) == 1'
-    #   audio_enabled:
-    #     value: '((layer_attr_bits[2] & (1 << 1)) >> 1) == 1'
-    #   effects_enabled:
-    #     value: '((layer_attr_bits[2] & (1 << 2)) >> 2) == 1'
-    #   motion_blur_enabled:
-    #     value: '((layer_attr_bits[2] & (1 << 3)) >> 3) == 1'
-    #   frame_blend_enabled:
-    #     value: '((layer_attr_bits[2] & (1 << 4)) >> 4) == 1'
-    #   lock_enabled:
-    #     value: '((layer_attr_bits[2] & (1 << 5)) >> 5) == 1'
-    #   shy_enabled:
-    #     value: '((layer_attr_bits[2] & (1 << 6)) >> 6) == 1'
-    #   collapse_transform_enabled:
-    #     value: '((layer_attr_bits[2] & (1 << 7)) >> 7) == 1'
+    instances:
+      guide_enabled:
+        value: '((layer_attr_bits[0] & (1 << 1)) >> 1) == 1'
+      frame_blend_mode:
+        value: '((layer_attr_bits[0] & (1 << 2)) >> 2)'
+      sampling_mode:
+        value: '((layer_attr_bits[0] & (1 << 6)) >> 6)'
+      adjustment_layer_enabled:
+        value: '((layer_attr_bits[1] & (1 << 1)) >> 1) == 1'
+      three_d_enabled:
+        value: '((layer_attr_bits[1] & (1 << 2)) >> 2) == 1'
+      solo_enabled:
+        value: '((layer_attr_bits[1] & (1 << 3)) >> 3) == 1'
+      video_enabled:
+        value: '((layer_attr_bits[2] & (1 << 0)) >> 0) == 1'
+      audio_enabled:
+        value: '((layer_attr_bits[2] & (1 << 1)) >> 1) == 1'
+      effects_enabled:
+        value: '((layer_attr_bits[2] & (1 << 2)) >> 2) == 1'
+      motion_blur_enabled:
+        value: '((layer_attr_bits[2] & (1 << 3)) >> 3) == 1'
+      frame_blend_enabled:
+        value: '((layer_attr_bits[2] & (1 << 4)) >> 4) == 1'
+      lock_enabled:
+        value: '((layer_attr_bits[2] & (1 << 5)) >> 5) == 1'
+      shy_enabled:
+        value: '((layer_attr_bits[2] & (1 << 6)) >> 6) == 1'
+      collapse_transform_enabled:
+        value: '((layer_attr_bits[2] & (1 << 7)) >> 7) == 1'
+  pard_body:
+    seq:
+      - id: unknown01
+        size: 14 # 0-14
+      - id: property_type
+        type: u2 # 14-16
+      - id: name
+        size: 32 # 16-48
+        type: str
+        encoding: cp1250
+      - id: unknown02
+        size-eos: true
 
 enums:
   chunk_type:
@@ -223,64 +249,77 @@ enums:
     0x67647461:
       id: gdta
       doc: ?? data
-    0x73766170: svap
-    0x68656164: head
-    0x6e6e6864: nnhd
-    0x61646672: adfr
-    0x71746c67: qtlg
-    0x73666964: sfid
-    0x61636572: acer
-    0x63706964: cpid
-    0x64776761: dwga
-    0x6e756d53: nums
-    0x63647270: cdrp
-    0x7072696e: prin
-    0x70726461: prda
-    0x74647362: tdsb
-    0x7464736e: tdsn
-    0x74646d6e: tdmn
-    0x7464756d: tdum
-    0x74646234: tdb4
-    0x63646174: cdat
-    0x43707243: cprc
-    0x43734374: csct
-    0x4361704c: capl
-    0x4350546d: cptm
-    0x43524f49: croi
-    0x43634374: ccct
-    0x6f746c6e: otln
-    0x73657120: seq
-    0x41437369: acsi
-    0x41437369: acsi
-    0x66766476: fvdv
-    0x66696f70: fiop
-    0x66747473: ftts
-    0x666f6163: foac
-    0x666f7473: fots
-    0x666f7474: fott
-    0x666f7663: fovc
-    0x666f7669: fovi
-    0x66696163: fiac
-    0x66697473: fits
-    0x66697474: fitt
-    0x66697663: fivc
-    0x66697669: fivi
-    0x66697063: fipc
-    0x66696469: fidi
-    0x6669706c: fipl
-    0x66696d72: fimr
-    0x66697073: fips
-    0x6669666c: fifl
-    0x77736e73: wsns
-    0x77736e6d: wsnm
-    0x66636964: fcid
-    0x6f616363: oacc
-    0x41467369: afsi
-    0x52686564: rhed
-    0x526f7574: rout
-    0x6c686433: lhd3
-    0x41527369: arsi
-    0x66747764: ftwd
+    0x74646d6e:
+      id: tdmn
+      doc: Transform ??
+    0x666e616d:
+      id: fnam
+      doc: group property name ?
+    0x7464736e:
+      id: tdsn
+      doc: user-defined label of a property
+    0x70646e6d:
+      id: pdnm
+      doc: property ??
+    0x70617264:
+      id: pard
+      doc: property ??
+    # 0x73766170: svap
+    # 0x68656164: head
+    # 0x6e6e6864: nnhd
+    # 0x61646672: adfr
+    # 0x71746c67: qtlg
+    # 0x73666964: sfid
+    # 0x61636572: acer
+    # 0x63706964: cpid
+    # 0x64776761: dwga
+    # 0x6e756d53: nums
+    # 0x63647270: cdrp
+    # 0x7072696e: prin
+    # 0x70726461: prda
+    # 0x74647362: tdsb
+    # 0x7464756d: tdum
+    # 0x74646234: tdb4
+    # 0x63646174: cdat
+    # 0x43707243: cprc
+    # 0x43734374: csct
+    # 0x4361704c: capl
+    # 0x4350546d: cptm
+    # 0x43524f49: croi
+    # 0x43634374: ccct
+    # 0x6f746c6e: otln
+    # 0x73657120: seq
+    # 0x41437369: acsi
+    # 0x41437369: acsi
+    # 0x66766476: fvdv
+    # 0x66696f70: fiop
+    # 0x66747473: ftts
+    # 0x666f6163: foac
+    # 0x666f7473: fots
+    # 0x666f7474: fott
+    # 0x666f7663: fovc
+    # 0x666f7669: fovi
+    # 0x66696163: fiac
+    # 0x66697473: fits
+    # 0x66697474: fitt
+    # 0x66697663: fivc
+    # 0x66697669: fivi
+    # 0x66697063: fipc
+    # 0x66696469: fidi
+    # 0x6669706c: fipl
+    # 0x66696d72: fimr
+    # 0x66697073: fips
+    # 0x6669666c: fifl
+    # 0x77736e73: wsns
+    # 0x77736e6d: wsnm
+    # 0x66636964: fcid
+    # 0x6f616363: oacc
+    # 0x41467369: afsi
+    # 0x52686564: rhed
+    # 0x526f7574: rout
+    # 0x6c686433: lhd3
+    # 0x41527369: arsi
+    # 0x66747764: ftwd
   depth: # project bit depth
     0x00: bpc_8
     0x01: bpc_16

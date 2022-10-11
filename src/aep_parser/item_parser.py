@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
-from __future__ import print_function
 from __future__ import division
 
 from aep_parser.kaitai.aep import Aep
@@ -10,12 +9,12 @@ from aep_parser.rifx.utils import (
     find_by_type,
     sublist_find_by_type,
     sublist_filter_by_identifier,
+    sublist_filter_by_type,
 )
 
 
 def parse_item(item_block, project):
     item = Item()
-    print('item_block.data.identifier: ', item_block.data.identifier)
     is_root = item_block.data.identifier == "Fold"
 
     # Parse item metadata
@@ -28,7 +27,7 @@ def parse_item(item_block, project):
         if name_block is None:
             # TODO add warning
             return
-        item.name = name_block.data.data
+        item.name = to_string(name_block.data.data)  # FIXME
 
         idta_block = sublist_find_by_type([item_block], Aep.ChunkType.idta)
         if idta_block is None:
@@ -58,24 +57,24 @@ def parse_item(item_block, project):
             # TODO add warning
             return
 
-        sspc_block = sublist_filter_by_type(pin_blocks, "sspc")
+        sspc_block = sublist_find_by_type(pin_blocks, Aep.ChunkType.sspc)
         if sspc_block is None:
             # TODO add warning
             return
-        sspec_data = sspc_block.data
+        sspc_data = sspc_block.data
 
-        item.footage_dimensions = [sspec_data.width, sspec_data.height]
-        item.footage_framerate = sspec_data.Framerate + sspec_data.framerate_dividend / (1 << 16)  # TODO check if float() needed
-        item.footage_seconds = sspec_data.seconds_dividend / sspec_data.seconds_divisor  # TODO check if float() needed
+        item.footage_dimensions = [sspc_data.width, sspc_data.height]
+        item.footage_framerate = sspc_data.framerate + sspc_data.framerate_dividend / (1 << 16)  # TODO check if float() needed
+        item.footage_seconds = sspc_data.seconds_dividend / sspc_data.seconds_divisor  # TODO check if float() needed
 
-        opti_block = find_by_type(pin_blocks, Aep.ChunkType.opti)
+        opti_block = sublist_find_by_type(pin_blocks, Aep.ChunkType.opti)
         if opti_block is None:
             # TODO add warning
             return
 
         opti_data = opti_block.data
         item.footage_type = opti_data.footage_type  # TODO check this
-        item.name = opti_data.name  # TODO check this
+        # item.name = opti_data.name.rstrip("\x00")  # TODO check this
 
     elif item.item_type == Aep.ItemType.composition:
         cdta_block = sublist_find_by_type([item_block], Aep.ChunkType.cdta)
@@ -91,7 +90,6 @@ def parse_item(item_block, project):
 
         # Parse composition's layers
         layer_sub_blocks = sublist_filter_by_identifier([item_block], "Layr")
-        print('layer_sub_blocks: ', layer_sub_blocks)
         for index, layer_block in enumerate(layer_sub_blocks, start=1):
             layer = parse_layer(layer_block)
             if layer is None:
