@@ -14,6 +14,7 @@ from aep_parser.property_parser import (
 from aep_parser.rifx.utils import (
     find_by_type,
     find_by_identifier,
+    str_contents,
 )
 
 
@@ -52,7 +53,7 @@ def parse_layer(layer_block):
     if name_block is None:
         return
 
-    layer.name = name_block.data.data.strip("\x00")  # TODO check this
+    layer.name = str_contents(name_block)  # TODO check this
 
     root_tdgp_block = find_by_identifier(
         layer_block.data.blocks.blocks,
