@@ -163,6 +163,33 @@ class Aep(KaitaiStruct):
             self.framerate_dividend = self._io.read_u2be()
 
 
+    class OptiBody(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.unknown01 = self._io.read_bytes(4)
+            self.footage_type = KaitaiStream.resolve_enum(Aep.FootageType, self._io.read_u2be())
+            if self.footage_type == Aep.FootageType.solid:
+                self.unknown02 = self._io.read_bytes(20)
+
+            if self.footage_type == Aep.FootageType.solid:
+                self.solid_name = (self._io.read_bytes(229)).decode(u"cp1250")
+
+            if self.footage_type == Aep.FootageType.solid:
+                self.unknown04 = self._io.read_bytes_full()
+
+            if self.footage_type == Aep.FootageType.placeholder:
+                self.unknown03 = self._io.read_bytes(4)
+
+            if self.footage_type == Aep.FootageType.placeholder:
+                self.placeholder_name = (self._io.read_bytes_full()).decode(u"cp1250")
+
+
+
     class Block(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -178,6 +205,10 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes(self.block_size)
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.FdtaBody(_io__raw_data, self, self._root)
+            elif _on == Aep.ChunkType.opti:
+                self._raw_data = self._io.read_bytes(self.block_size)
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.OptiBody(_io__raw_data, self, self._root)
             elif _on == Aep.ChunkType.sspc:
                 self._raw_data = self._io.read_bytes(self.block_size)
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
@@ -215,11 +246,7 @@ class Aep(KaitaiStruct):
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.CdtaBody(_io__raw_data, self, self._root)
             else:
-                try:
-                    self._raw_data = self._io.read_bytes(self.block_size)
-                except:
-                    print('self.block_size: ', self.block_size)
-                    asd
+                self._raw_data = self._io.read_bytes(self.block_size)
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.AsciiBody(_io__raw_data, self, self._root)
             if (self.block_size % 2) != 0:

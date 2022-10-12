@@ -5,10 +5,10 @@ from aep_parser.kaitai.aep import Aep
 from aep_parser.models.property import Property
 from aep_parser.models.property_type import PropertyType
 from aep_parser.rifx.utils import (
+    filter_by_identifier,
+    find_by_identifier,
     find_by_type,
-    sublist_filter_by_identifier,
-    sublist_find_by_identifier,
-    sublist_find_by_type,
+    str_contents,
 )
 
 
@@ -35,21 +35,33 @@ def parse_property(property_block, match_name):
         # Parse effect sub-properties
         if property_block.identifier == "sspc":
             prop.property_type = PropertyType.GROUP
-            fnam_block = sublist_find_by_type([property_block], Aep.ChunkType.fnam)
+            fnam_block = find_by_type(
+                property_block.data.blocks.blocks,
+                Aep.ChunkType.fnam
+            )
             if fnam_block is not None:
-                prop.name = to_string(fnam_block)  # FIXME
-            tdgp_block = sublist_find_by_identifier([property_block], "tdgp")
+                prop.name = str_contents(fnam_block)  # FIXME
+            tdgp_block = find_by_identifier(
+                property_block.data.blocks.blocks,
+                "tdgp"
+            )
             if tdgp_block is not None:
                 # Look for a tdsn which specifies the user-defined label of the property
-                tdsn_block = sublist_find_by_type([tdgp_block], Aep.ChunkType.tdsn)
+                tdsn_block = find_by_type(
+                    tdgp_block.data.blocks.blocks,
+                    Aep.ChunkType.tdsn
+                )
                 if tdsn_block is not None:
-                    label = to_string(tdsn_block)  # FIXME
+                    label = str_contents(tdsn_block)  # FIXME
 
                     # Check if there is a custom user defined label added. The default if there
                     # is not is "-_0_/-" for some unknown reason.
                     if label != "-_0_/-":
                         prop.label = label
-            par_t_blocks = sublist_filter_by_identifier([property_block], "parT")
+            par_t_blocks = filter_by_identifier(
+                property_block.data.blocks.blocks,
+                "parT"
+            )
             sub_prop_match_names, sub_prop_pards = pair_match_names(par_t_blocks)
             for i, mn in enumerate(sub_prop_match_names):
                 # Skip first pard entry (describes parent)
@@ -59,14 +71,14 @@ def parse_property(property_block, match_name):
                 if sub_prop is not None:
                     sub_prop.index = i
                     prop.properties.append(sub_prop)
-    elif isinstance(property_block, interface):  # FIXME I don't understand this one...
+    elif isinstance(property_block, interface):  # FIXME I don't understand this... interface ??
         for block in property_block.data.blocks.blocks:
             if block.block_type == Aep.ChunkType.pdnm:
-                str_content = to_string(block.data.data)
+                contents = str_contents(block)  # TODO check this
                 if prop.property_type == PropertyType.SELECT:
-                    prop.select_options = str_content.split("|")
-                elif str_content:
-                    prop.name = str_content
+                    prop.select_options = contents.split("|")
+                elif contents:
+                    prop.name = contents
             elif block.block_type == Aep.ChunkType.pard:
                 prop.property_type = PropertyType(block.data.property_type)  # TODO check this
                 if prop.property_type == 0x0a:  # FIXME
@@ -86,7 +98,7 @@ def pair_match_names(root_block):
         skip_to_next_tdmn_flag = False
         for block in root_block.data.blocks.blocks:
             if block.block_type == Aep.ChunkType.tdmn:
-                match_name = block.data.data.rstrip("\x00")
+                match_name = str_contents(block)
                 if match_name in ("ADBE Group End", "ADBE Effect Built In Params"):
                     skip_to_next_tdmn_flag = True
                     continue

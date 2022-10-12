@@ -7,9 +7,9 @@ from aep_parser.layer_parser import parse_layer
 from aep_parser.models.item import Item
 from aep_parser.rifx.utils import (
     find_by_type,
-    sublist_find_by_type,
-    sublist_filter_by_identifier,
-    sublist_filter_by_type,
+    filter_by_identifier,
+    filter_by_type,
+    str_contents,
 )
 
 
@@ -23,13 +23,19 @@ def parse_item(item_block, project):
         item.name = "root"
         item.item_type = Aep.ItemType.folder
     else:
-        name_block = sublist_find_by_type([item_block], Aep.ChunkType.utf8)
+        name_block = find_by_type(
+            item_block.data.blocks.blocks,
+            Aep.ChunkType.utf8
+        )
         if name_block is None:
             # TODO add warning
             return
-        item.name = to_string(name_block.data.data)  # FIXME
+        item.name = str_contents(name_block)  # TODO check this
 
-        idta_block = sublist_find_by_type([item_block], Aep.ChunkType.idta)
+        idta_block = find_by_type(
+            item_block.data.blocks.blocks,
+            Aep.ChunkType.idta
+        )
         if idta_block is None:
             # TODO add warning
             return
@@ -39,8 +45,12 @@ def parse_item(item_block, project):
 
     # Parse unique item type information
     if item.item_type == Aep.ItemType.folder:
-        child_item_list_blocks = sublist_filter_by_identifier(
-            [item_block] + sublist_filter_by_identifier([item_block], "Sfdr"),
+        child_sfdr_blocks = filter_by_identifier(
+            item_block.data.blocks.blocks,
+            "Sfdr"
+        )
+        child_item_list_blocks = filter_by_identifier(
+            item_block.data.blocks.blocks + child_sfdr_blocks,
             "Item"
         )
         for child_item_list_block in child_item_list_blocks:
@@ -52,32 +62,44 @@ def parse_item(item_block, project):
             item.folder_contents.append(child_item)
 
     elif item.item_type == Aep.ItemType.footage:
-        pin_blocks = sublist_filter_by_identifier([item_block], "Pin ")
-        if not pin_blocks:
+        pin_block = find_by_identifier(
+            item_block.data.blocks.blocks,
+            "Pin "
+        )
+        if not pin_block:
             # TODO add warning
             return
 
-        sspc_block = sublist_find_by_type(pin_blocks, Aep.ChunkType.sspc)
+        sspc_block = find_by_type(
+            pin_block.data.blocks.blocks,
+            Aep.ChunkType.sspc
+        )
         if sspc_block is None:
             # TODO add warning
             return
         sspc_data = sspc_block.data
 
         item.footage_dimensions = [sspc_data.width, sspc_data.height]
-        item.footage_framerate = sspc_data.framerate + sspc_data.framerate_dividend / (1 << 16)  # TODO check if float() needed
-        item.footage_seconds = sspc_data.seconds_dividend / sspc_data.seconds_divisor  # TODO check if float() needed
+        item.footage_framerate = float(sspc_data.framerate + sspc_data.framerate_dividend) / (1 << 16)
+        item.footage_seconds = float(sspc_data.seconds_dividend) / sspc_data.seconds_divisor
 
-        opti_block = sublist_find_by_type(pin_blocks, Aep.ChunkType.opti)
+        opti_block = find_by_type(
+            pin_blockdata.blocks.blocks,
+            Aep.ChunkType.opti
+        )
         if opti_block is None:
             # TODO add warning
             return
 
         opti_data = opti_block.data
         item.footage_type = opti_data.footage_type  # TODO check this
-        # item.name = opti_data.name.rstrip("\x00")  # TODO check this
+        item.name = opti_data.name.rstrip("\x00")  # TODO check this
 
     elif item.item_type == Aep.ItemType.composition:
-        cdta_block = sublist_find_by_type([item_block], Aep.ChunkType.cdta)
+        cdta_block = find_by_type(
+            item_block.data.blocks.blocks,
+            Aep.ChunkType.cdta
+        )
         if cdta_block is None:
             # TODO add warning
             return
@@ -89,7 +111,7 @@ def parse_item(item_block, project):
         item.background_color = cdta_data.background_color
 
         # Parse composition's layers
-        layer_sub_blocks = sublist_filter_by_identifier([item_block], "Layr")
+        layer_sub_blocks = filter_by_identifier(item_block.data.blocks.blocks, "Layr")
         for index, layer_block in enumerate(layer_sub_blocks, start=1):
             layer = parse_layer(layer_block)
             if layer is None:

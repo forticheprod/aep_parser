@@ -12,13 +12,16 @@ from aep_parser.property_parser import (
     indexed_group_to_map,
 )
 from aep_parser.rifx.utils import (
-    sublist_find_by_type,
-    sublist_filter_by_identifier,
+    find_by_type,
+    find_by_identifier,
 )
 
 
 def parse_layer(layer_block):
-    ldta_block = sublist_find_by_type([layer_block], Aep.ChunkType.ldta)
+    ldta_block = find_by_type(
+        layer_block.data.blocks.blocks,
+        Aep.ChunkType.ldta
+    )
     if ldta_block is None:
         return
     ldta_data = ldta_block.data
@@ -42,14 +45,19 @@ def parse_layer(layer_block):
         collapse_transform_enabled=ldta_data.collapse_transform_enabled,
     )
 
-    name_block = sublist_find_by_type([layer_block], Aep.ChunkType.utf8)
+    name_block = find_by_type(
+        layer_block.data.blocks.blocks,
+        Aep.ChunkType.utf8
+    )
     if name_block is None:
         return
 
-    layer.name = to_string(name_block.data.data)  # FIXME
+    layer.name = name_block.data.data.strip("\x00")  # TODO check this
 
-    tdgp_blocks = sublist_filter_by_identifier([layer_block], "tdgp")
-    root_tdgp_block = tdgp_blocks[0]
+    root_tdgp_block = find_by_identifier(
+        layer_block.data.blocks.blocks,
+        "tdgp"
+    )
     tdgp_map, match_names = indexed_group_to_map(root_tdgp_block)
 
     # Parse effects stack

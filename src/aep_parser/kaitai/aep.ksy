@@ -43,7 +43,7 @@ types:
             'chunk_type::nhed': nhed_body
             'chunk_type::sspc': sspc_body
             'chunk_type::ldta': ldta_body
-            # 'chunk_type::opti': opti_body
+            'chunk_type::opti': opti_body
             'chunk_type::pard': pard_body
             _: ascii_body
       - id: padding
@@ -133,32 +133,32 @@ types:
         type: u4 # 56-60
       - id: framerate_dividend
         type: u2 # 60-62
-  # opti_body:
-  #   seq:
-  #     - id: unknown01
-  #       size: 4 # 0-4
-  #     - id: footage_type
-  #       type: u2 # 4-6
-  #       enum: footage_type
-  #     - id: unknown02
-  #       size: 20 # 6-26
-  #       if: footage_type == footage_type::solid
-  #     - id: solid_name
-  #       type: str
-  #       encoding: cp1250
-  #       size: 229 #26-255
-  #       if: footage_type == footage_type::solid
-  #     - id: unknown04
-  #       size-eos: true # 255-xx
-  #       if: footage_type == footage_type::solid
-  #     - id: unknown03
-  #       size: 4 # 6-10
-  #       if: footage_type == footage_type::placeholder
-  #     - id: placeholder_name
-  #       type: str
-  #       encoding: cp1250
-  #       size-eos: true # 10-xx
-  #       if: footage_type == footage_type::placeholder
+  opti_body:
+    seq:
+      - id: unknown01
+        size: 4 # 0-4
+      - id: footage_type
+        type: u2 # 4-6
+        enum: footage_type
+      - id: unknown02
+        size: 20 # 6-26
+        if: footage_type == footage_type::solid
+      - id: solid_name
+        type: str
+        encoding: cp1250
+        size: 229 #26-255
+        if: footage_type == footage_type::solid
+      - id: unknown04
+        size-eos: true # 255-xx
+        if: footage_type == footage_type::solid
+      - id: unknown03
+        size: 4 # 6-10
+        if: footage_type == footage_type::placeholder
+      - id: placeholder_name
+        type: str
+        encoding: cp1250
+        size-eos: true # 10-xx
+        if: footage_type == footage_type::placeholder
   ldta_body:
     seq:
       - id: unknown01

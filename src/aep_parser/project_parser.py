@@ -7,6 +7,8 @@ from aep_parser.models.project import Project
 from aep_parser.rifx.utils import (
     find_by_identifier,
     find_by_type,
+    filter_by_type,
+    str_contents,
 )
 
 
@@ -20,9 +22,9 @@ def parse_project(path):
         project = Project()
 
         root_blocks = aep.data.blocks
-        expression_engine = find_by_identifier(root_blocks, "ExEn") 
-        if expression_engine:
-            project.expression_engine = to_string(expression_engine)  # FIXME
+        expression_engine_block = find_by_identifier(root_blocks, "ExEn") 
+        if expression_engine_block:
+            project.expression_engine = str_contents(expression_engine_block)  # FIXME
 
         # get project depth in BPC (8, 16 or 32)
         nhed_block = find_by_type(root_blocks, Aep.ChunkType.nhed)
@@ -58,12 +60,11 @@ def parse_project(path):
 
         project.root_folder = folder
 
-        # TODO move to layer_parser
-        # Layers that have not been given an explicit name should be named after their source
-        for item in project.items.values():
-            if item.item_type == Aep.ItemType.composition:
-                for layer in item.composition_layers:
-                    if not layer.name:
-                        layer.name = project.items[layer.source_id].name
+        # # Layers that have not been given an explicit name should be named after their source
+        # for item in project.items.values():
+        #     if item.item_type == Aep.ItemType.composition:
+        #         for layer in item.composition_layers:
+        #             if not layer.name:
+        #                 layer.name = project.items[layer.source_id].name
 
         return project
