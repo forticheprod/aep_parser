@@ -18,24 +18,47 @@ from aep_parser.rifx.utils import (
 )
 
 
-def parse_layer(layer_block):
-    ldta_block = find_by_type(
-        layer_block.data.blocks.blocks,
-        Aep.ChunkType.ldta
+def parse_layer(layer_chunk):
+    child_chunks = layer_chunk.data.chunks.chunks
+
+    ldta_chunk = find_by_type(
+        chunks=child_chunks,
+        chunk_type="ldta"
     )
-    if ldta_block is None:
+    if ldta_chunk is None:
+        # TODO log
         return
-    ldta_data = ldta_block.data
+
+    name_chunk = find_by_type(
+        chunks=child_chunks,
+        chunk_type="Utf8"
+    )
+    if name_chunk is None:
+        # TODO log
+        return
+
+    ldta_data = ldta_chunk.data
 
     layer = Layer(
-        source_id=ldta_data.source_id,
+        name=str_contents(name_chunk),
+        layer_id=ldta_data.layer_id,
         quality=LayerQualityLevel(ldta_data.quality),
+        start_time_sec=ldta_data.start_time,
+        in_time_sec=ldta_data.in_time,
+        out_time_sec=ldta_data.out_time,  # TODO check
+        source_id=ldta_data.source_id,
+        label_color=Aep.LabelColor(ldta_data.label_color),
+        matte_mode=Aep.MatteMode(ldta_data.matte_mode),
+        layer_type=Aep.LayerType(ldta_data.layer_type),
+        parent_id=ldta_data.parent_id,
         guide_enabled=ldta_data.guide_enabled,
         frame_blend_mode=LayerFrameBlendMode(ldta_data.frame_blend_mode),
         sampling_mode=LayerSamplingMode(ldta_data.sampling_mode),
+        auto_orient=ldta_data.auto_orient,
         adjustment_layer_enabled=ldta_data.adjustment_layer_enabled,
         three_d_enabled=ldta_data.three_d_enabled,
         solo_enabled=ldta_data.solo_enabled,
+        null_layer=ldta_data.null_layer,
         video_enabled=ldta_data.video_enabled,
         audio_enabled=ldta_data.audio_enabled,
         effects_enabled=ldta_data.effects_enabled,
@@ -46,20 +69,11 @@ def parse_layer(layer_block):
         collapse_transform_enabled=ldta_data.collapse_transform_enabled,
     )
 
-    name_block = find_by_type(
-        layer_block.data.blocks.blocks,
-        Aep.ChunkType.utf8
+    root_tdgp_chunk = find_by_identifier(
+        chunks=child_chunks,
+        identifier="tdgp"
     )
-    if name_block is None:
-        return
-
-    layer.name = str_contents(name_block)  # TODO check this
-
-    root_tdgp_block = find_by_identifier(
-        layer_block.data.blocks.blocks,
-        "tdgp"
-    )
-    tdgp_map, match_names = indexed_group_to_map(root_tdgp_block)
+    tdgp_map, match_names = indexed_group_to_map(root_tdgp_chunk)
 
     # Parse effects stack
     effects_tdgp = tdgp_map.get("ADBE Effect Parade")
@@ -77,4 +91,13 @@ def parse_layer(layer_block):
             return
         layer.text = text_prop
 
+    # Parse markers
+    marker_tdgp = tdgp_map.get("ADBE Marker")
+    if marker_tdgp is not None:
+        marker_prop = parse_property(marker_tdgp, "ADBE Text Properties")
+        if marker_prop is None:
+            return
+        layer.markers = marker_prop
+
+    
     return layer

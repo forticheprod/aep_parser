@@ -4,59 +4,69 @@ meta:
   file-extension: aep
 
 seq:
-  - id: magic1
+  - id: header
     contents: [0x52, 0x49, 0x46, 0x58]
     doc: RIFF
   - id: file_size
     type: u4
-  - id: magic2
+  - id: format
     contents: [0x45, 0x67, 0x67, 0x21]
     doc: Egg!
   - id: data
-    type: blocks
-    size: file_size - 4
+    type: chunks
+    size: file_size - format._sizeof
     
 types:
-  blocks:
+  chunks:
     seq:
-      - id: blocks
-        type: block
+      - id: chunks
+        type: chunk
         repeat: eos
-  block:
+  chunk:
     seq: 
-      - id: block_type
-        type: u4
-        enum: chunk_type
-      - id: block_size
+      - id: chunk_type
+        size: 4
+        type: str
+        encoding: ascii
+      - id: chunk_size
         type: u4
       - id: data
-        size: block_size
+        size: chunk_size
         type: 
-          switch-on: block_type
+          switch-on: chunk_type
           cases:
-            'chunk_type::lst': list_body
-            'chunk_type::utf8': utf8_body
-            'chunk_type::cdta': cdta_body
-            'chunk_type::idta': idta_body
-            'chunk_type::cmta': utf8_body
-            'chunk_type::fdta': fdta_body
-            'chunk_type::nhed': nhed_body
-            'chunk_type::sspc': sspc_body
-            'chunk_type::ldta': ldta_body
-            'chunk_type::opti': opti_body
-            'chunk_type::pard': pard_body
+            '"LIST"': list_body # List data
+            '"Utf8"': utf8_body
+            '"cdta"': cdta_body # Composition data
+            '"idta"': idta_body # Item data
+            '"cmta"': utf8_body # Comment data
+            '"fdta"': fdta_body # Folder data
+            '"nhed"': nhed_body # Header data
+            '"sspc"': sspc_body # Sub properties ??
+            '"ldta"': ldta_body # Layer data
+            '"opti"': opti_body # Asset data
+            '"pard"': pard_body # property ??
+            '"tdb4"': tdb4_body # property metadata
+            '"head"': head_body # contains AE version and file revision
+            '"tdmn"': utf8_body # Transform property group end
+            '"tdsn"': utf8_body # contain other chunks. user-defined label of a property
+            '"fnam"': utf8_body # contain other chunks. group property name ?
+            '"pdnm"': utf8_body # contains other chunks. property ??
+            # '"fiac"': ascii_body # active item, not sure about encoding
+            '"tdsb"': ascii_body # transform property group flags, not sure about encoding
+            '"tdgp"': ascii_body # Transform properties group, not sure about encoding
             _: ascii_body
       - id: padding
         type: u1
-        if: (block_size % 2) != 0
+        if: (chunk_size % 2) != 0
   list_body:
     seq:
       - id: identifier
         type: str
         encoding: cp1250
         size: 4
-      - id: blocks
-        type: blocks
+      - id: chunks
+        type: chunks
   utf8_body:
     seq:
       - id: data
@@ -76,38 +86,106 @@ types:
         size: 14
       - id: item_id
         type: u4
+      - id: unknown02
+        size: 38
+      - id: label_color
+        type: u1
+        enum: label_color
   fdta_body:
     seq:
       - id: unknown01
         size: 1
   cdta_body:
     seq:
+      - id: x_resolution
+        type: u2 # 1-2
+      - id: y_resolution
+        type: u2 # 3-4
       - id: unknown01
-        size: 4 # 0-4
-      - id: framerate_divisor
-        type: u4 # 4-8
-      - id: framerate_dividend
-        type: u4 # 8-12
+        size: 2 # 5-6
+      - id: time_scale
+        type: u2 # 7-8
       - id: unknown02
-        size: 32 # 12-44
-      - id: seconds_dividend
-        type: u4 # 44-48
-      - id: seconds_divisor
-        type: u4 # 48-52
-      - id: background_color
-        type: str
-        size: 3 # 52-55
-        encoding: cp1250
+        size: 2 # 9-10
+      - id: framerate_dividend
+        type: u2 # 11-12
       - id: unknown03
-        size: 85 # 55-140
-      - id: width
-        type: u2 # 140-142
-      - id: height
-        type: u2 # 142-144
+        size: 9 # 13-21
+      - id: playhead
+        type: u2 # 22-23
       - id: unknown04
-        size: 12 # 144-156
-      - id: frame_rate
-        type: u2 # 156-158
+        size: 6 # 24-29
+      - id: in_time
+        type: u2 # 30-31
+      - id: unknown05
+        size: 6 # 32-37
+      - id: out_time_raw
+        type: u2 # 38-39
+      - id: unknown06
+        size: 5 # 40-44
+      - id: duration_dividend
+        type: u4 # 45-48
+      - id: duration_divisor
+        type: u4 # 49-52
+      - id: background_color
+        type: u1 # 53-55
+        repeat: expr
+        repeat-expr: 3
+      - id: unknown08
+        size: 84 # 56-139
+      - id: attributes
+        size: 1 # 140
+      - id: width
+        type: u2 # 141-142
+      - id: height
+        type: u2 # 143-144
+      - id: pixel_ratio_width
+        type: u4 # 145-148
+      - id: pixel_ratio_height
+        type: u4 # 149-152
+      - id: unknown09
+        size: 4 # 153-156
+      - id: frame_rate_integer
+        type: u2 # 157-158
+      - id: unknown10
+        size: 16 # 159-174
+      - id: shutter_angle
+        type: u2 # 175-176
+      - id: shutter_phase
+        type: u4 # 177-180
+      - id: unknown11
+        size: 16 # 181-196
+      - id: samples_limit
+        type: s4 # 197-200
+      - id: samples_per_frame
+        type: s4 # 201-204
+    instances:
+      framerate:
+        value: 'framerate_dividend / time_scale'
+      duration:
+        value: 'duration_dividend / duration_divisor'
+      out_time:
+        value: 'out_time_raw == 0xffff ? duration : out_time_raw'
+      pixel_ratio:
+        value: 'pixel_ratio_width / pixel_ratio_height'
+      playhead_frames:
+        value: 'playhead * framerate'
+      in_time_frames:
+        value: 'in_time * framerate'
+      out_time_frames:
+        value: 'out_time * framerate'
+      duration_frames:
+        value: 'duration * framerate'
+      shy_enabled:
+        value: '(attributes[0] & 1) != 0'
+      motion_blur_enabled:
+        value: '(attributes[0] & (1 << 3)) != 0'
+      frame_blend_enabled:
+        value: '(attributes[0] & (1 << 4)) != 0'
+      preserve_framerate:
+        value: '(attributes[0] & (1 << 5)) != 0'
+      preserve_resolution:
+        value: '(attributes[0] & (1 << 7)) != 0'
   nhed_body:
     seq:
       - id: unknown01
@@ -118,222 +196,428 @@ types:
   sspc_body:
     seq:
       - id: unknown01
-        size: 30 # 0-30
+        size: 32 # 1-32
       - id: width
-        type: u4 # 30-34
-      - id: height
-        type: u4 # 34-38
-      - id: seconds_dividend
-        type: u4 # 38-42
-      - id: seconds_divisor
-        type: u4 # 42-46
+        type: u2 # 33-34
       - id: unknown02
-        size: 10 # 46-56
+        size: 2 # 35-36
+      - id: height
+        type: u2 # 37-38
+      - id: duration_dividend
+        type: u4 # 39-42
+      - id: duration_divisor
+        type: u4 # 43-46
+      - id: unknown03
+        size: 10 # 47-56
       - id: framerate
-        type: u4 # 56-60
+        type: u4 # 57-60
       - id: framerate_dividend
-        type: u2 # 60-62
+        type: u2 # 61-62
+    instances:
+      duration:
+        value: 'duration_dividend / duration_divisor'
   opti_body:
     seq:
       - id: unknown01
-        size: 4 # 0-4
-      - id: footage_type
-        type: u2 # 4-6
-        enum: footage_type
+        size: 4 # 1-4
+      - id: asset_type
+        type: u2 # 5-6
+        enum: asset_type
       - id: unknown02
-        size: 20 # 6-26
-        if: footage_type == footage_type::solid
+        size: 4 # 7-10
+        if: asset_type == asset_type::solid
+      - id: alpha
+        type: f4 # 11-14
+        if: asset_type == asset_type::solid
+      - id: red
+        type: f4 # 15-18
+        if: asset_type == asset_type::solid
+      - id: green
+        type: f4 # 19-22
+        if: asset_type == asset_type::solid
+      - id: blue
+        type: f4 # 23-26
+        if: asset_type == asset_type::solid
       - id: solid_name
         type: str
         encoding: cp1250
-        size: 229 #26-255
-        if: footage_type == footage_type::solid
-      - id: unknown04
-        size-eos: true # 255-xx
-        if: footage_type == footage_type::solid
+        size: 256 # 27-255
+        if: asset_type == asset_type::solid
+      # - id: unknown04
+      #   size-eos: true # 256-xx
+      #   if: asset_type == asset_type::solid
       - id: unknown03
-        size: 4 # 6-10
-        if: footage_type == footage_type::placeholder
+        size: 4 # 7-10
+        if: asset_type == asset_type::placeholder
       - id: placeholder_name
         type: str
         encoding: cp1250
-        size-eos: true # 10-xx
-        if: footage_type == footage_type::placeholder
+        size-eos: true # 11-xx
+        if: asset_type == asset_type::placeholder
   ldta_body:
     seq:
-      - id: unknown01
-        size: 4 # 0-4
+      - id: layer_id
+        type: u4 # 1-4
       - id: quality
-        type: u2 # 4-6
+        type: u2 # 5-6
+      - id: unknown01
+        size: 7 # 7-13
+      - id: start_time
+        type: s2 # 14-15
       - id: unknown02
-        size: 31 # 6-37
-      - id: layer_attr_bits
-        size: 3 # 37-40
+        size: 6 # 16-21
+      - id: in_time
+        type: u2 # 22-23
+      - id: unknown03
+        size: 6 # 24-29
+      - id: out_time
+        type: u2 # 30-31
+      - id: unknown04
+        size: 6 # 32-37
+      - id: attributes
+        size: 3 # 38-40
       - id: source_id
-        type: u4 # 40-44
+        type: u4 # 41-44
+      - id: label_color
+        type: u1 # 45
+        enum: label_color
+      - id: unknown05
+        size: 2 # 46-47
+      - id: layer_name
+        size: 32 # 48-79
+        type: str
+        encoding: utf8
+      - id: unknown06
+        size: 11 # 80-90
+      - id: matte_mode
+        type: u1 # 91
+        enum: matte_mode
+      - id: layer_type
+        type: u1 # 92
+        enum: layer_type
+      - id: parent_id
+        type: u4 # 93-96
+      - id: unknown07
+        size: 24 # 97-120
+      # - id: matte_layer_id
+      #   type: u4 # 121-124
     instances:
       guide_enabled:
-        value: '((layer_attr_bits[0] & (1 << 1)) >> 1) == 1'
+        value: '(attributes[0] & (1 << 1)) != 0'
       frame_blend_mode:
-        value: '((layer_attr_bits[0] & (1 << 2)) >> 2)'
+        value: '(attributes[0] & (1 << 2)) >> 2'
       sampling_mode:
-        value: '((layer_attr_bits[0] & (1 << 6)) >> 6)'
+        value: '(attributes[0] & (1 << 6)) >> 6'
+      auto_orient:
+        value: '(attributes[1] & 1) != 0'
       adjustment_layer_enabled:
-        value: '((layer_attr_bits[1] & (1 << 1)) >> 1) == 1'
+        value: '(attributes[1] & (1 << 1)) != 0'
       three_d_enabled:
-        value: '((layer_attr_bits[1] & (1 << 2)) >> 2) == 1'
+        value: '(attributes[1] & (1 << 2)) != 0'
       solo_enabled:
-        value: '((layer_attr_bits[1] & (1 << 3)) >> 3) == 1'
+        value: '(attributes[1] & (1 << 3)) != 0'
+      null_layer:
+        value: '(attributes[1] & (1 << 7)) != 0'
       video_enabled:
-        value: '((layer_attr_bits[2] & (1 << 0)) >> 0) == 1'
+        value: '(attributes[2] & (1 << 0)) != 0'
       audio_enabled:
-        value: '((layer_attr_bits[2] & (1 << 1)) >> 1) == 1'
+        value: '(attributes[2] & (1 << 1)) != 0'
       effects_enabled:
-        value: '((layer_attr_bits[2] & (1 << 2)) >> 2) == 1'
+        value: '(attributes[2] & (1 << 2)) != 0'
       motion_blur_enabled:
-        value: '((layer_attr_bits[2] & (1 << 3)) >> 3) == 1'
+        value: '(attributes[2] & (1 << 3)) != 0'
       frame_blend_enabled:
-        value: '((layer_attr_bits[2] & (1 << 4)) >> 4) == 1'
+        value: '(attributes[2] & (1 << 4)) != 0'
       lock_enabled:
-        value: '((layer_attr_bits[2] & (1 << 5)) >> 5) == 1'
+        value: '(attributes[2] & (1 << 5)) != 0'
       shy_enabled:
-        value: '((layer_attr_bits[2] & (1 << 6)) >> 6) == 1'
+        value: '(attributes[2] & (1 << 6)) != 0'
       collapse_transform_enabled:
-        value: '((layer_attr_bits[2] & (1 << 7)) >> 7) == 1'
+        value: '(attributes[2] & (1 << 7)) != 0'
   pard_body:
     seq:
       - id: unknown01
-        size: 14 # 0-14
+        size: 15 # 1-15
       - id: property_type
-        type: u2 # 14-16
+        type: u1 # 16
+        enum: property_type
       - id: name
-        size: 32 # 16-48
+        size: 32 # 17-48
         type: str
         encoding: cp1250
       - id: unknown02
-        size-eos: true
+        size: 8 # 49-56
+      - id: last_color
+        type: u1 #
+        repeat: expr
+        repeat-expr: 4
+        if: property_type == property_type::color
+      - id: default_color
+        type: u1 #
+        repeat: expr
+        repeat-expr: 4
+        if: property_type == property_type::color
+      - id: last_value
+        type: 
+          switch-on: property_type
+          cases:
+            'property_type::scalar': s4
+            'property_type::angle': s4
+            'property_type::boolean': u4
+            'property_type::enum': u4
+            'property_type::slider': f8
+        if: >-
+          property_type == property_type::scalar
+          or property_type == property_type::angle
+          or property_type == property_type::boolean
+          or property_type == property_type::enum
+          or property_type == property_type::slider
+      - id: last_value_x_raw
+        type: 
+          switch-on: property_type
+          cases:
+            'property_type::two_d': s4
+            'property_type::three_d': f8
+        if: >-
+          property_type == property_type::two_d
+          or property_type == property_type::three_d
+      - id: last_value_y_raw
+        type: 
+          switch-on: property_type
+          cases:
+            'property_type::two_d': s4
+            'property_type::three_d': f8
+        if: >-
+          property_type == property_type::two_d
+          or property_type == property_type::three_d
+      - id: last_value_z_raw
+        type: f8
+        if: property_type == property_type::three_d
+      - id: option_count
+        type: s4
+        if: property_type == property_type::enum
+      - id: default
+        type: 
+          switch-on: property_type
+          cases:
+            'property_type::boolean': u1
+            'property_type::enum': s4
+        if: >-
+          property_type == property_type::boolean
+          or property_type == property_type::enum
+      - id: unknown03
+        type:
+          switch-on: property_type
+          cases:
+            'property_type::scalar': b72
+            'property_type::color': b64
+            'property_type::slider': b52
+        if: >-
+          property_type == property_type::scalar
+          or property_type == property_type::color
+          or property_type == property_type::slider
+      - id: min_value
+        type: s2
+        if: property_type == property_type::scalar
+      - id: unknown04
+        size: 2
+        if: property_type == property_type::scalar
+      - id: max_color
+        type: u1 # 53-55
+        repeat: expr
+        repeat-expr: 4
+        if: property_type == property_type::color
+      - id: max_value
+        type:
+          switch-on: property_type
+          cases:
+            'property_type::scalar': s2
+            'property_type::slider': f4
+        if: >-
+          property_type == property_type::scalar
+          or property_type == property_type::slider
+    instances:
+      last_value_x:
+        value: 'last_value_x_raw * (property_type == property_type::two_d ? 1/128 : 512)'
+        if: >-
+          property_type == property_type::two_d
+          or property_type == property_type::three_d
+      last_value_y:
+        value: 'last_value_y_raw * (property_type == property_type::two_d ? 1/128 : 512)'
+        if: >-
+          property_type == property_type::two_d
+          or property_type == property_type::three_d
+      last_value_z:
+        value: 'last_value_z_raw * 512'
+        if: property_type == property_type::three_d
+
+
+  tdb4_body:
+    seq:
+      - id: unknown01
+        size: 2
+      - id: components
+        type: u2
+        doc: Number of values in a multi-dimensional
+      - id: attributes
+        size: 2
+      - id: unknown02
+        size: 1
+      - id: unknown03
+        size: 1
+        doc: Some sort of flag, it has value 03 for position properties
+      - id: unknown04
+        size: 2
+      - id: unknown05
+        size: 2
+      - id: unknown06
+        size: 2
+        doc: Always 0000 ?
+      - id: unknown07
+        size: 2
+        doc: 2nd most significant bit always on, perhaps some kind of flag
+      - id: unknown08
+        type: f8
+        doc: Most of the time 0.0001
+      - id: unknown09
+        type: f8
+        doc: Most of the time 1.0, sometimes 1.777
+      - id: unknown10
+        type: f8
+        doc: Always 1.0?
+      - id: unknown11
+        type: f8
+        doc: Always 1.0?
+      - id: unknown12
+        type: f8
+        doc: Always 1.0?
+      - id: property_type
+        size: 4
+      - id: unknown13
+        size: 1
+        doc: Seems correlated with the previous byte, it's set for 04 for enum properties
+      - id: unknown14
+        size: 7
+        doc: Bunch of 00
+      - id: animated
+        size: 1
+      - id: unknown15
+        size: 7
+        doc: Bunch of 00
+      - id: unknown16
+        size: 4
+        doc: Usually 0, probs flags
+      - id: unknown17
+        size: 4
+        doc: Mst likely flags, only last byte seems to contain data
+      - id: unknown18
+        type: f8
+        doc: Always 0.0?
+      - id: unknown19
+        type: f8
+        doc: Mostly 0.0, sometimes 0.333
+      - id: unknown20
+        type: f8
+        doc: Always 0.0?
+      - id: unknown21
+        type: f8
+        doc: Mostly 0.0, sometimes 0.333
+      - id: unknown22
+        size: 4
+        doc: Probs some flags
+      - id: unknown23
+        size: 4
+        doc: Probs some flags
+
+    instances:
+      static:
+        value: '(attributes[1] & 1) != 0'
+      position:
+        value: '(attributes[1] & (1 << 3)) != 0'
+      no_value:
+        value: '(attributes[1] & 1) != 0'
+      color:
+        value: '(attributes[3] & 1) != 0'
+      integer:
+        value: '(attributes[3] & (1 << 2)) != 0'
+      vector:
+        value: '(attributes[3] & (1 << 3)) != 0'
+  head_body:
+    seq:
+      - id: ae_version
+        size: 6
+        # enum: ae_version
+      - id: unknown01
+        size: 12
+      - id: file_revision
+        type: u2
 
 enums:
-  chunk_type:
-    0x4c495354:
-      id: lst
-      doc: List data
-    0x55746638: utf8
-    0x63647461:
-      id: cdta
-      doc: Composition data
-    0x69647461:
-      id: idta
-      doc: Item data
-    0x636d7461:
-      id: cmta
-      doc: Comment data
-    0x66647461:
-      id: fdta
-      doc: Folder data
-    0x6E686564:
-      id: nhed
-      doc: Header data
-    0x73737063:
-      id: sspc
-      doc: Sub properties ?
-    0x6c647461:
-      id: ldta
-      doc: Layer data
-    0x6f707469:
-      id: opti
-      doc: Footage data
-    0x74646770:
-      id: tdgp
-      doc: Transform properties group
-    0x67647461:
-      id: gdta
-      doc: ?? data
-    0x74646d6e:
-      id: tdmn
-      doc: Transform ??
-    0x666e616d:
-      id: fnam
-      doc: group property name ?
-    0x7464736e:
-      id: tdsn
-      doc: user-defined label of a property
-    0x70646e6d:
-      id: pdnm
-      doc: property ??
-    0x70617264:
-      id: pard
-      doc: property ??
-    # 0x73766170: svap
-    # 0x68656164: head
-    # 0x6e6e6864: nnhd
-    # 0x61646672: adfr
-    # 0x71746c67: qtlg
-    # 0x73666964: sfid
-    # 0x61636572: acer
-    # 0x63706964: cpid
-    # 0x64776761: dwga
-    # 0x6e756d53: nums
-    # 0x63647270: cdrp
-    # 0x7072696e: prin
-    # 0x70726461: prda
-    # 0x74647362: tdsb
-    # 0x7464756d: tdum
-    # 0x74646234: tdb4
-    # 0x63646174: cdat
-    # 0x43707243: cprc
-    # 0x43734374: csct
-    # 0x4361704c: capl
-    # 0x4350546d: cptm
-    # 0x43524f49: croi
-    # 0x43634374: ccct
-    # 0x6f746c6e: otln
-    # 0x73657120: seq
-    # 0x41437369: acsi
-    # 0x41437369: acsi
-    # 0x66766476: fvdv
-    # 0x66696f70: fiop
-    # 0x66747473: ftts
-    # 0x666f6163: foac
-    # 0x666f7473: fots
-    # 0x666f7474: fott
-    # 0x666f7663: fovc
-    # 0x666f7669: fovi
-    # 0x66696163: fiac
-    # 0x66697473: fits
-    # 0x66697474: fitt
-    # 0x66697663: fivc
-    # 0x66697669: fivi
-    # 0x66697063: fipc
-    # 0x66696469: fidi
-    # 0x6669706c: fipl
-    # 0x66696d72: fimr
-    # 0x66697073: fips
-    # 0x6669666c: fifl
-    # 0x77736e73: wsns
-    # 0x77736e6d: wsnm
-    # 0x66636964: fcid
-    # 0x6f616363: oacc
-    # 0x41467369: afsi
-    # 0x52686564: rhed
-    # 0x526f7574: rout
-    # 0x6c686433: lhd3
-    # 0x41527369: arsi
-    # 0x66747764: ftwd
   depth: # project bit depth
-    0x00: bpc_8
-    0x01: bpc_16
-    0x02: bpc_32
-  footage_type:
-    0x09: solid
-    0x02: placeholder
+    0: bpc_8
+    1: bpc_16
+    2: bpc_32
   item_type: # type of item. See: http://docs.aenhancers.com/items/item/#item-item_type
-    0x01:
-      id: folder
-      doc: Folder item which may contain additional items
-    0x04:
-      id: composition
-      doc: Composition item which has a dimension, length, framerate and child layers
-    0x07:
-      id: footage
-      doc: AVItem that has a source (an image or video file)
+    1: folder
+    4: composition
+    7: asset
+  asset_type:
+    2: placeholder
+    9: solid
+  layer_type:
+    0: asset
+    1: light
+    2: camera
+    3: text
+    4: shape
+  matte_mode:
+    0: none
+    1: no_matte
+    2: alpha
+    3: inverted_alpha
+    4: luma
+    5: inverted_luma
+  label_color:
+    0: none
+    1: red
+    2: yellow
+    3: aqua
+    4: pink
+    5: lavender
+    6: peach
+    7: sea_foam
+    8: blue
+    9: green
+    10: purple
+    11: orange
+    12: brown
+    13: fuchsia
+    14: cyan
+    15: sandstone
+    16: dark_green
+  property_type:
+    0: layer
+    2: scalar
+    3: angle
+    4: boolean
+    5: color
+    6: two_d
+    7: enum
+    9: paint_group
+    10: slider
+    13: group
+    15: unknown
+    18: three_d
+  # ae_version:
+  #   0x5c06073806b4: v15_0
+  #   0x5d040b0006eb: v16_0
+  #   0x5d040b000e30: v16_0_1
+  #   0x5d050b009637: v16_1_2
+  #   0x5d050b009e05: v16_1_3
+  #   0x5d094b08062b: v17_0
+  #   0x5d0b0b08263b: v17_0_4
+  #   0x5d1b0b110e08: v18_2_1
+  #   0x5d1d0b120626: v18_4
+  #   0x5d1d0b70066f: v22_0
+  #   0x5d2b0b33063b: v22_6
+  #   0x5e030b390e03: v23_2_1
