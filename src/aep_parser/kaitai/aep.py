@@ -101,87 +101,63 @@ class Aep(KaitaiStruct):
             self.chunk_size = self._io.read_u4be()
             _on = self.chunk_type
             if _on == u"head":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.HeadBody(_io__raw_data, self, self._root)
             elif _on == u"pard":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.PardBody(_io__raw_data, self, self._root)
             elif _on == u"Utf8":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
-            elif _on == u"tdgp":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.AsciiBody(_io__raw_data, self, self._root)
             elif _on == u"ldta":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.LdtaBody(_io__raw_data, self, self._root)
             elif _on == u"nhed":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.NhedBody(_io__raw_data, self, self._root)
             elif _on == u"idta":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.IdtaBody(_io__raw_data, self, self._root)
-            elif _on == u"tdmn":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
             elif _on == u"LIST":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.ListBody(_io__raw_data, self, self._root)
-            elif _on == u"fnam":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
-            elif _on == u"tdsb":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.AsciiBody(_io__raw_data, self, self._root)
             elif _on == u"fdta":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.FdtaBody(_io__raw_data, self, self._root)
-            elif _on == u"tdsn":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
             elif _on == u"cdta":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.CdtaBody(_io__raw_data, self, self._root)
             elif _on == u"tdb4":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.Tdb4Body(_io__raw_data, self, self._root)
             elif _on == u"cmta":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
             elif _on == u"sspc":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.SspcBody(_io__raw_data, self, self._root)
-            elif _on == u"pdnm":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
             elif _on == u"opti":
-                self._raw_data = self._io.read_bytes(self.chunk_size)
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.OptiBody(_io__raw_data, self, self._root)
             else:
-                self._raw_data = self._io.read_bytes(self.chunk_size)
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.AsciiBody(_io__raw_data, self, self._root)
             if (self.chunk_size % 2) != 0:
-                self.padding = self._io.read_u1()
+                self.padding = self._io.read_bytes(1)
 
 
 
@@ -646,13 +622,7 @@ class Aep(KaitaiStruct):
                     self.default = self._io.read_s4be()
 
             if  ((self.property_type == Aep.PropertyType.scalar) or (self.property_type == Aep.PropertyType.color) or (self.property_type == Aep.PropertyType.slider)) :
-                _on = self.property_type
-                if _on == Aep.PropertyType.scalar:
-                    self.unknown03 = self._io.read_bits_int_be(72)
-                elif _on == Aep.PropertyType.color:
-                    self.unknown03 = self._io.read_bits_int_be(64)
-                elif _on == Aep.PropertyType.slider:
-                    self.unknown03 = self._io.read_bits_int_be(52)
+                self.unknown03 = self._io.read_bytes((72 if self.property_type == Aep.PropertyType.scalar else (64 if self.property_type == Aep.PropertyType.color else 52)))
 
             if self.property_type == Aep.PropertyType.scalar:
                 self.min_value = self._io.read_s2be()
@@ -726,7 +696,7 @@ class Aep(KaitaiStruct):
             self.source_id = self._io.read_u4be()
             self.label_color = KaitaiStream.resolve_enum(Aep.LabelColor, self._io.read_u1())
             self.unknown05 = self._io.read_bytes(2)
-            self.layer_name = (self._io.read_bytes(32)).decode(u"utf8")
+            self.layer_name = (self._io.read_bytes(32)).decode(u"cp1250")
             self.unknown06 = self._io.read_bytes(11)
             self.matte_mode = KaitaiStream.resolve_enum(Aep.MatteMode, self._io.read_u1())
             self.layer_type = KaitaiStream.resolve_enum(Aep.LayerType, self._io.read_u1())

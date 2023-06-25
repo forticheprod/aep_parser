@@ -31,15 +31,15 @@ types:
       - id: chunk_size
         type: u4
       - id: data
-        size: chunk_size
+        size: 'chunk_size > _io.size - _io.pos ? _io.size - _io.pos : chunk_size'
         type: 
           switch-on: chunk_type
           cases:
             '"LIST"': list_body # List data
             '"Utf8"': utf8_body
+            '"cmta"': utf8_body # Comment data
             '"cdta"': cdta_body # Composition data
             '"idta"': idta_body # Item data
-            '"cmta"': utf8_body # Comment data
             '"fdta"': fdta_body # Folder data
             '"nhed"': nhed_body # Header data
             '"sspc"': sspc_body # Sub properties ??
@@ -48,16 +48,16 @@ types:
             '"pard"': pard_body # property ??
             '"tdb4"': tdb4_body # property metadata
             '"head"': head_body # contains AE version and file revision
-            '"tdmn"': utf8_body # Transform property group end
-            '"tdsn"': utf8_body # contain other chunks. user-defined label of a property
-            '"fnam"': utf8_body # contain other chunks. group property name ?
-            '"pdnm"': utf8_body # contains other chunks. property ??
+            # '"tdmn"': utf8_body # Transform property group end
+            # '"tdsn"': utf8_body # contain other chunks. user-defined label of a property
+            # '"fnam"': utf8_body # contain other chunks. group property name ?
+            # '"pdnm"': utf8_body # contains other chunks. property ??
             # '"fiac"': ascii_body # active item, not sure about encoding
-            '"tdsb"': ascii_body # transform property group flags, not sure about encoding
-            '"tdgp"': ascii_body # Transform properties group, not sure about encoding
+            # '"tdsb"': ascii_body # transform property group flags, not sure about encoding
+            # '"tdgp"': ascii_body # Transform properties group, not sure about encoding
             _: ascii_body
       - id: padding
-        type: u1
+        size: 1
         if: (chunk_size % 2) != 0
   list_body:
     seq:
@@ -286,7 +286,7 @@ types:
       - id: layer_name
         size: 32 # 48-79
         type: str
-        encoding: utf8
+        encoding: cp1250
       - id: unknown06
         size: 11 # 80-90
       - id: matte_mode
@@ -406,12 +406,7 @@ types:
           property_type == property_type::boolean
           or property_type == property_type::enum
       - id: unknown03
-        type:
-          switch-on: property_type
-          cases:
-            'property_type::scalar': b72
-            'property_type::color': b64
-            'property_type::slider': b52
+        size: '(property_type == property_type::scalar ? 72 : property_type == property_type::color ? 64 : 52)'
         if: >-
           property_type == property_type::scalar
           or property_type == property_type::color
@@ -450,8 +445,6 @@ types:
       last_value_z:
         value: 'last_value_z_raw * 512'
         if: property_type == property_type::three_d
-
-
   tdb4_body:
     seq:
       - id: unknown01
