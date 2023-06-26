@@ -493,32 +493,60 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.unknown01 = self._io.read_bytes(4)
-            self.asset_type = KaitaiStream.resolve_enum(Aep.AssetType, self._io.read_u2be())
-            if self.asset_type == Aep.AssetType.solid:
+            self.asset_type = (self._io.read_bytes(4)).decode(u"ascii")
+            self.unknown01 = self._io.read_u2be()
+            if self.asset_type == u"Soli":
                 self.unknown02 = self._io.read_bytes(4)
 
-            if self.asset_type == Aep.AssetType.solid:
-                self.alpha = self._io.read_f4be()
+            if self.asset_type == u"Soli":
+                self.color = []
+                for i in range(4):
+                    self.color.append(self._io.read_f4be())
 
-            if self.asset_type == Aep.AssetType.solid:
-                self.red = self._io.read_f4be()
 
-            if self.asset_type == Aep.AssetType.solid:
-                self.green = self._io.read_f4be()
-
-            if self.asset_type == Aep.AssetType.solid:
-                self.blue = self._io.read_f4be()
-
-            if self.asset_type == Aep.AssetType.solid:
+            if self.asset_type == u"Soli":
                 self.solid_name = (self._io.read_bytes(256)).decode(u"cp1250")
 
-            if self.asset_type == Aep.AssetType.placeholder:
-                self.unknown03 = self._io.read_bytes(4)
 
-            if self.asset_type == Aep.AssetType.placeholder:
-                self.placeholder_name = (self._io.read_bytes_full()).decode(u"cp1250")
+        @property
+        def red(self):
+            if hasattr(self, '_m_red'):
+                return self._m_red
 
+            if self.asset_type == u"Soli":
+                self._m_red = self.color[1]
+
+            return getattr(self, '_m_red', None)
+
+        @property
+        def green(self):
+            if hasattr(self, '_m_green'):
+                return self._m_green
+
+            if self.asset_type == u"Soli":
+                self._m_green = self.color[2]
+
+            return getattr(self, '_m_green', None)
+
+        @property
+        def blue(self):
+            if hasattr(self, '_m_blue'):
+                return self._m_blue
+
+            if self.asset_type == u"Soli":
+                self._m_blue = self.color[3]
+
+            return getattr(self, '_m_blue', None)
+
+        @property
+        def alpha(self):
+            if hasattr(self, '_m_alpha'):
+                return self._m_alpha
+
+            if self.asset_type == u"Soli":
+                self._m_alpha = self.color[0]
+
+            return getattr(self, '_m_alpha', None)
 
 
     class NhedBody(KaitaiStruct):

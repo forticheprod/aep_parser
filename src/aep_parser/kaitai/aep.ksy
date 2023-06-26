@@ -218,42 +218,47 @@ types:
         value: 'duration_dividend / duration_divisor'
   opti_body:
     seq:
-      - id: unknown01
-        size: 4 # 1-4
       - id: asset_type
+        size: 4 # 1-4
+        type: str
+        encoding: ascii
+        # enum: asset_type
+      - id: unknown01
         type: u2 # 5-6
-        enum: asset_type
       - id: unknown02
         size: 4 # 7-10
-        if: asset_type == asset_type::solid
-      - id: alpha
+        if: asset_type == "Soli"
+      - id: color
         type: f4 # 11-14
-        if: asset_type == asset_type::solid
-      - id: red
-        type: f4 # 15-18
-        if: asset_type == asset_type::solid
-      - id: green
-        type: f4 # 19-22
-        if: asset_type == asset_type::solid
-      - id: blue
-        type: f4 # 23-26
-        if: asset_type == asset_type::solid
+        repeat: expr
+        repeat-expr: 4
+        if: asset_type == "Soli"
       - id: solid_name
         type: str
         encoding: cp1250
         size: 256 # 27-255
-        if: asset_type == asset_type::solid
-      # - id: unknown04
-      #   size-eos: true # 256-xx
-      #   if: asset_type == asset_type::solid
-      - id: unknown03
-        size: 4 # 7-10
-        if: asset_type == asset_type::placeholder
-      - id: placeholder_name
-        type: str
-        encoding: cp1250
-        size-eos: true # 11-xx
-        if: asset_type == asset_type::placeholder
+        if: asset_type == "Soli"
+      # - id: unknown03
+      #   size: 4 # 7-10
+      #   if: asset_type != "Soli"
+      # - id: placeholder_name
+      #   type: str
+      #   encoding: cp1250
+      #   size-eos: true # 11-xx
+      #   if: asset_type != "Soli"
+    instances:
+      red:
+        value: 'color[1]'
+        if: asset_type == "Soli"
+      green:
+        value: 'color[2]'
+        if: asset_type == "Soli"
+      blue:
+        value: 'color[3]'
+        if: asset_type == "Soli"
+      alpha:
+        value: 'color[0]'
+        if: asset_type == "Soli"
   ldta_body:
     seq:
       - id: layer_id

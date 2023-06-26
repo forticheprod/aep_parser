@@ -136,7 +136,7 @@ def parse_item(item_chunk, project):
 
         opti_data = opti_chunk.data
         item.asset_type = opti_data.asset_type  # TODO check this
-        item.name = opti_data.name.rstrip("\x00")
+        item.name = getattr(opti_data, "name", "").rstrip("\x00")
 
     elif item.item_type == Aep.ItemType.composition:
         cdta_chunk = find_by_type(
@@ -193,6 +193,6 @@ def parse_item(item_chunk, project):
             composition_layers.append(layer)
         item.composition_layers = composition_layers
 
-    project.items_[item.item_id] = item
+    project.project_items[item.item_id] = item
 
     return item
