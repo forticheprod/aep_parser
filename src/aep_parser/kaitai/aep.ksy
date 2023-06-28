@@ -234,9 +234,8 @@ types:
         repeat-expr: 4
         if: asset_type == "Soli"
       - id: solid_name
-        type: str
+        type: strz
         encoding: cp1250
-        size: 256 # 27-255
         if: asset_type == "Soli"
       # - id: unknown03
       #   size: 4 # 7-10

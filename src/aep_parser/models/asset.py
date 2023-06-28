@@ -8,6 +8,7 @@ class Asset(Item):
             height=0,
             framerate=0.0,
             duration_sec=0.0,
+            color=[0, 0, 0, 0],
             *args,
             **kwargs):
         super().__init__(*args, **kwargs)
@@ -15,3 +16,4 @@ class Asset(Item):
         self.height = height
         self.framerate = framerate
         self.duration_sec = duration_sec
+        self.color = color

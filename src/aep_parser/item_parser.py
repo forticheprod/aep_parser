@@ -32,7 +32,7 @@ def parse_item(item_chunk, project):
         )
         if name_chunk is None:
             print(
-                "could not find name for chunk {item_chunk}"
+                "could not find name chunk for {item_chunk}"
                 .format(item_chunk=item_chunk)
             )
             return
@@ -44,7 +44,7 @@ def parse_item(item_chunk, project):
         )
         if idta_chunk is None:
             print(
-                "could not find idta for chunk {item_chunk}"
+                "could not find idta chunk for {item_chunk}"
                 .format(item_chunk=item_chunk)
             )
             return
@@ -135,8 +135,13 @@ def parse_item(item_chunk, project):
             return
 
         opti_data = opti_chunk.data
-        item.asset_type = opti_data.asset_type  # TODO check this
-        item.name = getattr(opti_data, "name", "").rstrip("\x00")
+        item.asset_type = opti_data.asset_type
+        if item.asset_type == "Soli":
+            item.color = opti_data.color
+            item.name = opti_data.solid_name
+        # TODO continue (mov, sound, placeholder, etc)
+        # TODO split asset classes
+        # TODO split item parser (folder, comp, asset)
 
     elif item.item_type == Aep.ItemType.composition:
         cdta_chunk = find_by_type(

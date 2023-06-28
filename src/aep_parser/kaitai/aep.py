@@ -505,7 +505,7 @@ class Aep(KaitaiStruct):
 
 
             if self.asset_type == u"Soli":
-                self.solid_name = (self._io.read_bytes(256)).decode(u"cp1250")
+                self.solid_name = (self._io.read_bytes_term(0, False, True, True)).decode(u"cp1250")
 
 
         @property
