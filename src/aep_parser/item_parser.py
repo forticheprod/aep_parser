@@ -2,7 +2,6 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 from __future__ import division
 
-import ast
 import json
 import os
 
@@ -185,7 +184,7 @@ def parse_item(item_chunk, project):
 
             if not item.name:
                 # TODO check image sequence (frame numbers), psd (layers)
-                # TODO add "name_overriden" or "default_name" ?
+                # TODO add "name_overriden" or "default_name" ? label like properties ?
                 item.name = os.path.basename(item.path)
 
         # TODO split asset classes

@@ -8,7 +8,7 @@ from .models.layer_quality_level import LayerQualityLevel
 from .models.layer_frame_blend_mode import LayerFrameBlendMode
 from .models.layer_sampling_mode import LayerSamplingMode
 from .property_parser import (
-    parse_property,
+    parse_property_group,
     get_properties,
 )
 from .rifx.utils import (
@@ -88,33 +88,33 @@ def parse_layer(layer_chunk):
     tdgp_map = get_properties(root_tdgp_chunk)
 
     # Parse transform stack
-    transform_tdgp = tdgp_map.get("ADBE Transform Group")
-    if transform_tdgp is not None:
-        transform_prop = parse_property(transform_tdgp, "ADBE Transform Group")
+    transform_tdgp = tdgp_map.get("ADBE Transform Group", [])
+    if transform_tdgp:
+        transform_prop = parse_property_group(transform_tdgp[0], "ADBE Transform Group")
         if transform_prop is None:
             return
         layer.transform = transform_prop.properties
 
     # Parse effects stack
-    effects_tdgp = tdgp_map.get("ADBE Effect Parade")
-    if effects_tdgp is not None:
-        effects_prop = parse_property(effects_tdgp, "ADBE Effect Parade")
+    effects_tdgp = tdgp_map.get("ADBE Effect Parade", [])
+    if effects_tdgp:
+        effects_prop = parse_property_group(effects_tdgp[0], "ADBE Effect Parade")
         if effects_prop is None:
             return
         layer.effects = effects_prop.properties
 
     # Parse text layer properties
-    text_tdgp = tdgp_map.get("ADBE Text Properties")
-    if text_tdgp is not None:
-        text_prop = parse_property(text_tdgp, "ADBE Text Properties")
+    text_tdgp = tdgp_map.get("ADBE Text Properties", [])
+    if text_tdgp:
+        text_prop = parse_property_group(text_tdgp[0], "ADBE Text Properties")
         if text_prop is None:
             return
         layer.text = text_prop
 
     # Parse markers
-    markers_tdgp = tdgp_map.get("ADBE Marker")
-    if markers_tdgp is not None:
-        markers_prop = parse_property(markers_tdgp, "ADBE Marker")
+    markers_tdgp = tdgp_map.get("ADBE Marker", [])
+    if markers_tdgp:
+        markers_prop = parse_property_group(markers_tdgp[0], "ADBE Marker")
         if markers_prop is None:
             return
         layer.markers = markers_prop

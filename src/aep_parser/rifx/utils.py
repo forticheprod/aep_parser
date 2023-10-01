@@ -2,9 +2,6 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 
-from ..kaitai.aep import Aep
-
-
 """
 based on https://github.com/rioam2/rifx/blob/a8114e272da2bbedae9b869d16b0d4ff45a91b12/types.go
 """

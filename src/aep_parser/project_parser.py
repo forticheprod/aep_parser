@@ -74,7 +74,6 @@ def parse_project(path):
         #                 layer.name = project.project_items[layer.source_id].name
 
         project.metadata = ET.fromstring(aep.xmp)
-        for child in project.metadata:
-            print(child.tag)
+        project.ae_version = project.metadata.find(".//{*}CreatorTool").text
 
         return project
