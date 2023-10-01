@@ -53,7 +53,7 @@ def parse_property_group(tdgp_chunk, group_match_name):
                 prop=None,
             )
         else:
-            # TODO check how to parse otst, om-s, GCst, mrst, btds, OvG2
+            # TODO check how to parse om-s, GCst, mrst, btds, OvG2
             raise NotImplementedError(
                 "Cannot parse property : {}".format(
                     first_chunk.data.identifier
