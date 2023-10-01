@@ -2,12 +2,16 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 from __future__ import division
 
-from aep_parser.kaitai.aep import Aep
-from aep_parser.layer_parser import parse_layer
-from aep_parser.models.composition import Composition
-from aep_parser.models.folder import Folder
-from aep_parser.models.asset import Asset
-from aep_parser.rifx.utils import (
+import ast
+import json
+import os
+
+from .kaitai.aep import Aep
+from .layer_parser import parse_layer
+from .models.composition import Composition
+from .models.folder import Folder
+from .models.asset import Asset
+from .rifx.utils import (
     find_by_identifier,
     find_by_type,
     filter_by_identifier,
@@ -16,7 +20,7 @@ from aep_parser.rifx.utils import (
 
 
 def parse_item(item_chunk, project):
-    child_chunks = item_chunk.data.chunks.chunks
+    child_chunks = item_chunk.data.chunks
     is_root = item_chunk.data.identifier == "Fold"
 
     # Parse item metadata
@@ -107,7 +111,7 @@ def parse_item(item_chunk, project):
             )
             return
 
-        pin_child_chunks = pin_chunk.data.chunks.chunks
+        pin_child_chunks = pin_chunk.data.chunks
 
         sspc_chunk = find_by_type(
             chunks=pin_child_chunks,
@@ -123,23 +127,67 @@ def parse_item(item_chunk, project):
 
         item.width = sspc_data.width
         item.height = sspc_data.height
-        item.framerate = float(sspc_data.framerate + sspc_data.framerate_dividend) / (1 << 16)
-        item.duration_sec = sspc_data.duration
+        item.framerate = sspc_data.framerate  # TODO for audio files, framerate is 0. Get project framerate
+        item.duration_sec = sspc_data.duration_sec
+        item.duration_frames = int(sspc_data.duration_frames)  # TODO for audio files, duration_frames is 0. Use project framerate and compute here instead of inside kaitai file if not possible in kaitai (same for other "_frames" values)
 
         opti_chunk = find_by_type(
             chunks=pin_child_chunks,
             chunk_type="opti"
         )
         if opti_chunk is None:
-            # TODO add warning
+            print(
+                "could not find opti for chunk {item_chunk}"
+                .format(item_chunk=item_chunk)
+            )
             return
 
         opti_data = opti_chunk.data
-        item.asset_type = opti_data.asset_type
-        if item.asset_type == "Soli":
-            item.color = opti_data.color
+        item.asset_type = opti_data.asset_type.strip("\x00")
+        if not item.asset_type:  # Placeholder
+            item.asset_type = "placeholder"
+            item.name = opti_data.placeholder_name
+        elif item.asset_type == "Soli":  # Solid
+            item.asset_type = "solid"
+            item.color = [
+                opti_data.red,
+                opti_data.green,
+                opti_data.blue,
+                opti_data.alpha
+            ]
             item.name = opti_data.solid_name
-        # TODO continue (mov, sound, placeholder, etc)
+        else:  # Files
+            item.asset_type = "file"
+            als2_chunk = find_by_identifier(
+                chunks=pin_child_chunks,
+                identifier="Als2"
+            )
+            if als2_chunk is None:
+                print(
+                    "Could not find Als2 for chunk {item_chunk}"
+                    .format(item_chunk=item_chunk)
+                )
+                return
+            als2_child_chunks = als2_chunk.data.chunks
+            alas_chunk = find_by_type(
+                chunks=als2_child_chunks,
+                chunk_type="alas"
+            )
+            alas_data = json.loads(str_contents(alas_chunk))
+
+            item.ascendcount_base = alas_data["ascendcount_base"]
+            item.ascendcount_target = alas_data["ascendcount_target"]
+            item.path = alas_data["fullpath"]
+            item.platform = alas_data["platform"]
+            item.server_name = alas_data["server_name"]
+            item.server_volume_name = alas_data["server_volume_name"]
+            item.target_is_folder = alas_data["target_is_folder"]
+
+            if not item.name:
+                # TODO check image sequence (frame numbers), psd (layers)
+                # TODO add "name_overriden" or "default_name" ?
+                item.name = os.path.basename(item.path)
+
         # TODO split asset classes
         # TODO split item parser (folder, comp, asset)
 
@@ -149,24 +197,27 @@ def parse_item(item_chunk, project):
             chunk_type="cdta"
         )
         if cdta_chunk is None:
-            # TODO add warning
+            print(
+                "could not find cdta for chunk {item_chunk}"
+                .format(item_chunk=item_chunk)
+            )
             return
         cdta_data = cdta_chunk.data
 
         item.x_resolution = cdta_data.x_resolution
         item.y_resolution = cdta_data.y_resolution
 
-        item.framerate = cdta_data.framerate
-        item.playhead_sec = cdta_data.playhead
-        item.playhead_frames = cdta_data.playhead_frames
-        item.in_time_sec = cdta_data.in_time
-        item.in_time_frames = cdta_data.in_time_frames
+        item.framerate = cdta_data.framerate  # TODO check
+        item.playhead_sec = cdta_data.playhead  # TODO check
+        item.playhead_frames = int(cdta_data.playhead_frames)  # TODO check
+        item.in_time_sec = cdta_data.in_time  # TODO check
+        item.in_time_frames = int(cdta_data.in_time_frames)  # TODO check
         item.out_time_sec = cdta_data.out_time  # TODO check
-        item.out_time_frames = cdta_data.out_time_frames
-        item.duration_sec = cdta_data.duration
-        item.duration_frames = cdta_data.duration_frames
+        item.out_time_frames = int(cdta_data.out_time_frames)  # TODO check
+        item.duration_sec = cdta_data.duration_sec  # TODO check
+        item.duration_frames = int(cdta_data.duration_frames)  # TODO check
 
-        item.background_color = cdta_data.background_color
+        item.background_color = cdta_data.background_color  # TODO check order
         item.shy_enabled = cdta_data.shy_enabled
         item.motion_blur_enabled = cdta_data.motion_blur_enabled
         item.frame_blend_enabled = cdta_data.frame_blend_enabled

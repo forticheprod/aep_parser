@@ -1,4 +1,4 @@
-from aep_parser.models.item import Item
+from .item import Item
 
 
 class Folder(Item):

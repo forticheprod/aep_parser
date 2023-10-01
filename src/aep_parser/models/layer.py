@@ -31,7 +31,8 @@ class Layer(object):
             collapse_transform_enabled=False,
             text=None,
             effects=[],
-            markers=[]):
+            markers=[],
+            transform=[]):
         """
         A single layer in a composition
         """
@@ -66,6 +67,7 @@ class Layer(object):
         self.text = text
         self.effects = effects
         self.markers = markers
+        self.transform = transform
 
     def __repr__(self):
         return str(self.__dict__)

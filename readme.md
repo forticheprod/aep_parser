@@ -101,10 +101,10 @@ project = parse_project(aep__file_path)
 <!-- ROADMAP -->
 ## Roadmap
 
-- [ ] Get an initial working version
+- [x] Get an initial working version
 - [ ] Add unit tests
 - [ ] Add Changelog
-- [ ] Ensure python 3 compatibility
+- [ ] Ensure python 2 compatibility
 - [ ] Multi-version Support
     - [ ] After Effects 2018
     - [ ] After Effects 2022
@@ -161,5 +161,6 @@ Project Link: [https://gitlab.com/delaunay.ben/aep-parser](https://gitlab.com/de
 
 * [aftereffects-aep-parser](https://github.com/boltframe/aftereffects-aep-parser)
 * [Kaitai Struct](https://kaitai.io)
+* [Lottie](https://lottiefiles.github.io/lottie-docs/aep/#pprf)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

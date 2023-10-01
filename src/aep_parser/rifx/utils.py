@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 
-from aep_parser.kaitai.aep import Aep
+from ..kaitai.aep import Aep
 
 
 """

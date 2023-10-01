@@ -2,16 +2,16 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 
-from aep_parser.kaitai.aep import Aep
-from aep_parser.models.layer import Layer
-from aep_parser.models.layer_quality_level import LayerQualityLevel
-from aep_parser.models.layer_frame_blend_mode import LayerFrameBlendMode
-from aep_parser.models.layer_sampling_mode import LayerSamplingMode
-from aep_parser.property_parser import (
+from .kaitai.aep import Aep
+from .models.layer import Layer
+from .models.layer_quality_level import LayerQualityLevel
+from .models.layer_frame_blend_mode import LayerFrameBlendMode
+from .models.layer_sampling_mode import LayerSamplingMode
+from .property_parser import (
     parse_property,
-    indexed_group_to_map,
+    get_properties,
 )
-from aep_parser.rifx.utils import (
+from .rifx.utils import (
     find_by_type,
     find_by_identifier,
     str_contents,
@@ -19,14 +19,17 @@ from aep_parser.rifx.utils import (
 
 
 def parse_layer(layer_chunk):
-    child_chunks = layer_chunk.data.chunks.chunks
+    child_chunks = layer_chunk.data.chunks
 
     ldta_chunk = find_by_type(
         chunks=child_chunks,
         chunk_type="ldta"
     )
     if ldta_chunk is None:
-        # TODO log
+        print(
+            "could not find ldta for chunk {layer_chunk}"
+            .format(layer_chunk=layer_chunk)
+        )
         return
 
     name_chunk = find_by_type(
@@ -34,7 +37,10 @@ def parse_layer(layer_chunk):
         chunk_type="Utf8"
     )
     if name_chunk is None:
-        # TODO log
+        print(
+            "could not find name for chunk {layer_chunk}"
+            .format(layer_chunk=layer_chunk)
+        )
         return
 
     ldta_data = ldta_chunk.data
@@ -73,7 +79,21 @@ def parse_layer(layer_chunk):
         chunks=child_chunks,
         identifier="tdgp"
     )
-    tdgp_map, match_names = indexed_group_to_map(root_tdgp_chunk)
+    if root_tdgp_chunk is None:
+        print(
+            "could not find tdgp for chunk {layer_chunk}"
+            .format(layer_chunk=layer_chunk)
+        )
+        return
+    tdgp_map = get_properties(root_tdgp_chunk)
+
+    # Parse transform stack
+    transform_tdgp = tdgp_map.get("ADBE Transform Group")
+    if transform_tdgp is not None:
+        transform_prop = parse_property(transform_tdgp, "ADBE Transform Group")
+        if transform_prop is None:
+            return
+        layer.transform = transform_prop.properties
 
     # Parse effects stack
     effects_tdgp = tdgp_map.get("ADBE Effect Parade")
@@ -92,12 +112,12 @@ def parse_layer(layer_chunk):
         layer.text = text_prop
 
     # Parse markers
-    marker_tdgp = tdgp_map.get("ADBE Marker")
-    if marker_tdgp is not None:
-        marker_prop = parse_property(marker_tdgp, "ADBE Text Properties")
-        if marker_prop is None:
+    markers_tdgp = tdgp_map.get("ADBE Marker")
+    if markers_tdgp is not None:
+        markers_prop = parse_property(markers_tdgp, "ADBE Marker")
+        if markers_prop is None:
             return
-        layer.markers = marker_prop
+        layer.markers = markers_prop
 
     
     return layer

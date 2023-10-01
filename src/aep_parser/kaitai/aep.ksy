@@ -15,6 +15,10 @@ seq:
   - id: data
     type: chunks
     size: file_size - format._sizeof
+  - id: xmp
+    type: str
+    encoding: utf8
+    size-eos: true
     
 types:
   chunks:
@@ -35,25 +39,28 @@ types:
         type: 
           switch-on: chunk_type
           cases:
-            '"LIST"': list_body # List data
+            '"LIST"': list_body # List of chunks
             '"Utf8"': utf8_body
-            '"cmta"': utf8_body # Comment data
+            '"alas"': utf8_body # File asset data in json format as a string
             '"cdta"': cdta_body # Composition data
-            '"idta"': idta_body # Item data
+            '"cdat"': cdat_body # Property value(s)
+            '"cmta"': utf8_body # Comment data
             '"fdta"': fdta_body # Folder data
-            '"nhed"': nhed_body # Header data
-            '"sspc"': sspc_body # Sub properties ??
+            '"head"': head_body # contains AE version and file revision
+            '"idta"': idta_body # Item data
             '"ldta"': ldta_body # Layer data
+            '"nhed"': nhed_body # Header data
             '"opti"': opti_body # Asset data
             '"pard"': pard_body # property ??
+            '"pjef"': utf8_body # effect names
+            '"sspc"': sspc_body # Sub properties ??
             '"tdb4"': tdb4_body # property metadata
-            '"head"': head_body # contains AE version and file revision
-            # '"tdmn"': utf8_body # Transform property group end
-            # '"tdsn"': utf8_body # contain other chunks. user-defined label of a property
-            # '"fnam"': utf8_body # contain other chunks. group property name ?
-            # '"pdnm"': utf8_body # contains other chunks. property ??
+            '"tdmn"': utf8_body # Transform property group end
+            '"tdsb"': tdsb_body # transform property group flags
+            '"fnam"': child_utf8_body # Effect name. contains a single utf-8 chunk but no identifier
+            '"pdnm"': child_utf8_body # Parameter control strings. contains a single utf-8 chunk but no identifier
+            '"tdsn"': child_utf8_body # user-defined label of a property. contains a single utf-8 chunk but no identifier
             # '"fiac"': ascii_body # active item, not sure about encoding
-            # '"tdsb"': ascii_body # transform property group flags, not sure about encoding
             # '"tdgp"': ascii_body # Transform properties group, not sure about encoding
             _: ascii_body
       - id: padding
@@ -66,7 +73,8 @@ types:
         encoding: cp1250
         size: 4
       - id: chunks
-        type: chunks
+        type: chunk
+        repeat: eos
   utf8_body:
     seq:
       - id: data
@@ -161,13 +169,13 @@ types:
         type: s4 # 201-204
     instances:
       framerate:
-        value: 'framerate_dividend / time_scale'
-      duration:
-        value: 'duration_dividend / duration_divisor'
+        value: 'framerate_dividend.as<f4> / time_scale.as<f4>'
+      duration_sec:
+        value: 'duration_dividend.as<f4> / duration_divisor.as<f4>'
       out_time:
-        value: 'out_time_raw == 0xffff ? duration : out_time_raw'
+        value: 'out_time_raw == 0xffff ? duration_sec : out_time_raw'
       pixel_ratio:
-        value: 'pixel_ratio_width / pixel_ratio_height'
+        value: 'pixel_ratio_width.as<f4> / pixel_ratio_height.as<f4>'
       playhead_frames:
         value: 'playhead * framerate'
       in_time_frames:
@@ -175,7 +183,7 @@ types:
       out_time_frames:
         value: 'out_time * framerate'
       duration_frames:
-        value: 'duration * framerate'
+        value: 'duration_sec * framerate'
       shy_enabled:
         value: '(attributes[0] & 1) != 0'
       motion_blur_enabled:
@@ -209,13 +217,17 @@ types:
         type: u4 # 43-46
       - id: unknown03
         size: 10 # 47-56
-      - id: framerate
+      - id: framerate_base
         type: u4 # 57-60
       - id: framerate_dividend
         type: u2 # 61-62
     instances:
-      duration:
-        value: 'duration_dividend / duration_divisor'
+      duration_sec:
+        value: 'duration_dividend.as<f4> / duration_divisor.as<f4>'
+      framerate:
+        value: 'framerate_base + (framerate_dividend.as<f4> / (1 << 16))'
+      duration_frames:
+        value: 'duration_sec * framerate'
   opti_body:
     seq:
       - id: asset_type
@@ -223,7 +235,7 @@ types:
         type: str
         encoding: ascii
         # enum: asset_type
-      - id: unknown01
+      - id: asset_type_int
         type: u2 # 5-6
       - id: unknown02
         size: 4 # 7-10
@@ -236,15 +248,16 @@ types:
       - id: solid_name
         type: strz
         encoding: cp1250
+        size: 256 # 27-282
         if: asset_type == "Soli"
-      # - id: unknown03
-      #   size: 4 # 7-10
-      #   if: asset_type != "Soli"
-      # - id: placeholder_name
-      #   type: str
-      #   encoding: cp1250
-      #   size-eos: true # 11-xx
-      #   if: asset_type != "Soli"
+      - id: unknown03
+        size: 4 # 7-10
+        if: asset_type_int == 2
+      - id: placeholder_name
+        type: strz
+        encoding: cp1250
+        size-eos: true # 11-268
+        if: asset_type_int == 2
     instances:
       red:
         value: 'color[1]'
@@ -258,6 +271,12 @@ types:
       alpha:
         value: 'color[0]'
         if: asset_type == "Soli"
+  alas_body:
+    seq:
+      - id: contents
+        type: str
+        size-eos: true
+        encoding: ascii
   ldta_body:
     seq:
       - id: layer_id
@@ -449,6 +468,21 @@ types:
       last_value_z:
         value: 'last_value_z_raw * 512'
         if: property_type == property_type::three_d
+  tdsb_body:
+    seq:
+      - id: flags
+        size: 4
+    instances:
+      locked_ratio:
+        value: '(flags[2] & 1 << 4) != 0'
+      visible:
+        value: '(flags[3] & 1) != 0'
+      split_position:
+        value: '(flags[3] & 1 << 1) != 0'
+  child_utf8_body:
+    seq:
+      - id: chunk
+        type: chunk
   tdb4_body:
     seq:
       - id: unknown01
@@ -492,12 +526,12 @@ types:
         size: 4
       - id: unknown13
         size: 1
-        doc: Seems correlated with the previous byte, it's set for 04 for enum properties
+        doc: Seems correlated with the previous byte, 04 for enum properties
       - id: unknown14
         size: 7
         doc: Bunch of 00
       - id: animated
-        size: 1
+        type: u1
       - id: unknown15
         size: 7
         doc: Bunch of 00
@@ -506,7 +540,7 @@ types:
         doc: Usually 0, probs flags
       - id: unknown17
         size: 4
-        doc: Mst likely flags, only last byte seems to contain data
+        doc: Most likely flags, only last byte seems to contain data
       - id: unknown18
         type: f8
         doc: Always 0.0?
@@ -525,20 +559,25 @@ types:
       - id: unknown23
         size: 4
         doc: Probs some flags
-
     instances:
       static:
         value: '(attributes[1] & 1) != 0'
       position:
         value: '(attributes[1] & (1 << 3)) != 0'
       no_value:
-        value: '(attributes[1] & 1) != 0'
+        value: '(property_type[1] & 1) != 0'
       color:
-        value: '(attributes[3] & 1) != 0'
+        value: '(property_type[3] & 1) != 0'
       integer:
-        value: '(attributes[3] & (1 << 2)) != 0'
+        value: '(property_type[3] & (1 << 2)) != 0'
       vector:
-        value: '(attributes[3] & (1 << 3)) != 0'
+        value: '(property_type[3] & (1 << 3)) != 0'
+  cdat_body:
+    seq:
+      - id: value
+        type: f8
+        repeat: expr
+        repeat-expr: '_parent.chunk_size / 8'
   head_body:
     seq:
       - id: ae_version

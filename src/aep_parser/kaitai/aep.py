@@ -88,6 +88,18 @@ class Aep(KaitaiStruct):
         self._raw_data = self._io.read_bytes((self.file_size - 4))
         _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
         self.data = Aep.Chunks(_io__raw_data, self, self._root)
+        self.xmp = (self._io.read_bytes_full()).decode(u"utf8")
+
+    class ChildUtf8Body(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.chunk = Aep.Chunk(self._io, self, self._root)
+
 
     class Chunk(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
@@ -104,6 +116,10 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.HeadBody(_io__raw_data, self, self._root)
+            elif _on == u"cdat":
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.CdatBody(_io__raw_data, self, self._root)
             elif _on == u"pard":
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
@@ -120,18 +136,38 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.NhedBody(_io__raw_data, self, self._root)
+            elif _on == u"alas":
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
             elif _on == u"idta":
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.IdtaBody(_io__raw_data, self, self._root)
+            elif _on == u"tdmn":
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
             elif _on == u"LIST":
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.ListBody(_io__raw_data, self, self._root)
+            elif _on == u"fnam":
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.ChildUtf8Body(_io__raw_data, self, self._root)
+            elif _on == u"tdsb":
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.TdsbBody(_io__raw_data, self, self._root)
             elif _on == u"fdta":
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.FdtaBody(_io__raw_data, self, self._root)
+            elif _on == u"tdsn":
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.ChildUtf8Body(_io__raw_data, self, self._root)
             elif _on == u"cdta":
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
@@ -140,6 +176,10 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.Tdb4Body(_io__raw_data, self, self._root)
+            elif _on == u"pjef":
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
             elif _on == u"cmta":
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
@@ -148,6 +188,10 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.SspcBody(_io__raw_data, self, self._root)
+            elif _on == u"pdnm":
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.ChildUtf8Body(_io__raw_data, self, self._root)
             elif _on == u"opti":
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
@@ -170,7 +214,12 @@ class Aep(KaitaiStruct):
 
         def _read(self):
             self.identifier = (self._io.read_bytes(4)).decode(u"cp1250")
-            self.chunks = Aep.Chunks(self._io, self, self._root)
+            self.chunks = []
+            i = 0
+            while not self._io.is_eof():
+                self.chunks.append(Aep.Chunk(self._io, self, self._root))
+                i += 1
+
 
 
     class CdtaBody(KaitaiStruct):
@@ -224,6 +273,14 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_out_time_frames', None)
 
         @property
+        def duration_sec(self):
+            if hasattr(self, '_m_duration_sec'):
+                return self._m_duration_sec
+
+            self._m_duration_sec = (self.duration_dividend / self.duration_divisor)
+            return getattr(self, '_m_duration_sec', None)
+
+        @property
         def preserve_resolution(self):
             if hasattr(self, '_m_preserve_resolution'):
                 return self._m_preserve_resolution
@@ -244,7 +301,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_duration_frames'):
                 return self._m_duration_frames
 
-            self._m_duration_frames = (self.duration * self.framerate)
+            self._m_duration_frames = (self.duration_sec * self.framerate)
             return getattr(self, '_m_duration_frames', None)
 
         @property
@@ -260,7 +317,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_out_time'):
                 return self._m_out_time
 
-            self._m_out_time = (self.duration if self.out_time_raw == 65535 else self.out_time_raw)
+            self._m_out_time = (self.duration_sec if self.out_time_raw == 65535 else self.out_time_raw)
             return getattr(self, '_m_out_time', None)
 
         @property
@@ -280,14 +337,6 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_in_time_frames', None)
 
         @property
-        def duration(self):
-            if hasattr(self, '_m_duration'):
-                return self._m_duration
-
-            self._m_duration = self.duration_dividend // self.duration_divisor
-            return getattr(self, '_m_duration', None)
-
-        @property
         def preserve_framerate(self):
             if hasattr(self, '_m_preserve_framerate'):
                 return self._m_preserve_framerate
@@ -300,7 +349,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_framerate'):
                 return self._m_framerate
 
-            self._m_framerate = self.framerate_dividend // self.time_scale
+            self._m_framerate = (self.framerate_dividend / self.time_scale)
             return getattr(self, '_m_framerate', None)
 
         @property
@@ -316,7 +365,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_pixel_ratio'):
                 return self._m_pixel_ratio
 
-            self._m_pixel_ratio = self.pixel_ratio_width // self.pixel_ratio_height
+            self._m_pixel_ratio = (self.pixel_ratio_width / self.pixel_ratio_height)
             return getattr(self, '_m_pixel_ratio', None)
 
 
@@ -345,7 +394,7 @@ class Aep(KaitaiStruct):
             self.property_type = self._io.read_bytes(4)
             self.unknown13 = self._io.read_bytes(1)
             self.unknown14 = self._io.read_bytes(7)
-            self.animated = self._io.read_bytes(1)
+            self.animated = self._io.read_u1()
             self.unknown15 = self._io.read_bytes(7)
             self.unknown16 = self._io.read_bytes(4)
             self.unknown17 = self._io.read_bytes(4)
@@ -361,7 +410,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_integer'):
                 return self._m_integer
 
-            self._m_integer = (KaitaiStream.byte_array_index(self.attributes, 3) & (1 << 2)) != 0
+            self._m_integer = (KaitaiStream.byte_array_index(self.property_type, 3) & (1 << 2)) != 0
             return getattr(self, '_m_integer', None)
 
         @property
@@ -377,7 +426,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_vector'):
                 return self._m_vector
 
-            self._m_vector = (KaitaiStream.byte_array_index(self.attributes, 3) & (1 << 3)) != 0
+            self._m_vector = (KaitaiStream.byte_array_index(self.property_type, 3) & (1 << 3)) != 0
             return getattr(self, '_m_vector', None)
 
         @property
@@ -393,7 +442,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_no_value'):
                 return self._m_no_value
 
-            self._m_no_value = (KaitaiStream.byte_array_index(self.attributes, 1) & 1) != 0
+            self._m_no_value = (KaitaiStream.byte_array_index(self.property_type, 1) & 1) != 0
             return getattr(self, '_m_no_value', None)
 
         @property
@@ -401,7 +450,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_color'):
                 return self._m_color
 
-            self._m_color = (KaitaiStream.byte_array_index(self.attributes, 3) & 1) != 0
+            self._m_color = (KaitaiStream.byte_array_index(self.property_type, 3) & 1) != 0
             return getattr(self, '_m_color', None)
 
 
@@ -473,16 +522,32 @@ class Aep(KaitaiStruct):
             self.duration_dividend = self._io.read_u4be()
             self.duration_divisor = self._io.read_u4be()
             self.unknown03 = self._io.read_bytes(10)
-            self.framerate = self._io.read_u4be()
+            self.framerate_base = self._io.read_u4be()
             self.framerate_dividend = self._io.read_u2be()
 
         @property
-        def duration(self):
-            if hasattr(self, '_m_duration'):
-                return self._m_duration
+        def duration_sec(self):
+            if hasattr(self, '_m_duration_sec'):
+                return self._m_duration_sec
 
-            self._m_duration = self.duration_dividend // self.duration_divisor
-            return getattr(self, '_m_duration', None)
+            self._m_duration_sec = (self.duration_dividend / self.duration_divisor)
+            return getattr(self, '_m_duration_sec', None)
+
+        @property
+        def framerate(self):
+            if hasattr(self, '_m_framerate'):
+                return self._m_framerate
+
+            self._m_framerate = (self.framerate_base + (self.framerate_dividend / (1 << 16)))
+            return getattr(self, '_m_framerate', None)
+
+        @property
+        def duration_frames(self):
+            if hasattr(self, '_m_duration_frames'):
+                return self._m_duration_frames
+
+            self._m_duration_frames = (self.duration_sec * self.framerate)
+            return getattr(self, '_m_duration_frames', None)
 
 
     class OptiBody(KaitaiStruct):
@@ -494,7 +559,7 @@ class Aep(KaitaiStruct):
 
         def _read(self):
             self.asset_type = (self._io.read_bytes(4)).decode(u"ascii")
-            self.unknown01 = self._io.read_u2be()
+            self.asset_type_int = self._io.read_u2be()
             if self.asset_type == u"Soli":
                 self.unknown02 = self._io.read_bytes(4)
 
@@ -505,7 +570,13 @@ class Aep(KaitaiStruct):
 
 
             if self.asset_type == u"Soli":
-                self.solid_name = (self._io.read_bytes_term(0, False, True, True)).decode(u"cp1250")
+                self.solid_name = (KaitaiStream.bytes_terminate(self._io.read_bytes(256), 0, False)).decode(u"cp1250")
+
+            if self.asset_type_int == 2:
+                self.unknown03 = self._io.read_bytes(4)
+
+            if self.asset_type_int == 2:
+                self.placeholder_name = (KaitaiStream.bytes_terminate(self._io.read_bytes_full(), 0, False)).decode(u"cp1250")
 
 
         @property
@@ -572,6 +643,31 @@ class Aep(KaitaiStruct):
             self.ae_version = self._io.read_bytes(6)
             self.unknown01 = self._io.read_bytes(12)
             self.file_revision = self._io.read_u2be()
+
+
+    class AlasBody(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.contents = (self._io.read_bytes_full()).decode(u"ascii")
+
+
+    class CdatBody(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.value = []
+            for i in range(self._parent.chunk_size // 8):
+                self.value.append(self._io.read_f8be())
+
 
 
     class AsciiBody(KaitaiStruct):
@@ -701,6 +797,41 @@ class Aep(KaitaiStruct):
                 self._m_last_value_z = (self.last_value_z_raw * 512)
 
             return getattr(self, '_m_last_value_z', None)
+
+
+    class TdsbBody(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.flags = self._io.read_bytes(4)
+
+        @property
+        def locked_ratio(self):
+            if hasattr(self, '_m_locked_ratio'):
+                return self._m_locked_ratio
+
+            self._m_locked_ratio = (KaitaiStream.byte_array_index(self.flags, 2) & (1 << 4)) != 0
+            return getattr(self, '_m_locked_ratio', None)
+
+        @property
+        def visible(self):
+            if hasattr(self, '_m_visible'):
+                return self._m_visible
+
+            self._m_visible = (KaitaiStream.byte_array_index(self.flags, 3) & 1) != 0
+            return getattr(self, '_m_visible', None)
+
+        @property
+        def split_position(self):
+            if hasattr(self, '_m_split_position'):
+                return self._m_split_position
+
+            self._m_split_position = (KaitaiStream.byte_array_index(self.flags, 3) & (1 << 1)) != 0
+            return getattr(self, '_m_split_position', None)
 
 
     class LdtaBody(KaitaiStruct):

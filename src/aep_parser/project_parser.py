@@ -1,12 +1,15 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-from aep_parser.item_parser import parse_item
-from aep_parser.kaitai.aep import Aep
-from aep_parser.models.project import Project
-from aep_parser.rifx.utils import (
+import xml.etree.ElementTree as ET
+
+from .item_parser import parse_item
+from .kaitai.aep import Aep
+from .models.project import Project
+from .rifx.utils import (
     find_by_identifier,
     find_by_type,
+    filter_by_type,
     str_contents,
 )
 
@@ -33,39 +36,34 @@ def parse_project(path):
             chunks=root_chunks,
             chunk_type="nhed"
         )
-        if nhed_chunk is None:
-            msg = (
-                "Could not find 'nhed' chunk in project {path}"
-                .format(
-                    path=path,
-                )
-            )
-            raise Exception(msg)
         project.depth = nhed_chunk.data.depth
+
+        # get names of effects used in project
+        pefl_chunk = find_by_identifier(
+            chunks=root_chunks,
+            identifier="Pefl"
+        )
+        pefl_child_chunks = pefl_chunk.data.chunks
+        pjef_chunks = filter_by_type(
+            chunks=pefl_child_chunks,
+            chunk_type="pjef"
+        )
+        project.effect_names = [
+            str_contents(pjef_chunk)
+            for pjef_chunk in pjef_chunks
+        ]
 
         root_folder_chunk = find_by_identifier(
             chunks=root_chunks,
             identifier="Fold"
         )
-        if root_folder_chunk is None:
-            msg = (
-                "Could not find 'Fold' chunk in project {path}"
-                .format(
-                    path=path,
-                )
-            )
-            raise Exception(msg)
-
         folder = parse_item(root_folder_chunk, project)
         if folder is None:
-            msg = (
+            raise Exception(
                 "Could not parse 'Fold' chunk in project {path}"
                 .format(
                     path=path,
-                )
-            )
-            raise Exception(msg)
-
+            ))
         project.root_folder = folder
 
         # # Layers that have not been given an explicit name should be named after their source
@@ -74,5 +72,9 @@ def parse_project(path):
         #         for layer in item.composition_layers:
         #             if not layer.name:
         #                 layer.name = project.project_items[layer.source_id].name
+
+        project.metadata = ET.fromstring(aep.xmp)
+        for child in project.metadata:
+            print(child.tag)
 
         return project
