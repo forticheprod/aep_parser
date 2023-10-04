@@ -6,23 +6,24 @@ import json
 import os
 
 from .kaitai.aep import Aep
-from .layer_parser import parse_layer
-from .models.composition import Composition
-from .models.folder import Folder
-from .models.asset import Asset
-from .rifx.utils import (
+from .kaitai.utils import (
     find_by_identifier,
     find_by_type,
     filter_by_identifier,
     str_contents,
 )
+from .layer_parser import parse_layer
+from .models.items.composition import Composition
+from .models.items.folder import Folder
+from .models.items.asset import Asset
 
 
 def parse_item(item_chunk, project):
+    # TODO split asset classes and layer classes
+    # TODO split item parser (folder, comp, asset)
     child_chunks = item_chunk.data.chunks
     is_root = item_chunk.data.identifier == "Fold"
 
-    # Parse item metadata
     if is_root:
         item_id = 0
         item_name = "root"
@@ -33,72 +34,51 @@ def parse_item(item_chunk, project):
             chunks=child_chunks,
             chunk_type="Utf8"
         )
-        if name_chunk is None:
-            print(
-                "could not find name chunk for {item_chunk}"
-                .format(item_chunk=item_chunk)
-            )
-            return
         item_name = str_contents(name_chunk)
 
         idta_chunk = find_by_type(
             chunks=child_chunks,
             chunk_type="idta"
         )
-        if idta_chunk is None:
-            print(
-                "could not find idta chunk for {item_chunk}"
-                .format(item_chunk=item_chunk)
-            )
-            return
         idta_data = idta_chunk.data
 
         item_id = idta_data.item_id
         item_type = Aep.ItemType(idta_data.item_type)
         label_color = Aep.LabelColor(idta_data.label_color)
 
-    # Parse unique item type information
     if item_type == Aep.ItemType.folder:
-        item_class = Folder
-    elif item_type == Aep.ItemType.asset:
-        item_class = Asset
-    elif item_type == Aep.ItemType.composition:
-        item_class = Composition
-
-    item = item_class(
-        item_id = item_id,
-        item_type = item_type,
-        name = item_name,
-        label_color = label_color
-    )
-
-    # Parse unique item type information
-    if item.item_type == Aep.ItemType.folder:
-        folder_contents = []
-        child_sfdr_chunks = filter_by_identifier(
+        item = Folder(
+            item_id=item_id,
+            item_type=item_type,
+            name=item_name,
+            label_color=label_color,
+            folder_contents=[]
+        )
+        print('item: ', item)
+        print('child_chunks: ', child_chunks)
+        # Get folder contents
+        sfdr_chunk = find_by_identifier(
             chunks=child_chunks,
             identifier="Sfdr"
         )
-        child_item_list_chunks = filter_by_identifier(
-            chunks=child_chunks + child_sfdr_chunks,
-            identifier="Item"
+        print('sfdr_chunk: ', sfdr_chunk)
+        if sfdr_chunk is not None:
+            child_item_chunks = filter_by_identifier(
+                chunks=sfdr_chunk.data.chunks,
+                identifier="Item"
+            )
+            # print('child_item_chunks: ', child_item_chunks)
+            for child_item_chunk in child_item_chunks:
+                child_item = parse_item(child_item_chunk, project)
+                item.folder_contents.append(child_item)
+
+    elif item_type == Aep.ItemType.asset:
+        item = Asset(
+            item_id=item_id,
+            item_type=item_type,
+            name=item_name,
+            label_color=label_color
         )
-        for child_item_list_chunk in child_item_list_chunks:
-            child_item = parse_item(child_item_list_chunk, project)
-            if child_item is None:
-                print(
-                    "could not parse {child_item_list_chunk}, child chunk of {item_chunk}"
-                    .format(
-                        child_item_list_chunk=child_item_list_chunk,
-                        item_chunk=item_chunk,
-                    )
-                )
-                continue
-
-            folder_contents.append(child_item)
-        item.folder_contents = folder_contents
-
-    elif item.item_type == Aep.ItemType.asset:
         pin_chunk = find_by_identifier(
             chunks=child_chunks,
             identifier="Pin "
@@ -187,10 +167,14 @@ def parse_item(item_chunk, project):
                 # TODO add "name_overriden" or "default_name" ? label like properties ?
                 item.name = os.path.basename(item.path)
 
-        # TODO split asset classes
-        # TODO split item parser (folder, comp, asset)
+    elif item_type == Aep.ItemType.composition:
+        item = Composition(
+            item_id=item_id,
+            item_type=item_type,
+            name=item_name,
+            label_color=label_color
+        )
 
-    elif item.item_type == Aep.ItemType.composition:
         cdta_chunk = find_by_type(
             chunks=child_chunks,
             chunk_type="cdta"

@@ -4,13 +4,14 @@ from __future__ import unicode_literals
 from collections import OrderedDict
 
 from .kaitai.aep import Aep
-from .models.property import Property
-from .rifx.utils import (
+from .kaitai.utils import (
     filter_by_type,
     find_by_identifier,
     find_by_type,
     str_contents,
 )
+from .models.properties.property import Property
+
 
 def parse_property_group(tdgp_chunk, group_match_name):
     if group_match_name == "ADBE Effect Parade":
@@ -281,9 +282,11 @@ def parse_effect_parameter(parameter_chunks, match_name):
     )
     if pdnm_chunk is not None:
         utf8_chunk = pdnm_chunk.data.chunk
-        parameter.control_strings = str_contents(utf8_chunk)
-        if "|" in parameter.control_strings:
-            parameter.control_strings = parameter.control_strings.split("|")
+        pdnm_data = str_contents(utf8_chunk)
+        if parameter.property_type == Aep.PropertyType.enum:
+            parameter.select_options = pdnm_data.split("|")
+        elif pdnm_data:
+            parameter.name = pdnm_data
 
     return parameter
 

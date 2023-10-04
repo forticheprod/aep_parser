@@ -3,6 +3,11 @@ from __future__ import unicode_literals
 
 
 from .kaitai.aep import Aep
+from .kaitai.utils import (
+    find_by_type,
+    find_by_identifier,
+    str_contents,
+)
 from .models.layer import Layer
 from .models.layer_quality_level import LayerQualityLevel
 from .models.layer_frame_blend_mode import LayerFrameBlendMode
@@ -11,14 +16,11 @@ from .property_parser import (
     parse_property_group,
     get_properties,
 )
-from .rifx.utils import (
-    find_by_type,
-    find_by_identifier,
-    str_contents,
-)
 
 
 def parse_layer(layer_chunk):
+    # TODO add classes for different layer types (camera, etc)
+    # TODO split parser for different layer types (camera, etc)
     child_chunks = layer_chunk.data.chunks
 
     ldta_chunk = find_by_type(

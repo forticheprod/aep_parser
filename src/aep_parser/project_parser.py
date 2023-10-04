@@ -5,13 +5,13 @@ import xml.etree.ElementTree as ET
 
 from .item_parser import parse_item
 from .kaitai.aep import Aep
-from .models.project import Project
-from .rifx.utils import (
+from .kaitai.utils import (
     find_by_identifier,
     find_by_type,
     filter_by_type,
     str_contents,
 )
+from .models.project import Project
 
 
 """
@@ -21,7 +21,9 @@ based on https://github.com/boltframe/aftereffects-aep-parser/blob/70803375303cc
 
 def parse_project(path):
     with Aep.from_file(path) as aep:
-        project = Project()
+        project = Project(
+            project_items=dict()
+        )
 
         root_chunks = aep.data.chunks
         expression_engine_chunk = find_by_identifier(
