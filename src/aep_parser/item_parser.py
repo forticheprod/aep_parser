@@ -141,6 +141,8 @@ def parse_asset(child_chunks, project, item_id, item_name, label_color):
             or int(round(project.framerate * sspc_data.duration_sec))
         ),  # audio files have a frames duration of 0
         asset_type=asset_type,
+        start_frame=sspc_data.start_frame,
+        end_frame=sspc_data.end_frame,
     )
 
     if not asset_type:  # Placeholder
@@ -177,7 +179,7 @@ def parse_asset(child_chunks, project, item_id, item_name, label_color):
         item.target_is_folder = alas_data["target_is_folder"]
 
         if not item.name:
-            # TODO check image sequence (frame numbers), psd (layers)
+            # TODO image sequence (frame numbers), psd (layers)
             # TODO add "name_overriden" or "default_name" ? label like properties ?
             item.name = os.path.basename(item.path)
     return item

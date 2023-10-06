@@ -12,6 +12,7 @@ from .kaitai.utils import (
     str_contents,
 )
 from .models.project import Project
+from .models.items.composition import Composition
 
 
 """
@@ -75,12 +76,12 @@ def parse_project(path):
             ))
         project.root_folder = folder
 
-        # # Layers that have not been given an explicit name should be named after their source
-        # for item in project.project_items.values():
-        #     if item.item_type == Aep.ItemType.composition:
-        #         for layer in item.composition_layers:
-        #             if not layer.name:
-        #                 layer.name = project.project_items[layer.source_id].name
+        # Layers that have not been given an explicit name should be named after their source
+        for item in project.project_items.values():
+            if isinstance(item, Composition):
+                for layer in item.composition_layers:
+                    if not layer.name:
+                        layer.name = project.project_items[layer.source_id].name
 
         project.metadata = ET.fromstring(aep.xmp)
         software_agent = project.metadata.find(".//{*}softwareAgent")

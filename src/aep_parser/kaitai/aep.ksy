@@ -234,6 +234,12 @@ types:
         type: u4 # 57-60
       - id: framerate_dividend
         type: u2 # 61-62
+      - id: unknown04
+        size: 110 # 61-62
+      - id: start_frame
+        type: u4 # 61-62
+      - id: end_frame
+        type: u4 # 61-62
     instances:
       duration_sec:
         value: 'duration_dividend.as<f4> / duration_divisor.as<f4>'

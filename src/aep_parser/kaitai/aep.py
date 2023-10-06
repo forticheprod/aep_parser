@@ -560,6 +560,9 @@ class Aep(KaitaiStruct):
             self.unknown03 = self._io.read_bytes(10)
             self.framerate_base = self._io.read_u4be()
             self.framerate_dividend = self._io.read_u2be()
+            self.unknown04 = self._io.read_bytes(110)
+            self.start_frame = self._io.read_u4be()
+            self.end_frame = self._io.read_u4be()
 
         @property
         def duration_sec(self):
