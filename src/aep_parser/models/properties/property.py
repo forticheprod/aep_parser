@@ -9,7 +9,7 @@ class Property(object):
         self.index = index
         self.property_type = property_type
         self.properties = properties
-        self.select_options = select_options  # TODO what is this ? enum options ?
+        self.select_options = select_options  # enum choices
 
     def __repr__(self):
         return str(self.__dict__)

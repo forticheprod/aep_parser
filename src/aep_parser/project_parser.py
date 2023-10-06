@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from .item_parser import parse_item
 from .kaitai.aep import Aep
 from .kaitai.utils import (
-    find_by_identifier,
+    find_by_list_type,
     find_by_type,
     filter_by_type,
     str_contents,
@@ -26,24 +26,31 @@ def parse_project(path):
         )
 
         root_chunks = aep.data.chunks
-        expression_engine_chunk = find_by_identifier(
+        expression_engine_chunk = find_by_list_type(
             chunks=root_chunks,
-            identifier="ExEn"
+            list_type="ExEn"
         ) 
         if expression_engine_chunk:
-            project.expression_engine = str_contents(expression_engine_chunk)  # FIXME
+            project.expression_engine = str_contents(expression_engine_chunk)  # TODO check
 
-        # get project depth in BPC (8, 16 or 32)
+        # Get project depth in BPC (8, 16 or 32)
         nhed_chunk = find_by_type(
             chunks=root_chunks,
             chunk_type="nhed"
         )
-        project.depth = nhed_chunk.data.depth
+        project.depth = nhed_chunk.data.depth  # FIXME
 
-        # get names of effects used in project
-        pefl_chunk = find_by_identifier(
+        # Get project framerate
+        nnhd_chunk = find_by_type(
             chunks=root_chunks,
-            identifier="Pefl"
+            chunk_type="nnhd"
+        )
+        project.framerate = nnhd_chunk.data.framerate
+
+        # Get names of effects used in project
+        pefl_chunk = find_by_list_type(
+            chunks=root_chunks,
+            list_type="Pefl"
         )
         pefl_child_chunks = pefl_chunk.data.chunks
         pjef_chunks = filter_by_type(
@@ -55,9 +62,9 @@ def parse_project(path):
             for pjef_chunk in pjef_chunks
         ]
 
-        root_folder_chunk = find_by_identifier(
+        root_folder_chunk = find_by_list_type(
             chunks=root_chunks,
-            identifier="Fold"
+            list_type="Fold"
         )
         folder = parse_item(root_folder_chunk, project)
         if folder is None:

@@ -50,6 +50,7 @@ types:
             '"idta"': idta_body # Item data
             '"ldta"': ldta_body # Layer data
             '"nhed"': nhed_body # Header data
+            '"nnhd"': nnhd_body # Project data
             '"opti"': opti_body # Asset data
             '"pard"': pard_body # property ??
             '"pjef"': utf8_body # effect names
@@ -57,9 +58,9 @@ types:
             '"tdb4"': tdb4_body # property metadata
             '"tdmn"': utf8_body # Transform property group end
             '"tdsb"': tdsb_body # transform property group flags
-            '"fnam"': child_utf8_body # Effect name. contains a single utf-8 chunk but no identifier
-            '"pdnm"': child_utf8_body # Parameter control strings. contains a single utf-8 chunk but no identifier
-            '"tdsn"': child_utf8_body # user-defined label of a property. contains a single utf-8 chunk but no identifier
+            '"fnam"': child_utf8_body # Effect name. contains a single utf-8 chunk but no list_type
+            '"pdnm"': child_utf8_body # Parameter control strings. contains a single utf-8 chunk but no list_type
+            '"tdsn"': child_utf8_body # user-defined label of a property. contains a single utf-8 chunk but no list_type
             # '"fiac"': ascii_body # active item, not sure about encoding
             # '"tdgp"': ascii_body # Transform properties group, not sure about encoding
             _: ascii_body
@@ -68,13 +69,17 @@ types:
         if: (chunk_size % 2) != 0
   list_body:
     seq:
-      - id: identifier
+      - id: list_type
         type: str
         encoding: cp1250
         size: 4
       - id: chunks
         type: chunk
         repeat: eos
+        if: list_type != "btdk"
+      - id: binary_data
+        size-eos: true
+        if: list_type == "btdk"
   utf8_body:
     seq:
       - id: data
@@ -199,8 +204,16 @@ types:
       - id: unknown01
         size: 15
       - id: depth
-        type: u2
+        type: u1
         enum: depth
+  nnhd_body:
+    seq:
+      - id: unknown01
+        size: 14
+      - id: framerate
+        type: u2
+      - id: unknown02
+        size: 24
   sspc_body:
     seq:
       - id: unknown01
@@ -283,54 +296,70 @@ types:
         type: u4 # 1-4
       - id: quality
         type: u2 # 5-6
+        enum: layer_quality
       - id: unknown01
-        size: 7 # 7-13
-      - id: start_time
-        type: s2 # 14-15
+        size: 4 # 7-10
+      - id: stretch_numerator
+        type: u2 # 11-12
       - id: unknown02
-        size: 6 # 16-21
-      - id: in_time
-        type: u2 # 22-23
+        size: 1 # 13
+      - id: start_time_sec
+        type: s2 # 14-15
       - id: unknown03
-        size: 6 # 24-29
-      - id: out_time
-        type: u2 # 30-31
+        size: 6 # 16-21
+      - id: in_time_sec
+        type: u2 # 22-23
       - id: unknown04
+        size: 6 # 24-29
+      - id: out_time_sec
+        type: u2 # 30-31
+      - id: unknown05
         size: 6 # 32-37
       - id: attributes
         size: 3 # 38-40
       - id: source_id
         type: u4 # 41-44
+      - id: unknown06
+        size: 17 # 45-61
       - id: label_color
-        type: u1 # 45
+        type: u1 # 62
         enum: label_color
-      - id: unknown05
-        size: 2 # 46-47
+      - id: unknown07
+        size: 2 # 63-64
       - id: layer_name
-        size: 32 # 48-79
+        size: 32 # 65-96
         type: str
         encoding: cp1250
-      - id: unknown06
-        size: 11 # 80-90
+      - id: unknown08
+        size: 11 # 97-107
       - id: matte_mode
-        type: u1 # 91
+        type: u1 # 108
         enum: matte_mode
+      - id: unknown09
+        size: 2 # 109-110
+      - id: stretch_denominator
+        type: u2 # 111-112
+      - id: unknown10
+        size: 19 # 113-131
       - id: layer_type
-        type: u1 # 92
+        type: u1 # 132
         enum: layer_type
       - id: parent_id
-        type: u4 # 93-96
-      - id: unknown07
-        size: 24 # 97-120
+        type: u4 # 133-136
+      - id: unknown11
+        size: 24 # 137-160
       # - id: matte_layer_id
-      #   type: u4 # 121-124
+      #   type: u4 # 161-164
+      #   doc: only for AE >= 23
     instances:
       guide_enabled:
         value: '(attributes[0] & (1 << 1)) != 0'
       frame_blend_mode:
         value: '(attributes[0] & (1 << 2)) >> 2'
+        enum: layer_frame_blend_mode
       sampling_mode:
         value: '(attributes[0] & (1 << 6)) >> 6'
+        enum: layer_sampling_mode
       auto_orient:
         value: '(attributes[1] & 1) != 0'
       adjustment_layer_enabled:
@@ -633,6 +662,7 @@ enums:
     16: dark_green
   property_type:
     0: layer
+    # 1: integer ?
     2: scalar
     3: angle
     4: boolean
@@ -641,19 +671,32 @@ enums:
     7: enum
     9: paint_group
     10: slider
+    11: curve
+    # 12: mask ?
     13: group
+    # 14: ??
     15: unknown
     18: three_d
+  layer_quality:
+    0: wireframe
+    1: draft
+    2: best
+  layer_frame_blend_mode:
+    0: frame_mix
+    1: pixel_motion
+  layer_sampling_mode:
+    0: bilinear
+    1: bicubic
   # ae_version:
-  #   0x5c06073806b4: v15_0
-  #   0x5d040b0006eb: v16_0
-  #   0x5d040b000e30: v16_0_1
-  #   0x5d050b009637: v16_1_2
-  #   0x5d050b009e05: v16_1_3
-  #   0x5d094b08062b: v17_0
-  #   0x5d0b0b08263b: v17_0_4
-  #   0x5d1b0b110e08: v18_2_1
-  #   0x5d1d0b120626: v18_4
-  #   0x5d1d0b70066f: v22_0
-  #   0x5d2b0b33063b: v22_6
-  #   0x5e030b390e03: v23_2_1
+  #   0x5c06073806b4: 15.0
+  #   0x5d040b0006eb: 16.0
+  #   0x5d040b000e30: 16.0.1
+  #   0x5d050b009637: 16.1.2
+  #   0x5d050b009e05: 16.1.3
+  #   0x5d094b08062b: 17.0
+  #   0x5d0b0b08263b: 17.0.4
+  #   0x5d1b0b110e08: 18.2.1
+  #   0x5d1d0b120626: 18.4
+  #   0x5d1d0b70066f: 22.0
+  #   0x5d2b0b33063b: 22.6
+  #   0x5e030b390e03: 23.2.1

@@ -21,7 +21,7 @@ def find_by_type(chunks, chunk_type):
     )
 
 
-def find_by_identifier(chunks, identifier):
+def find_by_list_type(chunks, list_type):
     """
     Perform a find operation over a chunks list predicated upon chunk type.
     """
@@ -29,7 +29,7 @@ def find_by_identifier(chunks, identifier):
         chunks=chunks,
         func=lambda chunk: (
             chunk.chunk_type == "LIST"
-            and chunk.data.identifier == identifier
+            and chunk.data.list_type == list_type
         )
     )
 
@@ -40,15 +40,15 @@ def filter_chunks(chunks, func):
     return list(filter(func, chunks))
 
 
-def filter_by_identifier(chunks, identifier):
+def filter_by_list_type(chunks, list_type):
     """
-    Return chunks that have the provided identifier.
+    Return chunks that have the provided list_type.
     """
     return filter_chunks(
         chunks=chunks,
         func=lambda chunk: (
             chunk.chunk_type == "LIST"
-            and chunk.data.identifier == identifier
+            and chunk.data.list_type == list_type
         )
     )
 

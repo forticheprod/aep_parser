@@ -1,15 +1,19 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-from collections import OrderedDict
+import io
+import collections
 
+from .cos.cos import CosParser
 from .kaitai.aep import Aep
 from .kaitai.utils import (
     filter_by_type,
-    find_by_identifier,
+    find_by_list_type,
     find_by_type,
     str_contents,
 )
+from .models.properties.effect import Effect
+from .models.properties.parameter import Parameter
 from .models.properties.property import Property
 
 
@@ -26,30 +30,37 @@ def parse_property_group(tdgp_chunk, group_match_name):
         match_name=group_match_name,
         name=prop_name,
         properties=[],
+        select_options=[],
     )
 
     chunks_by_sub_prop = get_properties(tdgp_chunk)
     for i, (match_name, sub_prop_chunks) in enumerate(chunks_by_sub_prop.items(), 1):
         first_chunk = sub_prop_chunks[0]
-        if first_chunk.data.identifier == "tdgp":
+        if first_chunk.data.list_type == "tdgp":
             sub_prop = parse_property_group(
                 tdgp_chunk=first_chunk,
                 group_match_name=match_name,
             )
-        elif first_chunk.data.identifier == "sspc":
+        elif first_chunk.data.list_type == "sspc":
             sub_prop = parse_effect(
                 sspc_chunk=first_chunk,
                 group_match_name=match_name,
             )
-        elif first_chunk.data.identifier == "tdbs":
+        elif first_chunk.data.list_type == "tdbs":
             sub_prop = parse_property(
                 tdbs_chunk=first_chunk,
                 match_name=match_name,
                 prop=None,
             )
-        elif first_chunk.data.identifier == "otst":
+        elif first_chunk.data.list_type == "otst":
             sub_prop = parse_orientation(
                 otst_chunk=first_chunk,
+                match_name=match_name,
+                prop=None,
+            )
+        elif first_chunk.data.list_type == "btds":
+            sub_prop = parse_text_document(
+                btds_chunk=first_chunk,
                 match_name=match_name,
                 prop=None,
             )
@@ -57,7 +68,7 @@ def parse_property_group(tdgp_chunk, group_match_name):
             # TODO check how to parse om-s, GCst, mrst, btds, OvG2
             raise NotImplementedError(
                 "Cannot parse property : {}".format(
-                    first_chunk.data.identifier
+                    first_chunk.data.list_type
                 )
             )
         sub_prop.index = i
@@ -65,10 +76,18 @@ def parse_property_group(tdgp_chunk, group_match_name):
 
     return prop_group
 
+
 def parse_orientation(otst_chunk, match_name, prop=None):
-    tdbs_chunk = find_by_identifier(
+    tdbs_chunk = find_by_list_type(
         chunks=otst_chunk.data.chunks,
-        identifier="tdbs"
+        list_type="tdbs"
+    )
+    prop = Property(
+        property_type=Aep.PropertyType.angle,
+        match_name=match_name,
+        name=match_name,
+        properties=[],
+        select_options=[],
     )
     prop = parse_property(
         tdbs_chunk=tdbs_chunk,
@@ -76,9 +95,9 @@ def parse_orientation(otst_chunk, match_name, prop=None):
         prop=prop,
     )
 
-    otky_chunk = find_by_identifier(
+    otky_chunk = find_by_list_type(
         chunks=otst_chunk.data.chunks,
-        identifier="otky"
+        list_type="otky"
     )
     otda_chunks = filter_by_type(
         chunks=otky_chunk.data.chunks,
@@ -87,6 +106,30 @@ def parse_orientation(otst_chunk, match_name, prop=None):
     # TODO parse otda_chunks
     return prop
 
+
+def parse_text_document(btds_chunk, match_name, prop=None):
+    tdbs_chunk = find_by_list_type(
+        chunks=btds_chunk.data.chunks,
+        list_type="tdbs"
+    )
+    prop = parse_property(
+        tdbs_chunk=tdbs_chunk,
+        match_name=match_name,
+        prop=None,
+    )
+
+    btdk_chunk = find_by_list_type(
+        chunks=btds_chunk.data.chunks,
+        list_type="btdk"
+    )
+    data_stream = io.BytesIO(btdk_chunk.data.binary_data)
+    parser = CosParser(data_stream, len(btdk_chunk.data.binary_data))
+    content_as_dict = parser.parse()
+    # TODO get rid of "\ufeff" in string values
+    # TODO parse the resulting dict
+    return prop
+
+
 def parse_property(tdbs_chunk, match_name, prop=None):
     if prop is None:
         prop = Property(
@@ -94,6 +137,7 @@ def parse_property(tdbs_chunk, match_name, prop=None):
             match_name=match_name,
             name=match_name,
             properties=[],
+            select_options=[],
         )
 
     tdbs_child_chunks = tdbs_chunk.data.chunks
@@ -124,7 +168,73 @@ def parse_property(tdbs_chunk, match_name, prop=None):
     prop.static = tdb4_data.static
     prop.no_value = tdb4_data.no_value
     prop.color = tdb4_data.color
-    # TODO deduce prop.property_type ?
+
+    if prop.property_type == Aep.PropertyType.unknown:
+        if prop.color:
+            prop.property_type = Aep.PropertyType.color
+        elif prop.integer:
+            prop.property_type = Aep.PropertyType.boolean
+        elif prop.vector:
+            if prop.components == 1:
+                if prop.no_value:
+                    # TODO could be shapes, gradient, ...
+                    pass
+                else:
+                    prop.property_type = Aep.PropertyType.scalar  # not sure, could be slider
+            elif prop.components == 2:
+                prop.property_type = Aep.PropertyType.two_d
+            elif prop.components == 3:
+                prop.property_type = Aep.PropertyType.three_d
+            else:
+                print (
+                    "Could not determine type for property {match_name}" 
+                    " | label: {label}"
+                    " | components: {components}"
+                    " | animated: {animated}"
+                    " | integer: {integer}"
+                    " | position: {position}"
+                    " | vector: {vector}"
+                    " | static: {static}"
+                    " | no_value: {no_value}"
+                    " | color: {color}"
+                    .format(
+                        match_name=match_name,
+                        label=label,
+                        components=prop.components,
+                        animated=prop.animated,
+                        integer=prop.integer,
+                        position=prop.position,
+                        vector=prop.vector,
+                        static=prop.static,
+                        no_value=prop.no_value,
+                        color=prop.color,
+                    )
+                )
+        else:
+            print (
+                "Could not determine type for property {match_name}" 
+                " | label: {label}"
+                " | components: {components}"
+                " | animated: {animated}"
+                " | integer: {integer}"
+                " | position: {position}"
+                " | vector: {vector}"
+                " | static: {static}"
+                " | no_value: {no_value}"
+                " | color: {color}"
+                .format(
+                    match_name=match_name,
+                    label=label,
+                    components=prop.components,
+                    animated=prop.animated,
+                    integer=prop.integer,
+                    position=prop.position,
+                    vector=prop.vector,
+                    static=prop.static,
+                    no_value=prop.no_value,
+                    color=prop.color,
+                )
+            )
 
     # Get property value
     cdat_chunk = find_by_type(
@@ -144,9 +254,9 @@ def parse_property(tdbs_chunk, match_name, prop=None):
         prop.expression = str_contents(utf8_chunk)
 
     # Get property keyframes
-    list_chunk = find_by_identifier(
+    list_chunk = find_by_list_type(
         chunks=tdbs_child_chunks,
-        identifier="list"
+        list_type="list"
     )
     if list_chunk is not None:
         list_child_chunks = list_chunk.data.chunks
@@ -162,27 +272,25 @@ def parse_property(tdbs_chunk, match_name, prop=None):
     return prop
 
 def parse_effect(sspc_chunk, group_match_name):
-    # TODO create Effect class
-    effect = Property(
-        property_type=Aep.PropertyType.group,
-        match_name=group_match_name,
-        name=group_match_name,
-        properties=[],
-    )
-
     sspc_child_chunks = sspc_chunk.data.chunks
     fnam_chunk = find_by_type(
         chunks=sspc_child_chunks,
         chunk_type="fnam"
     )
     utf8_chunk = fnam_chunk.data.chunk
-    effect.name = str_contents(utf8_chunk)
 
-    part_chunk = find_by_identifier(
+    effect = Effect(
+        match_name=group_match_name,
+        name=str_contents(utf8_chunk),
+        parameters=[],
+    )
+
+    part_chunk = find_by_list_type(
         chunks=sspc_child_chunks,
-        identifier="parT"
+        list_type="parT"
     )
     if part_chunk:
+        # Get effect parameters
         chunks_by_parameter = get_properties(part_chunk)
         for i, (match_name, parameter_chunks) in enumerate(chunks_by_parameter.items()):
             # Skip first, it describes parent
@@ -190,31 +298,38 @@ def parse_effect(sspc_chunk, group_match_name):
                 continue
             parameter = parse_effect_parameter(parameter_chunks, match_name)
             parameter.index = i
-            effect.properties.append(parameter)
+            effect.parameters.append(parameter)
 
-    tdgp_chunk = find_by_identifier(
+    tdgp_chunk = find_by_list_type(
         chunks=sspc_child_chunks,
-        identifier="tdgp"
+        list_type="tdgp"
     )
     label = get_label(tdgp_chunk)
     if label:
         effect.label = label
 
+    # Get parameters values
     chunks_by_property = get_properties(tdgp_chunk)
     for i, (match_name, prop_chunks) in enumerate(chunks_by_property.items(), 1):
         first_chunk = prop_chunks[0]
-        if first_chunk.data.identifier == "tdbs":
-            for parameter in effect.properties:
+        if first_chunk.data.list_type == "tdbs":
+            for parameter in effect.parameters:
                 if parameter.match_name == match_name:
+                    # add value
                     parameter = parse_property(
                         tdbs_chunk=first_chunk,
                         match_name=match_name,
                         prop=parameter,
                     )
+                    break
+        elif first_chunk.data.list_type == "tdgp":
+            # TODO implement this.
+            # Encountered with "ADBE FreePin3" effect (Obsolete > Puppet)
+            pass
         else:
             raise NotImplementedError(
                 "Cannot parse parameter value : {}".format(
-                    first_chunk.data.identifier
+                    first_chunk.data.list_type
                 )
             )
 
@@ -222,19 +337,18 @@ def parse_effect(sspc_chunk, group_match_name):
 
 
 def parse_effect_parameter(parameter_chunks, match_name):
-    # TODO create Parameter class (inherits from property)
-    parameter = Property(
-        match_name=match_name,
-        name=match_name,
-        properties=[],
-    )
     pard_chunk = find_by_type(
         chunks=parameter_chunks,
         chunk_type="pard"
     )
     pard_data = pard_chunk.data
-    parameter.property_type = pard_data.property_type
-    parameter.name = pard_data.name.rstrip("\x00")
+
+    parameter = Parameter(
+        match_name=match_name,
+        name=pard_data.name.rstrip("\x00"),
+        property_type=pard_data.property_type,
+        select_options=[],
+    )
 
     if parameter.property_type == Aep.PropertyType.angle:
         parameter.last_value = pard_data.last_value
@@ -292,10 +406,13 @@ def parse_effect_parameter(parameter_chunks, match_name):
 
 
 def get_properties(root_chunk):
-    properties = OrderedDict()
+    SKIP_CHUNK_TYPES = (
+        "engv",
+        "aRbs",
+    )
+    properties = collections.OrderedDict()
     if root_chunk:
-        match_name = None
-        skip_to_next_tdmn_flag = False
+        skip_to_next_tdmn_flag = True
         for chunk in root_chunk.data.chunks:
             if chunk.chunk_type == "tdmn":
                 match_name = str_contents(chunk)
@@ -303,7 +420,7 @@ def get_properties(root_chunk):
                     skip_to_next_tdmn_flag = True
                 else:
                     skip_to_next_tdmn_flag = False
-            elif match_name and not skip_to_next_tdmn_flag:
+            elif (not skip_to_next_tdmn_flag) and chunk.chunk_type not in SKIP_CHUNK_TYPES:
                 properties.setdefault(match_name, []).append(chunk)
     return properties
 

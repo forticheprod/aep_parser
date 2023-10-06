@@ -5,13 +5,10 @@ from __future__ import unicode_literals
 from .kaitai.aep import Aep
 from .kaitai.utils import (
     find_by_type,
-    find_by_identifier,
+    find_by_list_type,
     str_contents,
 )
 from .models.layer import Layer
-from .models.layer_quality_level import LayerQualityLevel
-from .models.layer_frame_blend_mode import LayerFrameBlendMode
-from .models.layer_sampling_mode import LayerSamplingMode
 from .property_parser import (
     parse_property_group,
     get_properties,
@@ -27,41 +24,33 @@ def parse_layer(layer_chunk):
         chunks=child_chunks,
         chunk_type="ldta"
     )
-    if ldta_chunk is None:
-        print(
-            "could not find ldta for chunk {layer_chunk}"
-            .format(layer_chunk=layer_chunk)
-        )
-        return
-
     name_chunk = find_by_type(
         chunks=child_chunks,
         chunk_type="Utf8"
     )
-    if name_chunk is None:
-        print(
-            "could not find name for chunk {layer_chunk}"
-            .format(layer_chunk=layer_chunk)
-        )
-        return
 
     ldta_data = ldta_chunk.data
 
+    # print('str_contents(name_chunk): ', str_contents(name_chunk))
+    # print('ldta_data: ', ldta_data.__dict__)
     layer = Layer(
         name=str_contents(name_chunk),
         layer_id=ldta_data.layer_id,
-        quality=LayerQualityLevel(ldta_data.quality),
-        start_time_sec=ldta_data.start_time,
-        in_time_sec=ldta_data.in_time,
-        out_time_sec=ldta_data.out_time,  # TODO check
+        quality=ldta_data.quality,
+        stretch_numerator=ldta_data.stretch_numerator,
+        start_time_sec=ldta_data.start_time_sec,  # TODO check
+        in_time_sec=ldta_data.in_time_sec,  # TODO check
+        out_time_sec=ldta_data.out_time_sec,  # TODO check
         source_id=ldta_data.source_id,
-        label_color=Aep.LabelColor(ldta_data.label_color),
-        matte_mode=Aep.MatteMode(ldta_data.matte_mode),
-        layer_type=Aep.LayerType(ldta_data.layer_type),
+        label_color=ldta_data.label_color,
+        matte_mode=ldta_data.matte_mode,
+        stretch_denominator=ldta_data.stretch_denominator,
+        layer_type=ldta_data.layer_type,
         parent_id=ldta_data.parent_id,
+
         guide_enabled=ldta_data.guide_enabled,
-        frame_blend_mode=LayerFrameBlendMode(ldta_data.frame_blend_mode),
-        sampling_mode=LayerSamplingMode(ldta_data.sampling_mode),
+        frame_blend_mode=ldta_data.frame_blend_mode,
+        sampling_mode=ldta_data.sampling_mode,
         auto_orient=ldta_data.auto_orient,
         adjustment_layer_enabled=ldta_data.adjustment_layer_enabled,
         three_d_enabled=ldta_data.three_d_enabled,
@@ -77,16 +66,10 @@ def parse_layer(layer_chunk):
         collapse_transform_enabled=ldta_data.collapse_transform_enabled,
     )
 
-    root_tdgp_chunk = find_by_identifier(
+    root_tdgp_chunk = find_by_list_type(
         chunks=child_chunks,
-        identifier="tdgp"
+        list_type="tdgp"
     )
-    if root_tdgp_chunk is None:
-        print(
-            "could not find tdgp for chunk {layer_chunk}"
-            .format(layer_chunk=layer_chunk)
-        )
-        return
     tdgp_map = get_properties(root_tdgp_chunk)
 
     # Parse transform stack

@@ -10,6 +10,10 @@ if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 9):
 
 class Aep(KaitaiStruct):
 
+    class LayerFrameBlendMode(Enum):
+        frame_mix = 0
+        pixel_motion = 1
+
     class PropertyType(Enum):
         layer = 0
         scalar = 2
@@ -20,6 +24,7 @@ class Aep(KaitaiStruct):
         enum = 7
         paint_group = 9
         slider = 10
+        curve = 11
         group = 13
         unknown = 15
         three_d = 18
@@ -62,6 +67,10 @@ class Aep(KaitaiStruct):
         sandstone = 15
         dark_green = 16
 
+    class LayerSamplingMode(Enum):
+        bilinear = 0
+        bicubic = 1
+
     class Depth(Enum):
         bpc_8 = 0
         bpc_16 = 1
@@ -71,6 +80,11 @@ class Aep(KaitaiStruct):
         folder = 1
         composition = 4
         asset = 7
+
+    class LayerQuality(Enum):
+        wireframe = 0
+        draft = 1
+        best = 2
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
@@ -128,6 +142,10 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+            elif _on == u"nnhd":
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.NnhdBody(_io__raw_data, self, self._root)
             elif _on == u"ldta":
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
@@ -213,12 +231,17 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.identifier = (self._io.read_bytes(4)).decode(u"cp1250")
-            self.chunks = []
-            i = 0
-            while not self._io.is_eof():
-                self.chunks.append(Aep.Chunk(self._io, self, self._root))
-                i += 1
+            self.list_type = (self._io.read_bytes(4)).decode(u"cp1250")
+            if self.list_type != u"btdk":
+                self.chunks = []
+                i = 0
+                while not self._io.is_eof():
+                    self.chunks.append(Aep.Chunk(self._io, self, self._root))
+                    i += 1
+
+
+            if self.list_type == u"btdk":
+                self.binary_data = self._io.read_bytes_full()
 
 
 
@@ -454,6 +477,19 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_color', None)
 
 
+    class NnhdBody(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.unknown01 = self._io.read_bytes(14)
+            self.framerate = self._io.read_u2be()
+            self.unknown02 = self._io.read_bytes(24)
+
+
     class FdtaBody(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -629,7 +665,7 @@ class Aep(KaitaiStruct):
 
         def _read(self):
             self.unknown01 = self._io.read_bytes(15)
-            self.depth = KaitaiStream.resolve_enum(Aep.Depth, self._io.read_u2be())
+            self.depth = KaitaiStream.resolve_enum(Aep.Depth, self._io.read_u1())
 
 
     class HeadBody(KaitaiStruct):
@@ -843,24 +879,30 @@ class Aep(KaitaiStruct):
 
         def _read(self):
             self.layer_id = self._io.read_u4be()
-            self.quality = self._io.read_u2be()
-            self.unknown01 = self._io.read_bytes(7)
-            self.start_time = self._io.read_s2be()
-            self.unknown02 = self._io.read_bytes(6)
-            self.in_time = self._io.read_u2be()
+            self.quality = KaitaiStream.resolve_enum(Aep.LayerQuality, self._io.read_u2be())
+            self.unknown01 = self._io.read_bytes(4)
+            self.stretch_numerator = self._io.read_u2be()
+            self.unknown02 = self._io.read_bytes(1)
+            self.start_time_sec = self._io.read_s2be()
             self.unknown03 = self._io.read_bytes(6)
-            self.out_time = self._io.read_u2be()
+            self.in_time_sec = self._io.read_u2be()
             self.unknown04 = self._io.read_bytes(6)
+            self.out_time_sec = self._io.read_u2be()
+            self.unknown05 = self._io.read_bytes(6)
             self.attributes = self._io.read_bytes(3)
             self.source_id = self._io.read_u4be()
+            self.unknown06 = self._io.read_bytes(17)
             self.label_color = KaitaiStream.resolve_enum(Aep.LabelColor, self._io.read_u1())
-            self.unknown05 = self._io.read_bytes(2)
+            self.unknown07 = self._io.read_bytes(2)
             self.layer_name = (self._io.read_bytes(32)).decode(u"cp1250")
-            self.unknown06 = self._io.read_bytes(11)
+            self.unknown08 = self._io.read_bytes(11)
             self.matte_mode = KaitaiStream.resolve_enum(Aep.MatteMode, self._io.read_u1())
+            self.unknown09 = self._io.read_bytes(2)
+            self.stretch_denominator = self._io.read_u2be()
+            self.unknown10 = self._io.read_bytes(19)
             self.layer_type = KaitaiStream.resolve_enum(Aep.LayerType, self._io.read_u1())
             self.parent_id = self._io.read_u4be()
-            self.unknown07 = self._io.read_bytes(24)
+            self.unknown11 = self._io.read_bytes(24)
 
         @property
         def null_layer(self):
@@ -955,7 +997,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_frame_blend_mode'):
                 return self._m_frame_blend_mode
 
-            self._m_frame_blend_mode = ((KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 2)) >> 2)
+            self._m_frame_blend_mode = KaitaiStream.resolve_enum(Aep.LayerFrameBlendMode, ((KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 2)) >> 2))
             return getattr(self, '_m_frame_blend_mode', None)
 
         @property
@@ -979,7 +1021,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_sampling_mode'):
                 return self._m_sampling_mode
 
-            self._m_sampling_mode = ((KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 6)) >> 6)
+            self._m_sampling_mode = KaitaiStream.resolve_enum(Aep.LayerSamplingMode, ((KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 6)) >> 6))
             return getattr(self, '_m_sampling_mode', None)
 
         @property
