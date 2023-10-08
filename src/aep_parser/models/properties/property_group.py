@@ -1,16 +1,14 @@
-class Property(object):
+class PropertyGroup(object):
     def __init__(self, match_name="", name="", index=0, property_type=None,
-                 select_options=[], markers=[], keyframes=[]):
+                 properties=[]):
         """
-        Property object of a layer or nested property.
+        Group of properties.
         """
         self.match_name = match_name
         self.name = name
         self.index = index
         self.property_type = property_type
-        self.select_options = select_options  # enum choices
-        self.markers = markers
-        self.keyframes = keyframes
+        self.properties = properties
 
     def __repr__(self):
         return str(self.__dict__)

@@ -7,14 +7,18 @@ import collections
 from .cos.cos import CosParser
 from .kaitai.aep import Aep
 from .kaitai.utils import (
+    filter_by_list_type,
     filter_by_type,
     find_by_list_type,
     find_by_type,
     str_contents,
 )
 from .models.properties.effect import Effect
+from .models.properties.keyframe import Keyframe
+from .models.properties.marker import Marker
 from .models.properties.parameter import Parameter
 from .models.properties.property import Property
+from .models.properties.property_group import PropertyGroup
 
 
 def parse_property_group(tdgp_chunk, group_match_name):
@@ -25,15 +29,14 @@ def parse_property_group(tdgp_chunk, group_match_name):
     else:
         prop_name = group_match_name
 
-    prop_group = Property(
+    prop_group = PropertyGroup(
         property_type=Aep.PropertyType.group,
         match_name=group_match_name,
         name=prop_name,
         properties=[],
-        select_options=[],
     )
 
-    chunks_by_sub_prop = get_properties(tdgp_chunk)
+    chunks_by_sub_prop = get_properties_by_match_name(tdgp_chunk)
     for i, (match_name, sub_prop_chunks) in enumerate(chunks_by_sub_prop.items(), 1):
         first_chunk = sub_prop_chunks[0]
         if first_chunk.data.list_type == "tdgp":
@@ -86,8 +89,9 @@ def parse_orientation(otst_chunk, match_name, prop=None):
         property_type=Aep.PropertyType.angle,
         match_name=match_name,
         name=match_name,
-        properties=[],
         select_options=[],
+        markers=[],
+        keyframes=[],
     )
     prop = parse_property(
         tdbs_chunk=tdbs_chunk,
@@ -136,8 +140,9 @@ def parse_property(tdbs_chunk, match_name, prop=None):
             property_type=Aep.PropertyType.unknown,
             match_name=match_name,
             name=match_name,
-            properties=[],
             select_options=[],
+            markers=[],
+            keyframes=[],
         )
 
     tdbs_child_chunks = tdbs_chunk.data.chunks
@@ -263,13 +268,31 @@ def parse_property(tdbs_chunk, match_name, prop=None):
         lhd3_chunk = find_by_type(
             chunks=list_child_chunks,
             chunk_type="lhd3"
-        )  # TODO number of keyframes (implement in ksy)
-        ldat_chunk = find_by_type(
-            chunks=list_child_chunks,
-            chunk_type="ldat"
-        )  # TODO Keyframe data and values (implement in ksy)
+        )
+        lhd3_data = lhd3_chunk.data
+        keyframes_count = lhd3_data.keyframes_count
+        keyframes_size = lhd3_data.keyframes_size
+        keyframes_type = lhd3_data.keyframes_type
+        if keyframes_count:
+            ldat_chunk = find_by_type(
+                chunks=list_child_chunks,
+                chunk_type="ldat"
+            )  # TODO implement custom kaitai Aep-like parser for different types of keyframes
+            ldat_data = ldat_chunk.data
+            for i in range(keyframes_count):
+                keyframe = Keyframe(
+                    time=ldat_data.time,
+                    ease_mode=ldat_data.ease_mode,
+                    label_color=ldat_data.label_color,
+                    index=i,
+                    continuous_bezier=ldat_data.continuous_bezier,
+                    auto_bezier=ldat_data.auto_bezier,
+                    roving_across_time=ldat_data.roving_across_time,
+                )
+                prop.keyframes.append(keyframe)
 
     return prop
+
 
 def parse_effect(sspc_chunk, group_match_name):
     sspc_child_chunks = sspc_chunk.data.chunks
@@ -291,7 +314,7 @@ def parse_effect(sspc_chunk, group_match_name):
     )
     if part_chunk:
         # Get effect parameters
-        chunks_by_parameter = get_properties(part_chunk)
+        chunks_by_parameter = get_properties_by_match_name(part_chunk)
         for i, (match_name, parameter_chunks) in enumerate(chunks_by_parameter.items()):
             # Skip first, it describes parent
             if i == 0:
@@ -309,7 +332,7 @@ def parse_effect(sspc_chunk, group_match_name):
         effect.label = label
 
     # Get parameters values
-    chunks_by_property = get_properties(tdgp_chunk)
+    chunks_by_property = get_properties_by_match_name(tdgp_chunk)
     for i, (match_name, prop_chunks) in enumerate(chunks_by_property.items(), 1):
         first_chunk = prop_chunks[0]
         if first_chunk.data.list_type == "tdbs":
@@ -348,6 +371,7 @@ def parse_effect_parameter(parameter_chunks, match_name):
         name=pard_data.name.rstrip("\x00"),
         property_type=pard_data.property_type,
         select_options=[],
+        keyframes=[],
     )
 
     if parameter.property_type == Aep.PropertyType.angle:
@@ -405,7 +429,53 @@ def parse_effect_parameter(parameter_chunks, match_name):
     return parameter
 
 
-def get_properties(root_chunk):
+def parse_markers(mrst_chunk, group_match_name):
+    tdbs_chunk = find_by_list_type(
+        chunks=mrst_chunk.data.chunks,
+        list_type="tdbs"
+    )
+    marker_group = parse_property(
+        tdbs_chunk=tdbs_chunk,
+        match_name=group_match_name,
+        prop=None,
+    )
+    mrky_chunk = find_by_list_type(
+        chunks=mrst_chunk.data.chunks,
+        list_type="mrky"
+    )
+    # Get each marker
+    nmrd_chunks = filter_by_list_type(
+        chunks=mrky_chunk.data.chunks,
+        list_type="Nmrd"
+    )
+    for i, nmrd_chunk in enumerate(nmrd_chunks, 1):
+        marker = parse_marker(
+            nmrd_chunk=nmrd_chunk
+        )
+        marker.index = i
+        marker_group.markers.append(marker)
+
+
+def parse_marker(nmrd_chunk):
+    nmhd_chunk = find_by_type(
+        chunks=nmrd_chunk.data.chunks,
+        chunk_type="NmHd"
+    )
+    nmhd_data = nmhd_chunk.data
+    utf8_chunks = filter_by_type(
+        chunks=nmrd_chunk.data.chunks,
+        chunk_type="Utf8"
+    )
+    utf8_data = str_contents(utf8_chunks[0])  # TODO check other Utf8 chunks
+    marker = Marker(
+        name=utf8_data,
+        comment=utf8_data,
+        duration_frames=nmhd_data.duration_frames,
+        label_color=nmhd_data.label_color,
+    )
+    return marker
+
+def get_properties_by_match_name(root_chunk):
     SKIP_CHUNK_TYPES = (
         "engv",
         "aRbs",

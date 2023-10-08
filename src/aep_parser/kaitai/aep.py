@@ -67,6 +67,11 @@ class Aep(KaitaiStruct):
         sandstone = 15
         dark_green = 16
 
+    class EaseMode(Enum):
+        linear = 1
+        ease = 2
+        hold = 3
+
     class LayerSamplingMode(Enum):
         bilinear = 0
         bicubic = 1
@@ -150,6 +155,10 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.LdtaBody(_io__raw_data, self, self._root)
+            elif _on == u"NmHd":
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.NmhdBody(_io__raw_data, self, self._root)
             elif _on == u"nhed":
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
@@ -182,6 +191,10 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.FdtaBody(_io__raw_data, self, self._root)
+            elif _on == u"lhd3":
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.Lhd3Body(_io__raw_data, self, self._root)
             elif _on == u"tdsn":
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
@@ -214,6 +227,10 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.OptiBody(_io__raw_data, self, self._root)
+            elif _on == u"ldat":
+                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.LdatBody(_io__raw_data, self, self._root)
             else:
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.chunk_size > (self._io.size() - self._io.pos()) else self.chunk_size))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
@@ -221,6 +238,30 @@ class Aep(KaitaiStruct):
             if (self.chunk_size % 2) != 0:
                 self.padding = self._io.read_bytes(1)
 
+
+
+    class Lhd3Body(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.unknown01 = self._io.read_bytes(10)
+            self.keyframes_count = self._io.read_u2be()
+            self.unknown03 = self._io.read_bytes(6)
+            self.keyframes_size = self._io.read_u2be()
+            self.unknown05 = self._io.read_bytes(3)
+            self.keyframes_type = self._io.read_u1()
+
+        @property
+        def items_type(self):
+            if hasattr(self, '_m_items_type'):
+                return self._m_items_type
+
+            self._m_items_type = ((u"LItm" if self.keyframes_size == 128 else u"LRdr") if self.keyframes_type == 1 else (u"Gide" if self.keyframes_type == 2 else (u"color_keyframe" if self.keyframes_size == 152 else (u"one_d_keyframe" if self.keyframes_size == 48 else (u"two_d_keyframe" if self.keyframes_size == 88 else (u"two_d_pos_keyframe" if self.keyframes_size == 104 else (u"three_d_keyframe" if self.keyframes_size == 128 else (u"marker_keyframe" if self.keyframes_size == 16 else (u"orientation_keyframe" if self.keyframes_size == 80 else (u"no_value_keyframe" if self.keyframes_size == 64 else u"unknown_keyframe"))))))))))
+            return getattr(self, '_m_items_type', None)
 
 
     class ListBody(KaitaiStruct):
@@ -477,6 +518,46 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_color', None)
 
 
+    class LdatBody(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.unknown01 = self._io.read_bytes(1)
+            self.time = self._io.read_s2be()
+            self.unknown02 = self._io.read_bytes(2)
+            self.ease_mode = KaitaiStream.resolve_enum(Aep.EaseMode, self._io.read_u1())
+            self.label_color = KaitaiStream.resolve_enum(Aep.LabelColor, self._io.read_u1())
+            self.attributes = self._io.read_bytes(1)
+
+        @property
+        def continuous_bezier(self):
+            if hasattr(self, '_m_continuous_bezier'):
+                return self._m_continuous_bezier
+
+            self._m_continuous_bezier = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 3)) != 0
+            return getattr(self, '_m_continuous_bezier', None)
+
+        @property
+        def auto_bezier(self):
+            if hasattr(self, '_m_auto_bezier'):
+                return self._m_auto_bezier
+
+            self._m_auto_bezier = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 4)) != 0
+            return getattr(self, '_m_auto_bezier', None)
+
+        @property
+        def roving_across_time(self):
+            if hasattr(self, '_m_roving_across_time'):
+                return self._m_roving_across_time
+
+            self._m_roving_across_time = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 5)) != 0
+            return getattr(self, '_m_roving_across_time', None)
+
+
     class NnhdBody(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -541,6 +622,38 @@ class Aep(KaitaiStruct):
             self.item_id = self._io.read_u4be()
             self.unknown02 = self._io.read_bytes(38)
             self.label_color = KaitaiStream.resolve_enum(Aep.LabelColor, self._io.read_u1())
+
+
+    class NmhdBody(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.unknown01 = self._io.read_bytes(3)
+            self.attributes = self._io.read_bytes(1)
+            self.unknown02 = self._io.read_bytes(4)
+            self.duration_frames = self._io.read_u4be()
+            self.unknown03 = self._io.read_bytes(4)
+            self.label_color = KaitaiStream.resolve_enum(Aep.LabelColor, self._io.read_u1())
+
+        @property
+        def protected(self):
+            if hasattr(self, '_m_protected'):
+                return self._m_protected
+
+            self._m_protected = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 1)) != 0
+            return getattr(self, '_m_protected', None)
+
+        @property
+        def unknown(self):
+            if hasattr(self, '_m_unknown'):
+                return self._m_unknown
+
+            self._m_unknown = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 2)) != 0
+            return getattr(self, '_m_unknown', None)
 
 
     class SspcBody(KaitaiStruct):
@@ -970,6 +1083,14 @@ class Aep(KaitaiStruct):
 
             self._m_solo_enabled = (KaitaiStream.byte_array_index(self.attributes, 1) & (1 << 3)) != 0
             return getattr(self, '_m_solo_enabled', None)
+
+        @property
+        def markers_locked(self):
+            if hasattr(self, '_m_markers_locked'):
+                return self._m_markers_locked
+
+            self._m_markers_locked = (KaitaiStream.byte_array_index(self.attributes, 1) & (1 << 4)) != 0
+            return getattr(self, '_m_markers_locked', None)
 
         @property
         def lock_enabled(self):

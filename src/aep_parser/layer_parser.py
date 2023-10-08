@@ -10,8 +10,9 @@ from .kaitai.utils import (
 )
 from .models.layer import Layer
 from .property_parser import (
+    parse_markers,
     parse_property_group,
-    get_properties,
+    get_properties_by_match_name,
 )
 
 
@@ -31,8 +32,6 @@ def parse_layer(layer_chunk):
 
     ldta_data = ldta_chunk.data
 
-    # print('str_contents(name_chunk): ', str_contents(name_chunk))
-    # print('ldta_data: ', ldta_data.__dict__)
     layer = Layer(
         name=str_contents(name_chunk),
         layer_id=ldta_data.layer_id,
@@ -70,39 +69,31 @@ def parse_layer(layer_chunk):
         chunks=child_chunks,
         list_type="tdgp"
     )
-    tdgp_map = get_properties(root_tdgp_chunk)
+    tdgp_map = get_properties_by_match_name(root_tdgp_chunk)
 
     # Parse transform stack
     transform_tdgp = tdgp_map.get("ADBE Transform Group", [])
     if transform_tdgp:
         transform_prop = parse_property_group(transform_tdgp[0], "ADBE Transform Group")
-        if transform_prop is None:
-            return
         layer.transform = transform_prop.properties
 
     # Parse effects stack
     effects_tdgp = tdgp_map.get("ADBE Effect Parade", [])
     if effects_tdgp:
         effects_prop = parse_property_group(effects_tdgp[0], "ADBE Effect Parade")
-        if effects_prop is None:
-            return
         layer.effects = effects_prop.properties
 
     # Parse text layer properties
     text_tdgp = tdgp_map.get("ADBE Text Properties", [])
     if text_tdgp:
         text_prop = parse_property_group(text_tdgp[0], "ADBE Text Properties")
-        if text_prop is None:
-            return
         layer.text = text_prop
 
     # Parse markers
-    markers_tdgp = tdgp_map.get("ADBE Marker", [])
-    if markers_tdgp:
-        markers_prop = parse_property_group(markers_tdgp[0], "ADBE Marker")
-        if markers_prop is None:
-            return
-        layer.markers = markers_prop
+    markers_mrst = tdgp_map.get("ADBE Marker", [])
+    if markers_mrst:
+        markers = parse_markers(markers_mrst[0], "ADBE Marker")
+        layer.markers = markers
 
     
     return layer
