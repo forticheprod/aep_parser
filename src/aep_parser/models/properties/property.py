@@ -1,6 +1,6 @@
 class Property(object):
     def __init__(self, match_name="", name="", index=0, property_type=None,
-                 select_options=[], markers=[], keyframes=[]):
+                 select_options=[], keyframes=[]):
         """
         Property object of a layer or nested property.
         """
@@ -9,7 +9,6 @@ class Property(object):
         self.index = index
         self.property_type = property_type
         self.select_options = select_options  # enum choices
-        self.markers = markers
         self.keyframes = keyframes
 
     def __repr__(self):

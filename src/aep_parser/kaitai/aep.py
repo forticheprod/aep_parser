@@ -300,9 +300,9 @@ class Aep(KaitaiStruct):
             self.time_scale = self._io.read_u2be()
             self.unknown02 = self._io.read_bytes(2)
             self.framerate_dividend = self._io.read_u2be()
-            self.unknown03 = self._io.read_bytes(9)
+            self.unknown03 = self._io.read_bytes(10)
             self.playhead = self._io.read_u2be()
-            self.unknown04 = self._io.read_bytes(6)
+            self.unknown04 = self._io.read_bytes(5)
             self.in_time = self._io.read_u2be()
             self.unknown05 = self._io.read_bytes(6)
             self.out_time_raw = self._io.read_u2be()
@@ -389,7 +389,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_playhead_frames'):
                 return self._m_playhead_frames
 
-            self._m_playhead_frames = (self.playhead * self.framerate)
+            self._m_playhead_frames = self.playhead // self.time_scale
             return getattr(self, '_m_playhead_frames', None)
 
         @property
@@ -526,9 +526,8 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.unknown01 = self._io.read_bytes(1)
-            self.time = self._io.read_s2be()
-            self.unknown02 = self._io.read_bytes(2)
+            self.time_raw = self._io.read_u4be()
+            self.unknown02 = self._io.read_bytes(1)
             self.ease_mode = KaitaiStream.resolve_enum(Aep.EaseMode, self._io.read_u1())
             self.label_color = KaitaiStream.resolve_enum(Aep.LabelColor, self._io.read_u1())
             self.attributes = self._io.read_bytes(1)
@@ -638,6 +637,14 @@ class Aep(KaitaiStruct):
             self.duration_frames = self._io.read_u4be()
             self.unknown03 = self._io.read_bytes(4)
             self.label_color = KaitaiStream.resolve_enum(Aep.LabelColor, self._io.read_u1())
+
+        @property
+        def navigation(self):
+            if hasattr(self, '_m_navigation'):
+                return self._m_navigation
+
+            self._m_navigation = (KaitaiStream.byte_array_index(self.attributes, 0) & 1) != 0
+            return getattr(self, '_m_navigation', None)
 
         @property
         def protected(self):

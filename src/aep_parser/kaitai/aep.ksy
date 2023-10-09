@@ -100,11 +100,11 @@ types:
       - id: framerate_dividend
         type: u2 # 11-12
       - id: unknown03
-        size: 9 # 13-21
+        size: 10 # 13-21
       - id: playhead
         type: u2 # 22-23
       - id: unknown04
-        size: 6 # 24-29
+        size: 5 # 24-29
       - id: in_time
         type: u2 # 30-31
       - id: unknown05
@@ -159,7 +159,7 @@ types:
       pixel_ratio:
         value: 'pixel_ratio_width.as<f4> / pixel_ratio_height.as<f4>'
       playhead_frames:
-        value: 'playhead * framerate'
+        value: 'playhead / time_scale'
       in_time_frames:
         value: 'in_time * framerate'
       out_time_frames:
@@ -209,12 +209,10 @@ types:
         enum: label_color
   ldat_body:
     seq:
-      - id: unknown01
-        size: 1
-      - id: time
-        type: s2
+      - id: time_raw
+        type: u4
       - id: unknown02
-        size: 2
+        size: 1
       - id: ease_mode
         type: u1
         enum: ease_mode
@@ -392,6 +390,8 @@ types:
         type: u1
         enum: label_color
     instances:
+      navigation:
+        value: '(attributes[0] & 1) != 0'
       protected:
         value: '(attributes[0] & (1 << 1)) != 0'
       unknown:

@@ -21,7 +21,7 @@ from .models.properties.property import Property
 from .models.properties.property_group import PropertyGroup
 
 
-def parse_property_group(tdgp_chunk, group_match_name):
+def parse_property_group(tdgp_chunk, group_match_name, time_scale):
     if group_match_name == "ADBE Effect Parade":
         prop_name = "Effects"
     elif group_match_name == "ADBE Transform Group":
@@ -43,28 +43,33 @@ def parse_property_group(tdgp_chunk, group_match_name):
             sub_prop = parse_property_group(
                 tdgp_chunk=first_chunk,
                 group_match_name=match_name,
+                time_scale=time_scale,
             )
         elif first_chunk.data.list_type == "sspc":
             sub_prop = parse_effect(
                 sspc_chunk=first_chunk,
                 group_match_name=match_name,
+                time_scale=time_scale,
             )
         elif first_chunk.data.list_type == "tdbs":
             sub_prop = parse_property(
                 tdbs_chunk=first_chunk,
                 match_name=match_name,
+                time_scale=time_scale,
                 prop=None,
             )
         elif first_chunk.data.list_type == "otst":
             sub_prop = parse_orientation(
                 otst_chunk=first_chunk,
                 match_name=match_name,
+                time_scale=time_scale,
                 prop=None,
             )
         elif first_chunk.data.list_type == "btds":
             sub_prop = parse_text_document(
                 btds_chunk=first_chunk,
                 match_name=match_name,
+                time_scale=time_scale,
                 prop=None,
             )
         else:
@@ -80,7 +85,7 @@ def parse_property_group(tdgp_chunk, group_match_name):
     return prop_group
 
 
-def parse_orientation(otst_chunk, match_name, prop=None):
+def parse_orientation(otst_chunk, match_name, time_scale, prop=None):
     tdbs_chunk = find_by_list_type(
         chunks=otst_chunk.data.chunks,
         list_type="tdbs"
@@ -90,12 +95,12 @@ def parse_orientation(otst_chunk, match_name, prop=None):
         match_name=match_name,
         name=match_name,
         select_options=[],
-        markers=[],
         keyframes=[],
     )
     prop = parse_property(
         tdbs_chunk=tdbs_chunk,
         match_name=match_name,
+        time_scale=time_scale,
         prop=prop,
     )
 
@@ -111,7 +116,7 @@ def parse_orientation(otst_chunk, match_name, prop=None):
     return prop
 
 
-def parse_text_document(btds_chunk, match_name, prop=None):
+def parse_text_document(btds_chunk, match_name, time_scale, prop=None):
     tdbs_chunk = find_by_list_type(
         chunks=btds_chunk.data.chunks,
         list_type="tdbs"
@@ -119,6 +124,7 @@ def parse_text_document(btds_chunk, match_name, prop=None):
     prop = parse_property(
         tdbs_chunk=tdbs_chunk,
         match_name=match_name,
+        time_scale=time_scale,
         prop=None,
     )
 
@@ -130,18 +136,17 @@ def parse_text_document(btds_chunk, match_name, prop=None):
     parser = CosParser(data_stream, len(btdk_chunk.data.binary_data))
     content_as_dict = parser.parse()
     # TODO get rid of "\ufeff" in string values
-    # TODO parse the resulting dict
+    # TODO convert resulting dict into readable data
     return prop
 
 
-def parse_property(tdbs_chunk, match_name, prop=None):
+def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
     if prop is None:
         prop = Property(
             property_type=Aep.PropertyType.unknown,
             match_name=match_name,
             name=match_name,
             select_options=[],
-            markers=[],
             keyframes=[],
         )
 
@@ -281,7 +286,7 @@ def parse_property(tdbs_chunk, match_name, prop=None):
             ldat_data = ldat_chunk.data
             for i in range(keyframes_count):
                 keyframe = Keyframe(
-                    time=ldat_data.time,
+                    time=ldat_data.time_raw / time_scale,
                     ease_mode=ldat_data.ease_mode,
                     label_color=ldat_data.label_color,
                     index=i,
@@ -294,7 +299,7 @@ def parse_property(tdbs_chunk, match_name, prop=None):
     return prop
 
 
-def parse_effect(sspc_chunk, group_match_name):
+def parse_effect(sspc_chunk, group_match_name, time_scale):
     sspc_child_chunks = sspc_chunk.data.chunks
     fnam_chunk = find_by_type(
         chunks=sspc_child_chunks,
@@ -319,7 +324,11 @@ def parse_effect(sspc_chunk, group_match_name):
             # Skip first, it describes parent
             if i == 0:
                 continue
-            parameter = parse_effect_parameter(parameter_chunks, match_name)
+            parameter = parse_effect_parameter(
+                parameter_chunks=parameter_chunks,
+                match_name=match_name,
+                time_scale=time_scale,
+            )
             parameter.index = i
             effect.parameters.append(parameter)
 
@@ -342,6 +351,7 @@ def parse_effect(sspc_chunk, group_match_name):
                     parameter = parse_property(
                         tdbs_chunk=first_chunk,
                         match_name=match_name,
+                        time_scale=time_scale,
                         prop=parameter,
                     )
                     break
@@ -359,7 +369,7 @@ def parse_effect(sspc_chunk, group_match_name):
     return effect
 
 
-def parse_effect_parameter(parameter_chunks, match_name):
+def parse_effect_parameter(parameter_chunks, match_name, time_scale):
     pard_chunk = find_by_type(
         chunks=parameter_chunks,
         chunk_type="pard"
@@ -429,7 +439,7 @@ def parse_effect_parameter(parameter_chunks, match_name):
     return parameter
 
 
-def parse_markers(mrst_chunk, group_match_name):
+def parse_markers(mrst_chunk, group_match_name, time_scale):
     tdbs_chunk = find_by_list_type(
         chunks=mrst_chunk.data.chunks,
         list_type="tdbs"
@@ -437,6 +447,7 @@ def parse_markers(mrst_chunk, group_match_name):
     marker_group = parse_property(
         tdbs_chunk=tdbs_chunk,
         match_name=group_match_name,
+        time_scale=time_scale,
         prop=None,
     )
     mrky_chunk = find_by_list_type(
@@ -448,12 +459,14 @@ def parse_markers(mrst_chunk, group_match_name):
         chunks=mrky_chunk.data.chunks,
         list_type="Nmrd"
     )
+    marker_group.markers = []
     for i, nmrd_chunk in enumerate(nmrd_chunks, 1):
         marker = parse_marker(
             nmrd_chunk=nmrd_chunk
         )
         marker.index = i
         marker_group.markers.append(marker)
+    return marker_group
 
 
 def parse_marker(nmrd_chunk):
@@ -466,13 +479,21 @@ def parse_marker(nmrd_chunk):
         chunks=nmrd_chunk.data.chunks,
         chunk_type="Utf8"
     )
-    utf8_data = str_contents(utf8_chunks[0])  # TODO check other Utf8 chunks
     marker = Marker(
-        name=utf8_data,
-        comment=utf8_data,
+        name=str_contents(utf8_chunks[0]),
+        chapter=str_contents(utf8_chunks[1]),
+        url=str_contents(utf8_chunks[2]),
+        frame_target=str_contents(utf8_chunks[3]),
+        flash_cue_point_name=str_contents(utf8_chunks[4]),
         duration_frames=nmhd_data.duration_frames,
         label_color=nmhd_data.label_color,
+        protected=nmhd_data.protected,
+        navigation=nmhd_data.navigation,
+        flash_cue_point_parameters=dict(),
     )
+    for (param_name, param_value) in chunks(utf8_chunks[5:], 2):
+        marker.flash_cue_point_parameters[str_contents(param_name)] = str_contents(param_value)
+
     return marker
 
 def get_properties_by_match_name(root_chunk):
@@ -509,3 +530,9 @@ def get_label(root_chunk):
     if label != "-_0_/-":
         return label
     return None
+
+
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]

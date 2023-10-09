@@ -6,6 +6,7 @@ class Composition(Item):
             self,
             x_resolution=1,
             y_resolution=1,
+            time_scale=0,
             width=0,
             height=0,
             framerate=0.0,
@@ -31,11 +32,13 @@ class Composition(Item):
             samples_limit=0,
             samples_per_frame=0,
             composition_layers=[],
+            markers=[],
             *args,
             **kwargs):
         super().__init__(*args, **kwargs)
         self.x_resolution = x_resolution
         self.y_resolution = y_resolution
+        self.time_scale = time_scale
         self.width = width
         self.height = height
         self.framerate = framerate
@@ -61,3 +64,4 @@ class Composition(Item):
         self.samples_limit = samples_limit
         self.samples_per_frame = samples_per_frame
         self.composition_layers = composition_layers
+        self.markers = markers

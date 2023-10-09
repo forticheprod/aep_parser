@@ -191,6 +191,7 @@ def parse_composition(child_chunks, item_id, item_name, label_color):
         chunk_type="cdta"
     )
     cdta_data = cdta_chunk.data
+    time_scale = cdta_data.time_scale
 
     # Parse composition's layers
     layer_sub_chunks = filter_by_list_type(
@@ -199,9 +200,21 @@ def parse_composition(child_chunks, item_id, item_name, label_color):
     )
     composition_layers = []
     for index, layer_chunk in enumerate(layer_sub_chunks, start=1):
-        layer = parse_layer(layer_chunk)
+        layer = parse_layer(
+            layer_chunk=layer_chunk,
+            time_scale=time_scale,
+        )
         layer.index = index
         composition_layers.append(layer)
+
+    markers_layer_chunk = find_by_list_type(
+        chunks=child_chunks,
+        list_type="SecL"
+    )
+    markers_layer = parse_layer(
+        layer_chunk=markers_layer_chunk,
+        time_scale=time_scale,
+    )
 
     item = Composition(
         item_id=item_id,
@@ -210,10 +223,11 @@ def parse_composition(child_chunks, item_id, item_name, label_color):
         
         x_resolution=cdta_data.x_resolution,
         y_resolution=cdta_data.y_resolution,
+        time_scale=time_scale,
 
-        framerate=cdta_data.framerate,  # TODO check
-        playhead_sec=cdta_data.playhead,  # TODO check
-        playhead_frames=int(cdta_data.playhead_frames),  # TODO check
+        framerate=cdta_data.framerate,
+        playhead_sec=cdta_data.playhead_frames * cdta_data.framerate,
+        playhead_frames=int(cdta_data.playhead_frames),
         in_time_sec=cdta_data.in_time,  # TODO check
         in_time_frames=int(cdta_data.in_time_frames),  # TODO check
         out_time_sec=cdta_data.out_time,  # TODO check
@@ -236,5 +250,6 @@ def parse_composition(child_chunks, item_id, item_name, label_color):
         samples_per_frame=cdta_data.samples_per_frame,
 
         composition_layers=composition_layers,
+        markers=markers_layer.markers,
     )
     return item
