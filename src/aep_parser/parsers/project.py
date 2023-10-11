@@ -15,37 +15,30 @@ from ..models.items.composition import Composition
 from .item import parse_item
 
 
-"""
-based on https://github.com/boltframe/aftereffects-aep-parser/blob/70803375303cc769cc25829faf061ff8061ecc53/project.go
-"""
+SOFTWARE_AGENT_XPATH = ".//{*}softwareAgent"
 
 
 def parse_project(path):
     with Aep.from_file(path) as aep:
-        project = Project(
-            project_items=dict()
-        )
-
         root_chunks = aep.data.chunks
-
-        project.expression_engine = get_expression_engine(root_chunks)
-        project.depth = get_bit_depth(root_chunks)
-        project.framerate = get_framerate(root_chunks)
-        # Get names of effects used in project
-        project.effect_names = get_effect_names(root_chunks)
 
         root_folder_chunk = find_by_list_type(
             chunks=root_chunks,
             list_type="Fold"
         )
-        folder = parse_item(root_folder_chunk, project)
-        if folder is None:
-            raise Exception(
-                "Could not parse 'Fold' chunk in project {path}"
-                .format(
-                    path=path,
-            ))
-        project.root_folder = folder
+        
+        project = Project(
+            depth=get_bit_depth(root_chunks),
+            effect_names=get_effect_names(root_chunks),
+            expression_engine=get_expression_engine(root_chunks),
+            framerate=get_framerate(root_chunks),
+            project_items=dict(),
+        )
+        project.metadata = ET.fromstring(aep.xmp)
+        software_agent = project.metadata.find(match=SOFTWARE_AGENT_XPATH)
+        project.ae_version = software_agent.text
+
+        project.root_folder = parse_item(root_folder_chunk, project)
 
         # Layers that have not been given an explicit name should be named after their source
         for item in project.project_items.values():
@@ -54,9 +47,6 @@ def parse_project(path):
                     if not layer.name:
                         layer.name = project.project_items[layer.source_id].name
 
-        project.metadata = ET.fromstring(aep.xmp)
-        software_agent = project.metadata.find(".//{*}softwareAgent")
-        project.ae_version = software_agent.text
 
         return project
 
