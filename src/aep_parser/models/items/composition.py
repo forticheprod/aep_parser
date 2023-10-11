@@ -3,64 +3,70 @@ from .av_item import AVItem
 
 class CompItem(AVItem):
     def __init__(self,
-            asset_height=0,
-            asset_width=0,
-            background_color=[],
-            composition_layers=[],
-            duration_frames=0,
-            duration_sec=0.0,
-            frame_blend_enabled=False,
-            framerate=0.0,
-            height=0,
-            in_time_frames=0,
-            in_time_sec=0.0,
-            markers=[],
-            motion_blur_enabled=False,
-            out_time_frames=0,
-            out_time_sec=0.0,
-            pixel_ratio=0,
-            playhead_frames=0,
-            playhead_sec=0.0,
-            preserve_framerate=False,
-            preserve_resolution=False,
-            samples_limit=0,
-            samples_per_frame=0,
-            shutter_angle=0,
-            shutter_phase=0,
-            shy_enabled=False,
-            time_scale=0,
-            width=0,
-            x_resolution=1,
-            y_resolution=1,
+            bg_color,
+            frame_blending,
+            layers,
+            # in_time_frames,
+            # in_time_sec,
+            marker_property,
+            motion_blur,
+            # out_time_frames,
+            # out_time_sec,
+            # playhead_frames,
+            # playhead_sec,
+            motion_blur_adaptive_sample_limit,
+            motion_blur_samples_per_frame,
+            preserve_nested_frame_rate,
+            preserve_nested_resolution,
+            shutter_angle,
+            shutter_phase,
+            # shy_enabled,
+            resolution_factor,
+            time_scale,
             *args,
             **kwargs):
         super(CompItem, self).__init__(*args, **kwargs)
-        self.x_resolution = x_resolution
-        self.y_resolution = y_resolution
-        self.time_scale = time_scale
-        self.width = width
-        self.height = height
-        self.framerate = framerate
-        self.playhead_sec = playhead_sec
-        self.playhead_frames = playhead_frames
-        self.in_time_sec = in_time_sec
-        self.in_time_frames = in_time_frames
-        self.out_time_frames = out_time_frames
-        self.in_time_frames = in_time_frames
-        self.duration_sec = duration_sec
-        self.duration_frames = duration_frames
-        self.background_color = background_color
-        self.shy_enabled = shy_enabled
-        self.motion_blur_enabled = motion_blur_enabled
-        self.frame_blend_enabled = frame_blend_enabled
-        self.preserve_framerate = preserve_framerate
-        self.preserve_resolution = preserve_resolution
-        self.asset_width = asset_width
-        self.asset_height = asset_height
-        self.pixel_ratio = pixel_ratio
+        self.bg_color = bg_color
+        self.layers = layers
+        # TODO displayStartFrame
+        # TODO displayStartTime
+        self.frame_blending = frame_blending
+        # TODO hideShyLayers (== shy_enabled ?)
+        # self.in_time_frames = in_time_frames
+        # self.in_time_sec = in_time_sec
+        self.marker_property = marker_property
+        self.motion_blur = motion_blur
+        # self.out_time_frames = out_time_frames
+        # self.playhead_frames = playhead_frames
+        # self.playhead_sec = playhead_sec
+        self.preserve_nested_frame_rate = preserve_nested_frame_rate
+        self.preserve_nested_resolution = preserve_nested_resolution
+        self.motion_blur_adaptive_sample_limit = motion_blur_adaptive_sample_limit
+        self.motion_blur_samples_per_frame = motion_blur_samples_per_frame
         self.shutter_angle = shutter_angle
         self.shutter_phase = shutter_phase
-        self.samples_limit = samples_limit
-        self.samples_per_frame = samples_per_frame
-        self.composition_layers = composition_layers
-        self.markers = markers
+        # self.shy_enabled = shy_enabled
+        self.resolution_factor = resolution_factor
+        self.time_scale = time_scale
+        # TODO workAreaDuration (== out - in + 1 ?)
+        # TODO workAreaStart (== in_time ?)
+
+    def layer(self, name=None, index=None, other_layer=None, rel_index=None):
+        """
+        Returns a Layer object,
+        which can be specified by name,
+        an index position in this layer,
+        or an index position relative to another layer.
+        """
+        if name:
+            for layer in self.layers:
+                if layer.name == name:
+                    return layer
+            return None
+        elif index:
+            return self.layers[index]
+        elif other_layer and rel_index:
+            return self.layers[self.layers.index(other_layer) + rel_index]
+        else:
+            return None
+

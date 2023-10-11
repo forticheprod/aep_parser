@@ -1,11 +1,16 @@
-"""
-https://gitlab.com/mattbas/python-lottie/-/blob/master/lib/lottie/parsers/aep/cos.py
-https://lottiefiles.github.io/lottie-docs/aep/#list-btdk
-"""
+from __future__ import (
+    absolute_import,
+    unicode_literals,
+    division
+)
 import io
 import enum
 import dataclasses
 
+"""
+https://gitlab.com/mattbas/python-lottie/-/blob/master/lib/lottie/parsers/aep/cos.py
+https://lottiefiles.github.io/lottie-docs/aep/#list-btdk
+"""
 
 class TokenType(enum.Enum):
     # /foo

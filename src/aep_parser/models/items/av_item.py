@@ -3,16 +3,21 @@ from .item import Item
 
 class AVItem(Item):
     def __init__(self,
-                 item_id=0, label_color=None, name="", type_name="",
+                 duration, frame_duration, frame_rate, height, pixel_aspect, width,
                  *args, **kwargs):
         """
         Generalized object storing information about folders, compositions, or footages
         """
         super(AVItem, self).__init__(*args, **kwargs)
-        self.type_name = type_name
-        self.item_id = item_id
-        self.name = name
-        self.label_color = label_color
+        self.duration = duration
+        self.frame_duration = frame_duration
+        self.frame_rate = frame_rate
+        self.height = height
+        self.pixel_aspect = pixel_aspect
+        # TODO usedIn
+        self.width = width
 
-    def __repr__(self):
-        return str(self.__dict__)
+    @property
+    def footage_missing(self):
+        # TODO
+        pass

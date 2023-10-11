@@ -1,5 +1,8 @@
-from __future__ import absolute_import
-from __future__ import unicode_literals
+from __future__ import (
+    absolute_import,
+    unicode_literals,
+    division
+)
 
 import xml.etree.ElementTree as ET
 
@@ -31,21 +34,22 @@ def parse_project(path):
             bits_per_channel=get_bit_depth(root_chunks),
             effect_names=get_effect_names(root_chunks),
             expression_engine=get_expression_engine(root_chunks),
-            framerate=get_framerate(root_chunks),
-            items=dict(),
+            frame_rate=get_frame_rate(root_chunks),
+            items=[],
         )
         project.xmp_packet = ET.fromstring(aep.xmp_packet)
         software_agent = project.xmp_packet.find(path=SOFTWARE_AGENT_XPATH)
         project.ae_version = software_agent.text
 
-        project.root_folder = parse_item(root_folder_chunk, project)
+        project.root_folder = parse_item(root_folder_chunk, project, parent_folder=None)
 
         # Layers that have not been given an explicit name should be named after their source
-        for item in project.items.values():
+        for item in project.items:
             if isinstance(item, CompItem):
-                for layer in item.composition_layers:
+                for layer in item.layers:
                     if not layer.name:
-                        layer.name = project.items[layer.source_id].name
+                        layer_source_item = project.item_by_id(layer.source_id)
+                        layer.name = layer_source_item.name
 
         return project
 
@@ -73,15 +77,15 @@ def get_bit_depth(root_chunks):
     return nhed_chunk.data.bits_per_channel
 
 
-def get_framerate(root_chunks):
+def get_frame_rate(root_chunks):
     """
-    Get project framerate
+    Get project frame_rate
     """
     nnhd_chunk = find_by_type(
         chunks=root_chunks,
         chunk_type="nnhd"
     )
-    return nnhd_chunk.data.framerate
+    return nnhd_chunk.data.frame_rate
 
 
 def get_effect_names(root_chunks):

@@ -1,6 +1,8 @@
-from __future__ import absolute_import
-from __future__ import unicode_literals
-
+from __future__ import (
+    absolute_import,
+    unicode_literals,
+    division
+)
 
 from ..kaitai.utils import (
     find_by_type,
@@ -40,7 +42,7 @@ def parse_layer(layer_chunk, time_scale):
         in_time_sec=ldta_data.in_time_sec,  # TODO check
         out_time_sec=ldta_data.out_time_sec,  # TODO check
         source_id=ldta_data.source_id,
-        label_color=ldta_data.label_color,
+        label=ldta_data.label,
         matte_mode=ldta_data.matte_mode,
         stretch_denominator=ldta_data.stretch_denominator,
         layer_type=ldta_data.layer_type,
@@ -57,8 +59,8 @@ def parse_layer(layer_chunk, time_scale):
         video_enabled=ldta_data.video_enabled,
         audio_enabled=ldta_data.audio_enabled,
         effects_enabled=ldta_data.effects_enabled,
-        motion_blur_enabled=ldta_data.motion_blur_enabled,
-        frame_blend_enabled=ldta_data.frame_blend_enabled,
+        motion_blur=ldta_data.motion_blur,
+        frame_blending=ldta_data.frame_blending,
         lock_enabled=ldta_data.lock_enabled,
         shy_enabled=ldta_data.shy_enabled,
         collapse_transform_enabled=ldta_data.collapse_transform_enabled,
@@ -103,12 +105,12 @@ def parse_layer(layer_chunk, time_scale):
     # Parse markers
     markers_mrst = tdgp_map.get("ADBE Marker", [])
     if markers_mrst:
-        markers = parse_markers(
+        marker_property = parse_markers(
             mrst_chunk=markers_mrst[0],
             group_match_name="ADBE Marker",
             time_scale=time_scale,
         )
-        layer.markers = markers
+        layer.marker_property = marker_property
 
     
     return layer

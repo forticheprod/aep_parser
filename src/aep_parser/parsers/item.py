@@ -1,24 +1,22 @@
-from __future__ import absolute_import
-from __future__ import unicode_literals
-from __future__ import division
-
-import json
-import os
+from __future__ import (
+    absolute_import,
+    unicode_literals,
+    division
+)
 
 from ..kaitai.aep import Aep
 from ..kaitai.utils import (
+    filter_by_list_type,
     find_by_list_type,
     find_by_type,
-    filter_by_list_type,
     str_contents,
 )
-from ..models.items.footage import FootageItem
-from ..models.items.composition import CompItem
 from ..models.items.folder import Folder
-from .layer import parse_layer
+from .composition import parse_composition
+from .footage import parse_footage
 
 
-def parse_item(item_chunk, project):
+def parse_item(item_chunk, project, parent_folder):
     child_chunks = item_chunk.data.chunks
     is_root = item_chunk.data.list_type == "Fold"
 
@@ -26,13 +24,9 @@ def parse_item(item_chunk, project):
         item_id = 0
         item_name = "root"
         item_type = Aep.ItemType.folder
-        label_color = Aep.LabelColor(0)
+        label = Aep.Label(0)
     else:
-        name_chunk = find_by_type(
-            chunks=child_chunks,
-            chunk_type="Utf8"
-        )
-        item_name = str_contents(name_chunk)
+        item_name = get_name(child_chunks)
 
         idta_chunk = find_by_type(
             chunks=child_chunks,
@@ -42,7 +36,7 @@ def parse_item(item_chunk, project):
 
         item_id = idta_data.item_id
         item_type = idta_data.item_type
-        label_color = idta_data.label_color
+        label = idta_data.label
 
     if item_type == Aep.ItemType.folder:
         item = parse_folder(
@@ -51,16 +45,17 @@ def parse_item(item_chunk, project):
             project=project,
             item_id=item_id,
             item_name=item_name,
-            label_color=label_color,
+            label=label,
+            parent_folder=parent_folder,
         )
 
     elif item_type == Aep.ItemType.footage:
         item = parse_footage(
             child_chunks=child_chunks,
-            project=project,
             item_id=item_id,
             item_name=item_name,
-            label_color=label_color,
+            label=label,
+            parent_folder=parent_folder,
         )
 
     elif item_type == Aep.ItemType.composition:
@@ -68,16 +63,24 @@ def parse_item(item_chunk, project):
             child_chunks=child_chunks,
             item_id=item_id,
             item_name=item_name,
-            label_color=label_color
+            label=label,
+            parent_folder=parent_folder,
         )
 
-    project.items[item.item_id] = item
+    project.items.append(item)
 
     return item
 
 
-def parse_folder(is_root, child_chunks, project, item_id, item_name, label_color):
-    folder_contents = []
+def parse_folder(is_root, child_chunks, project, item_id, item_name, label, parent_folder):
+    item = Folder(
+        item_id=item_id,
+        label=label,
+        name=item_name,
+        type_name="Folder",
+        parent_folder=parent_folder,
+        items=[],
+    )
     # Get folder contents
     if is_root:
         child_item_chunks = filter_by_list_type(
@@ -94,161 +97,20 @@ def parse_folder(is_root, child_chunks, project, item_id, item_name, label_color
             list_type="Item"
         )
     for child_item_chunk in child_item_chunks:
-        child_item = parse_item(child_item_chunk, project)
-        folder_contents.append(child_item)
-    
-    item = Folder(
-        folder_contents=folder_contents,
-        item_id=item_id,
-        label_color=label_color,
-        name=item_name,
-        type_name="Folder",
-    )
+        child_item = parse_item(
+            item_chunk=child_item_chunk,
+            project=project,
+            parent_folder=item
+        )
+        item.items.append(child_item)
+
     return item
 
 
-def parse_footage(child_chunks, project, item_id, item_name, label_color):
-    pin_chunk = find_by_list_type(
+def get_name(child_chunks):
+    name_chunk = find_by_type(
         chunks=child_chunks,
-        list_type="Pin "
+        chunk_type="Utf8"
     )
-    pin_child_chunks = pin_chunk.data.chunks
-    sspc_chunk = find_by_type(
-        chunks=pin_child_chunks,
-        chunk_type="sspc"
-    )
-    opti_chunk = find_by_type(
-        chunks=pin_child_chunks,
-        chunk_type="opti"
-    )
-    sspc_data = sspc_chunk.data
-    opti_data = opti_chunk.data
-
-    asset_type = opti_data.asset_type.strip("\x00")
-    # audio files have a framerate of 0
-    framerate = sspc_data.framerate or project.framerate
-    # audio files have a frames duration of 0
-    duration_frames = int(
-        sspc_data.duration_frames
-        or round(project.framerate * sspc_data.duration_sec)
-    )
-    item = FootageItem(
-        asset_type=asset_type,
-        duration_frames=duration_frames,
-        duration_sec=sspc_data.duration_sec,
-        end_frame=sspc_data.end_frame,
-        framerate=framerate,  
-        height=sspc_data.height,
-        item_id=item_id,
-        label_color=label_color,
-        name=item_name,
-        start_frame=sspc_data.start_frame,
-        type_name="Footage",
-        width=sspc_data.width,
-    )
-
-    if not asset_type:  # Placeholder
-        item.asset_type = "placeholder"
-        item.name = opti_data.placeholder_name
-    elif asset_type == "Soli":  # Solid
-        item.asset_type = "solid"
-        item.color = [
-            opti_data.red,
-            opti_data.green,
-            opti_data.blue,
-            opti_data.alpha
-        ]
-        item.name = opti_data.solid_name
-    else:  # Files
-        item.asset_type = "file"
-        als2_chunk = find_by_list_type(
-            chunks=pin_child_chunks,
-            list_type="Als2"
-        )
-        als2_child_chunks = als2_chunk.data.chunks
-        alas_chunk = find_by_type(
-            chunks=als2_child_chunks,
-            chunk_type="alas"
-        )
-        alas_data = json.loads(str_contents(alas_chunk))
-
-        item.ascendcount_base = alas_data["ascendcount_base"]
-        item.ascendcount_target = alas_data["ascendcount_target"]
-        item.path = alas_data["fullpath"]
-        item.platform = alas_data["platform"]
-        item.server_name = alas_data["server_name"]
-        item.server_volume_name = alas_data["server_volume_name"]
-        item.target_is_folder = alas_data["target_is_folder"]
-
-        if not item.name:
-            # TODO image sequence (frame numbers), psd (layers)
-            # TODO add "name_overriden" or "default_name" ? label like properties ?
-            item.name = os.path.basename(item.path)
-    return item
-
-
-def parse_composition(child_chunks, item_id, item_name, label_color):
-    cdta_chunk = find_by_type(
-        chunks=child_chunks,
-        chunk_type="cdta"
-    )
-    cdta_data = cdta_chunk.data
-    time_scale = cdta_data.time_scale
-
-    # Parse composition's layers
-    layer_sub_chunks = filter_by_list_type(
-        chunks=child_chunks,
-        list_type="Layr"
-    )
-    composition_layers = []
-    for index, layer_chunk in enumerate(layer_sub_chunks, 1):
-        layer = parse_layer(
-            layer_chunk=layer_chunk,
-            time_scale=time_scale,
-        )
-        layer.index = index
-        composition_layers.append(layer)
-
-    markers_layer_chunk = find_by_list_type(
-        chunks=child_chunks,
-        list_type="SecL"
-    )
-    markers_layer = parse_layer(
-        layer_chunk=markers_layer_chunk,
-        time_scale=time_scale,
-    )
-
-    item = CompItem(
-        asset_height=cdta_data.height,
-        asset_width=cdta_data.width,
-        background_color=cdta_data.background_color,  # TODO check order
-        composition_layers=composition_layers,
-        duration_frames=int(cdta_data.duration_frames),  # TODO check
-        duration_sec=cdta_data.duration_sec,  # TODO check
-        frame_blend_enabled=cdta_data.frame_blend_enabled,
-        framerate=cdta_data.framerate,
-        in_time_frames=int(cdta_data.in_time_frames),  # TODO check
-        in_time_sec=cdta_data.in_time,  # TODO check
-        item_id=item_id,
-        label_color=label_color,
-        markers=markers_layer.markers,
-        motion_blur_enabled=cdta_data.motion_blur_enabled,
-        name=item_name,
-        out_time_frames=int(cdta_data.out_time_frames),  # TODO check
-        out_time_sec=cdta_data.out_time,  # TODO check
-        pixel_ratio=cdta_data.pixel_ratio,
-        playhead_frames=int(cdta_data.playhead_frames),
-        playhead_sec=cdta_data.playhead_frames * cdta_data.framerate,
-        preserve_framerate=cdta_data.preserve_framerate,
-        preserve_resolution=cdta_data.preserve_resolution,
-        samples_limit=cdta_data.samples_limit,
-        samples_per_frame=cdta_data.samples_per_frame,
-        shutter_angle=cdta_data.shutter_angle,
-        shutter_phase=cdta_data.shutter_phase,
-        shy_enabled=cdta_data.shy_enabled,
-        time_scale=time_scale,
-        type_name="Composition",
-        x_resolution=cdta_data.x_resolution,
-        y_resolution=cdta_data.y_resolution,
-    )
-    return item
+    item_name = str_contents(name_chunk)
+    return item_name

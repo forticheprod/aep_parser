@@ -63,7 +63,7 @@ types:
             '"Utf8"': utf8_body
             '"fnam"': child_utf8_body # Effect name. contains a single utf-8 chunk but no list_type
             '"pdnm"': child_utf8_body # Parameter control strings. contains a single utf-8 chunk but no list_type
-            '"tdsn"': child_utf8_body # user-defined label of a property. contains a single utf-8 chunk but no list_type
+            '"tdsn"': child_utf8_body # user-defined name of a property. contains a single utf-8 chunk but no list_type
             # '"fiac"': ascii_body # active item, not sure about encoding
             _: ascii_body
       - id: padding
@@ -87,15 +87,15 @@ types:
         repeat-expr: '_parent.len_data / 8'
   cdta_body:
     seq:
-      - id: x_resolution
-        type: u2 # 1-2
-      - id: y_resolution
-        type: u2 # 3-4
+      - id: resolution_factor
+        type: u2 # 1-4
+        repeat: expr
+        repeat-expr: 2
       - size: 2 # 5-6
       - id: time_scale
         type: u2 # 7-8
       - size: 2 # 9-10
-      - id: framerate_dividend
+      - id: frame_rate_dividend
         type: u2 # 11-12
       - size: 10 # 13-21
       - id: playhead
@@ -111,7 +111,7 @@ types:
         type: u4 # 45-48
       - id: duration_divisor
         type: u4 # 49-52
-      - id: background_color
+      - id: bg_color
         type: u1 # 53-55
         repeat: expr
         repeat-expr: 3
@@ -135,36 +135,36 @@ types:
       - id: shutter_phase
         type: u4 # 177-180
       - size: 16 # 181-196
-      - id: samples_limit
+      - id: motion_blur_adaptive_sample_limit
         type: s4 # 197-200
-      - id: samples_per_frame
+      - id: motion_blur_samples_per_frame
         type: s4 # 201-204
     instances:
-      framerate:
-        value: 'framerate_dividend.as<f4> / time_scale.as<f4>'
-      duration_sec:
+      frame_rate:
+        value: 'frame_rate_dividend.as<f4> / time_scale.as<f4>'
+      duration:
         value: 'duration_dividend.as<f4> / duration_divisor.as<f4>'
       out_time:
-        value: 'out_time_raw == 0xffff ? duration_sec : out_time_raw'
-      pixel_ratio:
+        value: 'out_time_raw == 0xffff ? duration : out_time_raw'
+      pixel_aspect:
         value: 'pixel_ratio_width.as<f4> / pixel_ratio_height.as<f4>'
       playhead_frames:
         value: 'playhead / time_scale'
       in_time_frames:
-        value: 'in_time * framerate'
+        value: 'in_time * frame_rate'
       out_time_frames:
-        value: 'out_time * framerate'
-      duration_frames:
-        value: 'duration_sec * framerate'
+        value: 'out_time * frame_rate'
+      frame_duration:
+        value: 'duration * frame_rate'
       shy_enabled:
         value: '(attributes[0] & 1) != 0'
-      motion_blur_enabled:
+      motion_blur:
         value: '(attributes[0] & (1 << 3)) != 0'
-      frame_blend_enabled:
+      frame_blending:
         value: '(attributes[0] & (1 << 4)) != 0'
-      preserve_framerate:
+      preserve_nested_frame_rate:
         value: '(attributes[0] & (1 << 5)) != 0'
-      preserve_resolution:
+      preserve_nested_resolution:
         value: '(attributes[0] & (1 << 7)) != 0'
   child_utf8_body:
     seq:
@@ -190,9 +190,9 @@ types:
       - id: item_id
         type: u4
       - size: 38
-      - id: label_color
+      - id: label
         type: u1
-        enum: label_color
+        enum: label
   ldat_body:
     seq:
       - id: keyframes
@@ -209,9 +209,9 @@ types:
       - id: ease_mode
         type: u1
         enum: ease_mode
-      - id: label_color
+      - id: label
         type: u1
-        enum: label_color
+        enum: label
       - id: attributes
         size: 1
       - id: kf_data
@@ -350,9 +350,9 @@ types:
       - id: source_id
         type: u4 # 41-44
       - size: 17 # 45-61
-      - id: label_color
+      - id: label
         type: u1 # 62
-        enum: label_color
+        enum: label
       - size: 2 # 63-64
       - id: layer_name
         size: 32 # 65-96
@@ -402,9 +402,9 @@ types:
         value: '(attributes[2] & (1 << 1)) != 0'
       effects_enabled:
         value: '(attributes[2] & (1 << 2)) != 0'
-      motion_blur_enabled:
+      motion_blur:
         value: '(attributes[2] & (1 << 3)) != 0'
-      frame_blend_enabled:
+      frame_blending:
         value: '(attributes[2] & (1 << 4)) != 0'
       lock_enabled:
         value: '(attributes[2] & (1 << 5)) != 0'
@@ -463,12 +463,12 @@ types:
       - id: attributes
         size: 1
       - size: 4
-      - id: duration_frames
+      - id: frame_duration
         type: u4
       - size: 4
-      - id: label_color
+      - id: label
         type: u1
-        enum: label_color
+        enum: label
     instances:
       navigation:
         value: '(attributes[0] & 1) != 0'
@@ -479,7 +479,7 @@ types:
   nnhd_body:
     seq:
       - size: 14
-      - id: framerate
+      - id: frame_rate
         type: u2
       - size: 24
   opti_body:
@@ -643,9 +643,9 @@ types:
       - id: duration_divisor
         type: u4 # 43-46
       - size: 10 # 47-56
-      - id: framerate_base
+      - id: frame_rate_base
         type: u4 # 57-60
-      - id: framerate_dividend
+      - id: frame_rate_dividend
         type: u2 # 61-62
       - size: 110 # 61-62
       - id: start_frame
@@ -653,12 +653,12 @@ types:
       - id: end_frame
         type: u4 # 61-62
     instances:
-      duration_sec:
+      duration:
         value: 'duration_dividend.as<f4> / duration_divisor.as<f4>'
-      framerate:
-        value: 'framerate_base + (framerate_dividend.as<f4> / (1 << 16))'
-      duration_frames:
-        value: 'duration_sec * framerate'
+      frame_rate:
+        value: 'frame_rate_base + (frame_rate_dividend.as<f4> / (1 << 16))'
+      frame_duration:
+        value: 'duration * frame_rate'
   tdb4_body:
     seq:
       - size: 2
@@ -768,7 +768,7 @@ enums:
     3: inverted_alpha
     4: luma
     5: inverted_luma
-  label_color:
+  label:
     0: none
     1: red
     2: yellow

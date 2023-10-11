@@ -10,7 +10,7 @@ class Layer(object):
             in_time_sec=None,
             out_time_sec=None,
             source_id=0,
-            label_color=0,
+            label=0,
             matte_mode=0,
             stretch_denominator=0,
             layer_type=0,
@@ -26,14 +26,14 @@ class Layer(object):
             video_enabled=False,
             audio_enabled=False,
             effects_enabled=False,
-            motion_blur_enabled=False,
-            frame_blend_enabled=False,
+            motion_blur=False,
+            frame_blending=False,
             lock_enabled=False,
             shy_enabled=False,
             collapse_transform_enabled=False,
             text=None,
             effects=[],
-            markers=[],
+            marker_property=None,
             transform=[]):
         """
         A single layer in a composition
@@ -47,7 +47,7 @@ class Layer(object):
         self.in_time_sec = in_time_sec
         self.out_time_sec = out_time_sec
         self.source_id = source_id
-        self.label_color = label_color
+        self.label = label
         self.matte_mode = matte_mode
         self.stretch_denominator = stretch_denominator
         self.layer_type = layer_type
@@ -63,14 +63,14 @@ class Layer(object):
         self.video_enabled = video_enabled
         self.audio_enabled = audio_enabled
         self.effects_enabled = effects_enabled
-        self.motion_blur_enabled = motion_blur_enabled
-        self.frame_blend_enabled = frame_blend_enabled
+        self.motion_blur = motion_blur
+        self.frame_blending = frame_blending
         self.lock_enabled = lock_enabled
         self.shy_enabled = shy_enabled
         self.collapse_transform_enabled = collapse_transform_enabled
         self.text = text
         self.effects = effects
-        self.markers = markers
+        self.marker_property = marker_property
         self.transform = transform
 
     def __repr__(self):

@@ -1,8 +1,11 @@
-from __future__ import absolute_import
-from __future__ import unicode_literals
+from __future__ import (
+    absolute_import,
+    unicode_literals,
+    division
+)
 
 
-def find_chunk(chunks, func):
+def _find_chunk(chunks, func):
     """
     Perform a basic find operation over a chunks list.
     """
@@ -13,9 +16,9 @@ def find_chunk(chunks, func):
 
 def find_by_type(chunks, chunk_type):
     """
-    Perform a find operation over a chunks list predicated upon chunk type.
+    Return first chunk that has the provided chunk_type.
     """
-    return find_chunk(
+    return _find_chunk(
         chunks=chunks,
         func=lambda chunk: chunk.chunk_type == chunk_type
     )
@@ -23,9 +26,9 @@ def find_by_type(chunks, chunk_type):
 
 def find_by_list_type(chunks, list_type):
     """
-    Perform a find operation over a chunks list predicated upon chunk type.
+    Return first LIST chunk that has the provided list_type.
     """
-    return find_chunk(
+    return _find_chunk(
         chunks=chunks,
         func=lambda chunk: (
             chunk.chunk_type == "LIST"
@@ -33,7 +36,7 @@ def find_by_list_type(chunks, list_type):
         )
     )
 
-def filter_chunks(chunks, func):
+def _filter_chunks(chunks, func):
     """
     Perform a basic filter operation over a chunks list.
     """
@@ -42,9 +45,9 @@ def filter_chunks(chunks, func):
 
 def filter_by_list_type(chunks, list_type):
     """
-    Return chunks that have the provided list_type.
+    Return LIST chunks that have the provided list_type.
     """
-    return filter_chunks(
+    return _filter_chunks(
         chunks=chunks,
         func=lambda chunk: (
             chunk.chunk_type == "LIST"
@@ -55,9 +58,9 @@ def filter_by_list_type(chunks, list_type):
 
 def filter_by_type(chunks, chunk_type):
     """
-    Return chunks that have the provided chunk type.
+    Return chunks that have the provided chunk_type.
     """
-    return filter_chunks(
+    return _filter_chunks(
         chunks=chunks,
         func=lambda chunk: (
             chunk.chunk_type == chunk_type
@@ -65,5 +68,8 @@ def filter_by_type(chunks, chunk_type):
     )
 
 def str_contents(chunk):
+    """
+    Return the string contents of a chunk whose chunk_type is Utf8.
+    """
     text = str(chunk.data.data)
     return text.rstrip("\x00")

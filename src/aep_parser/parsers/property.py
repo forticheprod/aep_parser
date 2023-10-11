@@ -1,5 +1,8 @@
-from __future__ import absolute_import
-from __future__ import unicode_literals
+from __future__ import (
+    absolute_import,
+    unicode_literals,
+    division
+)
 
 import io
 import collections
@@ -163,9 +166,9 @@ def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
     prop.visible = tdsb_data.visible
     prop.split_position = tdsb_data.split_position
 
-    label = get_label(tdbs_chunk)
-    if label:
-        prop.label = label
+    user_defined_name = get_user_defined_name(tdbs_chunk)
+    if user_defined_name:
+        prop.user_defined_name = user_defined_name
 
     tdb4_chunk = find_by_type(
         chunks=tdbs_child_chunks,
@@ -200,7 +203,7 @@ def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
             else:
                 print (
                     "Could not determine type for property {match_name}" 
-                    " | label: {label}"
+                    " | user_defined_name: {user_defined_name}"
                     " | components: {components}"
                     " | animated: {animated}"
                     " | integer: {integer}"
@@ -211,7 +214,7 @@ def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
                     " | color: {color}"
                     .format(
                         match_name=match_name,
-                        label=label,
+                        user_defined_name=user_defined_name,
                         components=prop.components,
                         animated=prop.animated,
                         integer=prop.integer,
@@ -225,7 +228,7 @@ def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
         else:
             print (
                 "Could not determine type for property {match_name}" 
-                " | label: {label}"
+                " | user_defined_name: {user_defined_name}"
                 " | components: {components}"
                 " | animated: {animated}"
                 " | integer: {integer}"
@@ -236,7 +239,7 @@ def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
                 " | color: {color}"
                 .format(
                     match_name=match_name,
-                    label=label,
+                    user_defined_name=user_defined_name,
                     components=prop.components,
                     animated=prop.animated,
                     integer=prop.integer,
@@ -295,7 +298,7 @@ def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
                     index=index,
                     time=kf_chunk.time_raw / time_scale,
                     ease_mode=kf_chunk.ease_mode,
-                    label_color=kf_chunk.label_color,
+                    label=kf_chunk.label,
                     continuous_bezier=kf_chunk.continuous_bezier,
                     auto_bezier=kf_chunk.auto_bezier,
                     roving_across_time=kf_chunk.roving_across_time,
@@ -344,9 +347,9 @@ def parse_effect(sspc_chunk, group_match_name, time_scale):
         chunks=sspc_child_chunks,
         list_type="tdgp"
     )
-    label = get_label(tdgp_chunk)
-    if label:
-        effect.label = label
+    user_defined_name = get_user_defined_name(tdgp_chunk)
+    if user_defined_name:
+        effect.user_defined_name = user_defined_name
 
     # Get parameters values
     chunks_by_property = get_properties_by_match_name(tdgp_chunk)
@@ -495,8 +498,8 @@ def parse_marker(nmrd_chunk):
         url=str_contents(utf8_chunks[2]),
         frame_target=str_contents(utf8_chunks[3]),
         flash_cue_point_name=str_contents(utf8_chunks[4]),
-        duration_frames=nmhd_data.duration_frames,
-        label_color=nmhd_data.label_color,
+        frame_duration=nmhd_data.frame_duration,
+        label=nmhd_data.label,
         protected=nmhd_data.protected,
         navigation=nmhd_data.navigation,
         flash_cue_point_parameters=dict(),
@@ -526,19 +529,19 @@ def get_properties_by_match_name(root_chunk):
     return properties
 
 
-def get_label(root_chunk):
-    # Look for a tdsn which specifies the user-defined label of the property
+def get_user_defined_name(root_chunk):
+    # Look for a tdsn which specifies the user-defined name of the property
     tdsn_chunk = find_by_type(
         chunks=root_chunk.data.chunks,
         chunk_type="tdsn"
     )
     utf8_chunk = tdsn_chunk.data.chunk
-    label = str_contents(utf8_chunk)
+    user_defined_name = str_contents(utf8_chunk)
 
-    # Check if there is a custom user defined label added. The default if there
-    # is not is "-_0_/-".
-    if label != "-_0_/-":
-        return label
+    # Check if there is a custom user defined name added.
+    # The default if there is not is "-_0_/-".
+    if user_defined_name != "-_0_/-":
+        return user_defined_name
     return None
 
 
