@@ -15,7 +15,7 @@ seq:
   - id: data
     type: chunks
     size: len_data - format._sizeof
-  - id: xmp
+  - id: xmp_packet
     type: str
     encoding: utf8
     size-eos: true
@@ -39,7 +39,7 @@ types:
         type: 
           switch-on: chunk_type
           cases:
-            '"alas"': utf8_body # File asset data in json format as a string
+            '"alas"': utf8_body # File footage data in json format as a string
             '"cdat"': cdat_body # Property value(s)
             '"cdta"': cdta_body # Composition data
             '"cmta"': utf8_body # Comment data
@@ -53,7 +53,7 @@ types:
             '"nhed"': nhed_body # Header data
             '"NmHd"': nmhd_body # Marker data
             '"nnhd"': nnhd_body # Project data
-            '"opti"': opti_body # Asset data
+            '"opti"': opti_body # Footage data
             '"pard"': pard_body # property ??
             '"pjef"': utf8_body # effect names
             '"sspc"': sspc_body # Sub properties ??
@@ -454,9 +454,9 @@ types:
   nhed_body:
     seq:
       - size: 15
-      - id: depth
+      - id: bits_per_channel
         type: u1
-        enum: depth
+        enum: bits_per_channel
   nmhd_body:
     seq:
       - size: 3
@@ -744,19 +744,19 @@ types:
         size-eos: true
 
 enums:
-  depth: # project bit depth
+  bits_per_channel: # project bit bits_per_channel
     0: bpc_8
     1: bpc_16
     2: bpc_32
   item_type: # type of item. See: http://docs.aenhancers.com/items/item/#item-item_type
     1: folder
     4: composition
-    7: asset
+    7: footage
   asset_type:
     2: placeholder
     9: solid
   layer_type:
-    0: asset
+    0: footage
     1: light
     2: camera
     3: text

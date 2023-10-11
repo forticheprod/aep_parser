@@ -11,7 +11,7 @@ from ..kaitai.utils import (
     str_contents,
 )
 from ..models.project import Project
-from ..models.items.composition import Composition
+from ..models.items.composition import CompItem
 from .item import parse_item
 
 
@@ -28,25 +28,24 @@ def parse_project(path):
         )
         
         project = Project(
-            depth=get_bit_depth(root_chunks),
+            bits_per_channel=get_bit_depth(root_chunks),
             effect_names=get_effect_names(root_chunks),
             expression_engine=get_expression_engine(root_chunks),
             framerate=get_framerate(root_chunks),
-            project_items=dict(),
+            items=dict(),
         )
-        project.metadata = ET.fromstring(aep.xmp)
-        software_agent = project.metadata.find(match=SOFTWARE_AGENT_XPATH)
+        project.xmp_packet = ET.fromstring(aep.xmp_packet)
+        software_agent = project.xmp_packet.find(path=SOFTWARE_AGENT_XPATH)
         project.ae_version = software_agent.text
 
         project.root_folder = parse_item(root_folder_chunk, project)
 
         # Layers that have not been given an explicit name should be named after their source
-        for item in project.project_items.values():
-            if isinstance(item, Composition):
+        for item in project.items.values():
+            if isinstance(item, CompItem):
                 for layer in item.composition_layers:
                     if not layer.name:
-                        layer.name = project.project_items[layer.source_id].name
-
+                        layer.name = project.items[layer.source_id].name
 
         return project
 
@@ -71,7 +70,7 @@ def get_bit_depth(root_chunks):
         chunks=root_chunks,
         chunk_type="nhed"
     )
-    return nhed_chunk.data.depth
+    return nhed_chunk.data.bits_per_channel
 
 
 def get_framerate(root_chunks):

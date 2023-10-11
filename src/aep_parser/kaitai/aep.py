@@ -42,7 +42,7 @@ class Aep(KaitaiStruct):
         inverted_luma = 5
 
     class LayerType(Enum):
-        asset = 0
+        footage = 0
         light = 1
         camera = 2
         text = 3
@@ -99,7 +99,7 @@ class Aep(KaitaiStruct):
     class ItemType(Enum):
         folder = 1
         composition = 4
-        asset = 7
+        footage = 7
 
     class LayerQuality(Enum):
         wireframe = 0
@@ -122,7 +122,7 @@ class Aep(KaitaiStruct):
         self._raw_data = self._io.read_bytes((self.len_data - 4))
         _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
         self.data = Aep.Chunks(_io__raw_data, self, self._root)
-        self.xmp = (self._io.read_bytes_full()).decode(u"utf8")
+        self.xmp_packet = (self._io.read_bytes_full()).decode(u"utf8")
 
     class Keyframe(KaitaiStruct):
         def __init__(self, key_type, _io, _parent=None, _root=None):
@@ -926,7 +926,7 @@ class Aep(KaitaiStruct):
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(15)
-            self.depth = KaitaiStream.resolve_enum(Aep.Depth, self._io.read_u1())
+            self.bits_per_channel = KaitaiStream.resolve_enum(Aep.Depth, self._io.read_u1())
 
 
     class HeadBody(KaitaiStruct):

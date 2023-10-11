@@ -1,19 +1,14 @@
-import sys
-import abc
+from .item import Item
 
 
-if sys.version_info >= (3, 4):
-    ABC = abc.ABC
-else:
-    ABC = abc.ABCMeta('ABC', (object,), {'__slots__': ()})
-
-
-class Item(ABC):
+class AVItem(Item):
     def __init__(self,
-                 item_id=0, label_color=None, name="", type_name=""):
+                 item_id=0, label_color=None, name="", type_name="",
+                 *args, **kwargs):
         """
         Generalized object storing information about folders, compositions, or footages
         """
+        super(AVItem, self).__init__(*args, **kwargs)
         self.type_name = type_name
         self.item_id = item_id
         self.name = name
@@ -21,7 +16,3 @@ class Item(ABC):
 
     def __repr__(self):
         return str(self.__dict__)
-
-    # @abc.abstractmethod
-    # def name(self):
-    #     pass

@@ -1,41 +1,40 @@
-from .item import Item
+from .av_item import AVItem
 
 
-class Composition(Item):
-    def __init__(
-            self,
-            x_resolution=1,
-            y_resolution=1,
-            time_scale=0,
-            width=0,
-            height=0,
-            framerate=0.0,
-            playhead_sec=0.0,
-            playhead_frames=0,
-            in_time_sec=0.0,
-            in_time_frames=0,
-            out_time_sec=0.0,
-            out_time_frames=0,
-            duration_sec=0.0,
-            duration_frames=0,
+class CompItem(AVItem):
+    def __init__(self,
+            asset_height=0,
+            asset_width=0,
             background_color=[],
-            shy_enabled=False,
-            motion_blur_enabled=False,
+            composition_layers=[],
+            duration_frames=0,
+            duration_sec=0.0,
             frame_blend_enabled=False,
+            framerate=0.0,
+            height=0,
+            in_time_frames=0,
+            in_time_sec=0.0,
+            markers=[],
+            motion_blur_enabled=False,
+            out_time_frames=0,
+            out_time_sec=0.0,
+            pixel_ratio=0,
+            playhead_frames=0,
+            playhead_sec=0.0,
             preserve_framerate=False,
             preserve_resolution=False,
-            asset_width=0,
-            asset_height=0,
-            pixel_ratio=0,
-            shutter_angle=0,
-            shutter_phase=0,
             samples_limit=0,
             samples_per_frame=0,
-            composition_layers=[],
-            markers=[],
+            shutter_angle=0,
+            shutter_phase=0,
+            shy_enabled=False,
+            time_scale=0,
+            width=0,
+            x_resolution=1,
+            y_resolution=1,
             *args,
             **kwargs):
-        super().__init__(*args, **kwargs)
+        super(CompItem, self).__init__(*args, **kwargs)
         self.x_resolution = x_resolution
         self.y_resolution = y_resolution
         self.time_scale = time_scale

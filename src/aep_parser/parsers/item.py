@@ -12,14 +12,13 @@ from ..kaitai.utils import (
     filter_by_list_type,
     str_contents,
 )
-from ..models.items.composition import Composition
+from ..models.items.footage import FootageItem
+from ..models.items.composition import CompItem
 from ..models.items.folder import Folder
-from ..models.items.asset import Asset
 from .layer import parse_layer
 
 
 def parse_item(item_chunk, project):
-    # TODO split asset classes and layer classes
     child_chunks = item_chunk.data.chunks
     is_root = item_chunk.data.list_type == "Fold"
 
@@ -55,8 +54,8 @@ def parse_item(item_chunk, project):
             label_color=label_color,
         )
 
-    elif item_type == Aep.ItemType.asset:
-        item = parse_asset(
+    elif item_type == Aep.ItemType.footage:
+        item = parse_footage(
             child_chunks=child_chunks,
             project=project,
             item_id=item_id,
@@ -72,7 +71,7 @@ def parse_item(item_chunk, project):
             label_color=label_color
         )
 
-    project.project_items[item.item_id] = item
+    project.items[item.item_id] = item
 
     return item
 
@@ -99,16 +98,16 @@ def parse_folder(is_root, child_chunks, project, item_id, item_name, label_color
         folder_contents.append(child_item)
     
     item = Folder(
-        item_type="folder",
-        item_id=item_id,
-        name=item_name,
-        label_color=label_color,
         folder_contents=folder_contents,
+        item_id=item_id,
+        label_color=label_color,
+        name=item_name,
+        type_name="Folder",
     )
     return item
 
 
-def parse_asset(child_chunks, project, item_id, item_name, label_color):
+def parse_footage(child_chunks, project, item_id, item_name, label_color):
     pin_chunk = find_by_list_type(
         chunks=child_chunks,
         list_type="Pin "
@@ -133,19 +132,19 @@ def parse_asset(child_chunks, project, item_id, item_name, label_color):
         sspc_data.duration_frames
         or round(project.framerate * sspc_data.duration_sec)
     )
-    item = Asset(
-        item_type="asset",
-        item_id=item_id,
-        name=item_name,
-        label_color=label_color,
-        width=sspc_data.width,
-        height=sspc_data.height,
-        framerate=framerate,  
-        duration_sec=sspc_data.duration_sec,
-        duration_frames=duration_frames,
+    item = FootageItem(
         asset_type=asset_type,
-        start_frame=sspc_data.start_frame,
+        duration_frames=duration_frames,
+        duration_sec=sspc_data.duration_sec,
         end_frame=sspc_data.end_frame,
+        framerate=framerate,  
+        height=sspc_data.height,
+        item_id=item_id,
+        label_color=label_color,
+        name=item_name,
+        start_frame=sspc_data.start_frame,
+        type_name="Footage",
+        width=sspc_data.width,
     )
 
     if not asset_type:  # Placeholder
@@ -219,41 +218,37 @@ def parse_composition(child_chunks, item_id, item_name, label_color):
         time_scale=time_scale,
     )
 
-    item = Composition(
-        item_type="composition",
-        item_id=item_id,
-        name=item_name,
-        label_color=label_color,
-        
-        x_resolution=cdta_data.x_resolution,
-        y_resolution=cdta_data.y_resolution,
-        time_scale=time_scale,
-
-        framerate=cdta_data.framerate,
-        playhead_sec=cdta_data.playhead_frames * cdta_data.framerate,
-        playhead_frames=int(cdta_data.playhead_frames),
-        in_time_sec=cdta_data.in_time,  # TODO check
-        in_time_frames=int(cdta_data.in_time_frames),  # TODO check
-        out_time_sec=cdta_data.out_time,  # TODO check
-        out_time_frames=int(cdta_data.out_time_frames),  # TODO check
-        duration_sec=cdta_data.duration_sec,  # TODO check
-        duration_frames=int(cdta_data.duration_frames),  # TODO check
-
+    item = CompItem(
+        asset_height=cdta_data.height,
+        asset_width=cdta_data.width,
         background_color=cdta_data.background_color,  # TODO check order
-        shy_enabled=cdta_data.shy_enabled,
-        motion_blur_enabled=cdta_data.motion_blur_enabled,
+        composition_layers=composition_layers,
+        duration_frames=int(cdta_data.duration_frames),  # TODO check
+        duration_sec=cdta_data.duration_sec,  # TODO check
         frame_blend_enabled=cdta_data.frame_blend_enabled,
+        framerate=cdta_data.framerate,
+        in_time_frames=int(cdta_data.in_time_frames),  # TODO check
+        in_time_sec=cdta_data.in_time,  # TODO check
+        item_id=item_id,
+        label_color=label_color,
+        markers=markers_layer.markers,
+        motion_blur_enabled=cdta_data.motion_blur_enabled,
+        name=item_name,
+        out_time_frames=int(cdta_data.out_time_frames),  # TODO check
+        out_time_sec=cdta_data.out_time,  # TODO check
+        pixel_ratio=cdta_data.pixel_ratio,
+        playhead_frames=int(cdta_data.playhead_frames),
+        playhead_sec=cdta_data.playhead_frames * cdta_data.framerate,
         preserve_framerate=cdta_data.preserve_framerate,
         preserve_resolution=cdta_data.preserve_resolution,
-        asset_width=cdta_data.width,
-        asset_height=cdta_data.height,
-        pixel_ratio=cdta_data.pixel_ratio,
-        shutter_angle=cdta_data.shutter_angle,
-        shutter_phase=cdta_data.shutter_phase,
         samples_limit=cdta_data.samples_limit,
         samples_per_frame=cdta_data.samples_per_frame,
-
-        composition_layers=composition_layers,
-        markers=markers_layer.markers,
+        shutter_angle=cdta_data.shutter_angle,
+        shutter_phase=cdta_data.shutter_phase,
+        shy_enabled=cdta_data.shy_enabled,
+        time_scale=time_scale,
+        type_name="Composition",
+        x_resolution=cdta_data.x_resolution,
+        y_resolution=cdta_data.y_resolution,
     )
     return item
