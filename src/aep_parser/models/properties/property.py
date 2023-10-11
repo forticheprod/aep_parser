@@ -1,6 +1,6 @@
 class Property(object):
     def __init__(self, match_name="", name="", index=0, property_type=None,
-                 select_options=[], keyframes=[]):
+                 select_options=[], keyframes=dict()):
         """
         Property object of a layer or nested property.
         """

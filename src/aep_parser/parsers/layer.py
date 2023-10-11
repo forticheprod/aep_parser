@@ -2,7 +2,6 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 
-from .kaitai.aep import Aep
 from .kaitai.utils import (
     find_by_type,
     find_by_list_type,

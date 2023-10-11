@@ -7,14 +7,14 @@ seq:
   - id: header
     contents: [0x52, 0x49, 0x46, 0x58]
     doc: RIFF
-  - id: file_size
+  - id: len_data
     type: u4
   - id: format
     contents: [0x45, 0x67, 0x67, 0x21]
     doc: Egg!
   - id: data
     type: chunks
-    size: file_size - format._sizeof
+    size: len_data - format._sizeof
   - id: xmp
     type: str
     encoding: utf8
@@ -32,10 +32,10 @@ types:
         size: 4
         type: str
         encoding: ascii
-      - id: chunk_size
+      - id: len_data
         type: u4
       - id: data
-        size: 'chunk_size > _io.size - _io.pos ? _io.size - _io.pos : chunk_size'
+        size: 'len_data > _io.size - _io.pos ? _io.size - _io.pos : len_data'
         type: 
           switch-on: chunk_type
           cases:
@@ -68,7 +68,7 @@ types:
             _: ascii_body
       - id: padding
         size: 1
-        if: (chunk_size % 2) != 0
+        if: (len_data % 2) != 0
   alas_body:
     seq:
       - id: contents
@@ -84,35 +84,29 @@ types:
       - id: value
         type: f8
         repeat: expr
-        repeat-expr: '_parent.chunk_size / 8'
+        repeat-expr: '_parent.len_data / 8'
   cdta_body:
     seq:
       - id: x_resolution
         type: u2 # 1-2
       - id: y_resolution
         type: u2 # 3-4
-      - id: unknown01
-        size: 2 # 5-6
+      - size: 2 # 5-6
       - id: time_scale
         type: u2 # 7-8
-      - id: unknown02
-        size: 2 # 9-10
+      - size: 2 # 9-10
       - id: framerate_dividend
         type: u2 # 11-12
-      - id: unknown03
-        size: 10 # 13-21
+      - size: 10 # 13-21
       - id: playhead
         type: u2 # 22-23
-      - id: unknown04
-        size: 5 # 24-29
+      - size: 5 # 24-29
       - id: in_time
         type: u2 # 30-31
-      - id: unknown05
-        size: 6 # 32-37
+      - size: 6 # 32-37
       - id: out_time_raw
         type: u2 # 38-39
-      - id: unknown06
-        size: 5 # 40-44
+      - size: 5 # 40-44
       - id: duration_dividend
         type: u4 # 45-48
       - id: duration_divisor
@@ -121,8 +115,7 @@ types:
         type: u1 # 53-55
         repeat: expr
         repeat-expr: 3
-      - id: unknown08
-        size: 84 # 56-139
+      - size: 84 # 56-139
       - id: attributes
         size: 1 # 140
       - id: width
@@ -133,18 +126,15 @@ types:
         type: u4 # 145-148
       - id: pixel_ratio_height
         type: u4 # 149-152
-      - id: unknown09
-        size: 4 # 153-156
+      - size: 4 # 153-156
       - id: frame_rate_integer
         type: u2 # 157-158
-      - id: unknown10
-        size: 16 # 159-174
+      - size: 16 # 159-174
       - id: shutter_angle
         type: u2 # 175-176
       - id: shutter_phase
         type: u4 # 177-180
-      - id: unknown11
-        size: 16 # 181-196
+      - size: 16 # 181-196
       - id: samples_limit
         type: s4 # 197-200
       - id: samples_per_frame
@@ -182,15 +172,13 @@ types:
         type: chunk
   fdta_body:
     seq:
-      - id: unknown01
-        size: 1
+      - size: 1
   head_body:
     seq:
       - id: ae_version
         size: 6
         # enum: ae_version
-      - id: unknown01
-        size: 12
+      - size: 12
       - id: file_revision
         type: u2
   idta_body:
@@ -198,21 +186,26 @@ types:
       - id: item_type
         type: u2
         enum: item_type
-      - id: unknown01
-        size: 14
+      - size: 14
       - id: item_id
         type: u4
-      - id: unknown02
-        size: 38
+      - size: 38
       - id: label_color
         type: u1
         enum: label_color
   ldat_body:
     seq:
+      - id: keyframes
+        size-eos: true
+  keyframe:
+    params:
+      - id: key_type
+        type: u1
+        enum: keyframe_type
+    seq:
       - id: time_raw
         type: u4
-      - id: unknown02
-        size: 1
+      - size: 1
       - id: ease_mode
         type: u1
         enum: ease_mode
@@ -221,6 +214,23 @@ types:
         enum: label_color
       - id: attributes
         size: 1
+      - id: kf_data
+        type:
+          switch-on: key_type
+          cases:
+            'keyframe_type::unknown': kf_unknown_data
+            'keyframe_type::lrdr': kf_unknown_data
+            'keyframe_type::litm': kf_unknown_data
+            'keyframe_type::gide': kf_unknown_data
+            'keyframe_type::color': kf_color
+            'keyframe_type::three_d_pos': kf_position(3)
+            'keyframe_type::three_d': kf_multi_dimensional(3)
+            'keyframe_type::two_d_pos': kf_position(2)
+            'keyframe_type::two_d': kf_multi_dimensional(2)
+            'keyframe_type::orientation': kf_multi_dimensional(1)
+            'keyframe_type::no_value': kf_no_value
+            'keyframe_type::one_d': kf_multi_dimensional(1)
+            'keyframe_type::marker': kf_unknown_data
     instances:
       continuous_bezier:
         value: '(attributes[0] & (1 << 3)) != 0'
@@ -228,6 +238,93 @@ types:
         value: '(attributes[0] & (1 << 4)) != 0'
       roving_across_time:
         value: '(attributes[0] & (1 << 5)) != 0'
+  kf_unknown_data:
+    seq:
+      - id: data
+        size-eos: true
+  kf_no_value:
+    seq:
+      - type: u8
+      - type: f8
+      - id: in_speed
+        type: f8
+      - id: in_influence
+        type: f8
+      - id: out_speed
+        type: f8
+      - id: out_influence
+        type: f8
+  kf_color:
+    seq:
+      - type: u8
+      - type: f8
+      - id: in_speed
+        type: f8
+      - id: in_influence
+        type: f8
+      - id: out_speed
+        type: f8
+      - id: out_influence
+        type: f8
+      - id: value
+        type: f8
+        repeat: expr
+        repeat-expr: 4
+      - type: f8
+        repeat: expr
+        repeat-expr: 8
+  kf_position:
+    params:
+      - id: nb_dimensions
+        type: u1
+    seq:
+      - type: u8
+      - type: f8
+      - id: in_speed
+        type: f8
+      - id: in_influence
+        type: f8
+      - id: out_speed
+        type: f8
+      - id: out_influence
+        type: f8
+      - id: value
+        type: f8
+        repeat: expr
+        repeat-expr: nb_dimensions
+      - id: tan_in
+        type: f8
+        repeat: expr
+        repeat-expr: nb_dimensions
+      - id: tan_out
+        type: f8
+        repeat: expr
+        repeat-expr: nb_dimensions
+  kf_multi_dimensional:
+    params:
+      - id: nb_dimensions
+        type: u1
+    seq:
+      - id: value
+        type: f8
+        repeat: expr
+        repeat-expr: nb_dimensions
+      - id: in_speed
+        type: f8
+        repeat: expr
+        repeat-expr: nb_dimensions
+      - id: in_influence
+        type: f8
+        repeat: expr
+        repeat-expr: nb_dimensions
+      - id: out_speed
+        type: f8
+        repeat: expr
+        repeat-expr: nb_dimensions
+      - id: out_influence
+        type: f8
+        repeat: expr
+        repeat-expr: nb_dimensions
   ldta_body:
     seq:
       - id: layer_id
@@ -235,57 +332,46 @@ types:
       - id: quality
         type: u2 # 5-6
         enum: layer_quality
-      - id: unknown01
-        size: 4 # 7-10
+      - size: 4 # 7-10
       - id: stretch_numerator
         type: u2 # 11-12
-      - id: unknown02
-        size: 1 # 13
+      - size: 1 # 13
       - id: start_time_sec
         type: s2 # 14-15
-      - id: unknown03
-        size: 6 # 16-21
+      - size: 6 # 16-21
       - id: in_time_sec
         type: u2 # 22-23
-      - id: unknown04
-        size: 6 # 24-29
+      - size: 6 # 24-29
       - id: out_time_sec
         type: u2 # 30-31
-      - id: unknown05
-        size: 6 # 32-37
+      - size: 6 # 32-37
       - id: attributes
         size: 3 # 38-40
       - id: source_id
         type: u4 # 41-44
-      - id: unknown06
-        size: 17 # 45-61
+      - size: 17 # 45-61
       - id: label_color
         type: u1 # 62
         enum: label_color
-      - id: unknown07
-        size: 2 # 63-64
+      - size: 2 # 63-64
       - id: layer_name
         size: 32 # 65-96
         type: str
         encoding: cp1250
-      - id: unknown08
-        size: 11 # 97-107
+      - size: 11 # 97-107
       - id: matte_mode
         type: u1 # 108
         enum: matte_mode
-      - id: unknown09
-        size: 2 # 109-110
+      - size: 2 # 109-110
       - id: stretch_denominator
         type: u2 # 111-112
-      - id: unknown10
-        size: 19 # 113-131
+      - size: 19 # 113-131
       - id: layer_type
         type: u1 # 132
         enum: layer_type
       - id: parent_id
         type: u4 # 133-136
-      - id: unknown11
-        size: 24 # 137-160
+      - size: 24 # 137-160
       # - id: matte_layer_id
       #   type: u4 # 161-164
       #   doc: only for AE >= 23
@@ -328,32 +414,30 @@ types:
         value: '(attributes[2] & (1 << 7)) != 0'
   lhd3_body:
     seq:
-      - id: unknown01
-        size: 10
-      - id: keyframes_count
+      - size: 10
+      - id: nb_keyframes
         type: u2
-      - id: unknown03
-        size: 6
-      - id: keyframes_size
+      - size: 6
+      - id: len_keyframe
         type: u2
-      - id: unknown05
-        size: 3
-      - id: keyframes_type
+      - size: 3
+      - id: keyframes_type_raw
         type: u1
     instances:
-      items_type:
+      keyframes_type:
         value: >-
-          keyframes_type == 1 ? (keyframes_size == 128 ? "LItm" : "LRdr" )
-          : keyframes_type == 2 ? "Gide"
-          : keyframes_size == 152 ? "color_keyframe"
-          : keyframes_size == 48 ? "one_d_keyframe"
-          : keyframes_size == 88 ? "two_d_keyframe"
-          : keyframes_size == 104 ? "two_d_pos_keyframe"
-          : keyframes_size == 128 ? "three_d_keyframe"
-          : keyframes_size == 16 ? "marker_keyframe"
-          : keyframes_size == 80 ? "orientation_keyframe"
-          : keyframes_size == 64 ? "no_value_keyframe"
-          : "unknown_keyframe"
+          keyframes_type_raw == 1 and len_keyframe == 2246 ? keyframe_type::lrdr :
+          keyframes_type_raw == 1 and len_keyframe == 128 ? keyframe_type::litm :
+          keyframes_type_raw == 2 and len_keyframe == 1 ? keyframe_type::gide :
+          keyframes_type_raw == 4 and len_keyframe == 152 ? keyframe_type::color :
+          keyframes_type_raw == 4 and len_keyframe == 128 ? keyframe_type::three_d :
+          keyframes_type_raw == 4 and len_keyframe == 104 ? keyframe_type::two_d_pos :
+          keyframes_type_raw == 4 and len_keyframe == 88 ? keyframe_type::two_d :
+          keyframes_type_raw == 4 and len_keyframe == 80 ? keyframe_type::orientation :
+          keyframes_type_raw == 4 and len_keyframe == 64 ? keyframe_type::no_value :
+          keyframes_type_raw == 4 and len_keyframe == 48 ? keyframe_type::one_d :
+          keyframes_type_raw == 4 and len_keyframe == 16 ? keyframe_type::marker :
+          keyframe_type::unknown
   list_body:
     seq:
       - id: list_type
@@ -369,23 +453,19 @@ types:
         if: list_type == "btdk"
   nhed_body:
     seq:
-      - id: unknown01
-        size: 15
+      - size: 15
       - id: depth
         type: u1
         enum: depth
   nmhd_body:
     seq:
-      - id: unknown01
-        size: 3
+      - size: 3
       - id: attributes
         size: 1
-      - id: unknown02
-        size: 4
+      - size: 4
       - id: duration_frames
         type: u4
-      - id: unknown03
-        size: 4
+      - size: 4
       - id: label_color
         type: u1
         enum: label_color
@@ -398,12 +478,10 @@ types:
         value: '(attributes[0] & (1 << 2)) != 0'
   nnhd_body:
     seq:
-      - id: unknown01
-        size: 14
+      - size: 14
       - id: framerate
         type: u2
-      - id: unknown02
-        size: 24
+      - size: 24
   opti_body:
     seq:
       - id: asset_type
@@ -413,8 +491,7 @@ types:
         # enum: asset_type
       - id: asset_type_int
         type: u2 # 5-6
-      - id: unknown02
-        size: 4 # 7-10
+      - size: 4 # 7-10
         if: asset_type == "Soli"
       - id: color
         type: f4 # 11-14
@@ -426,8 +503,7 @@ types:
         encoding: cp1250
         size: 256 # 27-282
         if: asset_type == "Soli"
-      - id: unknown03
-        size: 4 # 7-10
+      - size: 4 # 7-10
         if: asset_type_int == 2
       - id: placeholder_name
         type: strz
@@ -449,8 +525,7 @@ types:
         if: asset_type == "Soli"
   pard_body:
     seq:
-      - id: unknown01
-        size: 15 # 1-15
+      - size: 15 # 1-15
       - id: property_type
         type: u1 # 16
         enum: property_type
@@ -458,8 +533,7 @@ types:
         size: 32 # 17-48
         type: str
         encoding: cp1250
-      - id: unknown02
-        size: 8 # 49-56
+      - size: 8 # 49-56
       - id: last_color
         type: u1 #
         repeat: expr
@@ -506,7 +580,7 @@ types:
       - id: last_value_z_raw
         type: f8
         if: property_type == property_type::three_d
-      - id: option_count
+      - id: nb_options
         type: s4
         if: property_type == property_type::enum
       - id: default
@@ -518,8 +592,7 @@ types:
         if: >-
           property_type == property_type::boolean
           or property_type == property_type::enum
-      - id: unknown03
-        size: '(property_type == property_type::scalar ? 72 : property_type == property_type::color ? 64 : 52)'
+      - size: '(property_type == property_type::scalar ? 72 : property_type == property_type::color ? 64 : 52)'
         if: >-
           property_type == property_type::scalar
           or property_type == property_type::color
@@ -527,8 +600,7 @@ types:
       - id: min_value
         type: s2
         if: property_type == property_type::scalar
-      - id: unknown04
-        size: 2
+      - size: 2
         if: property_type == property_type::scalar
       - id: max_color
         type: u1 # 53-55
@@ -560,26 +632,22 @@ types:
         if: property_type == property_type::three_d
   sspc_body:
     seq:
-      - id: unknown01
-        size: 32 # 1-32
+      - size: 32 # 1-32
       - id: width
         type: u2 # 33-34
-      - id: unknown02
-        size: 2 # 35-36
+      - size: 2 # 35-36
       - id: height
         type: u2 # 37-38
       - id: duration_dividend
         type: u4 # 39-42
       - id: duration_divisor
         type: u4 # 43-46
-      - id: unknown03
-        size: 10 # 47-56
+      - size: 10 # 47-56
       - id: framerate_base
         type: u4 # 57-60
       - id: framerate_dividend
         type: u2 # 61-62
-      - id: unknown04
-        size: 110 # 61-62
+      - size: 110 # 61-62
       - id: start_frame
         type: u4 # 61-62
       - id: end_frame
@@ -593,79 +661,56 @@ types:
         value: 'duration_sec * framerate'
   tdb4_body:
     seq:
-      - id: unknown01
-        size: 2
+      - size: 2
       - id: components
         type: u2
         doc: Number of values in a multi-dimensional
       - id: attributes
         size: 2
-      - id: unknown02
-        size: 1
-      - id: unknown03
-        size: 1
+      - size: 1
+      - size: 1
         doc: Some sort of flag, it has value 03 for position properties
-      - id: unknown04
-        size: 2
-      - id: unknown05
-        size: 2
-      - id: unknown06
-        size: 2
+      - size: 2
+      - size: 2
+      - size: 2
         doc: Always 0000 ?
-      - id: unknown07
-        size: 2
+      - size: 2
         doc: 2nd most significant bit always on, perhaps some kind of flag
-      - id: unknown08
-        type: f8
+      - type: f8
         doc: Most of the time 0.0001
-      - id: unknown09
-        type: f8
+      - type: f8
         doc: Most of the time 1.0, sometimes 1.777
-      - id: unknown10
-        type: f8
+      - type: f8
         doc: Always 1.0?
-      - id: unknown11
-        type: f8
+      - type: f8
         doc: Always 1.0?
-      - id: unknown12
-        type: f8
+      - type: f8
         doc: Always 1.0?
       - id: property_type
         size: 4
-      - id: unknown13
-        size: 1
+      - size: 1
         doc: Seems correlated with the previous byte, 04 for enum properties
-      - id: unknown14
-        size: 7
+      - size: 7
         doc: Bunch of 00
       - id: animated
         type: u1
-      - id: unknown15
-        size: 7
+      - size: 7
         doc: Bunch of 00
-      - id: unknown16
-        size: 4
+      - size: 4
         doc: Usually 0, probs flags
-      - id: unknown17
-        size: 4
+      - size: 4
         doc: Most likely flags, only last byte seems to contain data
-      - id: unknown18
-        type: f8
+      - type: f8
         doc: Always 0.0?
-      - id: unknown19
-        type: f8
+      - type: f8
         doc: Mostly 0.0, sometimes 0.333
-      - id: unknown20
-        type: f8
+      - type: f8
         doc: Always 0.0?
-      - id: unknown21
-        type: f8
+      - type: f8
         doc: Mostly 0.0, sometimes 0.333
-      - id: unknown22
-        size: 4
+      - size: 4
         doc: Probs some flags
-      - id: unknown23
-        size: 4
+      - size: 4
         doc: Probs some flags
     instances:
       static:
@@ -772,6 +817,20 @@ enums:
     1: linear
     2: ease
     3: hold
+  keyframe_type:
+    0: unknown
+    1: lrdr
+    2: litm
+    3: gide
+    4: color
+    5: three_d_pos
+    6: three_d
+    7: two_d_pos
+    8: two_d
+    9: orientation
+    10: no_value
+    11: one_d
+    12: marker
   # ae_version:
   #   0x5c06073806b4: 15.0
   #   0x5d040b0006eb: 16.0

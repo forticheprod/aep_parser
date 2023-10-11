@@ -4,6 +4,8 @@ from __future__ import unicode_literals
 import io
 import collections
 
+from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
+
 from .cos.cos import CosParser
 from .kaitai.aep import Aep
 from .kaitai.utils import (
@@ -37,7 +39,7 @@ def parse_property_group(tdgp_chunk, group_match_name, time_scale):
     )
 
     chunks_by_sub_prop = get_properties_by_match_name(tdgp_chunk)
-    for i, (match_name, sub_prop_chunks) in enumerate(chunks_by_sub_prop.items(), 1):
+    for index, (match_name, sub_prop_chunks) in enumerate(chunks_by_sub_prop.items(), 1):
         first_chunk = sub_prop_chunks[0]
         if first_chunk.data.list_type == "tdgp":
             sub_prop = parse_property_group(
@@ -79,7 +81,7 @@ def parse_property_group(tdgp_chunk, group_match_name, time_scale):
                     first_chunk.data.list_type
                 )
             )
-        sub_prop.index = i
+        sub_prop.index = index
         prop_group.properties.append(sub_prop)
 
     return prop_group
@@ -95,7 +97,7 @@ def parse_orientation(otst_chunk, match_name, time_scale, prop=None):
         match_name=match_name,
         name=match_name,
         select_options=[],
-        keyframes=[],
+        keyframes=dict(),
     )
     prop = parse_property(
         tdbs_chunk=tdbs_chunk,
@@ -147,7 +149,7 @@ def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
             match_name=match_name,
             name=match_name,
             select_options=[],
-            keyframes=[],
+            keyframes=dict(),
         )
 
     tdbs_child_chunks = tdbs_chunk.data.chunks
@@ -275,26 +277,32 @@ def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
             chunk_type="lhd3"
         )
         lhd3_data = lhd3_chunk.data
-        keyframes_count = lhd3_data.keyframes_count
-        keyframes_size = lhd3_data.keyframes_size
+        nb_keyframes = lhd3_data.nb_keyframes
+        len_keyframe = lhd3_data.len_keyframe
         keyframes_type = lhd3_data.keyframes_type
-        if keyframes_count:
+        if nb_keyframes:
             ldat_chunk = find_by_type(
                 chunks=list_child_chunks,
                 chunk_type="ldat"
-            )  # TODO implement custom kaitai Aep-like parser for different types of keyframes
-            ldat_data = ldat_chunk.data
-            for i in range(keyframes_count):
-                keyframe = Keyframe(
-                    time=ldat_data.time_raw / time_scale,
-                    ease_mode=ldat_data.ease_mode,
-                    label_color=ldat_data.label_color,
-                    index=i,
-                    continuous_bezier=ldat_data.continuous_bezier,
-                    auto_bezier=ldat_data.auto_bezier,
-                    roving_across_time=ldat_data.roving_across_time,
+            )
+            ldat_data = ldat_chunk.data.keyframes
+            for index, keyframe_data in enumerate(chunks(ldat_data, len_keyframe), 1):
+                kf_chunk = Aep.Keyframe(
+                    key_type=keyframes_type,
+                    _io=KaitaiStream(BytesIO(keyframe_data)),
                 )
-                prop.keyframes.append(keyframe)
+                keyframe = Keyframe(
+                    index=index,
+                    time=kf_chunk.time_raw / time_scale,
+                    ease_mode=kf_chunk.ease_mode,
+                    label_color=kf_chunk.label_color,
+                    continuous_bezier=kf_chunk.continuous_bezier,
+                    auto_bezier=kf_chunk.auto_bezier,
+                    roving_across_time=kf_chunk.roving_across_time,
+                )
+                kf_data = kf_chunk.kf_data
+                # TODO implement extra data for each type of keyframe
+                prop.keyframes[index] = keyframe
 
     return prop
 
@@ -320,16 +328,16 @@ def parse_effect(sspc_chunk, group_match_name, time_scale):
     if part_chunk:
         # Get effect parameters
         chunks_by_parameter = get_properties_by_match_name(part_chunk)
-        for i, (match_name, parameter_chunks) in enumerate(chunks_by_parameter.items()):
+        for index, (match_name, parameter_chunks) in enumerate(chunks_by_parameter.items()):
             # Skip first, it describes parent
-            if i == 0:
+            if index == 0:
                 continue
             parameter = parse_effect_parameter(
                 parameter_chunks=parameter_chunks,
                 match_name=match_name,
                 time_scale=time_scale,
             )
-            parameter.index = i
+            parameter.index = index
             effect.parameters.append(parameter)
 
     tdgp_chunk = find_by_list_type(
@@ -342,7 +350,7 @@ def parse_effect(sspc_chunk, group_match_name, time_scale):
 
     # Get parameters values
     chunks_by_property = get_properties_by_match_name(tdgp_chunk)
-    for i, (match_name, prop_chunks) in enumerate(chunks_by_property.items(), 1):
+    for (match_name, prop_chunks) in chunks_by_property.items():
         first_chunk = prop_chunks[0]
         if first_chunk.data.list_type == "tdbs":
             for parameter in effect.parameters:
@@ -381,7 +389,7 @@ def parse_effect_parameter(parameter_chunks, match_name, time_scale):
         name=pard_data.name.rstrip("\x00"),
         property_type=pard_data.property_type,
         select_options=[],
-        keyframes=[],
+        keyframes=dict(),
     )
 
     if parameter.property_type == Aep.PropertyType.angle:
@@ -398,7 +406,7 @@ def parse_effect_parameter(parameter_chunks, match_name, time_scale):
 
     elif parameter.property_type == Aep.PropertyType.enum:
         parameter.last_value = pard_data.last_value
-        parameter.option_count = pard_data.option_count
+        parameter.nb_options = pard_data.nb_options
         parameter.default = pard_data.default
 
     elif parameter.property_type == Aep.PropertyType.scalar:
@@ -444,6 +452,7 @@ def parse_markers(mrst_chunk, group_match_name, time_scale):
         chunks=mrst_chunk.data.chunks,
         list_type="tdbs"
     )
+    # get keyframes (markers time)
     marker_group = parse_property(
         tdbs_chunk=tdbs_chunk,
         match_name=group_match_name,
@@ -460,11 +469,12 @@ def parse_markers(mrst_chunk, group_match_name, time_scale):
         list_type="Nmrd"
     )
     marker_group.markers = []
-    for i, nmrd_chunk in enumerate(nmrd_chunks, 1):
+    for index, nmrd_chunk in enumerate(nmrd_chunks, 1):
         marker = parse_marker(
             nmrd_chunk=nmrd_chunk
         )
-        marker.index = i
+        marker.index = index
+        marker.time = marker_group.keyframes[index].time
         marker_group.markers.append(marker)
     return marker_group
 
@@ -532,7 +542,7 @@ def get_label(root_chunk):
     return None
 
 
-def chunks(lst, n):
+def chunks(iterable, n):
     """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
+    for i in range(0, len(iterable), n):
+        yield iterable[i:i + n]

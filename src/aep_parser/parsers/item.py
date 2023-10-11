@@ -199,7 +199,7 @@ def parse_composition(child_chunks, item_id, item_name, label_color):
         list_type="Layr"
     )
     composition_layers = []
-    for index, layer_chunk in enumerate(layer_sub_chunks, start=1):
+    for index, layer_chunk in enumerate(layer_sub_chunks, 1):
         layer = parse_layer(
             layer_chunk=layer_chunk,
             time_scale=time_scale,
