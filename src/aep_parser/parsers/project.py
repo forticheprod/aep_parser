@@ -27,41 +27,12 @@ def parse_project(path):
         )
 
         root_chunks = aep.data.chunks
-        expression_engine_chunk = find_by_list_type(
-            chunks=root_chunks,
-            list_type="ExEn"
-        ) 
-        if expression_engine_chunk:
-            project.expression_engine = str_contents(expression_engine_chunk)  # TODO check
 
-        # Get project depth in BPC (8, 16 or 32)
-        nhed_chunk = find_by_type(
-            chunks=root_chunks,
-            chunk_type="nhed"
-        )
-        project.depth = nhed_chunk.data.depth  # FIXME
-
-        # Get project framerate
-        nnhd_chunk = find_by_type(
-            chunks=root_chunks,
-            chunk_type="nnhd"
-        )
-        project.framerate = nnhd_chunk.data.framerate
-
+        project.expression_engine = get_expression_engine(root_chunks)
+        project.depth = get_bit_depth(root_chunks)
+        project.framerate = get_framerate(root_chunks)
         # Get names of effects used in project
-        pefl_chunk = find_by_list_type(
-            chunks=root_chunks,
-            list_type="Pefl"
-        )
-        pefl_child_chunks = pefl_chunk.data.chunks
-        pjef_chunks = filter_by_type(
-            chunks=pefl_child_chunks,
-            chunk_type="pjef"
-        )
-        project.effect_names = [
-            str_contents(pjef_chunk)
-            for pjef_chunk in pjef_chunks
-        ]
+        project.effect_names = get_effect_names(root_chunks)
 
         root_folder_chunk = find_by_list_type(
             chunks=root_chunks,
@@ -88,3 +59,56 @@ def parse_project(path):
         project.ae_version = software_agent.text
 
         return project
+
+
+def get_expression_engine(root_chunks):
+    """
+    Get expression engine used in project
+    """
+    expression_engine_chunk = find_by_list_type(
+        chunks=root_chunks,
+        list_type="ExEn"
+    )
+    if expression_engine_chunk:
+        return str_contents(expression_engine_chunk)  # TODO check
+
+
+def get_bit_depth(root_chunks):
+    """
+    Get project depth in BPC (8, 16 or 32)
+    """
+    nhed_chunk = find_by_type(
+        chunks=root_chunks,
+        chunk_type="nhed"
+    )
+    return nhed_chunk.data.depth
+
+
+def get_framerate(root_chunks):
+    """
+    Get project framerate
+    """
+    nnhd_chunk = find_by_type(
+        chunks=root_chunks,
+        chunk_type="nnhd"
+    )
+    return nnhd_chunk.data.framerate
+
+
+def get_effect_names(root_chunks):
+    """
+    Get names of effects used in project
+    """
+    pefl_chunk = find_by_list_type(
+        chunks=root_chunks,
+        list_type="Pefl"
+    )
+    pefl_child_chunks = pefl_chunk.data.chunks
+    pjef_chunks = filter_by_type(
+        chunks=pefl_child_chunks,
+        chunk_type="pjef"
+    )
+    return [
+        str_contents(chunk)
+        for chunk in pjef_chunks
+    ]
