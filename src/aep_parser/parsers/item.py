@@ -99,6 +99,7 @@ def parse_folder(is_root, child_chunks, project, item_id, item_name, label_color
         folder_contents.append(child_item)
     
     item = Folder(
+        item_type="folder",
         item_id=item_id,
         name=item_name,
         label_color=label_color,
@@ -125,21 +126,23 @@ def parse_asset(child_chunks, project, item_id, item_name, label_color):
     opti_data = opti_chunk.data
 
     asset_type = opti_data.asset_type.strip("\x00")
+    # audio files have a framerate of 0
+    framerate = sspc_data.framerate or project.framerate
+    # audio files have a frames duration of 0
+    duration_frames = int(
+        sspc_data.duration_frames
+        or round(project.framerate * sspc_data.duration_sec)
+    )
     item = Asset(
+        item_type="asset",
         item_id=item_id,
         name=item_name,
         label_color=label_color,
         width=sspc_data.width,
         height=sspc_data.height,
-        framerate=(
-            sspc_data.framerate
-            or project.framerate
-        ),  # audio files have a framerate of 0
+        framerate=framerate,  
         duration_sec=sspc_data.duration_sec,
-        duration_frames=(
-            int(sspc_data.duration_frames)\
-            or int(round(project.framerate * sspc_data.duration_sec))
-        ),  # audio files have a frames duration of 0
+        duration_frames=duration_frames,
         asset_type=asset_type,
         start_frame=sspc_data.start_frame,
         end_frame=sspc_data.end_frame,
@@ -217,6 +220,7 @@ def parse_composition(child_chunks, item_id, item_name, label_color):
     )
 
     item = Composition(
+        item_type="composition",
         item_id=item_id,
         name=item_name,
         label_color=label_color,
