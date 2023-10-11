@@ -5,17 +5,17 @@ from __future__ import division
 import json
 import os
 
-from .kaitai.aep import Aep
-from .kaitai.utils import (
+from ..kaitai.aep import Aep
+from ..kaitai.utils import (
     find_by_list_type,
     find_by_type,
     filter_by_list_type,
     str_contents,
 )
-from .layer_parser import parse_layer
-from .models.items.composition import Composition
-from .models.items.folder import Folder
-from .models.items.asset import Asset
+from ..models.items.composition import Composition
+from ..models.items.folder import Folder
+from ..models.items.asset import Asset
+from .layer import parse_layer
 
 
 def parse_item(item_chunk, project):

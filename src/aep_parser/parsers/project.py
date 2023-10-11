@@ -3,16 +3,16 @@ from __future__ import unicode_literals
 
 import xml.etree.ElementTree as ET
 
-from .item_parser import parse_item
-from .kaitai.aep import Aep
-from .kaitai.utils import (
+from ..kaitai.aep import Aep
+from ..kaitai.utils import (
     find_by_list_type,
     find_by_type,
     filter_by_type,
     str_contents,
 )
-from .models.project import Project
-from .models.items.composition import Composition
+from ..models.project import Project
+from ..models.items.composition import Composition
+from .item import parse_item
 
 
 """

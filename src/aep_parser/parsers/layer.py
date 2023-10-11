@@ -2,13 +2,13 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 
-from .kaitai.utils import (
+from ..kaitai.utils import (
     find_by_type,
     find_by_list_type,
     str_contents,
 )
-from .models.layer import Layer
-from .property_parser import (
+from ..models.layer import Layer
+from .property import (
     parse_markers,
     parse_property_group,
     get_properties_by_match_name,

@@ -4,23 +4,23 @@ from __future__ import unicode_literals
 import io
 import collections
 
-from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
+from kaitaistruct import KaitaiStream, BytesIO
 
-from .cos.cos import CosParser
-from .kaitai.aep import Aep
-from .kaitai.utils import (
+from ..cos.cos import CosParser
+from ..kaitai.aep import Aep
+from ..kaitai.utils import (
     filter_by_list_type,
     filter_by_type,
     find_by_list_type,
     find_by_type,
     str_contents,
 )
-from .models.properties.effect import Effect
-from .models.properties.keyframe import Keyframe
-from .models.properties.marker import Marker
-from .models.properties.parameter import Parameter
-from .models.properties.property import Property
-from .models.properties.property_group import PropertyGroup
+from ..models.properties.effect import Effect
+from ..models.properties.keyframe import Keyframe
+from ..models.properties.marker import Marker
+from ..models.properties.parameter import Parameter
+from ..models.properties.property import Property
+from ..models.properties.property_group import PropertyGroup
 
 
 def parse_property_group(tdgp_chunk, group_match_name, time_scale):
