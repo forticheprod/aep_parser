@@ -23,8 +23,7 @@ class CompItem(AVItem):
             # shy_enabled,
             resolution_factor,
             time_scale,
-            *args,
-            **kwargs):
+            *args, **kwargs):
         super(CompItem, self).__init__(*args, **kwargs)
         self.bg_color = bg_color
         self.layers = layers

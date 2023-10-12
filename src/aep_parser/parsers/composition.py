@@ -35,7 +35,7 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_folder):
         layer.index = index
         layers.append(layer)
 
-    marker_property = get_marker_property(
+    marker_property = _get_marker_property(
         child_chunks=child_chunks,
         time_scale=time_scale,
     )
@@ -79,7 +79,7 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_folder):
     return item
 
 
-def get_marker_property(child_chunks, time_scale):
+def _get_marker_property(child_chunks, time_scale):
     markers_layer_chunk = find_by_list_type(
         chunks=child_chunks,
         list_type="SecL"

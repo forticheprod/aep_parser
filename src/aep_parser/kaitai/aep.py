@@ -10,11 +10,7 @@ if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 9):
 
 class Aep(KaitaiStruct):
 
-    class LayerFrameBlendMode(Enum):
-        frame_mix = 0
-        pixel_motion = 1
-
-    class PropertyType(Enum):
+    class PropertyControlType(Enum):
         layer = 0
         scalar = 2
         angle = 3
@@ -28,6 +24,15 @@ class Aep(KaitaiStruct):
         group = 13
         unknown = 15
         three_d = 18
+
+    class LayerFrameBlendMode(Enum):
+        frame_mix = 0
+        pixel_motion = 1
+
+    class PropertyType(Enum):
+        property = 0
+        indexed_group = 1
+        named_group = 2
 
     class Label(Enum):
         none = 0
@@ -77,20 +82,25 @@ class Aep(KaitaiStruct):
         ease = 2
         hold = 3
 
-    class KeyframeType(Enum):
+    class PropertyValueType(Enum):
         unknown = 0
-        lrdr = 1
-        litm = 2
-        gide = 3
-        color = 4
-        three_d_pos = 5
-        three_d = 6
-        two_d_pos = 7
-        two_d = 8
-        orientation = 9
-        no_value = 10
-        one_d = 11
-        marker = 12
+        no_value = 1
+        three_d_spatial = 2
+        three_d = 3
+        two_d_spatial = 4
+        two_d = 5
+        one_d = 6
+        color = 7
+        custom_value = 8
+        marker = 9
+        layer_index = 10
+        mask_index = 11
+        shape = 12
+        text_document = 13
+        lrdr = 14
+        litm = 15
+        gide = 16
+        orientation = 17
 
     class LayerSamplingMode(Enum):
         bilinear = 0
@@ -139,32 +149,32 @@ class Aep(KaitaiStruct):
             self.label = KaitaiStream.resolve_enum(Aep.Label, self._io.read_u1())
             self.attributes = self._io.read_bytes(1)
             _on = self.key_type
-            if _on == Aep.KeyframeType.lrdr:
+            if _on == Aep.PropertyValueType.marker:
                 self.kf_data = Aep.KfUnknownData(self._io, self, self._root)
-            elif _on == Aep.KeyframeType.one_d:
-                self.kf_data = Aep.KfMultiDimensional(1, self._io, self, self._root)
-            elif _on == Aep.KeyframeType.color:
-                self.kf_data = Aep.KfColor(self._io, self, self._root)
-            elif _on == Aep.KeyframeType.marker:
+            elif _on == Aep.PropertyValueType.unknown:
                 self.kf_data = Aep.KfUnknownData(self._io, self, self._root)
-            elif _on == Aep.KeyframeType.two_d:
-                self.kf_data = Aep.KfMultiDimensional(2, self._io, self, self._root)
-            elif _on == Aep.KeyframeType.gide:
-                self.kf_data = Aep.KfUnknownData(self._io, self, self._root)
-            elif _on == Aep.KeyframeType.three_d:
-                self.kf_data = Aep.KfMultiDimensional(3, self._io, self, self._root)
-            elif _on == Aep.KeyframeType.unknown:
-                self.kf_data = Aep.KfUnknownData(self._io, self, self._root)
-            elif _on == Aep.KeyframeType.no_value:
+            elif _on == Aep.PropertyValueType.no_value:
                 self.kf_data = Aep.KfNoValue(self._io, self, self._root)
-            elif _on == Aep.KeyframeType.two_d_pos:
-                self.kf_data = Aep.KfPosition(2, self._io, self, self._root)
-            elif _on == Aep.KeyframeType.litm:
+            elif _on == Aep.PropertyValueType.three_d:
+                self.kf_data = Aep.KfMultiDimensional(3, self._io, self, self._root)
+            elif _on == Aep.PropertyValueType.litm:
                 self.kf_data = Aep.KfUnknownData(self._io, self, self._root)
-            elif _on == Aep.KeyframeType.orientation:
-                self.kf_data = Aep.KfMultiDimensional(1, self._io, self, self._root)
-            elif _on == Aep.KeyframeType.three_d_pos:
+            elif _on == Aep.PropertyValueType.three_d_spatial:
                 self.kf_data = Aep.KfPosition(3, self._io, self, self._root)
+            elif _on == Aep.PropertyValueType.orientation:
+                self.kf_data = Aep.KfMultiDimensional(1, self._io, self, self._root)
+            elif _on == Aep.PropertyValueType.two_d_spatial:
+                self.kf_data = Aep.KfPosition(2, self._io, self, self._root)
+            elif _on == Aep.PropertyValueType.lrdr:
+                self.kf_data = Aep.KfUnknownData(self._io, self, self._root)
+            elif _on == Aep.PropertyValueType.one_d:
+                self.kf_data = Aep.KfMultiDimensional(1, self._io, self, self._root)
+            elif _on == Aep.PropertyValueType.gide:
+                self.kf_data = Aep.KfUnknownData(self._io, self, self._root)
+            elif _on == Aep.PropertyValueType.two_d:
+                self.kf_data = Aep.KfMultiDimensional(2, self._io, self, self._root)
+            elif _on == Aep.PropertyValueType.color:
+                self.kf_data = Aep.KfColor(self._io, self, self._root)
 
         @property
         def continuous_bezier(self):
@@ -342,7 +352,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_keyframes_type'):
                 return self._m_keyframes_type
 
-            self._m_keyframes_type = (Aep.KeyframeType.lrdr if  ((self.keyframes_type_raw == 1) and (self.len_keyframe == 2246))  else (Aep.KeyframeType.litm if  ((self.keyframes_type_raw == 1) and (self.len_keyframe == 128))  else (Aep.KeyframeType.gide if  ((self.keyframes_type_raw == 2) and (self.len_keyframe == 1))  else (Aep.KeyframeType.color if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 152))  else (Aep.KeyframeType.three_d if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 128))  else (Aep.KeyframeType.two_d_pos if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 104))  else (Aep.KeyframeType.two_d if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 88))  else (Aep.KeyframeType.orientation if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 80))  else (Aep.KeyframeType.no_value if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 64))  else (Aep.KeyframeType.one_d if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 48))  else (Aep.KeyframeType.marker if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 16))  else Aep.KeyframeType.unknown)))))))))))
+            self._m_keyframes_type = (Aep.PropertyValueType.lrdr if  ((self.keyframes_type_raw == 1) and (self.len_keyframe == 2246))  else (Aep.PropertyValueType.litm if  ((self.keyframes_type_raw == 1) and (self.len_keyframe == 128))  else (Aep.PropertyValueType.gide if  ((self.keyframes_type_raw == 2) and (self.len_keyframe == 1))  else (Aep.PropertyValueType.color if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 152))  else (Aep.PropertyValueType.three_d if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 128))  else (Aep.PropertyValueType.two_d_spatial if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 104))  else (Aep.PropertyValueType.two_d if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 88))  else (Aep.PropertyValueType.orientation if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 80))  else (Aep.PropertyValueType.no_value if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 64))  else (Aep.PropertyValueType.one_d if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 48))  else (Aep.PropertyValueType.marker if  ((self.keyframes_type_raw == 4) and (self.len_keyframe == 16))  else Aep.PropertyValueType.unknown)))))))))))
             return getattr(self, '_m_keyframes_type', None)
 
 
@@ -539,7 +549,7 @@ class Aep(KaitaiStruct):
             self._unnamed11 = self._io.read_f8be()
             self._unnamed12 = self._io.read_f8be()
             self._unnamed13 = self._io.read_f8be()
-            self.property_type = self._io.read_bytes(4)
+            self.property_control_type = self._io.read_bytes(4)
             self._unnamed15 = self._io.read_bytes(1)
             self._unnamed16 = self._io.read_bytes(7)
             self.animated = self._io.read_u1()
@@ -558,7 +568,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_integer'):
                 return self._m_integer
 
-            self._m_integer = (KaitaiStream.byte_array_index(self.property_type, 3) & (1 << 2)) != 0
+            self._m_integer = (KaitaiStream.byte_array_index(self.property_control_type, 3) & (1 << 2)) != 0
             return getattr(self, '_m_integer', None)
 
         @property
@@ -574,7 +584,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_vector'):
                 return self._m_vector
 
-            self._m_vector = (KaitaiStream.byte_array_index(self.property_type, 3) & (1 << 3)) != 0
+            self._m_vector = (KaitaiStream.byte_array_index(self.property_control_type, 3) & (1 << 3)) != 0
             return getattr(self, '_m_vector', None)
 
         @property
@@ -590,7 +600,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_no_value'):
                 return self._m_no_value
 
-            self._m_no_value = (KaitaiStream.byte_array_index(self.property_type, 1) & 1) != 0
+            self._m_no_value = (KaitaiStream.byte_array_index(self.property_control_type, 1) & 1) != 0
             return getattr(self, '_m_no_value', None)
 
         @property
@@ -598,7 +608,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_color'):
                 return self._m_color
 
-            self._m_color = (KaitaiStream.byte_array_index(self.property_type, 3) & 1) != 0
+            self._m_color = (KaitaiStream.byte_array_index(self.property_control_type, 3) & 1) != 0
             return getattr(self, '_m_color', None)
 
 
@@ -787,12 +797,12 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_navigation', None)
 
         @property
-        def protected(self):
-            if hasattr(self, '_m_protected'):
-                return self._m_protected
+        def protected_region(self):
+            if hasattr(self, '_m_protected_region'):
+                return self._m_protected_region
 
-            self._m_protected = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 1)) != 0
-            return getattr(self, '_m_protected', None)
+            self._m_protected_region = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 1)) != 0
+            return getattr(self, '_m_protected_region', None)
 
         @property
         def unknown(self):
@@ -1016,81 +1026,81 @@ class Aep(KaitaiStruct):
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(15)
-            self.property_type = KaitaiStream.resolve_enum(Aep.PropertyType, self._io.read_u1())
+            self.property_control_type = KaitaiStream.resolve_enum(Aep.PropertyControlType, self._io.read_u1())
             self.name = (self._io.read_bytes(32)).decode(u"cp1250")
             self._unnamed3 = self._io.read_bytes(8)
-            if self.property_type == Aep.PropertyType.color:
+            if self.property_control_type == Aep.PropertyControlType.color:
                 self.last_color = []
                 for i in range(4):
                     self.last_color.append(self._io.read_u1())
 
 
-            if self.property_type == Aep.PropertyType.color:
+            if self.property_control_type == Aep.PropertyControlType.color:
                 self.default_color = []
                 for i in range(4):
                     self.default_color.append(self._io.read_u1())
 
 
-            if  ((self.property_type == Aep.PropertyType.scalar) or (self.property_type == Aep.PropertyType.angle) or (self.property_type == Aep.PropertyType.boolean) or (self.property_type == Aep.PropertyType.enum) or (self.property_type == Aep.PropertyType.slider)) :
-                _on = self.property_type
-                if _on == Aep.PropertyType.slider:
-                    self.last_value = self._io.read_f8be()
-                elif _on == Aep.PropertyType.angle:
-                    self.last_value = self._io.read_s4be()
-                elif _on == Aep.PropertyType.scalar:
-                    self.last_value = self._io.read_s4be()
-                elif _on == Aep.PropertyType.enum:
+            if  ((self.property_control_type == Aep.PropertyControlType.scalar) or (self.property_control_type == Aep.PropertyControlType.angle) or (self.property_control_type == Aep.PropertyControlType.boolean) or (self.property_control_type == Aep.PropertyControlType.enum) or (self.property_control_type == Aep.PropertyControlType.slider)) :
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.boolean:
                     self.last_value = self._io.read_u4be()
-                elif _on == Aep.PropertyType.boolean:
+                elif _on == Aep.PropertyControlType.angle:
+                    self.last_value = self._io.read_s4be()
+                elif _on == Aep.PropertyControlType.scalar:
+                    self.last_value = self._io.read_s4be()
+                elif _on == Aep.PropertyControlType.slider:
+                    self.last_value = self._io.read_f8be()
+                elif _on == Aep.PropertyControlType.enum:
                     self.last_value = self._io.read_u4be()
 
-            if  ((self.property_type == Aep.PropertyType.two_d) or (self.property_type == Aep.PropertyType.three_d)) :
-                _on = self.property_type
-                if _on == Aep.PropertyType.two_d:
+            if  ((self.property_control_type == Aep.PropertyControlType.two_d) or (self.property_control_type == Aep.PropertyControlType.three_d)) :
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.two_d:
                     self.last_value_x_raw = self._io.read_s4be()
-                elif _on == Aep.PropertyType.three_d:
+                elif _on == Aep.PropertyControlType.three_d:
                     self.last_value_x_raw = self._io.read_f8be()
 
-            if  ((self.property_type == Aep.PropertyType.two_d) or (self.property_type == Aep.PropertyType.three_d)) :
-                _on = self.property_type
-                if _on == Aep.PropertyType.two_d:
+            if  ((self.property_control_type == Aep.PropertyControlType.two_d) or (self.property_control_type == Aep.PropertyControlType.three_d)) :
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.two_d:
                     self.last_value_y_raw = self._io.read_s4be()
-                elif _on == Aep.PropertyType.three_d:
+                elif _on == Aep.PropertyControlType.three_d:
                     self.last_value_y_raw = self._io.read_f8be()
 
-            if self.property_type == Aep.PropertyType.three_d:
+            if self.property_control_type == Aep.PropertyControlType.three_d:
                 self.last_value_z_raw = self._io.read_f8be()
 
-            if self.property_type == Aep.PropertyType.enum:
+            if self.property_control_type == Aep.PropertyControlType.enum:
                 self.nb_options = self._io.read_s4be()
 
-            if  ((self.property_type == Aep.PropertyType.boolean) or (self.property_type == Aep.PropertyType.enum)) :
-                _on = self.property_type
-                if _on == Aep.PropertyType.boolean:
+            if  ((self.property_control_type == Aep.PropertyControlType.boolean) or (self.property_control_type == Aep.PropertyControlType.enum)) :
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.boolean:
                     self.default = self._io.read_u1()
-                elif _on == Aep.PropertyType.enum:
+                elif _on == Aep.PropertyControlType.enum:
                     self.default = self._io.read_s4be()
 
-            if  ((self.property_type == Aep.PropertyType.scalar) or (self.property_type == Aep.PropertyType.color) or (self.property_type == Aep.PropertyType.slider)) :
-                self._unnamed12 = self._io.read_bytes((72 if self.property_type == Aep.PropertyType.scalar else (64 if self.property_type == Aep.PropertyType.color else 52)))
+            if  ((self.property_control_type == Aep.PropertyControlType.scalar) or (self.property_control_type == Aep.PropertyControlType.color) or (self.property_control_type == Aep.PropertyControlType.slider)) :
+                self._unnamed12 = self._io.read_bytes((72 if self.property_control_type == Aep.PropertyControlType.scalar else (64 if self.property_control_type == Aep.PropertyControlType.color else 52)))
 
-            if self.property_type == Aep.PropertyType.scalar:
+            if self.property_control_type == Aep.PropertyControlType.scalar:
                 self.min_value = self._io.read_s2be()
 
-            if self.property_type == Aep.PropertyType.scalar:
+            if self.property_control_type == Aep.PropertyControlType.scalar:
                 self._unnamed14 = self._io.read_bytes(2)
 
-            if self.property_type == Aep.PropertyType.color:
+            if self.property_control_type == Aep.PropertyControlType.color:
                 self.max_color = []
                 for i in range(4):
                     self.max_color.append(self._io.read_u1())
 
 
-            if  ((self.property_type == Aep.PropertyType.scalar) or (self.property_type == Aep.PropertyType.slider)) :
-                _on = self.property_type
-                if _on == Aep.PropertyType.scalar:
+            if  ((self.property_control_type == Aep.PropertyControlType.scalar) or (self.property_control_type == Aep.PropertyControlType.slider)) :
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.scalar:
                     self.max_value = self._io.read_s2be()
-                elif _on == Aep.PropertyType.slider:
+                elif _on == Aep.PropertyControlType.slider:
                     self.max_value = self._io.read_f4be()
 
 
@@ -1099,8 +1109,8 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_last_value_x'):
                 return self._m_last_value_x
 
-            if  ((self.property_type == Aep.PropertyType.two_d) or (self.property_type == Aep.PropertyType.three_d)) :
-                self._m_last_value_x = (self.last_value_x_raw * (1 // 128 if self.property_type == Aep.PropertyType.two_d else 512))
+            if  ((self.property_control_type == Aep.PropertyControlType.two_d) or (self.property_control_type == Aep.PropertyControlType.three_d)) :
+                self._m_last_value_x = (self.last_value_x_raw * (1 // 128 if self.property_control_type == Aep.PropertyControlType.two_d else 512))
 
             return getattr(self, '_m_last_value_x', None)
 
@@ -1109,8 +1119,8 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_last_value_y'):
                 return self._m_last_value_y
 
-            if  ((self.property_type == Aep.PropertyType.two_d) or (self.property_type == Aep.PropertyType.three_d)) :
-                self._m_last_value_y = (self.last_value_y_raw * (1 // 128 if self.property_type == Aep.PropertyType.two_d else 512))
+            if  ((self.property_control_type == Aep.PropertyControlType.two_d) or (self.property_control_type == Aep.PropertyControlType.three_d)) :
+                self._m_last_value_y = (self.last_value_y_raw * (1 // 128 if self.property_control_type == Aep.PropertyControlType.two_d else 512))
 
             return getattr(self, '_m_last_value_y', None)
 
@@ -1119,7 +1129,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_last_value_z'):
                 return self._m_last_value_z
 
-            if self.property_type == Aep.PropertyType.three_d:
+            if self.property_control_type == Aep.PropertyControlType.three_d:
                 self._m_last_value_z = (self.last_value_z_raw * 512)
 
             return getattr(self, '_m_last_value_z', None)

@@ -26,7 +26,7 @@ def parse_item(item_chunk, project, parent_folder):
         item_type = Aep.ItemType.folder
         label = Aep.Label(0)
     else:
-        item_name = get_name(child_chunks)
+        item_name = _get_name(child_chunks)
 
         idta_chunk = find_by_type(
             chunks=child_chunks,
@@ -107,7 +107,7 @@ def parse_folder(is_root, child_chunks, project, item_id, item_name, label, pare
     return item
 
 
-def get_name(child_chunks):
+def _get_name(child_chunks):
     name_chunk = find_by_type(
         chunks=child_chunks,
         chunk_type="Utf8"

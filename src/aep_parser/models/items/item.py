@@ -15,7 +15,7 @@ else:
 class Item(ABC):
     def __init__(self, item_id, label, name, type_name, parent_folder):
         """
-        Generalized object storing information about folders, compositions, or footages
+        Generalized object storing information about folders, compositions, or footages.
         """
         # TODO Comment
         self.item_id = item_id
@@ -26,6 +26,7 @@ class Item(ABC):
 
     def __repr__(self):
         attrs = copy.deepcopy(self.__dict__)
+        # Collapse parent_folder to avoid infinite recursion
         if self.parent_folder is None:
             parent_folder = "<project>"
         else:
@@ -34,8 +35,3 @@ class Item(ABC):
             )
         attrs["parent_folder"] = parent_folder
         return str(attrs)
-
-    # @abc.abstractmethod
-    # @property
-    # def name(self):
-    #     pass

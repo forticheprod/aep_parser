@@ -57,7 +57,7 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_folder):
         )
     else:
         asset_type = "file"
-        main_source = parse_file_source(pin_child_chunks)
+        main_source = _parse_file_source(pin_child_chunks)
         file = main_source.file
 
         if not item_name:
@@ -88,8 +88,8 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_folder):
     return item
 
 
-def parse_file_source(pin_child_chunks):
-    file_source_data = get_file_source_data(pin_child_chunks)
+def _parse_file_source(pin_child_chunks):
+    file_source_data = _get_file_source_data(pin_child_chunks)
 
     ascendcount_base = file_source_data["ascendcount_base"]
     ascendcount_target = file_source_data["ascendcount_target"]
@@ -110,7 +110,7 @@ def parse_file_source(pin_child_chunks):
     return file_source
 
 
-def get_file_source_data(pin_child_chunks):
+def _get_file_source_data(pin_child_chunks):
     als2_chunk = find_by_list_type(
         chunks=pin_child_chunks,
         list_type="Als2"

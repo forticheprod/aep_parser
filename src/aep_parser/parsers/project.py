@@ -21,8 +21,15 @@ from .item import parse_item
 SOFTWARE_AGENT_XPATH = ".//{*}softwareAgent"
 
 
-def parse_project(path):
-    with Aep.from_file(path) as aep:
+def parse_project(aep_file_path):
+    """
+    Parse an After Effects project file
+    Args:
+        aep_file_path (str): path to the project file
+    Returns:
+        Project: parsed project
+    """
+    with Aep.from_file(aep_file_path) as aep:
         root_chunks = aep.data.chunks
 
         root_folder_chunk = find_by_list_type(
@@ -31,10 +38,10 @@ def parse_project(path):
         )
         
         project = Project(
-            bits_per_channel=get_bit_depth(root_chunks),
-            effect_names=get_effect_names(root_chunks),
-            expression_engine=get_expression_engine(root_chunks),
-            frame_rate=get_frame_rate(root_chunks),
+            bits_per_channel=_get_bit_depth(root_chunks),
+            effect_names=_get_effect_names(root_chunks),
+            expression_engine=_get_expression_engine(root_chunks),
+            frame_rate=_get_frame_rate(root_chunks),
             items=[],
         )
         project.xmp_packet = ET.fromstring(aep.xmp_packet)
@@ -47,16 +54,21 @@ def parse_project(path):
         for item in project.items:
             if isinstance(item, CompItem):
                 for layer in item.layers:
+                    layer_source_item = project.item_by_id(layer.source_id)
                     if not layer.name:
-                        layer_source_item = project.item_by_id(layer.source_id)
                         layer.name = layer_source_item.name
+                    layer_source_item.used_in.append(item)
 
         return project
 
 
-def get_expression_engine(root_chunks):
+def _get_expression_engine(root_chunks):
     """
     Get expression engine used in project
+    Args:
+        root_chunks (Aep.Chunk): list of root chunks of the project
+    Returns:
+        str: expression engine used in the project
     """
     expression_engine_chunk = find_by_list_type(
         chunks=root_chunks,
@@ -66,9 +78,13 @@ def get_expression_engine(root_chunks):
         return str_contents(expression_engine_chunk)  # TODO check
 
 
-def get_bit_depth(root_chunks):
+def _get_bit_depth(root_chunks):
     """
     Get project depth in BPC (8, 16 or 32)
+    Args:
+        root_chunks (Aep.Chunk): list of root chunks of the project
+    Returns:
+        int: depth in BPC
     """
     nhed_chunk = find_by_type(
         chunks=root_chunks,
@@ -77,9 +93,13 @@ def get_bit_depth(root_chunks):
     return nhed_chunk.data.bits_per_channel
 
 
-def get_frame_rate(root_chunks):
+def _get_frame_rate(root_chunks):
     """
     Get project frame_rate
+    Args:
+        root_chunks (Aep.Chunk): list of root chunks of the project
+    Returns:
+        float: frame rate of the project
     """
     nnhd_chunk = find_by_type(
         chunks=root_chunks,
@@ -88,9 +108,13 @@ def get_frame_rate(root_chunks):
     return nnhd_chunk.data.frame_rate
 
 
-def get_effect_names(root_chunks):
+def _get_effect_names(root_chunks):
     """
-    Get names of effects used in project
+    Get names of effects used in project.
+    Args:
+        root_chunks (Aep.Chunk): list of root chunks of the project
+    Returns:
+        list[str]: list of effect names used in the project.
     """
     pefl_chunk = find_by_list_type(
         chunks=root_chunks,

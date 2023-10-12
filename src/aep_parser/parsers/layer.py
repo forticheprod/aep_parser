@@ -13,7 +13,7 @@ from ..models.layer import Layer
 from .property import (
     parse_markers,
     parse_property_group,
-    get_properties_by_match_name,
+    get_chunks_by_match_name,
 )
 
 
@@ -70,7 +70,7 @@ def parse_layer(layer_chunk, time_scale):
         chunks=child_chunks,
         list_type="tdgp"
     )
-    tdgp_map = get_properties_by_match_name(root_tdgp_chunk)
+    tdgp_map = get_chunks_by_match_name(root_tdgp_chunk)
 
     # Parse transform stack
     transform_tdgp = tdgp_map.get("ADBE Transform Group", [])
@@ -79,6 +79,7 @@ def parse_layer(layer_chunk, time_scale):
             tdgp_chunk=transform_tdgp[0],
             group_match_name="ADBE Transform Group",
             time_scale=time_scale,
+            parent_property=layer,
         )
         layer.transform = transform_prop.properties
 
@@ -89,6 +90,7 @@ def parse_layer(layer_chunk, time_scale):
             tdgp_chunk=effects_tdgp[0],
             group_match_name="ADBE Effect Parade",
             time_scale=time_scale,
+            parent_property=layer,
         )
         layer.effects = effects_prop.properties
 
@@ -99,6 +101,7 @@ def parse_layer(layer_chunk, time_scale):
             tdgp_chunk=text_tdgp[0],
             group_match_name="ADBE Text Properties",
             time_scale=time_scale,
+            parent_property=layer,
         )
         layer.text = text_prop
 
@@ -109,6 +112,7 @@ def parse_layer(layer_chunk, time_scale):
             mrst_chunk=markers_mrst[0],
             group_match_name="ADBE Marker",
             time_scale=time_scale,
+            parent_property=layer,
         )
         layer.marker_property = marker_property
 

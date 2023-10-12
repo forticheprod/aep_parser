@@ -201,7 +201,7 @@ types:
     params:
       - id: key_type
         type: u1
-        enum: keyframe_type
+        enum: property_value_type
     seq:
       - id: time_raw
         type: u4
@@ -218,19 +218,19 @@ types:
         type:
           switch-on: key_type
           cases:
-            'keyframe_type::unknown': kf_unknown_data
-            'keyframe_type::lrdr': kf_unknown_data
-            'keyframe_type::litm': kf_unknown_data
-            'keyframe_type::gide': kf_unknown_data
-            'keyframe_type::color': kf_color
-            'keyframe_type::three_d_pos': kf_position(3)
-            'keyframe_type::three_d': kf_multi_dimensional(3)
-            'keyframe_type::two_d_pos': kf_position(2)
-            'keyframe_type::two_d': kf_multi_dimensional(2)
-            'keyframe_type::orientation': kf_multi_dimensional(1)
-            'keyframe_type::no_value': kf_no_value
-            'keyframe_type::one_d': kf_multi_dimensional(1)
-            'keyframe_type::marker': kf_unknown_data
+            'property_value_type::unknown': kf_unknown_data
+            'property_value_type::lrdr': kf_unknown_data
+            'property_value_type::litm': kf_unknown_data
+            'property_value_type::gide': kf_unknown_data
+            'property_value_type::color': kf_color
+            'property_value_type::three_d_spatial': kf_position(3)
+            'property_value_type::three_d': kf_multi_dimensional(3)
+            'property_value_type::two_d_spatial': kf_position(2)
+            'property_value_type::two_d': kf_multi_dimensional(2)
+            'property_value_type::orientation': kf_multi_dimensional(1)
+            'property_value_type::no_value': kf_no_value
+            'property_value_type::one_d': kf_multi_dimensional(1)
+            'property_value_type::marker': kf_unknown_data
     instances:
       continuous_bezier:
         value: '(attributes[0] & (1 << 3)) != 0'
@@ -426,18 +426,18 @@ types:
     instances:
       keyframes_type:
         value: >-
-          keyframes_type_raw == 1 and len_keyframe == 2246 ? keyframe_type::lrdr :
-          keyframes_type_raw == 1 and len_keyframe == 128 ? keyframe_type::litm :
-          keyframes_type_raw == 2 and len_keyframe == 1 ? keyframe_type::gide :
-          keyframes_type_raw == 4 and len_keyframe == 152 ? keyframe_type::color :
-          keyframes_type_raw == 4 and len_keyframe == 128 ? keyframe_type::three_d :
-          keyframes_type_raw == 4 and len_keyframe == 104 ? keyframe_type::two_d_pos :
-          keyframes_type_raw == 4 and len_keyframe == 88 ? keyframe_type::two_d :
-          keyframes_type_raw == 4 and len_keyframe == 80 ? keyframe_type::orientation :
-          keyframes_type_raw == 4 and len_keyframe == 64 ? keyframe_type::no_value :
-          keyframes_type_raw == 4 and len_keyframe == 48 ? keyframe_type::one_d :
-          keyframes_type_raw == 4 and len_keyframe == 16 ? keyframe_type::marker :
-          keyframe_type::unknown
+          keyframes_type_raw == 1 and len_keyframe == 2246 ? property_value_type::lrdr :
+          keyframes_type_raw == 1 and len_keyframe == 128 ? property_value_type::litm :
+          keyframes_type_raw == 2 and len_keyframe == 1 ? property_value_type::gide :
+          keyframes_type_raw == 4 and len_keyframe == 152 ? property_value_type::color :
+          keyframes_type_raw == 4 and len_keyframe == 128 ? property_value_type::three_d :
+          keyframes_type_raw == 4 and len_keyframe == 104 ? property_value_type::two_d_spatial :
+          keyframes_type_raw == 4 and len_keyframe == 88 ? property_value_type::two_d :
+          keyframes_type_raw == 4 and len_keyframe == 80 ? property_value_type::orientation :
+          keyframes_type_raw == 4 and len_keyframe == 64 ? property_value_type::no_value :
+          keyframes_type_raw == 4 and len_keyframe == 48 ? property_value_type::one_d :
+          keyframes_type_raw == 4 and len_keyframe == 16 ? property_value_type::marker :
+          property_value_type::unknown
   list_body:
     seq:
       - id: list_type
@@ -472,7 +472,7 @@ types:
     instances:
       navigation:
         value: '(attributes[0] & 1) != 0'
-      protected:
+      protected_region:
         value: '(attributes[0] & (1 << 1)) != 0'
       unknown:
         value: '(attributes[0] & (1 << 2)) != 0'
@@ -526,9 +526,9 @@ types:
   pard_body:
     seq:
       - size: 15 # 1-15
-      - id: property_type
+      - id: property_control_type
         type: u1 # 16
-        enum: property_type
+        enum: property_control_type
       - id: name
         size: 32 # 17-48
         type: str
@@ -538,98 +538,98 @@ types:
         type: u1 #
         repeat: expr
         repeat-expr: 4
-        if: property_type == property_type::color
+        if: property_control_type == property_control_type::color
       - id: default_color
         type: u1 #
         repeat: expr
         repeat-expr: 4
-        if: property_type == property_type::color
+        if: property_control_type == property_control_type::color
       - id: last_value
         type: 
-          switch-on: property_type
+          switch-on: property_control_type
           cases:
-            'property_type::scalar': s4
-            'property_type::angle': s4
-            'property_type::boolean': u4
-            'property_type::enum': u4
-            'property_type::slider': f8
+            'property_control_type::scalar': s4
+            'property_control_type::angle': s4
+            'property_control_type::boolean': u4
+            'property_control_type::enum': u4
+            'property_control_type::slider': f8
         if: >-
-          property_type == property_type::scalar
-          or property_type == property_type::angle
-          or property_type == property_type::boolean
-          or property_type == property_type::enum
-          or property_type == property_type::slider
+          property_control_type == property_control_type::scalar
+          or property_control_type == property_control_type::angle
+          or property_control_type == property_control_type::boolean
+          or property_control_type == property_control_type::enum
+          or property_control_type == property_control_type::slider
       - id: last_value_x_raw
         type: 
-          switch-on: property_type
+          switch-on: property_control_type
           cases:
-            'property_type::two_d': s4
-            'property_type::three_d': f8
+            'property_control_type::two_d': s4
+            'property_control_type::three_d': f8
         if: >-
-          property_type == property_type::two_d
-          or property_type == property_type::three_d
+          property_control_type == property_control_type::two_d
+          or property_control_type == property_control_type::three_d
       - id: last_value_y_raw
         type: 
-          switch-on: property_type
+          switch-on: property_control_type
           cases:
-            'property_type::two_d': s4
-            'property_type::three_d': f8
+            'property_control_type::two_d': s4
+            'property_control_type::three_d': f8
         if: >-
-          property_type == property_type::two_d
-          or property_type == property_type::three_d
+          property_control_type == property_control_type::two_d
+          or property_control_type == property_control_type::three_d
       - id: last_value_z_raw
         type: f8
-        if: property_type == property_type::three_d
+        if: property_control_type == property_control_type::three_d
       - id: nb_options
         type: s4
-        if: property_type == property_type::enum
+        if: property_control_type == property_control_type::enum
       - id: default
         type: 
-          switch-on: property_type
+          switch-on: property_control_type
           cases:
-            'property_type::boolean': u1
-            'property_type::enum': s4
+            'property_control_type::boolean': u1
+            'property_control_type::enum': s4
         if: >-
-          property_type == property_type::boolean
-          or property_type == property_type::enum
-      - size: '(property_type == property_type::scalar ? 72 : property_type == property_type::color ? 64 : 52)'
+          property_control_type == property_control_type::boolean
+          or property_control_type == property_control_type::enum
+      - size: '(property_control_type == property_control_type::scalar ? 72 : property_control_type == property_control_type::color ? 64 : 52)'
         if: >-
-          property_type == property_type::scalar
-          or property_type == property_type::color
-          or property_type == property_type::slider
+          property_control_type == property_control_type::scalar
+          or property_control_type == property_control_type::color
+          or property_control_type == property_control_type::slider
       - id: min_value
         type: s2
-        if: property_type == property_type::scalar
+        if: property_control_type == property_control_type::scalar
       - size: 2
-        if: property_type == property_type::scalar
+        if: property_control_type == property_control_type::scalar
       - id: max_color
         type: u1 # 53-55
         repeat: expr
         repeat-expr: 4
-        if: property_type == property_type::color
+        if: property_control_type == property_control_type::color
       - id: max_value
         type:
-          switch-on: property_type
+          switch-on: property_control_type
           cases:
-            'property_type::scalar': s2
-            'property_type::slider': f4
+            'property_control_type::scalar': s2
+            'property_control_type::slider': f4
         if: >-
-          property_type == property_type::scalar
-          or property_type == property_type::slider
+          property_control_type == property_control_type::scalar
+          or property_control_type == property_control_type::slider
     instances:
       last_value_x:
-        value: 'last_value_x_raw * (property_type == property_type::two_d ? 1/128 : 512)'
+        value: 'last_value_x_raw * (property_control_type == property_control_type::two_d ? 1/128 : 512)'
         if: >-
-          property_type == property_type::two_d
-          or property_type == property_type::three_d
+          property_control_type == property_control_type::two_d
+          or property_control_type == property_control_type::three_d
       last_value_y:
-        value: 'last_value_y_raw * (property_type == property_type::two_d ? 1/128 : 512)'
+        value: 'last_value_y_raw * (property_control_type == property_control_type::two_d ? 1/128 : 512)'
         if: >-
-          property_type == property_type::two_d
-          or property_type == property_type::three_d
+          property_control_type == property_control_type::two_d
+          or property_control_type == property_control_type::three_d
       last_value_z:
         value: 'last_value_z_raw * 512'
-        if: property_type == property_type::three_d
+        if: property_control_type == property_control_type::three_d
   sspc_body:
     seq:
       - size: 32 # 1-32
@@ -686,7 +686,7 @@ types:
         doc: Always 1.0?
       - type: f8
         doc: Always 1.0?
-      - id: property_type
+      - id: property_control_type
         size: 4
       - size: 1
         doc: Seems correlated with the previous byte, 04 for enum properties
@@ -718,13 +718,13 @@ types:
       position:
         value: '(attributes[1] & (1 << 3)) != 0'
       no_value:
-        value: '(property_type[1] & 1) != 0'
+        value: '(property_control_type[1] & 1) != 0'
       color:
-        value: '(property_type[3] & 1) != 0'
+        value: '(property_control_type[3] & 1) != 0'
       integer:
-        value: '(property_type[3] & (1 << 2)) != 0'
+        value: '(property_control_type[3] & (1 << 2)) != 0'
       vector:
-        value: '(property_type[3] & (1 << 3)) != 0'
+        value: '(property_control_type[3] & (1 << 3)) != 0'
   tdsb_body:
     seq:
       - id: flags
@@ -786,7 +786,21 @@ enums:
     14: cyan
     15: sandstone
     16: dark_green
-  property_type:
+  layer_quality:
+    0: wireframe
+    1: draft
+    2: best
+  layer_frame_blend_mode:
+    0: frame_mix
+    1: pixel_motion
+  layer_sampling_mode:
+    0: bilinear
+    1: bicubic
+  ease_mode:
+    1: linear
+    2: ease
+    3: hold
+  property_control_type:
     0: layer
     # 1: integer ?
     2: scalar
@@ -803,34 +817,29 @@ enums:
     # 14: ??
     15: unknown
     18: three_d
-  layer_quality:
-    0: wireframe
-    1: draft
-    2: best
-  layer_frame_blend_mode:
-    0: frame_mix
-    1: pixel_motion
-  layer_sampling_mode:
-    0: bilinear
-    1: bicubic
-  ease_mode:
-    1: linear
-    2: ease
-    3: hold
-  keyframe_type:
+  property_value_type:
     0: unknown
-    1: lrdr
-    2: litm
-    3: gide
-    4: color
-    5: three_d_pos
-    6: three_d
-    7: two_d_pos
-    8: two_d
-    9: orientation
-    10: no_value
-    11: one_d
-    12: marker
+    1: no_value
+    2: three_d_spatial
+    3: three_d
+    4: two_d_spatial
+    5: two_d
+    6: one_d
+    7: color
+    8: custom_value
+    9: marker
+    10: layer_index
+    11: mask_index
+    12: shape
+    13: text_document
+    14: lrdr
+    15: litm
+    16: gide
+    17: orientation
+  property_type:
+    0: property
+    1: indexed_group
+    2: named_group
   # ae_version:
   #   0x5c06073806b4: 15.0
   #   0x5d040b0006eb: 16.0
