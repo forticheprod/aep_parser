@@ -3,6 +3,7 @@ from __future__ import (
     unicode_literals,
     division
 )
+from builtins import str
 
 
 def _find_chunk(chunks, func):

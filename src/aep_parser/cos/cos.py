@@ -1,3 +1,4 @@
+# coding: utf-8
 from __future__ import (
     absolute_import,
     unicode_literals,
@@ -5,7 +6,6 @@ from __future__ import (
 )
 import io
 import enum
-import dataclasses
 
 """
 https://gitlab.com/mattbas/python-lottie/-/blob/master/lib/lottie/parsers/aep/cos.py
@@ -14,38 +14,42 @@ https://lottiefiles.github.io/lottie-docs/aep/#list-btdk
 
 class TokenType(enum.Enum):
     # /foo
-    Identifier = enum.auto()
+    Identifier = 1
     # 123
-    Number = enum.auto()
+    Number = 2
     # (foo)
-    String = enum.auto()
+    String = 3
     # <f000>
-    HexString = enum.auto()
+    HexString = 4
     # true
-    Boolean = enum.auto()
+    Boolean = 5
     # <<
-    ObjectStart = enum.auto()
+    ObjectStart = 6
     # >>
-    ObjectEnd = enum.auto()
+    ObjectEnd = 7
     # [
-    ArrayStart = enum.auto()
+    ArrayStart = 8
     # ]
-    ArrayEnd = enum.auto()
+    ArrayEnd = 9
     # null
-    Null = enum.auto()
+    Null = 10
     # end of file
-    Eof = enum.auto()
+    Eof = 11
     # obj
-    IndirectObjectStart = enum.auto()
+    IndirectObjectStart = 12
     # endobj
-    IndirectObjectEnd = enum.auto()
+    IndirectObjectEnd = 13
     # R
-    IndirectReference = enum.auto()
+    IndirectReference = 14
     # stream...endstream
-    Stream = enum.auto()
+    Stream = 15
 
 
 class Token:
+    __slots__ = (
+        "type",
+        "value"
+    )
     def __init__(self, type, value=None):
         self.type = type
         self.value = value
@@ -57,26 +61,44 @@ class Token:
         return "<Token %s>" % self
 
 
-@dataclasses.dataclass
-class IndirectObject:
-    object_number: int
-    generation_number: int
-    data: dict
+class IndirectObject(object):
+    __slots__ = (
+        "object_number",
+        "generation_number",
+        "data"
+    )
+    def __init__(self, object_number, generation_number, data):
+        self.object_number = object_number
+        self.generation_number = generation_number
+        self.data = data
 
 
-@dataclasses.dataclass
-class IndirectReference:
-    object_number: int
-    generation_number: int
+class IndirectReference(object):
+    __slots__ = (
+        "object_number",
+        "generation_number"
+    )
+    def __init__(self, object_number, generation_number):
+        self.object_number = object_number
+        self.generation_number = generation_number
 
 
-@dataclasses.dataclass
-class Stream:
-    dictionary: dict
-    data: bytes
+class Stream(object):
+    __slots__ = (
+        "dictionary",
+        "data"
+    )
+    def __init__(self, dictionary, data):
+        self.dictionary = dictionary
+        self.data = data
 
 
 class CosParser:
+    __slots__ = (
+        "file",
+        "max_pos",
+        "lookahead"
+    )
     def __init__(self, file, max_pos=None):
         self.file = file
         self.max_pos = max_pos

@@ -1,3 +1,4 @@
+# coding: utf-8
 from __future__ import (
     absolute_import,
     unicode_literals,
@@ -9,16 +10,20 @@ from ..kaitai.utils import (
     filter_by_list_type,
     find_by_list_type,
     find_by_type,
-    str_contents,
 )
 from ..models.items.folder import Folder
 from .composition import parse_composition
 from .footage import parse_footage
+from .utils import (
+    get_name,
+    get_comment,
+)
 
 
-def parse_item(item_chunk, project, parent_folder):
-    child_chunks = item_chunk.data.chunks
+def parse_item(item_chunk, project, parent_id):
     is_root = item_chunk.data.list_type == "Fold"
+    child_chunks = item_chunk.data.chunks
+    comment = get_comment(child_chunks)
 
     if is_root:
         item_id = 0
@@ -26,7 +31,7 @@ def parse_item(item_chunk, project, parent_folder):
         item_type = Aep.ItemType.folder
         label = Aep.Label(0)
     else:
-        item_name = _get_name(child_chunks)
+        item_name = get_name(child_chunks)
 
         idta_chunk = find_by_type(
             chunks=child_chunks,
@@ -46,7 +51,8 @@ def parse_item(item_chunk, project, parent_folder):
             item_id=item_id,
             item_name=item_name,
             label=label,
-            parent_folder=parent_folder,
+            parent_id=parent_id,
+            comment=comment,
         )
 
     elif item_type == Aep.ItemType.footage:
@@ -55,7 +61,8 @@ def parse_item(item_chunk, project, parent_folder):
             item_id=item_id,
             item_name=item_name,
             label=label,
-            parent_folder=parent_folder,
+            parent_id=parent_id,
+            comment=comment,
         )
 
     elif item_type == Aep.ItemType.composition:
@@ -64,22 +71,24 @@ def parse_item(item_chunk, project, parent_folder):
             item_id=item_id,
             item_name=item_name,
             label=label,
-            parent_folder=parent_folder,
+            parent_id=parent_id,
+            comment=comment,
         )
 
-    project.items.append(item)
+    project.project_items[item_id] = item
 
     return item
 
 
-def parse_folder(is_root, child_chunks, project, item_id, item_name, label, parent_folder):
+def parse_folder(is_root, child_chunks, project, item_id, item_name, label, parent_id, comment):
     item = Folder(
+        comment=comment,
         item_id=item_id,
         label=label,
         name=item_name,
         type_name="Folder",
-        parent_folder=parent_folder,
-        items=[],
+        parent_id=parent_id,
+        folder_items=[],
     )
     # Get folder contents
     if is_root:
@@ -100,17 +109,9 @@ def parse_folder(is_root, child_chunks, project, item_id, item_name, label, pare
         child_item = parse_item(
             item_chunk=child_item_chunk,
             project=project,
-            parent_folder=item
+            parent_id=item_id
         )
-        item.items.append(child_item)
+        item.folder_items.append(child_item)
 
     return item
 
-
-def _get_name(child_chunks):
-    name_chunk = find_by_type(
-        chunks=child_chunks,
-        chunk_type="Utf8"
-    )
-    item_name = str_contents(name_chunk)
-    return item_name

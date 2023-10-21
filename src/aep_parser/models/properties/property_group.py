@@ -4,14 +4,18 @@ from .property_base import PropertyBase
 
 
 class PropertyGroup(PropertyBase):
-    def __init__(self, properties, *args, **kwargs):
+    def __init__(self, is_effect, *args, **kwargs):
         """
         Group of properties.
         Args:
-            properties (list): List of child properties.
+            is_effect (bool): When true, this property is an effect PropertyGroup.
         """
         super(PropertyGroup, self).__init__(*args, **kwargs)
-        self.properties = properties
+        self.is_effect = is_effect
+
+        self.properties = []
+        self.enabled = True
+        self.elided = not is_effect  # there might be more than that
 
     def get_property(self, index=None, name=None):
         """

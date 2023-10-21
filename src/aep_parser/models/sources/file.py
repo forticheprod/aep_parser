@@ -19,4 +19,5 @@ class FileSource(FootageSource):
     
     @property
     def missing_footage_path(self):
-        return os.path.exists(self.file)
+        return self.file if os.path.exists(self.file) else ""
+

@@ -1,9 +1,10 @@
+# coding: utf-8
 from __future__ import (
     absolute_import,
     unicode_literals,
     division
 )
-
+import sys
 import xml.etree.ElementTree as ET
 
 from ..kaitai.aep import Aep
@@ -36,28 +37,39 @@ def parse_project(aep_file_path):
             chunks=root_chunks,
             list_type="Fold"
         )
-        
+
         project = Project(
             bits_per_channel=_get_bit_depth(root_chunks),
             effect_names=_get_effect_names(root_chunks),
-            expression_engine=_get_expression_engine(root_chunks),
+            expression_engine=_get_expression_engine(root_chunks),  # CC 2019+
+            file=aep_file_path,
             frame_rate=_get_frame_rate(root_chunks),
-            items=[],
+            project_items=dict(),
         )
-        project.xmp_packet = ET.fromstring(aep.xmp_packet)
-        software_agent = project.xmp_packet.find(path=SOFTWARE_AGENT_XPATH)
-        project.ae_version = software_agent.text
 
-        project.root_folder = parse_item(root_folder_chunk, project, parent_folder=None)
+        if sys.version_info >= (3, 0):
+            project.xmp_packet = ET.fromstring(aep.xmp_packet)
+            software_agent = project.xmp_packet.find(path=SOFTWARE_AGENT_XPATH)
+            project.ae_version = software_agent.text
+        else:
+            project.xmp_packet = ET.fromstring(aep.xmp_packet.encode("utf-8"))
+            software_agents = (
+                node.text
+                for node in project.xmp_packet.iter()
+                if node.tag.endswith("softwareAgent")
+            )
+            project.ae_version = next(software_agents)
 
+        parse_item(root_folder_chunk, project, parent_id=None)
+
+        # TODO do this in the Layer and AVLayer class
         # Layers that have not been given an explicit name should be named after their source
-        for item in project.items:
+        for item in project.project_items.values():
             if isinstance(item, CompItem):
                 for layer in item.layers:
-                    layer_source_item = project.item_by_id(layer.source_id)
                     if not layer.name:
+                        layer_source_item = project.project_items[layer.source_id]
                         layer.name = layer_source_item.name
-                    layer_source_item.used_in.append(item)
 
         return project
 
@@ -75,7 +87,7 @@ def _get_expression_engine(root_chunks):
         list_type="ExEn"
     )
     if expression_engine_chunk:
-        return str_contents(expression_engine_chunk)  # TODO check
+        return str_contents(expression_engine_chunk)
 
 
 def _get_bit_depth(root_chunks):

@@ -13,7 +13,7 @@ from ..models.items.composition import CompItem
 from .layer import parse_layer
 
 
-def parse_composition(child_chunks, item_id, item_name, label, parent_folder):
+def parse_composition(child_chunks, item_id, item_name, label, parent_id, comment):
     cdta_chunk = find_by_type(
         chunks=child_chunks,
         chunk_type="cdta"
@@ -21,31 +21,18 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_folder):
     cdta_data = cdta_chunk.data
     time_scale = cdta_data.time_scale
 
-    # Parse composition's layers
-    layer_sub_chunks = filter_by_list_type(
-        chunks=child_chunks,
-        list_type="Layr"
-    )
-    layers = []
-    for index, layer_chunk in enumerate(layer_sub_chunks, 1):
-        layer = parse_layer(
-            layer_chunk=layer_chunk,
-            time_scale=time_scale,
-        )
-        layer.index = index
-        layers.append(layer)
-
-    marker_property = _get_marker_property(
+    markers = _get_markers(
         child_chunks=child_chunks,
         time_scale=time_scale,
     )
 
     item = CompItem(
+        comment=comment,
         item_id=item_id,
         label=label,
         name=item_name,
         type_name="Composition",
-        parent_folder=parent_folder,
+        parent_id=parent_id,
 
         duration=cdta_data.duration,
         frame_duration=int(cdta_data.frame_duration),
@@ -56,8 +43,8 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_folder):
 
         bg_color=cdta_data.bg_color,
         frame_blending=cdta_data.frame_blending,
-        layers=layers,
-        marker_property=marker_property,
+        layers=[],
+        markers=markers,
         motion_blur=cdta_data.motion_blur,
         motion_blur_adaptive_sample_limit=cdta_data.motion_blur_adaptive_sample_limit,
         motion_blur_samples_per_frame=cdta_data.motion_blur_samples_per_frame,
@@ -68,18 +55,32 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_folder):
         resolution_factor=cdta_data.resolution_factor,
         time_scale=time_scale,
 
-        # in_time_frames=int(cdta_data.in_time_frames),  # TODO check
-        # in_time_sec=cdta_data.in_time,  # TODO check
-        # out_time_frames=int(cdta_data.out_time_frames),  # TODO check
-        # out_time_sec=cdta_data.out_time,  # TODO check
+        # in_point_frames=int(cdta_data.in_point_frames),  # TODO check
+        # in_point=cdta_data.in_point,  # TODO check
+        # out_point_frames=int(cdta_data.out_point_frames),  # TODO check
+        # out_point=cdta_data.out_point,  # TODO check
         # playhead_frames=int(cdta_data.playhead_frames),  # TODO check
         # playhead_sec=cdta_data.playhead_frames * cdta_data.frame_rate,  # TODO check
-        # shy_enabled=cdta_data.shy_enabled,  # TODO check
+        # shy=cdta_data.shy,  # TODO check
     )
+
+    # Parse composition's layers
+    layer_sub_chunks = filter_by_list_type(
+        chunks=child_chunks,
+        list_type="Layr"
+    )
+    for layer_chunk in layer_sub_chunks:
+        layer = parse_layer(
+            layer_chunk=layer_chunk,
+            time_scale=time_scale,
+        )
+        layer.containing_comp_id = item_id
+        item.layers.append(layer)
+
     return item
 
 
-def _get_marker_property(child_chunks, time_scale):
+def _get_markers(child_chunks, time_scale):
     markers_layer_chunk = find_by_list_type(
         chunks=child_chunks,
         list_type="SecL"
@@ -88,4 +89,4 @@ def _get_marker_property(child_chunks, time_scale):
         layer_chunk=markers_layer_chunk,
         time_scale=time_scale,
     )
-    return markers_layer.marker_property
+    return markers_layer.markers

@@ -1,5 +1,10 @@
-import copy
+from __future__ import (
+    absolute_import,
+    unicode_literals,
+    division
+)
 import os
+from builtins import str
 from .item import Item
 
 
@@ -23,25 +28,14 @@ class AVItem(Item):
         self.frame_rate = frame_rate
         self.height = height
         self.pixel_aspect = pixel_aspect
-        self.used_in = []
+        # I did not implement self.used_in as this would cause infinite recursion when
+        # trying to print the object and we would have to override repr,
+        # copy.deepcopy(self.__dict__) then override used_in and it slows things down
+        # quite a bit
         self.width = width
 
     def __repr__(self):
-        attrs = copy.deepcopy(self.__dict__)
-        # Collapse parent_folder to avoid infinite recursion
-        if self.parent_folder is None:
-            parent_folder = "<project>"
-        else:
-            parent_folder = "<'{parent_name}' folder>".format(
-                parent_name=self.parent_folder.name
-            )
-        attrs["parent_folder"] = parent_folder
-        # Collapse width to avoid infinite recursion
-        attrs["used_in"] = [
-            "<'{comp_name}' Composition>".format(comp_name=comp.name)
-            for comp in self.used_in
-        ]
-        return str(attrs)
+        return str(self.__dict__)
 
     @property
     def footage_missing(self):

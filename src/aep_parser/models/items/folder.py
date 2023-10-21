@@ -3,10 +3,10 @@ from .item import Item
 
 class Folder(Item):
     def __init__(self,
-                 items=[],
+                 folder_items,
                  *args, **kwargs):
         super(Folder, self).__init__(*args, **kwargs)
-        self.items = items
+        self.folder_items = folder_items
 
     def item(self, index):
-        return self.items[index]
+        return self.folder_items[index]

@@ -18,7 +18,7 @@ from ..models.sources.solid import SolidSource
 from ..models.sources.placeholder import PlaceholderSource
 
 
-def parse_footage(child_chunks, item_id, item_name, label, parent_folder):
+def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
     pin_chunk = find_by_list_type(
         chunks=child_chunks,
         list_type="Pin "
@@ -35,7 +35,7 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_folder):
     sspc_data = sspc_chunk.data
     opti_data = opti_chunk.data
 
-    asset_type = opti_data.asset_type.strip("\x00")  # TODO type: strz ?
+    asset_type = opti_data.asset_type
 
     if not asset_type:
         asset_type = "placeholder"
@@ -66,10 +66,11 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_folder):
             item_name = os.path.basename(file)
 
     item = FootageItem(
+        comment=comment,
         item_id=item_id,
         label=label,
         name=item_name,
-        parent_folder=parent_folder,
+        parent_id=parent_id,
         type_name="Footage",
 
         duration=sspc_data.duration,
@@ -81,7 +82,7 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_folder):
 
         file=file,
         main_source=main_source,
-        # asset_type=asset_type,
+        asset_type=asset_type,
         # end_frame=sspc_data.end_frame,
         # start_frame=sspc_data.start_frame,
     )

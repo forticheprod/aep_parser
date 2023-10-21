@@ -1,8 +1,15 @@
+from __future__ import (
+    absolute_import,
+    unicode_literals,
+    division
+)
+from builtins import str
+
+
 class Marker(object):
     def __init__(self,
                  chapter, comment, cue_point_name, duration, navigation, frame_target,
-                 url, label, protected_region, params, frame_duration,
-                 time=None):
+                 url, label, protected_region, params, frame_duration, time=None):
         """
         Marker object of a layer.
         """

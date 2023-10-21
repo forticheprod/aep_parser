@@ -19,7 +19,7 @@ seq:
     type: str
     encoding: utf8
     size-eos: true
-    
+
 types:
   chunks:
     seq:
@@ -27,7 +27,7 @@ types:
         type: chunk
         repeat: eos
   chunk:
-    seq: 
+    seq:
       - id: chunk_type
         size: 4
         type: str
@@ -36,35 +36,34 @@ types:
         type: u4
       - id: data
         size: 'len_data > _io.size - _io.pos ? _io.size - _io.pos : len_data'
-        type: 
+        type:
           switch-on: chunk_type
           cases:
-            '"alas"': utf8_body # File footage data in json format as a string
+            '"LIST"': list_body # List of chunks
+            '"tdmn"': utf8_body # Transform property group end
+            '"Utf8"': utf8_body
+            '"tdsb"': tdsb_body # transform property group flags
+            '"tdsn"': child_utf8_body # user-defined name of a property. contains a single utf-8 chunk but no list_type
+            '"tdb4"': tdb4_body # property metadata
             '"cdat"': cdat_body # Property value(s)
+            '"pard"': pard_body # property ??
+            '"lhd3"': lhd3_body # Number of keyframes of a property
+            '"ldta"': ldta_body # Layer data
+            '"pdnm"': child_utf8_body # Parameter control strings. contains a single utf-8 chunk but no list_type
+            '"ldat"': ldat_body # Data of a keyframe
+            '"sspc"': sspc_body # Sub properties ??
+            '"fnam"': child_utf8_body # Effect name. contains a single utf-8 chunk but no list_type
+            '"idta"': idta_body # Item data
+            '"opti"': opti_body # Footage data
+            '"alas"': utf8_body # File footage data in json format as a string
+            '"NmHd"': nmhd_body # Marker data
             '"cdta"': cdta_body # Composition data
+            '"pjef"': utf8_body # effect names
             '"cmta"': utf8_body # Comment data
             '"fdta"': fdta_body # Folder data
-            '"head"': head_body # contains AE version and file revision
-            '"idta"': idta_body # Item data
-            '"ldat"': ldat_body # Data of a keyframe
-            '"ldta"': ldta_body # Layer data
-            '"lhd3"': lhd3_body # Number of keyframes of a property
-            '"LIST"': list_body # List of chunks
             '"nhed"': nhed_body # Header data
-            '"NmHd"': nmhd_body # Marker data
             '"nnhd"': nnhd_body # Project data
-            '"opti"': opti_body # Footage data
-            '"pard"': pard_body # property ??
-            '"pjef"': utf8_body # effect names
-            '"sspc"': sspc_body # Sub properties ??
-            '"tdb4"': tdb4_body # property metadata
-            '"tdmn"': utf8_body # Transform property group end
-            '"tdsb"': tdsb_body # transform property group flags
-            '"Utf8"': utf8_body
-            '"fnam"': child_utf8_body # Effect name. contains a single utf-8 chunk but no list_type
-            '"pdnm"': child_utf8_body # Parameter control strings. contains a single utf-8 chunk but no list_type
-            '"tdsn"': child_utf8_body # user-defined name of a property. contains a single utf-8 chunk but no list_type
-            # '"fiac"': ascii_body # active item, not sure about encoding
+            '"head"': head_body # contains AE version and file revision
             _: ascii_body
       - id: padding
         size: 1
@@ -101,10 +100,10 @@ types:
       - id: playhead
         type: u2 # 22-23
       - size: 5 # 24-29
-      - id: in_time
+      - id: in_point
         type: u2 # 30-31
       - size: 6 # 32-37
-      - id: out_time_raw
+      - id: out_point_raw
         type: u2 # 38-39
       - size: 5 # 40-44
       - id: duration_dividend
@@ -144,19 +143,19 @@ types:
         value: 'frame_rate_dividend.as<f4> / time_scale.as<f4>'
       duration:
         value: 'duration_dividend.as<f4> / duration_divisor.as<f4>'
-      out_time:
-        value: 'out_time_raw == 0xffff ? duration : out_time_raw'
+      out_point:
+        value: 'out_point_raw == 0xffff ? duration : out_point_raw'
       pixel_aspect:
         value: 'pixel_ratio_width.as<f4> / pixel_ratio_height.as<f4>'
       playhead_frames:
         value: 'playhead / time_scale'
-      in_time_frames:
-        value: 'in_time * frame_rate'
-      out_time_frames:
-        value: 'out_time * frame_rate'
+      in_point_frames:
+        value: 'in_point * frame_rate'
+      out_point_frames:
+        value: 'out_point * frame_rate'
       frame_duration:
         value: 'duration * frame_rate'
-      shy_enabled:
+      shy:
         value: '(attributes[0] & 1) != 0'
       motion_blur:
         value: '(attributes[0] & (1 << 3)) != 0'
@@ -206,9 +205,9 @@ types:
       - id: time_raw
         type: u4
       - size: 1
-      - id: ease_mode
+      - id: keyframe_interpolation_type
         type: u1
-        enum: ease_mode
+        enum: keyframe_interpolation_type
       - id: label
         type: u1
         enum: label
@@ -336,13 +335,13 @@ types:
       - id: stretch_numerator
         type: u2 # 11-12
       - size: 1 # 13
-      - id: start_time_sec
+      - id: start_time
         type: s2 # 14-15
       - size: 6 # 16-21
-      - id: in_time_sec
+      - id: in_point
         type: u2 # 22-23
       - size: 6 # 24-29
-      - id: out_time_sec
+      - id: out_point
         type: u2 # 30-31
       - size: 6 # 32-37
       - id: attributes
@@ -359,9 +358,9 @@ types:
         type: str
         encoding: cp1250
       - size: 11 # 97-107
-      - id: matte_mode
+      - id: track_matte_type
         type: u1 # 108
-        enum: matte_mode
+        enum: track_matte_type
       - size: 2 # 109-110
       - id: stretch_denominator
         type: u2 # 111-112
@@ -376,41 +375,41 @@ types:
       #   type: u4 # 161-164
       #   doc: only for AE >= 23
     instances:
-      guide_enabled:
+      guide_layer:
         value: '(attributes[0] & (1 << 1)) != 0'
-      frame_blend_mode:
+      frame_blending_type:
         value: '(attributes[0] & (1 << 2)) >> 2'
-        enum: layer_frame_blend_mode
-      sampling_mode:
+        enum: frame_blending_type
+      sampling_quality:
         value: '(attributes[0] & (1 << 6)) >> 6'
-        enum: layer_sampling_mode
+        enum: sampling_quality
       auto_orient:
         value: '(attributes[1] & 1) != 0'
-      adjustment_layer_enabled:
+      adjustment_layer:
         value: '(attributes[1] & (1 << 1)) != 0'
-      three_d_enabled:
+      three_d_per_char:
         value: '(attributes[1] & (1 << 2)) != 0'
-      solo_enabled:
+      solo:
         value: '(attributes[1] & (1 << 3)) != 0'
       markers_locked:
         value: '(attributes[1] & (1 << 4)) != 0'
       null_layer:
         value: '(attributes[1] & (1 << 7)) != 0'
-      video_enabled:
+      enabled:
         value: '(attributes[2] & (1 << 0)) != 0'
       audio_enabled:
         value: '(attributes[2] & (1 << 1)) != 0'
-      effects_enabled:
+      effects_active:
         value: '(attributes[2] & (1 << 2)) != 0'
       motion_blur:
         value: '(attributes[2] & (1 << 3)) != 0'
       frame_blending:
         value: '(attributes[2] & (1 << 4)) != 0'
-      lock_enabled:
+      locked:
         value: '(attributes[2] & (1 << 5)) != 0'
-      shy_enabled:
+      shy:
         value: '(attributes[2] & (1 << 6)) != 0'
-      collapse_transform_enabled:
+      collapse_transformation:
         value: '(attributes[2] & (1 << 7)) != 0'
   lhd3_body:
     seq:
@@ -486,7 +485,7 @@ types:
     seq:
       - id: asset_type
         size: 4 # 1-4
-        type: str
+        type: strz
         encoding: ascii
         # enum: asset_type
       - id: asset_type_int
@@ -531,7 +530,7 @@ types:
         enum: property_control_type
       - id: name
         size: 32 # 17-48
-        type: str
+        type: strz
         encoding: cp1250
       - size: 8 # 49-56
       - id: last_color
@@ -545,7 +544,7 @@ types:
         repeat-expr: 4
         if: property_control_type == property_control_type::color
       - id: last_value
-        type: 
+        type:
           switch-on: property_control_type
           cases:
             'property_control_type::scalar': s4
@@ -560,7 +559,7 @@ types:
           or property_control_type == property_control_type::enum
           or property_control_type == property_control_type::slider
       - id: last_value_x_raw
-        type: 
+        type:
           switch-on: property_control_type
           cases:
             'property_control_type::two_d': s4
@@ -569,7 +568,7 @@ types:
           property_control_type == property_control_type::two_d
           or property_control_type == property_control_type::three_d
       - id: last_value_y_raw
-        type: 
+        type:
           switch-on: property_control_type
           cases:
             'property_control_type::two_d': s4
@@ -584,7 +583,7 @@ types:
         type: s4
         if: property_control_type == property_control_type::enum
       - id: default
-        type: 
+        type:
           switch-on: property_control_type
           cases:
             'property_control_type::boolean': u1
@@ -662,7 +661,7 @@ types:
   tdb4_body:
     seq:
       - size: 2
-      - id: components
+      - id: dimensions
         type: u2
         doc: Number of values in a multi-dimensional
       - id: attributes
@@ -694,28 +693,28 @@ types:
         doc: Bunch of 00
       - id: animated
         type: u1
-      - size: 7
-        doc: Bunch of 00
-      - size: 4
-        doc: Usually 0, probs flags
-      - size: 4
-        doc: Most likely flags, only last byte seems to contain data
-      - type: f8
-        doc: Always 0.0?
-      - type: f8
-        doc: Mostly 0.0, sometimes 0.333
-      - type: f8
-        doc: Always 0.0?
-      - type: f8
-        doc: Mostly 0.0, sometimes 0.333
-      - size: 4
-        doc: Probs some flags
-      - size: 4
-        doc: Probs some flags
+      # - size: 7
+      #   doc: Bunch of 00
+      # - size: 4
+      #   doc: Usually 0, probs flags
+      # - size: 4
+      #   doc: Most likely flags, only last byte seems to contain data
+      # - type: f8
+      #   doc: Always 0.0?
+      # - type: f8
+      #   doc: Mostly 0.0, sometimes 0.333
+      # - type: f8
+      #   doc: Always 0.0?
+      # - type: f8
+      #   doc: Mostly 0.0, sometimes 0.333
+      # - size: 4
+      #   doc: Probs some flags
+      # - size: 4
+      #   doc: Probs some flags
     instances:
       static:
         value: '(attributes[1] & 1) != 0'
-      position:
+      is_spatial:
         value: '(attributes[1] & (1 << 3)) != 0'
       no_value:
         value: '(property_control_type[1] & 1) != 0'
@@ -732,9 +731,9 @@ types:
     instances:
       locked_ratio:
         value: '(flags[2] & 1 << 4) != 0'
-      visible:
+      enabled:
         value: '(flags[3] & 1) != 0'
-      split_position:
+      dimensions_separated:
         value: '(flags[3] & 1 << 1) != 0'
   utf8_body:
     seq:
@@ -761,13 +760,13 @@ enums:
     2: camera
     3: text
     4: shape
-  matte_mode:
+  track_matte_type:
     0: none
-    1: no_matte
+    1: no_track_matte
     2: alpha
-    3: inverted_alpha
+    3: alpha_inverted
     4: luma
-    5: inverted_luma
+    5: luma_inverted
   label:
     0: none
     1: red
@@ -790,15 +789,15 @@ enums:
     0: wireframe
     1: draft
     2: best
-  layer_frame_blend_mode:
+  frame_blending_type:
     0: frame_mix
     1: pixel_motion
-  layer_sampling_mode:
+  sampling_quality:
     0: bilinear
     1: bicubic
-  ease_mode:
+  keyframe_interpolation_type:
     1: linear
-    2: ease
+    2: bezier
     3: hold
   property_control_type:
     0: layer
@@ -817,29 +816,104 @@ enums:
     # 14: ??
     15: unknown
     18: three_d
+  blending_mode:
+    # missing : add, alpha_add, classic_color_burn, classic_color_dodge,
+    # classic_difference, dancing_dissolve, dissolve, divide, luminescent_premul,
+    # silhouete_alpha, silhouette_luma, stencil_alpha, stencil_luma, subtract
+    1: normal
+    # 2: ??
+    3: darken
+    4: multiply
+    5: color_burn
+    6: linear_burn
+    7: darker_color
+    # 8: ??
+    9: lighten
+    10: screen
+    11: color_dodge
+    12: linear_dodge
+    13: lighter_color
+    # 14: ??
+    15: overlay
+    16: soft_light
+    17: hard_light
+    18: linear_light
+    19: vivid_light
+    20: pin_light
+    21: hard_mix
+    # 22: ??
+    23: difference
+    24: exclusion
+    # 25: ??
+    26: hue
+    27: saturation
+    28: color
+    29: luminosity
   property_value_type:
-    0: unknown
-    1: no_value
-    2: three_d_spatial
-    3: three_d
-    4: two_d_spatial
-    5: two_d
-    6: one_d
-    7: color
-    8: custom_value
-    9: marker
-    10: layer_index
-    11: mask_index
-    12: shape
-    13: text_document
-    14: lrdr
-    15: litm
-    16: gide
-    17: orientation
-  property_type:
-    0: property
-    1: indexed_group
-    2: named_group
+    0:
+      id: unknown
+      doc: unknown
+    1:
+      id: no_value
+      doc: Stores no data
+    2:
+      id: three_d_spatial
+      doc: |
+        Array of three floating-point positional values.
+        For example, an Anchor Point value might be [10.0, 20.2, 0.0]
+    3:
+      id: three_d
+      doc: |
+        Array of three floating-point quantitative values.
+        For example, a Scale value might be [100.0, 20.2, 0.0]
+    4:
+      id: two_d_spatial
+      doc: |
+        Array of 2 floating-point positional values.
+        For example, an Anchor Point value might be [5.1, 10.0]
+    5:
+      id: two_d
+      doc: |
+        Array of 2 floating-point quantitative values.
+        For example, a Scale value might be [5.1, 100.0]
+    6:
+      id: one_d
+      doc: A floating-point value.
+    7:
+      id: color
+      doc: |
+        Array of 4 floating-point values in the range [0.0..1.0].
+        For example, [0.8, 0.3, 0.1, 1.0]
+    8:
+      id: custom_value
+      doc: Custom property value, such as the Histogram property for the Levels effect.
+    9:
+      id: marker
+      doc: MarkerValue object
+    10:
+      id: layer_index
+      doc: Integer; a value of 0 means no layer.
+    11:
+      id: mask_index
+      doc: Integer; a value of 0 means no mask.
+    12:
+      id: shape
+      doc: Shape object
+    13:
+      id: text_document
+      doc: TextDocument object
+    14:
+      id: lrdr
+      doc: Render queue data
+    15:
+      id: litm
+      doc: Render Queue items
+    16:
+      id: gide
+      doc: ??
+    17:
+      id: orientation
+      doc: ??
   # ae_version:
   #   0x5c06073806b4: 15.0
   #   0x5d040b0006eb: 16.0
