@@ -54,7 +54,7 @@
 ## About The Project
 
 
-This as a .aep (After Effects Project) parser in Python. After Effects files (.aep) are encoded in RIFX format. This parser uses [Kaitai Struct](https://kaitai.io/) to parse .aep files and return a Project object containing items, layers, effects and properties. It is based on the Go equivalent [aftereffects-aep-parser](https://github.com/boltframe/aftereffects-aep-parser).
+This as a .aep (After Effects Project) parser in Python. After Effects files (.aep) are mostly binary files, encoded in RIFX format. This parser uses [Kaitai Struct](https://kaitai.io/) to parse .aep files and return a Project object containing items, layers, effects and properties.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -76,7 +76,7 @@ This as a .aep (After Effects Project) parser in Python. After Effects files (.a
    ```sh
    git clone https://gitlab.com/delaunay.ben/aep-parser.git
    ```
-2. Add the complete path to the `src/aep_parser` subfolder to your `PYTHONPATH` env var.
+2. Add the complete path to the `src/` subfolder to your `PYTHONPATH` env var.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -87,7 +87,7 @@ This as a .aep (After Effects Project) parser in Python. After Effects files (.a
 ## Usage
 
 ```python
-from aep_parser.project_parser import parse_project
+from aep_parser.parsers.project import parse_project
 
 aep__file_path = "01_empty.aep"
 project = parse_project(aep__file_path)
@@ -104,9 +104,9 @@ project = parse_project(aep__file_path)
 - [x] Get an initial working version
 - [ ] Add unit tests
 - [ ] Add Changelog
-- [ ] Ensure python 2 compatibility
+- [x] Ensure python 2 compatibility
 - [ ] Multi-version Support
-    - [ ] After Effects 2018
+    - [x] After Effects 2018
     - [ ] After Effects 2022
 
 See the [open issues](https://gitlab.com/delaunay.ben/aep-parser/-/issues) for a full list of proposed features (and known issues).
