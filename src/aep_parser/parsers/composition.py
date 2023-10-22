@@ -26,7 +26,7 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
         time_scale=time_scale,
     )
 
-    item = CompItem(
+    composition = CompItem(
         comment=comment,
         item_id=item_id,
         label=label,
@@ -43,6 +43,7 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
 
         bg_color=cdta_data.bg_color,
         frame_blending=cdta_data.frame_blending,
+        hide_shy_layers=cdta_data.hide_shy_layers,  # TODO check this (could be just a shy attribute)
         layers=[],
         markers=markers,
         motion_blur=cdta_data.motion_blur,
@@ -55,13 +56,14 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
         resolution_factor=cdta_data.resolution_factor,
         time_scale=time_scale,
 
-        # in_point_frames=int(cdta_data.in_point_frames),  # TODO check
-        # in_point=cdta_data.in_point,  # TODO check
-        # out_point_frames=int(cdta_data.out_point_frames),  # TODO check
-        # out_point=cdta_data.out_point,  # TODO check
-        # playhead_frames=int(cdta_data.playhead_frames),  # TODO check
-        # playhead_sec=cdta_data.playhead_frames * cdta_data.frame_rate,  # TODO check
-        # shy=cdta_data.shy,  # TODO check
+        in_point=cdta_data.in_point,
+        frame_in_point=int(cdta_data.frame_in_point),
+        out_point=cdta_data.out_point,
+        frame_out_point=int(cdta_data.frame_out_point),
+        frame_time=int(cdta_data.frame_time),
+        time=cdta_data.time,
+        display_start_time=cdta_data.display_start_time,
+        display_start_frame=int(cdta_data.display_start_frame),
     )
 
     # Parse composition's layers
@@ -75,9 +77,9 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
             time_scale=time_scale,
         )
         layer.containing_comp_id = item_id
-        item.layers.append(layer)
+        composition.layers.append(layer)
 
-    return item
+    return composition
 
 
 def _get_markers(child_chunks, time_scale):

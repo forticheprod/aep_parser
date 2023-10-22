@@ -194,6 +194,7 @@ def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
     )
     tdb4_data = tdb4_chunk.data
     prop.is_spatial = tdb4_data.is_spatial
+    prop.expression_enabled = tdb4_data.expression_enabled
     # TODO make better use of this data, then remove it from property class
     prop.animated = tdb4_data.animated
     prop.dimensions = tdb4_data.dimensions

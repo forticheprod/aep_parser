@@ -62,7 +62,7 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
 
         if not item_name:
             # TODO image sequence (frame numbers), psd (layers)
-            # TODO add "name_overriden" or "default_name" ? user defined name like properties ?
+            # TODO add is_name_set like in Layer
             item_name = os.path.basename(file)
 
     item = FootageItem(
@@ -83,8 +83,8 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
         file=file,
         main_source=main_source,
         asset_type=asset_type,
-        # end_frame=sspc_data.end_frame,
-        # start_frame=sspc_data.start_frame,
+        end_frame=sspc_data.end_frame,  # TODO check this
+        start_frame=sspc_data.start_frame,  # TODO check this
     )
     return item
 

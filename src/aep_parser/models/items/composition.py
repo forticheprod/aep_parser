@@ -3,38 +3,49 @@ from .av_item import AVItem
 
 class CompItem(AVItem):
     def __init__(self,
-                 bg_color, frame_blending, layers, markers, motion_blur,
+                 bg_color, display_start_frame, display_start_time, frame_blending,
+                 hide_shy_layers, layers, markers, motion_blur,
                  motion_blur_adaptive_sample_limit, motion_blur_samples_per_frame,
                  preserve_nested_frame_rate, preserve_nested_resolution, shutter_angle,
                  shutter_phase, resolution_factor, time_scale,
-                 # in_point_frames, in_point, out_point_frames, out_point,
-                 # playhead_frames, playhead_sec, shy,
-            *args, **kwargs):
+                 in_point, frame_in_point, out_point, frame_out_point, frame_time, time,
+                 *args, **kwargs):
         super(CompItem, self).__init__(*args, **kwargs)
         self.bg_color = bg_color
-        self.layers = layers
-        # TODO displayStartFrame
-        # TODO displayStartTime
+        self.display_start_frame = display_start_frame
+        self.display_start_time = display_start_time
         self.frame_blending = frame_blending
-        # TODO hideShyLayers (== shy ?)
-        # self.in_point_frames = in_point_frames
-        # self.in_point = in_point
+        self.hide_shy_layers = hide_shy_layers
+        self.layers = layers
         self.markers = markers
         self.motion_blur = motion_blur
-        # self.out_point_frames = out_point_frames
-        # self.playhead_frames = playhead_frames
-        # self.playhead_sec = playhead_sec
-        self.preserve_nested_frame_rate = preserve_nested_frame_rate
-        self.preserve_nested_resolution = preserve_nested_resolution
         self.motion_blur_adaptive_sample_limit = motion_blur_adaptive_sample_limit
         self.motion_blur_samples_per_frame = motion_blur_samples_per_frame
+        self.preserve_nested_frame_rate = preserve_nested_frame_rate
+        self.preserve_nested_resolution = preserve_nested_resolution
+        self.resolution_factor = resolution_factor
         self.shutter_angle = shutter_angle
         self.shutter_phase = shutter_phase
-        # self.shy = shy
-        self.resolution_factor = resolution_factor
         self.time_scale = time_scale
-        # TODO workAreaDuration (== out - in + 1 ?)
-        # TODO workAreaStart (== in_point ?)
+        self.in_point = in_point
+        self.work_area_start = in_point
+        self.frame_in_point = frame_in_point
+        self.work_area_start_frame = frame_in_point
+        self.out_point = out_point
+        self.frame_out_point = frame_out_point
+        self.time = time
+        self.frame_time = frame_time
+        # TODO remove float stuff from kaitai instances and do it here ?
+        # duration, in_point, display_start_time, time, frame_rate, work_area_start, out_point, pixel_aspect
+        # same for other classes
+
+    @property
+    def work_area_duration(self):
+        return self.out_point - self.in_point
+
+    @property
+    def work_area_duration_frame(self):
+        return self.frame_out_point - self.frame_in_point
 
     def layer(self, name=None, index=None, other_layer=None, rel_index=None):
         """

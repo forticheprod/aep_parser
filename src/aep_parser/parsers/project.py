@@ -5,6 +5,7 @@ from __future__ import (
     division
 )
 import sys
+import time
 import xml.etree.ElementTree as ET
 
 from ..kaitai.aep import Aep
@@ -30,21 +31,32 @@ def parse_project(aep_file_path):
     Returns:
         Project: parsed project
     """
+    start = time.time()
     with Aep.from_file(aep_file_path) as aep:
+        print(round(time.time() - start, 2), "kaitai parsing")
+        start = time.time()
         root_chunks = aep.data.chunks
 
         root_folder_chunk = find_by_list_type(
             chunks=root_chunks,
             list_type="Fold"
         )
+        nnhd_chunk = find_by_type(
+            chunks=root_chunks,
+            chunk_type="nnhd"
+        )
+        nnhd_data = nnhd_chunk.data
 
         project = Project(
-            bits_per_channel=_get_bit_depth(root_chunks),
+            bits_per_channel=nnhd_data.bits_per_channel,
             effect_names=_get_effect_names(root_chunks),
             expression_engine=_get_expression_engine(root_chunks),  # CC 2019+
             file=aep_file_path,
-            frame_rate=_get_frame_rate(root_chunks),
+            footage_timecode_display_start_type=nnhd_data.footage_timecode_display_start_type,
+            frame_rate=nnhd_data.frame_rate,
+            frames_count_type=nnhd_data.frames_count_type,
             project_items=dict(),
+            time_display_type=nnhd_data.time_display_type,
         )
 
         if sys.version_info >= (3, 0):
@@ -61,15 +73,20 @@ def parse_project(aep_file_path):
             project.ae_version = next(software_agents)
 
         parse_item(root_folder_chunk, project, parent_id=None)
+        print(round(time.time() - start, 2), "items parsing")
+        start = time.time()
 
-        # TODO do this in the Layer and AVLayer class
         # Layers that have not been given an explicit name should be named after their source
+        # TODO do this somewhere else ?
         for item in project.project_items.values():
             if isinstance(item, CompItem):
                 for layer in item.layers:
                     if not layer.name:
                         layer_source_item = project.project_items[layer.source_id]
                         layer.name = layer_source_item.name
+                        layer.width = layer_source_item.width
+                        layer.height = layer_source_item.height
+        print(round(time.time() - start, 2), "adding layer names")
 
         return project
 
@@ -88,36 +105,6 @@ def _get_expression_engine(root_chunks):
     )
     if expression_engine_chunk:
         return str_contents(expression_engine_chunk)
-
-
-def _get_bit_depth(root_chunks):
-    """
-    Get project depth in BPC (8, 16 or 32)
-    Args:
-        root_chunks (Aep.Chunk): list of root chunks of the project
-    Returns:
-        int: depth in BPC
-    """
-    nhed_chunk = find_by_type(
-        chunks=root_chunks,
-        chunk_type="nhed"
-    )
-    return nhed_chunk.data.bits_per_channel
-
-
-def _get_frame_rate(root_chunks):
-    """
-    Get project frame_rate
-    Args:
-        root_chunks (Aep.Chunk): list of root chunks of the project
-    Returns:
-        float: frame rate of the project
-    """
-    nnhd_chunk = find_by_type(
-        chunks=root_chunks,
-        chunk_type="nnhd"
-    )
-    return nnhd_chunk.data.frame_rate
 
 
 def _get_effect_names(root_chunks):

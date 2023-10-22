@@ -61,7 +61,6 @@ types:
             '"pjef"': utf8_body # effect names
             '"cmta"': utf8_body # Comment data
             '"fdta"': fdta_body # Folder data
-            '"nhed"': nhed_body # Header data
             '"nnhd"': nnhd_body # Project data
             '"head"': head_body # contains AE version and file revision
             _: ascii_body
@@ -90,22 +89,20 @@ types:
         type: u2 # 1-4
         repeat: expr
         repeat-expr: 2
-      - size: 2 # 5-6
       - id: time_scale
-        type: u2 # 7-8
-      - size: 2 # 9-10
+        type: u4 # 7-8
       - id: frame_rate_dividend
-        type: u2 # 11-12
-      - size: 10 # 13-21
-      - id: playhead
-        type: u2 # 22-23
-      - size: 5 # 24-29
-      - id: in_point
-        type: u2 # 30-31
-      - size: 6 # 32-37
+        type: u4 # 11-12
+      - size: 8 # 13-21
+      - id: time_raw
+        type: u4 # 22-23
+      - size: 4 # 24-29
+      - id: in_point_raw
+        type: u4 # 30-31
+      - size: 4 # 32-37
       - id: out_point_raw
-        type: u2 # 38-39
-      - size: 5 # 40-44
+        type: u4 # 38-39
+      - size: 4 # 40-44
       - id: duration_dividend
         type: u4 # 45-48
       - id: duration_divisor
@@ -128,7 +125,10 @@ types:
       - size: 4 # 153-156
       - id: frame_rate_integer
         type: u2 # 157-158
-      - size: 16 # 159-174
+      - size: 6 # 159-166
+      - id: display_start_frame
+        type: u4 # 167-168
+      - size: 6 # 169-174
       - id: shutter_angle
         type: u2 # 175-176
       - id: shutter_phase
@@ -143,19 +143,25 @@ types:
         value: 'frame_rate_dividend.as<f4> / time_scale.as<f4>'
       duration:
         value: 'duration_dividend.as<f4> / duration_divisor.as<f4>'
-      out_point:
-        value: 'out_point_raw == 0xffff ? duration : out_point_raw'
-      pixel_aspect:
-        value: 'pixel_ratio_width.as<f4> / pixel_ratio_height.as<f4>'
-      playhead_frames:
-        value: 'playhead / time_scale'
-      in_point_frames:
-        value: 'in_point * frame_rate'
-      out_point_frames:
-        value: 'out_point * frame_rate'
       frame_duration:
         value: 'duration * frame_rate'
-      shy:
+      display_start_time:
+        value: 'display_start_frame.as<f4> / frame_rate'
+      pixel_aspect:
+        value: 'pixel_ratio_width.as<f4> / pixel_ratio_height.as<f4>'
+      frame_time:
+        value: 'time_raw / time_scale'
+      time:
+        value: 'frame_time / frame_rate'
+      frame_in_point:
+        value: 'display_start_frame + in_point_raw / time_scale'
+      in_point:
+        value: 'frame_in_point / frame_rate'
+      frame_out_point:
+        value: 'display_start_frame + (out_point_raw == 0xffffffff ? frame_duration : out_point_raw / time_scale)'
+      out_point:
+        value: 'frame_out_point / frame_rate'
+      hide_shy_layers:
         value: '(attributes[0] & 1) != 0'
       motion_blur:
         value: '(attributes[0] & (1 << 3)) != 0'
@@ -450,12 +456,6 @@ types:
       - id: binary_data
         size-eos: true
         if: list_type == "btdk"
-  nhed_body:
-    seq:
-      - size: 15
-      - id: bits_per_channel
-        type: u1
-        enum: bits_per_channel
   nmhd_body:
     seq:
       - size: 3
@@ -477,10 +477,25 @@ types:
         value: '(attributes[0] & (1 << 2)) != 0'
   nnhd_body:
     seq:
-      - size: 14
+      - size: 8
+      - id: time_display_type
+        type: u1
+        enum: time_display_type
+      - id: footage_timecode_display_start_type
+        type: u1
+        enum: footage_timecode_display_start_type
+      - size: 4
       - id: frame_rate
         type: u2
-      - size: 24
+      - size: 4
+      - id: frames_count_type
+        type: u1
+        enum: frames_count_type
+      - size: 3
+      - id: bits_per_channel
+        type: u1
+        enum: bits_per_channel
+      - size: 15
   opti_body:
     seq:
       - id: asset_type
@@ -693,24 +708,24 @@ types:
         doc: Bunch of 00
       - id: animated
         type: u1
-      # - size: 7
-      #   doc: Bunch of 00
-      # - size: 4
-      #   doc: Usually 0, probs flags
-      # - size: 4
-      #   doc: Most likely flags, only last byte seems to contain data
-      # - type: f8
-      #   doc: Always 0.0?
-      # - type: f8
-      #   doc: Mostly 0.0, sometimes 0.333
-      # - type: f8
-      #   doc: Always 0.0?
-      # - type: f8
-      #   doc: Mostly 0.0, sometimes 0.333
-      # - size: 4
-      #   doc: Probs some flags
-      # - size: 4
-      #   doc: Probs some flags
+      - size: 7
+        doc: Bunch of 00
+      - size: 4
+        doc: Usually 0, probs flags
+      - size: 4
+        doc: Most likely flags, only last byte seems to contain data
+      - type: f8
+        doc: Always 0.0?
+      - type: f8
+        doc: Mostly 0.0, sometimes 0.333
+      - type: f8
+        doc: Always 0.0?
+      - type: f8
+        doc: Mostly 0.0, sometimes 0.333
+      - id: expression_flags
+        size: 4
+      - size: 4
+        doc: Probs some flags
     instances:
       static:
         value: '(attributes[1] & 1) != 0'
@@ -724,6 +739,8 @@ types:
         value: '(property_control_type[3] & (1 << 2)) != 0'
       vector:
         value: '(property_control_type[3] & (1 << 3)) != 0'
+      expression_enabled:
+        value: '(expression_flags[3] & 1) == 0'
   tdsb_body:
     seq:
       - id: flags
@@ -849,6 +866,16 @@ enums:
     27: saturation
     28: color
     29: luminosity
+  time_display_type:
+    0: timecode
+    1: frames
+  footage_timecode_display_start_type:
+    0: ftcs_start_0
+    1: ftcs_use_source_media
+  frames_count_type:
+    0: fc_start_0
+    1: fc_start_1
+    2: fc_timecode_conversion
   property_value_type:
     0:
       id: unknown

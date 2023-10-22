@@ -22,7 +22,6 @@ from .utils import (
 
 
 def parse_layer(layer_chunk, time_scale):
-    # TODO add classes for different layer types (camera, etc)
     # TODO split parser for different layer types (camera, etc)
     child_chunks = layer_chunk.data.chunks
     
@@ -64,27 +63,25 @@ def parse_layer(layer_chunk, time_scale):
         start_time=ldta_data.start_time,  # TODO check if it's frames or needs to divide by time scale
         stretch=stretch,
         text=[],
-        time=0,  # TODO
+        time=0,  # TODO get from composition ?
         transform=[],
         adjustment_layer=ldta_data.adjustment_layer,
         audio_enabled=ldta_data.audio_enabled,
-        blending_mode=Aep.BlendingMode(1),  # TODO
+        blending_mode=Aep.BlendingMode(1),  # TODO find flag
         collapse_transformation=ldta_data.collapse_transformation,
         effects_active=ldta_data.effects_active,
-        environment_layer=False,  # TODO
+        environment_layer=False,  # TODO find flag
         frame_blending=ldta_data.frame_blending,
         frame_blending_type=ldta_data.frame_blending_type,
         guide_layer=ldta_data.guide_layer,
-        height=0,  # TODO
         motion_blur=ldta_data.motion_blur,
-        preserve_transparency=True,  # TODO
+        preserve_transparency=True,  # TODO find flag
         quality=ldta_data.quality,
         sampling_quality=ldta_data.sampling_quality,
         source_id=ldta_data.source_id,
-        three_d_per_char=ldta_data.three_d_per_char,
-        time_remap_enabled=False,  # TODO
+        three_d_per_char=ldta_data.three_d_per_char,  # TODO check if it's actually this attribute
+        time_remap_enabled=False,  # TODO find flag
         track_matte_type=ldta_data.track_matte_type,
-        width=0,  # TODO
     )
     # TODO use different classes for different layer types (camera, light, etc)
     layer.layer_type = layer_type

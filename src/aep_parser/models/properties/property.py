@@ -5,6 +5,7 @@ from .property_base import PropertyBase
 class Property(PropertyBase):
     def __init__(self,
                  property_control_type=Aep.PropertyControlType.unknown, expression=None,
+                 expression_enabled=None,
                  property_value_type=Aep.PropertyValueType.unknown, value=None,
                  max_value=None, min_value=None, dimensions_separated=None,
                  is_spatial=None, property_parameters=None, locked_ratio=None,
@@ -15,6 +16,7 @@ class Property(PropertyBase):
             property_control_type (Aep.PropertyControlType): The type of the property
                                                              (scalar, color, enum).
             expression (str): The expression for the named property
+            excpression_enabled (bool): True if the expression is enabled.
             property_value_type (Aep.PropertyValueType): The type of value stored in
                                                          this property.
             value (any): The value of this property.
@@ -34,7 +36,7 @@ class Property(PropertyBase):
         super(Property, self).__init__(*args, **kwargs)
         self.property_control_type = property_control_type
         self.expression = expression
-        self.expression_enabled = True # TODO find this
+        self.expression_enabled = expression_enabled
         self.property_value_type = property_value_type
         self.value = value
         self.max_value = max_value

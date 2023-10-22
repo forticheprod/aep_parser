@@ -1,3 +1,4 @@
+# coding: utf-8
 from __future__ import (
     absolute_import,
     unicode_literals,
@@ -21,7 +22,7 @@ class Layer(object):
             effects (list[PropertyGroup]): Contains a layer's effects (if any).
             enabled (bool): Corresponds to the video switch state of the layer in the
                             Timeline panel
-            in_point (float): The “in” point of the layer, expressed in composition time
+            in_point (float): The "in" point of the layer, expressed in composition time
                             (seconds).
             is_name_set (bool): Whether the name of the layer has been set.
             label (int): The label color for the layer. Colors are represented by their
@@ -34,12 +35,12 @@ class Layer(object):
             markers (list[Marker]): Contains a layer's markers.
             name (str): The name of the layer.
             null_layer (bool): When true, the layer was created as a null object
-            out_point (float): The “out” point of the layer, expressed in composition
+            out_point (float): The "out" point of the layer, expressed in composition
                                time (seconds).
             parent_id (int): The ID of the layer's parent layer. None if the layer has
                              no parent.
-            shy (bool): When true, the layer is “shy”, meaning that it is hidden in the
-                        Layer panel if the composition's “Hide all shy layers” option is
+            shy (bool): When true, the layer is "shy", meaning that it is hidden in the
+                        Layer panel if the composition's "Hide all shy layers" option is
                         toggled on.
             solo (bool): When true, the layer is soloed.
             start_time (float): The start time of the layer, expressed in composition

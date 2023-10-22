@@ -33,6 +33,10 @@ class Aep(KaitaiStruct):
         "_raw_data"
     )
 
+    class TimeDisplayType(Enum):
+        timecode = 0
+        frames = 1
+
     class PropertyControlType(Enum):
         layer = 0
         scalar = 2
@@ -47,6 +51,10 @@ class Aep(KaitaiStruct):
         group = 13
         unknown = 15
         three_d = 18
+
+    class FootageTimecodeDisplayStartType(Enum):
+        ftcs_start_0 = 0
+        ftcs_use_source_media = 1
 
     class BlendingMode(Enum):
         normal = 1
@@ -122,6 +130,11 @@ class Aep(KaitaiStruct):
         text = 3
         shape = 4
 
+    class FramesCountType(Enum):
+        fc_start_0 = 0
+        fc_start_1 = 1
+        fc_timecode_conversion = 2
+
     class KeyframeInterpolationType(Enum):
         linear = 1
         bezier = 2
@@ -160,6 +173,7 @@ class Aep(KaitaiStruct):
         wireframe = 0
         draft = 1
         best = 2
+
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
@@ -387,10 +401,6 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.len_data > (self._io.size() - self._io.pos()) else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.FdtaBody(_io__raw_data, self, self._root)
-            elif _on == "nhed":
-                self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.len_data > (self._io.size() - self._io.pos()) else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.NhedBody(_io__raw_data, self, self._root)
             elif _on == "nnhd":
                 self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.len_data > (self._io.size() - self._io.pos()) else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
@@ -473,7 +483,6 @@ class Aep(KaitaiStruct):
                 self.binary_data = self._io.read_bytes_full()
 
 
-
     class CdtaBody(KaitaiStruct):
         __slots__ = (
             "_io",
@@ -485,9 +494,9 @@ class Aep(KaitaiStruct):
             "_unnamed3",
             "frame_rate_dividend",
             "_unnamed5",
-            "playhead",
+            "time_raw",
             "_unnamed7",
-            "in_point",
+            "in_point_raw",
             "_unnamed9",
             "out_point_raw",
             "_unnamed11",
@@ -503,24 +512,28 @@ class Aep(KaitaiStruct):
             "_unnamed21",
             "frame_rate_integer",
             "_unnamed23",
+            "display_start_frame",
+            "_unnamed25",
             "shutter_angle",
             "shutter_phase",
-            "_unnamed26",
+            "_unnamed28",
             "motion_blur_adaptive_sample_limit",
-            "motion_blur_samples_per_frame",
-            "_m_out_point_frames",
             "_m_motion_blur",
             "_m_pixel_aspect",
+            "_m_out_point",
+            "_m_hide_shy_layers",
             "_m_preserve_nested_frame_rate",
             "_m_frame_blending",
             "_m_preserve_nested_resolution",
-            "_m_out_point",
+            "_m_frame_out_point",
             "_m_frame_duration",
             "_m_frame_rate",
-            "_m_playhead_frames",
-            "_m_in_point_frames",
+            "_m_display_start_time",
             "_m_duration",
-            "_m_shy",
+            "_m_time",
+            "_m_in_point",
+            "_m_frame_time",
+            "_m_frame_in_point",
         )
 
         def __init__(self, _io, _parent=None, _root=None):
@@ -534,45 +547,37 @@ class Aep(KaitaiStruct):
             for i in range(2):
                 self.resolution_factor.append(self._io.read_u2be())
 
-            self._unnamed1 = self._io.read_bytes(2)
-            self.time_scale = self._io.read_u2be()
-            self._unnamed3 = self._io.read_bytes(2)
-            self.frame_rate_dividend = self._io.read_u2be()
-            self._unnamed5 = self._io.read_bytes(10)
-            self.playhead = self._io.read_u2be()
-            self._unnamed7 = self._io.read_bytes(5)
-            self.in_point = self._io.read_u2be()
-            self._unnamed9 = self._io.read_bytes(6)
-            self.out_point_raw = self._io.read_u2be()
-            self._unnamed11 = self._io.read_bytes(5)
+            self.time_scale = self._io.read_u4be()
+            self.frame_rate_dividend = self._io.read_u4be()
+            self._unnamed3 = self._io.read_bytes(8)
+            self.time_raw = self._io.read_u4be()
+            self._unnamed5 = self._io.read_bytes(4)
+            self.in_point_raw = self._io.read_u4be()
+            self._unnamed7 = self._io.read_bytes(4)
+            self.out_point_raw = self._io.read_u4be()
+            self._unnamed9 = self._io.read_bytes(4)
             self.duration_dividend = self._io.read_u4be()
             self.duration_divisor = self._io.read_u4be()
             self.bg_color = []
             for i in range(3):
                 self.bg_color.append(self._io.read_u1())
 
-            self._unnamed15 = self._io.read_bytes(84)
+            self._unnamed13 = self._io.read_bytes(84)
             self.attributes = self._io.read_bytes(1)
             self.width = self._io.read_u2be()
             self.height = self._io.read_u2be()
             self.pixel_ratio_width = self._io.read_u4be()
             self.pixel_ratio_height = self._io.read_u4be()
-            self._unnamed21 = self._io.read_bytes(4)
+            self._unnamed19 = self._io.read_bytes(4)
             self.frame_rate_integer = self._io.read_u2be()
-            self._unnamed23 = self._io.read_bytes(16)
+            self._unnamed21 = self._io.read_bytes(6)
+            self.display_start_frame = self._io.read_u4be()
+            self._unnamed23 = self._io.read_bytes(6)
             self.shutter_angle = self._io.read_u2be()
             self.shutter_phase = self._io.read_u4be()
             self._unnamed26 = self._io.read_bytes(16)
             self.motion_blur_adaptive_sample_limit = self._io.read_s4be()
             self.motion_blur_samples_per_frame = self._io.read_s4be()
-
-        @property
-        def out_point_frames(self):
-            if hasattr(self, '_m_out_point_frames'):
-                return self._m_out_point_frames
-
-            self._m_out_point_frames = (self.out_point * self.frame_rate)
-            return getattr(self, '_m_out_point_frames', None)
 
         @property
         def motion_blur(self):
@@ -589,6 +594,22 @@ class Aep(KaitaiStruct):
 
             self._m_pixel_aspect = (self.pixel_ratio_width / self.pixel_ratio_height)
             return getattr(self, '_m_pixel_aspect', None)
+
+        @property
+        def out_point(self):
+            if hasattr(self, '_m_out_point'):
+                return self._m_out_point
+
+            self._m_out_point = (self.frame_out_point / self.frame_rate)
+            return getattr(self, '_m_out_point', None)
+
+        @property
+        def hide_shy_layers(self):
+            if hasattr(self, '_m_hide_shy_layers'):
+                return self._m_hide_shy_layers
+
+            self._m_hide_shy_layers = (KaitaiStream.byte_array_index(self.attributes, 0) & 1) != 0
+            return getattr(self, '_m_hide_shy_layers', None)
 
         @property
         def preserve_nested_frame_rate(self):
@@ -615,12 +636,12 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_preserve_nested_resolution', None)
 
         @property
-        def out_point(self):
-            if hasattr(self, '_m_out_point'):
-                return self._m_out_point
+        def frame_out_point(self):
+            if hasattr(self, '_m_frame_out_point'):
+                return self._m_frame_out_point
 
-            self._m_out_point = (self.duration if self.out_point_raw == 65535 else self.out_point_raw)
-            return getattr(self, '_m_out_point', None)
+            self._m_frame_out_point = (self.display_start_frame + (self.frame_duration if self.out_point_raw == 4294967295 else self.out_point_raw // self.time_scale))
+            return getattr(self, '_m_frame_out_point', None)
 
         @property
         def frame_duration(self):
@@ -639,20 +660,12 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_frame_rate', None)
 
         @property
-        def playhead_frames(self):
-            if hasattr(self, '_m_playhead_frames'):
-                return self._m_playhead_frames
+        def display_start_time(self):
+            if hasattr(self, '_m_display_start_time'):
+                return self._m_display_start_time
 
-            self._m_playhead_frames = self.playhead // self.time_scale
-            return getattr(self, '_m_playhead_frames', None)
-
-        @property
-        def in_point_frames(self):
-            if hasattr(self, '_m_in_point_frames'):
-                return self._m_in_point_frames
-
-            self._m_in_point_frames = (self.in_point * self.frame_rate)
-            return getattr(self, '_m_in_point_frames', None)
+            self._m_display_start_time = (self.display_start_frame / self.frame_rate)
+            return getattr(self, '_m_display_start_time', None)
 
         @property
         def duration(self):
@@ -663,12 +676,36 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_duration', None)
 
         @property
-        def shy(self):
-            if hasattr(self, '_m_shy'):
-                return self._m_shy
+        def time(self):
+            if hasattr(self, '_m_time'):
+                return self._m_time
 
-            self._m_shy = (KaitaiStream.byte_array_index(self.attributes, 0) & 1) != 0
-            return getattr(self, '_m_shy', None)
+            self._m_time = (self.frame_time / self.frame_rate)
+            return getattr(self, '_m_time', None)
+
+        @property
+        def in_point(self):
+            if hasattr(self, '_m_in_point'):
+                return self._m_in_point
+
+            self._m_in_point = (self.frame_in_point / self.frame_rate)
+            return getattr(self, '_m_in_point', None)
+
+        @property
+        def frame_time(self):
+            if hasattr(self, '_m_frame_time'):
+                return self._m_frame_time
+
+            self._m_frame_time = self.time_raw // self.time_scale
+            return getattr(self, '_m_frame_time', None)
+
+        @property
+        def frame_in_point(self):
+            if hasattr(self, '_m_frame_in_point'):
+                return self._m_frame_in_point
+
+            self._m_frame_in_point = (self.display_start_frame + self.in_point_raw // self.time_scale)
+            return getattr(self, '_m_frame_in_point', None)
 
 
     class Tdb4Body(KaitaiStruct):
@@ -694,12 +731,22 @@ class Aep(KaitaiStruct):
             "_unnamed15",
             "_unnamed16",
             "animated",
+            "_unnamed18",
+            "_unnamed19",
+            "_unnamed20",
+            "_unnamed21",
+            "_unnamed22",
+            "_unnamed23",
+            "_unnamed24",
+            "expression_flags",
+            "_unnamed26",
             "_m_integer",
             "_m_position",
             "_m_vector",
             "_m_static",
             "_m_no_value",
             "_m_color",
+            "_m_expression_enabled",
         )
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -726,6 +773,15 @@ class Aep(KaitaiStruct):
             self._unnamed15 = self._io.read_bytes(1)
             self._unnamed16 = self._io.read_bytes(7)
             self.animated = self._io.read_u1()
+            self._unnamed18 = self._io.read_bytes(7)
+            self._unnamed19 = self._io.read_bytes(4)
+            self._unnamed20 = self._io.read_bytes(4)
+            self._unnamed21 = self._io.read_f8be()
+            self._unnamed22 = self._io.read_f8be()
+            self._unnamed23 = self._io.read_f8be()
+            self._unnamed24 = self._io.read_f8be()
+            self.expression_flags = self._io.read_bytes(4)
+            self._unnamed26 = self._io.read_bytes(4)
 
         @property
         def integer(self):
@@ -768,6 +824,14 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_no_value', None)
 
         @property
+        def expression_enabled(self):
+            if hasattr(self, '_m_expression_enabled'):
+                return self._m_expression_enabled
+
+            self._m_expression_enabled = (KaitaiStream.byte_array_index(self.expression_flags, 3) & 1) == 0
+            return getattr(self, '_m_expression_enabled', None)
+
+        @property
         def color(self):
             if hasattr(self, '_m_color'):
                 return self._m_color
@@ -799,8 +863,15 @@ class Aep(KaitaiStruct):
             "_parent",
             "_root",
             "_unnamed0",
+            "time_display_type",
+            "footage_timecode_display_start_type",
+            "_unnamed3",
             "frame_rate",
-            "_unnamed2",
+            "_unnamed5",
+            "frames_count_type",
+            "_unnamed7",
+            "bits_per_channel",
+            "_unnamed9",
         )
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -809,10 +880,16 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self._unnamed0 = self._io.read_bytes(14)
+            self._unnamed0 = self._io.read_bytes(8)
+            self.time_display_type = KaitaiStream.resolve_enum(Aep.TimeDisplayType, self._io.read_u1())
+            self.footage_timecode_display_start_type = KaitaiStream.resolve_enum(Aep.FootageTimecodeDisplayStartType, self._io.read_u1())
+            self._unnamed3 = self._io.read_bytes(4)
             self.frame_rate = self._io.read_u2be()
-            self._unnamed2 = self._io.read_bytes(24)
-
+            self._unnamed5 = self._io.read_bytes(4)
+            self.frames_count_type = KaitaiStream.resolve_enum(Aep.FramesCountType, self._io.read_u1())
+            self._unnamed7 = self._io.read_bytes(3)
+            self.bits_per_channel = KaitaiStream.resolve_enum(Aep.BitsPerChannel, self._io.read_u1())
+            self._unnamed9 = self._io.read_bytes(15)
 
     class KfColor(KaitaiStruct):
         __slots__ = (
@@ -1223,26 +1300,6 @@ class Aep(KaitaiStruct):
                 self._m_alpha = self.color[0]
 
             return getattr(self, '_m_alpha', None)
-
-
-    class NhedBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "_unnamed0",
-            "bits_per_channel",
-        )
-        def __init__(self, _io, _parent=None, _root=None):
-            self._io = _io
-            self._parent = _parent
-            self._root = _root if _root else self
-            self._read()
-
-        def _read(self):
-            self._unnamed0 = self._io.read_bytes(15)
-            self.bits_per_channel = KaitaiStream.resolve_enum(Aep.BitsPerChannel, self._io.read_u1())
-
 
     class HeadBody(KaitaiStruct):
         __slots__ = (
