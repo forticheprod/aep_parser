@@ -77,7 +77,6 @@ def parse_project(aep_file_path):
         start = time.time()
 
         # Layers that have not been given an explicit name should be named after their source
-        # TODO do this somewhere else ?
         for item in project.project_items.values():
             if isinstance(item, CompItem):
                 for layer in item.layers:

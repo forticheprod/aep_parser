@@ -340,16 +340,15 @@ types:
       - size: 4 # 7-10
       - id: stretch_numerator
         type: u2 # 11-12
-      - size: 1 # 13
-      - id: start_time
-        type: s2 # 14-15
-      - size: 6 # 16-21
-      - id: in_point
-        type: u2 # 22-23
-      - size: 6 # 24-29
-      - id: out_point
-        type: u2 # 30-31
-      - size: 6 # 32-37
+      - id: start_time_raw
+        type: u4
+      - size: 4
+      - id: in_point_raw
+        type: u4
+      - size: 4
+      - id: out_point_raw
+        type: u4 # 30-31
+      - size: 5 # 32-37
       - id: attributes
         size: 3 # 38-40
       - id: source_id
@@ -363,7 +362,14 @@ types:
         size: 32 # 65-96
         type: str
         encoding: cp1250
-      - size: 11 # 97-107
+      - size: 3
+      - id: blending_mode
+        type: u1
+        enum: blending_mode
+      - size: 3
+      - id: preserve_transparency
+        type: u1
+      - size: 3
       - id: track_matte_type
         type: u1 # 108
         enum: track_matte_type
@@ -381,6 +387,8 @@ types:
       #   type: u4 # 161-164
       #   doc: only for AE >= 23
     instances:
+      environment_layer:
+        value: '(attributes[0] & (1 << 5)) != 0'
       guide_layer:
         value: '(attributes[0] & (1 << 1)) != 0'
       frame_blending_type:
@@ -837,35 +845,43 @@ enums:
     # missing : add, alpha_add, classic_color_burn, classic_color_dodge,
     # classic_difference, dancing_dissolve, dissolve, divide, luminescent_premul,
     # silhouete_alpha, silhouette_luma, stencil_alpha, stencil_luma, subtract
-    1: normal
-    # 2: ??
-    3: darken
-    4: multiply
-    5: color_burn
-    6: linear_burn
-    7: darker_color
-    # 8: ??
-    9: lighten
-    10: screen
-    11: color_dodge
-    12: linear_dodge
-    13: lighter_color
-    # 14: ??
-    15: overlay
-    16: soft_light
-    17: hard_light
-    18: linear_light
-    19: vivid_light
-    20: pin_light
-    21: hard_mix
-    # 22: ??
-    23: difference
-    24: exclusion
-    # 25: ??
-    26: hue
-    27: saturation
-    28: color
-    29: luminosity
+    2: normal
+    3: dissolve
+    4: add
+    5: multiply
+    6: screen
+    7: overlay
+    8: soft_light
+    9: hard_light
+    10: darken
+    11: lighten
+    12: classic_difference
+    13: hue
+    14: saturation
+    15: color
+    16: luminosity
+    17: stencil_alpha
+    18: stencil_luma
+    19: silhouette_alpha
+    20: silhouette_luma
+    21: luminescent_premul
+    22: alpha_add
+    23: classic_color_dodge
+    24: classic_color_burn
+    25: exclusion
+    26: difference
+    27: color_dodge
+    28: color_burn
+    29: linear_dodge
+    30: linear_burn
+    31: linear_light
+    32: vivid_light
+    33: pin_light
+    34: hard_mix
+    35: lighter_color
+    36: darker_color
+    37: subtract
+    38: divide
   time_display_type:
     0: timecode
     1: frames
@@ -942,15 +958,15 @@ enums:
       id: orientation
       doc: ??
   # ae_version:
-  #   0x5c06073806b4: 15.0
-  #   0x5d040b0006eb: 16.0
-  #   0x5d040b000e30: 16.0.1
-  #   0x5d050b009637: 16.1.2
-  #   0x5d050b009e05: 16.1.3
-  #   0x5d094b08062b: 17.0
-  #   0x5d0b0b08263b: 17.0.4
-  #   0x5d1b0b110e08: 18.2.1
-  #   0x5d1d0b120626: 18.4
-  #   0x5d1d0b70066f: 22.0
-  #   0x5d2b0b33063b: 22.6
-  #   0x5e030b390e03: 23.2.1
+  #   0x5c06073806b4: v15_0
+  #   0x5d040b0006eb: v16_0
+  #   0x5d040b000e30: v16_0_1
+  #   0x5d050b009637: v16_1_2
+  #   0x5d050b009e05: v16_1_3
+  #   0x5d094b08062b: v17_0
+  #   0x5d0b0b08263b: v17_0_4
+  #   0x5d1b0b110e08: v18_2_1
+  #   0x5d1d0b120626: v18_4
+  #   0x5d1d0b70066f: v22_0
+  #   0x5d2b0b33063b: v22_6
+  #   0x5e030b390e03: v23_2_1

@@ -26,10 +26,7 @@ class Project(object):
         self.time_display_type = time_display_type
         self.xmp_packet = xmp_packet
 
-        if frames_count_type.value == 2:
-            self.display_start_frame = 0
-        else:
-            self.display_start_frame = frames_count_type.value
+        self.display_start_frame = frames_count_type.value % 2
         self._layers_by_uid = None
 
     def __repr__(self):

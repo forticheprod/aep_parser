@@ -57,30 +57,44 @@ class Aep(KaitaiStruct):
         ftcs_use_source_media = 1
 
     class BlendingMode(Enum):
-        normal = 1
-        darken = 3
-        multiply = 4
-        color_burn = 5
-        linear_burn = 6
-        darker_color = 7
-        lighten = 9
-        screen = 10
-        color_dodge = 11
-        linear_dodge = 12
-        lighter_color = 13
-        overlay = 15
-        soft_light = 16
-        hard_light = 17
-        linear_light = 18
-        vivid_light = 19
-        pin_light = 20
-        hard_mix = 21
-        difference = 23
-        exclusion = 24
-        hue = 26
-        saturation = 27
-        color = 28
-        luminosity = 29
+        normal = 2
+        dissolve = 3
+        add = 4
+        multiply = 5
+        screen = 6
+        overlay = 7
+        soft_light = 8
+        hard_light = 9
+        darken = 10
+        lighten = 11
+        classic_difference = 12
+        hue = 13
+        saturation = 14
+        color = 15
+        luminosity = 16
+        stencil_alpha = 17
+        stencil_luma = 18
+        silhouette_alpha = 19
+        silhouette_luma = 20
+        luminescent_premul = 21
+        alpha_add = 22
+        classic_color_dodge = 23
+        classic_color_burn = 24
+        exclusion = 25
+        difference = 26
+        color_dodge = 27
+        color_burn = 28
+        linear_dodge = 29
+        linear_burn = 30
+        linear_light = 31
+        vivid_light = 32
+        pin_light = 33
+        hard_mix = 34
+        lighter_color = 35
+        darker_color = 36
+        subtract = 37
+        divide = 38
+
 
     class FrameBlendingType(Enum):
         frame_mix = 0
@@ -1618,27 +1632,31 @@ class Aep(KaitaiStruct):
             "quality",
             "_unnamed2",
             "stretch_numerator",
-            "_unnamed4",
-            "start_time",
-            "_unnamed6",
-            "in_point",
-            "_unnamed8",
-            "out_point",
-            "_unnamed10",
+            "start_time_raw",
+            "_unnamed5",
+            "in_point_raw",
+            "_unnamed7",
+            "out_point_raw",
+            "_unnamed9",
             "attributes",
             "source_id",
-            "_unnamed13",
+            "_unnamed12",
             "label",
-            "_unnamed15",
+            "_unnamed14",
             "layer_name",
-            "_unnamed17",
+            "_unnamed16",
+            "blending_mode",
+            "_unnamed18",
+            "preserve_transparency",
+            "_unnamed20",
             "track_matte_type",
-            "_unnamed19",
+            "_unnamed22",
             "stretch_denominator",
-            "_unnamed21",
+            "_unnamed24",
             "layer_type",
             "parent_id",
-            "_unnamed24",
+            "_unnamed27",
+            "_m_environment_layer",
             "_m_null_layer",
             "_m_guide_layer",
             "_m_auto_orient",
@@ -1649,7 +1667,7 @@ class Aep(KaitaiStruct):
             "_m_solo",
             "_m_markers_locked",
             "_m_locked",
-            "_m_three_d_per_char",
+            "_m_three_d",
             "_m_collapse_transformation",
             "_m_frame_blending_type",
             "_m_adjustment_layer",
@@ -1668,27 +1686,38 @@ class Aep(KaitaiStruct):
             self.quality = KaitaiStream.resolve_enum(Aep.LayerQuality, self._io.read_u2be())
             self._unnamed2 = self._io.read_bytes(4)
             self.stretch_numerator = self._io.read_u2be()
-            self._unnamed4 = self._io.read_bytes(1)
-            self.start_time = self._io.read_s2be()
-            self._unnamed6 = self._io.read_bytes(6)
-            self.in_point = self._io.read_u2be()
-            self._unnamed8 = self._io.read_bytes(6)
-            self.out_point = self._io.read_u2be()
-            self._unnamed10 = self._io.read_bytes(6)
+            self.start_time_raw = self._io.read_u4be()
+            self._unnamed5 = self._io.read_bytes(4)
+            self.in_point_raw = self._io.read_u4be()
+            self._unnamed7 = self._io.read_bytes(4)
+            self.out_point_raw = self._io.read_u4be()
+            self._unnamed9 = self._io.read_bytes(5)
             self.attributes = self._io.read_bytes(3)
             self.source_id = self._io.read_u4be()
-            self._unnamed13 = self._io.read_bytes(17)
+            self._unnamed12 = self._io.read_bytes(17)
             self.label = KaitaiStream.resolve_enum(Aep.Label, self._io.read_u1())
-            self._unnamed15 = self._io.read_bytes(2)
-            self.layer_name = (self._io.read_bytes(32)).decode("cp1250")
-            self._unnamed17 = self._io.read_bytes(11)
+            self._unnamed14 = self._io.read_bytes(2)
+            self.layer_name = (self._io.read_bytes(32)).decode(u"cp1250")
+            self._unnamed16 = self._io.read_bytes(3)
+            self.blending_mode = KaitaiStream.resolve_enum(Aep.BlendingMode, self._io.read_u1())
+            self._unnamed18 = self._io.read_bytes(3)
+            self.preserve_transparency = self._io.read_u1()
+            self._unnamed20 = self._io.read_bytes(3)
             self.track_matte_type = KaitaiStream.resolve_enum(Aep.TrackMatteType, self._io.read_u1())
-            self._unnamed19 = self._io.read_bytes(2)
+            self._unnamed22 = self._io.read_bytes(2)
             self.stretch_denominator = self._io.read_u2be()
-            self._unnamed21 = self._io.read_bytes(19)
+            self._unnamed24 = self._io.read_bytes(19)
             self.layer_type = KaitaiStream.resolve_enum(Aep.LayerType, self._io.read_u1())
             self.parent_id = self._io.read_u4be()
-            self._unnamed24 = self._io.read_bytes(24)
+            self._unnamed27 = self._io.read_bytes(24)
+
+        @property
+        def environment_layer(self):
+            if hasattr(self, '_m_environment_layer'):
+                return self._m_environment_layer
+
+            self._m_environment_layer = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 5)) != 0
+            return getattr(self, '_m_environment_layer', None)
 
         @property
         def null_layer(self):
@@ -1771,12 +1800,12 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_locked', None)
 
         @property
-        def three_d_per_char(self):
-            if hasattr(self, '_m_three_d_per_char'):
-                return self._m_three_d_per_char
+        def three_d(self):
+            if hasattr(self, '_m_three_d'):
+                return self._m_three_d
 
-            self._m_three_d_per_char = (KaitaiStream.byte_array_index(self.attributes, 1) & (1 << 2)) != 0
-            return getattr(self, '_m_three_d_per_char', None)
+            self._m_three_d = (KaitaiStream.byte_array_index(self.attributes, 1) & (1 << 2)) != 0
+            return getattr(self, '_m_three_d', None)
 
         @property
         def collapse_transformation(self):
