@@ -5,7 +5,6 @@ from __future__ import (
     division
 )
 import sys
-import time
 import xml.etree.ElementTree as ET
 
 from ..kaitai.aep import Aep
@@ -31,10 +30,7 @@ def parse_project(aep_file_path):
     Returns:
         Project: parsed project
     """
-    start = time.time()
     with Aep.from_file(aep_file_path) as aep:
-        print(round(time.time() - start, 2), "kaitai parsing")
-        start = time.time()
         root_chunks = aep.data.chunks
 
         root_folder_chunk = find_by_list_type(
@@ -73,8 +69,6 @@ def parse_project(aep_file_path):
             project.ae_version = next(software_agents)
 
         parse_item(root_folder_chunk, project, parent_id=None)
-        print(round(time.time() - start, 2), "items parsing")
-        start = time.time()
 
         # Layers that have not been given an explicit name should be named after their source
         for item in project.project_items.values():
@@ -85,7 +79,6 @@ def parse_project(aep_file_path):
                         layer.name = layer_source_item.name
                         layer.width = layer_source_item.width
                         layer.height = layer_source_item.height
-        print(round(time.time() - start, 2), "adding layer names")
 
         return project
 

@@ -4,7 +4,6 @@ from __future__ import (
     division
 )
 
-from ..kaitai.aep import Aep
 from ..kaitai.utils import (
     find_by_type,
     find_by_list_type,

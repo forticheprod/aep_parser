@@ -95,12 +95,13 @@ class AVLayer(Layer):
         # TODO
         pass
 
-    def audio_active_at_time(self, time):
+    def audio_active_at_time(self, frame_time):
         """
         Returns:
             bool: True if this layer's audio will be active at the specified time. For
                   this method to return true, audioEnabled must be true, no other layer
                   with audio may be soloing unless this layer is soloed too, and the
-                  time must be between the in_point and out_point of this layer.
+                  time must be between the frame_in_point and frame_out_point of this
+                  layer.
         """
-        return self.enabled and self.in_point <= time <= self.out_point
+        return self.enabled and self.frame_in_point <= frame_time <= self.frame_out_point
