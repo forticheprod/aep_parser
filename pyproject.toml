@@ -1,0 +1,26 @@
+[project]
+name = "aep_parser"
+version = "0.0.1"
+authors = [
+  {name="Benoit Delaunay", email="delaunay.ben@gmail.com"},
+]
+description = ".aep (After Effects Project) parser"
+license = "MIT"
+readme = "README.md"
+requires-python = ">=2.7"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: 3",
+    "Topic :: File Formats",
+    "Topic :: Multimedia :: Graphics",
+]
+dependencies = [
+    "kaitaistruct>=0.9",
+]
+
+[project.urls]
+"Homepage" = "https://gitlab.com/delaunay.ben/aep-parser"
+"Bug Tracker" = "https://gitlab.com/delaunay.ben/aep-parser/-/issues"
