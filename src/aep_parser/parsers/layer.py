@@ -44,18 +44,18 @@ def parse_layer(layer_chunk, time_scale):
         stretch = None
 
     layer = AVLayer(
-        auto_orient=ldta_data.auto_orient,
+        auto_orient=ldta_data.auto_orient,  # FIXME should be an enum
         comment=comment,
         effects=[],
         enabled=ldta_data.enabled,
-        frame_in_point=int(ldta_data.in_point_raw / time_scale),
+        frame_in_point=int((ldta_data.in_point_raw + ldta_data.start_time_raw) / time_scale),
+        frame_out_point=int((ldta_data.out_point_raw + ldta_data.start_time_raw) / time_scale),
         label=ldta_data.label,
         layer_id=ldta_data.layer_id,
         locked=ldta_data.locked,
         markers=[],
         name=name,
         null_layer=ldta_data.null_layer,
-        frame_out_point=int(ldta_data.out_point_raw / time_scale),
         parent_id=ldta_data.parent_id,
         shy=ldta_data.shy,
         solo=ldta_data.solo,
@@ -74,11 +74,11 @@ def parse_layer(layer_chunk, time_scale):
         frame_blending_type=ldta_data.frame_blending_type,
         guide_layer=ldta_data.guide_layer,
         motion_blur=ldta_data.motion_blur,
-        preserve_transparency=ldta_data.preserve_transparency,
+        preserve_transparency=bool(ldta_data.preserve_transparency),
         quality=ldta_data.quality,
         sampling_quality=ldta_data.sampling_quality,
         source_id=ldta_data.source_id,
-        three_d=ldta_data.three_d,
+        three_d_layer=ldta_data.three_d_layer,
         track_matte_type=ldta_data.track_matte_type,
     )
     # TODO use different classes for different layer types (camera, light, etc)

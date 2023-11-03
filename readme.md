@@ -3,20 +3,10 @@
 <!-- PROJECT NAME -->
 <br />
 <div align="center">
-  <!-- <a href="https://gitlab.com/delaunay.ben/aep-parser">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
-  </a> -->
-
-  <h3 align="center">aep-parser</h3>
-
+  <h3 align="center">aep_parser</h3>
   <p align="center">
     An After Effects file parser in Python!
-    <!-- <br />
-    <a href="https://gitlab.com/delaunay.ben/aep-parser"><strong>Explore the docs »</strong></a>
-    <br /> -->
     <br />
-    <!-- <a href="https://gitlab.com/delaunay.ben/aep-parser">View Demo</a>
-    · -->
     <a href="https://gitlab.com/delaunay.ben/aep-parser/-/issues">Report Bug</a>
     ·
     <a href="https://gitlab.com/delaunay.ben/aep-parser/-/issues">Request Feature</a>
@@ -63,20 +53,12 @@ This as a .aep (After Effects Project) parser in Python. After Effects files (.a
 <!-- GETTING STARTED -->
 ## Getting Started
 
-### Prerequisites
-
-* Kaitai Struct
-  ```sh
-  pip install kaitaistruct
-  ```
-
 ### Installation
 
 1. Clone the repo
    ```sh
-   git clone https://gitlab.com/delaunay.ben/aep-parser.git
+   pip install aep_parser
    ```
-2. Add the complete path to the `src/` subfolder to your `PYTHONPATH` env var.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -89,8 +71,8 @@ This as a .aep (After Effects Project) parser in Python. After Effects files (.a
 ```python
 from aep_parser.parsers.project import parse_project
 
-aep__file_path = "01_empty.aep"
-project = parse_project(aep__file_path)
+aep_file_path = "01_empty.aep"
+project = parse_project(aep_file_path)
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -137,7 +119,7 @@ If you have a suggestion that would make this better, please fork the repo and c
 <!-- LICENSE -->
 ## License
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+Distributed under the MIT License.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -161,6 +143,7 @@ Project Link: [https://gitlab.com/delaunay.ben/aep-parser](https://gitlab.com/de
 
 * [aftereffects-aep-parser](https://github.com/boltframe/aftereffects-aep-parser)
 * [Kaitai Struct](https://kaitai.io)
-* [Lottie](https://lottiefiles.github.io/lottie-docs/aep/#pprf)
+* [Lottie](https://lottiefiles.github.io/lottie-docs/aep/)
+* [After Effects Scripting Guide](https://ae-scripting.docsforadobe.dev/)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

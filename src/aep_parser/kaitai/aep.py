@@ -1667,7 +1667,7 @@ class Aep(KaitaiStruct):
             "_m_solo",
             "_m_markers_locked",
             "_m_locked",
-            "_m_three_d",
+            "_m_three_d_layer",
             "_m_collapse_transformation",
             "_m_frame_blending_type",
             "_m_adjustment_layer",
@@ -1800,12 +1800,12 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_locked', None)
 
         @property
-        def three_d(self):
-            if hasattr(self, '_m_three_d'):
-                return self._m_three_d
+        def three_d_layer(self):
+            if hasattr(self, '_m_three_d_layer'):
+                return self._m_three_d_layer
 
-            self._m_three_d = (KaitaiStream.byte_array_index(self.attributes, 1) & (1 << 2)) != 0
-            return getattr(self, '_m_three_d', None)
+            self._m_three_d_layer = (KaitaiStream.byte_array_index(self.attributes, 1) & (1 << 2)) != 0
+            return getattr(self, '_m_three_d_layer', None)
 
         @property
         def collapse_transformation(self):

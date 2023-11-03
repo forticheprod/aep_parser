@@ -35,7 +35,7 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
         parent_id=parent_id,
 
         duration=cdta_data.duration,
-        frame_duration=int(cdta_data.frame_duration),
+        frame_duration=int(cdta_data.frame_duration),  # in JSX API, this value is 1 / frame_rate. Here, duration * frame_rate
         frame_rate=cdta_data.frame_rate,
         height=cdta_data.height,
         pixel_aspect=cdta_data.pixel_aspect,

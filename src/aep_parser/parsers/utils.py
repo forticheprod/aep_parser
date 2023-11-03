@@ -5,6 +5,7 @@ from __future__ import (
     division
 )
 import collections
+
 from ..kaitai.utils import (
     find_by_type,
     str_contents,

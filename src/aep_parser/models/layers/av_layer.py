@@ -8,7 +8,7 @@ class AVLayer(Layer):
                  collapse_transformation, effects_active, environment_layer,
                  frame_blending, frame_blending_type, guide_layer, motion_blur,
                  preserve_transparency, quality, sampling_quality, source_id,
-                 three_d, track_matte_type, time_remap_enabled=None, height=0,
+                 three_d_layer, track_matte_type, time_remap_enabled=None, height=0,
                  width=0, *args, **kwargs):
         """
         An AVLayer object represents an audiovisual layer within a composition.
@@ -39,7 +39,7 @@ class AVLayer(Layer):
             sampling_quality (Aep.SamplingQuality): The layer's sampling method
             source_id (int): The ID of the source item for this layer. None for a text
                              layer
-            three_d (bool): True if this layer is a 3D layer.
+            three_d_layer (bool): True if this layer is a 3D layer.
             time_remap_enabled (bool): True if time remapping is enabled for this layer.
             track_matte_type (Aep.TrackMatteType): Specifies the way the track matte is
                                                    applied
@@ -61,7 +61,7 @@ class AVLayer(Layer):
         self.quality = quality
         self.sampling_quality = sampling_quality
         self.source_id = source_id
-        self.three_d = three_d
+        self.three_d_layer = three_d_layer
         self.time_remap_enabled = time_remap_enabled  # TODO get value from the "ADBE Time Remapping" property 
         self.track_matte_type = track_matte_type
         self.width = width

@@ -12,7 +12,8 @@ class Layer(object):
                  auto_orient, comment, effects, enabled, frame_in_point,
                  frame_out_point, frame_start_time, label, layer_id, locked, markers,
                  name, null_layer, parent_id, shy, solo, stretch, text, time, transform,
-                 containing_comp_id=None):
+                 containing_comp_id=None, in_point=None, out_point=None, start_time=None
+                 ):
         """
         Base class for layers.
         Args:
@@ -27,8 +28,10 @@ class Layer(object):
                                   time (frames).
             frame_out_point (int): The "out" point of the layer, expressed in
                                    composition time (frames).
-            frame_start_time (int): The start time of the layer, expressed in composition
-                                    time (frames).
+            frame_start_time (int): The start time of the layer, expressed in
+                                    composition time (frames).
+            in_point (float): The "in" point of the layer, expressed in composition time
+                              (seconds).
             label (int): The label color for the layer. Colors are represented by their
                          number (0 for None, or 1 to 16 for one of the preset colors in
                          the Labels preferences).
@@ -39,12 +42,16 @@ class Layer(object):
             markers (list[Marker]): Contains a layer's markers.
             name (str): The name of the layer.
             null_layer (bool): When true, the layer was created as a null object
+            out_point (float): The "out" point of the layer, expressed in composition
+                               time (seconds).
             parent_id (int): The ID of the layer's parent layer. None if the layer has
                              no parent.
             shy (bool): When true, the layer is "shy", meaning that it is hidden in the
                         Layer panel if the composition's "Hide all shy layers" option is
                         toggled on.
             solo (bool): When true, the layer is soloed.
+            start_time (float): The start time of the layer, expressed in composition
+                                time (seconds).
             stretch (float): The layer's time stretch, expressed as a percentage. A
                              value of 100 means no stretch. Values between 0 and 1 are
                              set to 1, and values between -1 and 0 (not including 0) are
@@ -61,14 +68,17 @@ class Layer(object):
         self.frame_in_point = frame_in_point
         self.frame_out_point = frame_out_point
         self.frame_start_time = frame_start_time
+        self.in_point = in_point
         self.is_name_set = bool(name)
         self.layer_id = layer_id
         self.label = label
         self.locked = locked
         self.null_layer = null_layer
+        self.out_point = out_point
         self.parent_id = parent_id
         self.shy = shy
         self.solo = solo
+        self.start_time = start_time
         self.stretch = stretch
         self.time = time
         self.transform = transform

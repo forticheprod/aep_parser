@@ -401,7 +401,7 @@ types:
         value: '(attributes[1] & 1) != 0'
       adjustment_layer:
         value: '(attributes[1] & (1 << 1)) != 0'
-      three_d_per_char:
+      three_d_layer:
         value: '(attributes[1] & (1 << 2)) != 0'
       solo:
         value: '(attributes[1] & (1 << 3)) != 0'

@@ -37,15 +37,9 @@ class CompItem(AVItem):
         self.frame_time = frame_time
         # TODO remove float stuff from kaitai instances and do it here ?
         # duration, in_point, display_start_time, time, frame_rate, work_area_start, out_point, pixel_aspect
-        # same for other classes
-
-    @property
-    def work_area_duration(self):
-        return self.out_point - self.in_point
-
-    @property
-    def work_area_duration_frame(self):
-        return self.frame_out_point - self.frame_in_point
+        # same for other classes\
+        self.work_area_duration = self.out_point - self.in_point
+        self.work_area_duration_frame = self.frame_out_point - self.frame_in_point
 
     def layer(self, name=None, index=None, other_layer=None, rel_index=None):
         """

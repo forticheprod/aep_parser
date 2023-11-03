@@ -79,6 +79,10 @@ def parse_project(aep_file_path):
                         layer.name = layer_source_item.name
                         layer.width = layer_source_item.width
                         layer.height = layer_source_item.height
+                        if layer_source_item.frame_rate:
+                            layer.in_point = layer.frame_in_point / layer_source_item.frame_rate
+                            layer.out_point = layer.frame_out_point / layer_source_item.frame_rate
+                            layer.start_time = layer.frame_start_time / layer_source_item.frame_rate
 
         return project
 
