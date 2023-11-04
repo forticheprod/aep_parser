@@ -40,6 +40,12 @@ class CompItem(AVItem):
         # same for other classes\
         self.work_area_duration = self.out_point - self.in_point
         self.work_area_duration_frame = self.frame_out_point - self.frame_in_point
+        self.is_composition = True
+        self.is_folder = False
+        self.is_footage = False
+
+    def __iter__(self):
+        return iter(self.layers)
 
     def layer(self, name=None, index=None, other_layer=None, rel_index=None):
         """

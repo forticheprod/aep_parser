@@ -15,7 +15,6 @@ from ..kaitai.utils import (
     str_contents,
 )
 from ..models.project import Project
-from ..models.items.composition import CompItem
 from .item import parse_item
 
 
@@ -71,18 +70,21 @@ def parse_project(aep_file_path):
         parse_item(root_folder_chunk, project, parent_id=None)
 
         # Layers that have not been given an explicit name should be named after their source
-        for item in project.project_items.values():
-            if isinstance(item, CompItem):
-                for layer in item.layers:
-                    if not layer.name:
-                        layer_source_item = project.project_items[layer.source_id]
-                        layer.name = layer_source_item.name
-                        layer.width = layer_source_item.width
-                        layer.height = layer_source_item.height
-                        if layer_source_item.frame_rate:
-                            layer.in_point = layer.frame_in_point / layer_source_item.frame_rate
-                            layer.out_point = layer.frame_out_point / layer_source_item.frame_rate
-                            layer.start_time = layer.frame_start_time / layer_source_item.frame_rate
+        for composition in project.compositions:
+            for layer in composition.layers:
+                if not layer.name:
+                    layer_source_item = project.project_items[layer.source_id]
+                    layer.name = layer_source_item.name
+                    layer.width = layer_source_item.width
+                    layer.height = layer_source_item.height
+                    if layer_source_item.frame_rate:
+                        layer.in_point = layer.frame_in_point / layer_source_item.frame_rate
+                        layer.out_point = layer.frame_out_point / layer_source_item.frame_rate
+                        layer.start_time = layer.frame_start_time / layer_source_item.frame_rate
+                    else:
+                        layer.in_point = layer.frame_in_point / composition.frame_rate
+                        layer.out_point = layer.frame_out_point / composition.frame_rate
+                        layer.start_time = layer.frame_start_time / composition.frame_rate
 
         return project
 

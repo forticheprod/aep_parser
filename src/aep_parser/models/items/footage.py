@@ -11,3 +11,6 @@ class FootageItem(AVItem):
         self.asset_type = asset_type
         self.end_frame = end_frame
         self.start_frame = start_frame
+        self.is_composition = False
+        self.is_folder = False
+        self.is_footage = True

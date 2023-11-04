@@ -6,7 +6,7 @@ meta:
 seq:
   - id: header
     contents: [0x52, 0x49, 0x46, 0x58]
-    doc: RIFF
+    doc: RIFX
   - id: len_data
     type: u4
   - id: format

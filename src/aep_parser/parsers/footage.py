@@ -8,6 +8,7 @@ import json
 import os
 
 from ..kaitai.utils import (
+    filter_by_type,
     find_by_list_type,
     find_by_type,
     str_contents,
@@ -91,21 +92,30 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
 
 def _parse_file_source(pin_child_chunks):
     file_source_data = _get_file_source_data(pin_child_chunks)
+    stvc_chunk = find_by_list_type(
+        chunks=pin_child_chunks,
+        list_type="StVc"
+    )
+    file_names = []
+    if stvc_chunk:
+        stvc_child_chunks = stvc_chunk.data.chunks
+        utf8_chunks = filter_by_type(
+            chunks=stvc_child_chunks,
+            chunk_type="Utf8"
+        )
+        file_names = [
+            str_contents(chunk)
+            for chunk in utf8_chunks
+        ]
+    if file_names:
+        file = os.path.join(file_source_data["fullpath"], file_names[0])
+    else:
+        file = file_source_data["fullpath"]
 
-    ascendcount_base = file_source_data["ascendcount_base"]
-    ascendcount_target = file_source_data["ascendcount_target"]
-    file = file_source_data["fullpath"]
-    platform = file_source_data["platform"]
-    server_name = file_source_data["server_name"]
-    server_volume_name = file_source_data["server_volume_name"]
     target_is_folder = file_source_data["target_is_folder"]
     file_source = FileSource(
-        ascendcount_base=ascendcount_base,
-        ascendcount_target=ascendcount_target,
         file=file,
-        platform=platform,
-        server_name=server_name,
-        server_volume_name=server_volume_name,
+        file_names=file_names,
         target_is_folder=target_is_folder,
     )
     return file_source

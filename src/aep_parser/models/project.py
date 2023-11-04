@@ -28,9 +28,15 @@ class Project(object):
 
         self.display_start_frame = frames_count_type.value % 2
         self._layers_by_uid = None
+        self._compositions = None
+        self._folders = None
+        self._footages = None
 
     def __repr__(self):
         return str(self.__dict__)
+
+    def __iter__(self):
+        return iter(self.project_items.values())
 
     def layer_by_id(self, layer_id):
         if self._layers_by_uid is None:
@@ -44,3 +50,33 @@ class Project(object):
     @property
     def root_folder(self):
         return self.project_items[0]
+
+    @property
+    def compositions(self):
+        if self._compositions is None:
+            self._compositions = [
+                item
+                for item in self.project_items.values()
+                if item.is_composition
+            ]
+        return self._compositions
+
+    @property
+    def folders(self):
+        if self._folders is None:
+            self._folders = [
+                item
+                for item in self.project_items.values()
+                if item.is_folder
+            ]
+        return self._folders
+
+    @property
+    def footages(self):
+        if self._footages is None:
+            self._footages = [
+                item
+                for item in self.project_items.values()
+                if item.is_footage
+            ]
+        return self._footages

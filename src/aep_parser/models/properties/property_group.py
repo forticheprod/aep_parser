@@ -17,6 +17,9 @@ class PropertyGroup(PropertyBase):
         self.enabled = True
         self.elided = not is_effect  # there might be more than that
 
+    def __iter__(self):
+        return iter(self.properties)
+
     def get_property(self, index=None, name=None):
         """
         Finds and returns a child property of this group, as specified by either its

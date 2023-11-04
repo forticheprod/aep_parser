@@ -111,7 +111,7 @@ def parse_folder(is_root, child_chunks, project, item_id, item_name, label, pare
             project=project,
             parent_id=item_id
         )
-        item.folder_items.append(child_item)
+        item.folder_items.append(child_item.item_id)
 
     return item
 
