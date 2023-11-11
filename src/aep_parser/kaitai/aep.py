@@ -460,11 +460,12 @@ class Aep(KaitaiStruct):
             "_unnamed21",
             "frame_rate_integer",
             "_unnamed23",
-            "display_start_frame",
-            "_unnamed25",
+            "display_start_time_dividend",
+            "display_start_time_divisor",
+            "_unnamed26",
             "shutter_angle",
             "shutter_phase",
-            "_unnamed28",
+            "_unnamed29",
             "motion_blur_adaptive_sample_limit",
             "motion_blur_samples_per_frame",
             "_m_motion_blur",
@@ -478,6 +479,7 @@ class Aep(KaitaiStruct):
             "_m_frame_duration",
             "_m_frame_rate",
             "_m_display_start_time",
+            "_m_display_start_frame",
             "_m_duration",
             "_m_time",
             "_m_in_point",
@@ -522,11 +524,12 @@ class Aep(KaitaiStruct):
             self._unnamed21 = self._io.read_bytes(4)
             self.frame_rate_integer = self._io.read_u2be()
             self._unnamed23 = self._io.read_bytes(6)
-            self.display_start_frame = self._io.read_u4be()
-            self._unnamed25 = self._io.read_bytes(6)
+            self.display_start_time_dividend = self._io.read_u4be()
+            self.display_start_time_divisor = self._io.read_u4be()
+            self._unnamed26 = self._io.read_bytes(2)
             self.shutter_angle = self._io.read_u2be()
             self.shutter_phase = self._io.read_u4be()
-            self._unnamed28 = self._io.read_bytes(16)
+            self._unnamed29 = self._io.read_bytes(16)
             self.motion_blur_adaptive_sample_limit = self._io.read_s4be()
             self.motion_blur_samples_per_frame = self._io.read_s4be()
 
@@ -615,7 +618,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_display_start_time'):
                 return self._m_display_start_time
 
-            self._m_display_start_time = (self.display_start_frame / self.frame_rate)
+            self._m_display_start_time = (self.display_start_time_dividend / self.display_start_time_divisor)
             return getattr(self, '_m_display_start_time', None)
 
         @property
@@ -649,6 +652,14 @@ class Aep(KaitaiStruct):
 
             self._m_frame_time = self.time_raw // self.time_scale
             return getattr(self, '_m_frame_time', None)
+
+        @property
+        def display_start_frame(self):
+            if hasattr(self, '_m_display_start_frame'):
+                return self._m_display_start_frame
+
+            self._m_display_start_frame = (self.display_start_time * self.frame_rate)
+            return getattr(self, '_m_display_start_frame', None)
 
         @property
         def frame_in_point(self):

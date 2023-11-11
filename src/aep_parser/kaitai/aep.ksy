@@ -125,24 +125,30 @@ types:
       - id: pixel_ratio_height
         type: u4 # 149-152
       - size: 4 # 153-156
-      - id: frame_rate_integer
+      - id: frame_rate_integer  # probably a divisor
         type: u2 # 157-158
       - size: 6 # 159-166
-      - id: display_start_frame
-        type: u4 # 167-168
-      - size: 6 # 169-174
+      - id: display_start_time_dividend
+        type: u4
+      - id: display_start_time_divisor
+        type: u4
+      - size: 2
       - id: shutter_angle
         type: u2 # 175-176
       - id: shutter_phase
-        type: s4 # 177-180
+        type: u4 # 177-180
       - size: 16 # 181-196
       - id: motion_blur_adaptive_sample_limit
-        type: u4 # 197-200
+        type: s4 # 197-200
       - id: motion_blur_samples_per_frame
-        type: u4 # 201-204
+        type: s4 # 201-204
     instances:
+      display_start_time:
+        value: 'display_start_time_dividend.as<f4> / display_start_time_divisor.as<f4>'
       frame_rate:
         value: 'frame_rate_dividend.as<f4> / time_scale.as<f4>'
+      display_start_frame:
+        value: 'display_start_time * frame_rate'
       duration:
         value: 'duration_dividend.as<f4> / duration_divisor.as<f4>'
       frame_duration:
@@ -345,7 +351,7 @@ types:
         type: u2 # 11-12
       - size: 1
       - id: start_time_raw
-        type: u2
+        type: s2
       - size: 6
       - id: in_point_raw
         type: u2
