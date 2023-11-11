@@ -59,7 +59,7 @@ def parse_layer(layer_chunk, time_scale):
         parent_id=ldta_data.parent_id,
         shy=ldta_data.shy,
         solo=ldta_data.solo,
-        frame_start_time=int(ldta_data.start_time_raw / time_scale),
+        frame_start_time=int(ldta_data.start_time_raw / time_scale),  # TODO check this
         stretch=stretch,
         text=[],
         time=0,  # TODO get from composition ?

@@ -89,20 +89,22 @@ types:
         type: u2 # 1-4
         repeat: expr
         repeat-expr: 2
+      - size: 1
       - id: time_scale
-        type: u4 # 7-8
+        type: u2 # 7-8
+      - size: 2
       - id: frame_rate_dividend
-        type: u4 # 11-12
-      - size: 8 # 13-21
+        type: u2 # 11-12
+      - size: 10 # 13-21
       - id: time_raw
-        type: u4 # 22-23
-      - size: 4 # 24-29
+        type: u2 # 22-23
+      - size: 6 # 24-29
       - id: in_point_raw
-        type: u4 # 30-31
-      - size: 4 # 32-37
+        type: u2 # 30-31
+      - size: 6 # 32-37
       - id: out_point_raw
-        type: u4 # 38-39
-      - size: 4 # 40-44
+        type: u2 # 38-39
+      - size: 5 # 40-44
       - id: duration_dividend
         type: u4 # 45-48
       - id: duration_divisor
@@ -132,12 +134,12 @@ types:
       - id: shutter_angle
         type: u2 # 175-176
       - id: shutter_phase
-        type: u4 # 177-180
+        type: s4 # 177-180
       - size: 16 # 181-196
       - id: motion_blur_adaptive_sample_limit
-        type: s4 # 197-200
+        type: u4 # 197-200
       - id: motion_blur_samples_per_frame
-        type: s4 # 201-204
+        type: u4 # 201-204
     instances:
       frame_rate:
         value: 'frame_rate_dividend.as<f4> / time_scale.as<f4>'
@@ -158,7 +160,7 @@ types:
       in_point:
         value: 'frame_in_point / frame_rate'
       frame_out_point:
-        value: 'display_start_frame + (out_point_raw == 0xffffffff ? frame_duration : out_point_raw / time_scale)'
+        value: 'display_start_frame + (out_point_raw == 0xffff ? frame_duration : (out_point_raw / time_scale))'
       out_point:
         value: 'frame_out_point / frame_rate'
       hide_shy_layers:
@@ -208,9 +210,10 @@ types:
         type: u1
         enum: property_value_type
     seq:
-      - id: time_raw
-        type: u4
       - size: 1
+      - id: time_raw
+        type: u2
+      - size: 2
       - id: keyframe_interpolation_type
         type: u1
         enum: keyframe_interpolation_type
@@ -340,15 +343,16 @@ types:
       - size: 4 # 7-10
       - id: stretch_numerator
         type: u2 # 11-12
+      - size: 1
       - id: start_time_raw
-        type: u4
-      - size: 4
+        type: u2
+      - size: 6
       - id: in_point_raw
-        type: u4
-      - size: 4
+        type: u2
+      - size: 6
       - id: out_point_raw
-        type: u4 # 30-31
-      - size: 5 # 32-37
+        type: u2
+      - size: 6
       - id: attributes
         size: 3 # 38-40
       - id: source_id
@@ -817,6 +821,7 @@ enums:
   frame_blending_type:
     0: frame_mix
     1: pixel_motion
+    2: no_frame_blend
   sampling_quality:
     0: bilinear
     1: bicubic

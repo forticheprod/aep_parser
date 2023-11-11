@@ -32,3 +32,15 @@ class Item(ABC):
 
     def __repr__(self):
         return str(self.__dict__)
+
+    @abc.abstractmethod
+    def is_composition(self):
+        pass
+
+    @abc.abstractmethod
+    def is_folder(self):
+        pass
+
+    @abc.abstractmethod
+    def is_footage(self):
+        pass

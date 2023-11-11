@@ -6,6 +6,7 @@ from __future__ import (
 
 import json
 import os
+import re
 
 from ..kaitai.utils import (
     filter_by_type,
@@ -37,16 +38,16 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
     opti_data = opti_chunk.data
 
     asset_type = opti_data.asset_type
+    start_frame = sspc_data.start_frame
+    end_frame = sspc_data.end_frame
 
     if not asset_type:
         asset_type = "placeholder"
         item_name = opti_data.placeholder_name
-        file = None
         main_source = PlaceholderSource()
     elif asset_type == "Soli":
         asset_type = "solid"
         item_name = opti_data.solid_name
-        file = None
         color = [
             opti_data.red,
             opti_data.green,
@@ -59,12 +60,22 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
     else:
         asset_type = "file"
         main_source = _parse_file_source(pin_child_chunks)
-        file = main_source.file
 
         if not item_name:
             # TODO image sequence (frame numbers), psd (layers)
             # TODO add is_name_set like in Layer
-            item_name = os.path.basename(file)
+            item_name = os.path.basename(main_source.file)
+
+        if 0xffffffff in (start_frame, end_frame):
+            first_file_numbers = re.findall(r"\d+", main_source.file_names[0])
+            last_file_numbers = re.findall(r"\d+", main_source.file_names[-1])
+            if len(main_source.file_names) == 1:
+                start_frame = end_frame = int(first_file_numbers[-1])
+            else:
+                for first, last in zip(reversed(first_file_numbers), reversed(last_file_numbers)):
+                    if first != last:
+                        start_frame = int(first)
+                        end_frame = int(last)
 
     item = FootageItem(
         comment=comment,
@@ -81,11 +92,10 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
         pixel_aspect=1,  # TODO find this
         width=sspc_data.width,
 
-        file=file,
         main_source=main_source,
         asset_type=asset_type,
-        end_frame=sspc_data.end_frame,  # TODO check this
-        start_frame=sspc_data.start_frame,  # TODO check this
+        end_frame=end_frame,
+        start_frame=start_frame,
     )
     return item
 

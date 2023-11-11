@@ -28,9 +28,9 @@ class CompItem(AVItem):
         self.shutter_phase = shutter_phase
         self.time_scale = time_scale
         self.in_point = in_point
-        self.work_area_start = in_point
+        self.work_area_start = in_point - display_start_time
         self.frame_in_point = frame_in_point
-        self.work_area_start_frame = frame_in_point
+        self.work_area_start_frame = frame_in_point - display_start_frame
         self.out_point = out_point
         self.frame_out_point = frame_out_point
         self.time = time
@@ -40,9 +40,6 @@ class CompItem(AVItem):
         # same for other classes\
         self.work_area_duration = self.out_point - self.in_point
         self.work_area_duration_frame = self.frame_out_point - self.frame_in_point
-        self.is_composition = True
-        self.is_folder = False
-        self.is_footage = False
 
     def __iter__(self):
         return iter(self.layers)
@@ -64,3 +61,14 @@ class CompItem(AVItem):
         else:
             return None
 
+    @property
+    def is_composition(self):
+        return True
+
+    @property
+    def is_folder(self):
+        return False
+
+    @property
+    def is_footage(self):
+        return False
