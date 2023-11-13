@@ -86,62 +86,62 @@ types:
   cdta_body:
     seq:
       - id: resolution_factor
-        type: u2 # 1-4
+        type: u2
         repeat: expr
         repeat-expr: 2
       - size: 1
       - id: time_scale
-        type: u2 # 7-8
+        type: u2
       - size: 2
       - id: frame_rate_dividend
-        type: u2 # 11-12
-      - size: 10 # 13-21
+        type: u2
+      - size: 10
       - id: time_raw
-        type: u2 # 22-23
-      - size: 6 # 24-29
+        type: u2
+      - size: 6
       - id: in_point_raw
-        type: u2 # 30-31
-      - size: 6 # 32-37
+        type: u2
+      - size: 6
       - id: out_point_raw
-        type: u2 # 38-39
-      - size: 5 # 40-44
+        type: u2
+      - size: 5
       - id: duration_dividend
-        type: u4 # 45-48
+        type: u4
       - id: duration_divisor
-        type: u4 # 49-52
+        type: u4
       - id: bg_color
-        type: u1 # 53-55
+        type: u1
         repeat: expr
         repeat-expr: 3
-      - size: 84 # 56-139
+      - size: 84
       - id: attributes
-        size: 1 # 140
+        size: 1
       - id: width
-        type: u2 # 141-142
+        type: u2
       - id: height
-        type: u2 # 143-144
+        type: u2
       - id: pixel_ratio_width
-        type: u4 # 145-148
+        type: u4
       - id: pixel_ratio_height
-        type: u4 # 149-152
-      - size: 4 # 153-156
+        type: u4
+      - size: 4
       - id: frame_rate_integer  # probably a divisor
-        type: u2 # 157-158
-      - size: 6 # 159-166
+        type: u2
+      - size: 6
       - id: display_start_time_dividend
         type: u4
       - id: display_start_time_divisor
         type: u4
       - size: 2
       - id: shutter_angle
-        type: u2 # 175-176
+        type: u2
       - id: shutter_phase
-        type: u4 # 177-180
-      - size: 16 # 181-196
+        type: u4
+      - size: 16
       - id: motion_blur_adaptive_sample_limit
-        type: s4 # 197-200
+        type: s4
       - id: motion_blur_samples_per_frame
-        type: s4 # 201-204
+        type: s4
     instances:
       display_start_time:
         value: 'display_start_time_dividend.as<f4> / display_start_time_divisor.as<f4>'
@@ -342,34 +342,37 @@ types:
   ldta_body:
     seq:
       - id: layer_id
-        type: u4 # 1-4
+        type: u4
       - id: quality
-        type: u2 # 5-6
+        type: u2
         enum: layer_quality
-      - size: 4 # 7-10
-      - id: stretch_numerator
-        type: u2 # 11-12
+      - size: 4
+      - id: stretch_dividend
+        type: u2
+      - id: start_time_dividend
+        type: u4
+      - id: start_time_divisor
+        type: u4
+      - id: in_point_dividend
+        type: u4
+      - id: in_point_divisor
+        type: u4
+      - id: out_point_dividend
+        type: u4
+      - id: out_point_divisor
+        type: u4
       - size: 1
-      - id: start_time_raw
-        type: s2
-      - size: 6
-      - id: in_point_raw
-        type: u2
-      - size: 6
-      - id: out_point_raw
-        type: u2
-      - size: 6
       - id: attributes
-        size: 3 # 38-40
+        size: 3
       - id: source_id
-        type: u4 # 41-44
-      - size: 17 # 45-61
+        type: u4
+      - size: 17
       - id: label
-        type: u1 # 62
+        type: u1
         enum: label
-      - size: 2 # 63-64
+      - size: 2
       - id: layer_name
-        size: 32 # 65-96
+        size: 32
         type: str
         encoding: cp1250
       - size: 3
@@ -381,22 +384,28 @@ types:
         type: u1
       - size: 3
       - id: track_matte_type
-        type: u1 # 108
+        type: u1
         enum: track_matte_type
-      - size: 2 # 109-110
-      - id: stretch_denominator
-        type: u2 # 111-112
-      - size: 19 # 113-131
+      - size: 2
+      - id: stretch_divisor
+        type: u2
+      - size: 19
       - id: layer_type
-        type: u1 # 132
+        type: u1
         enum: layer_type
       - id: parent_id
-        type: u4 # 133-136
-      - size: 24 # 137-160
+        type: u4
+      - size: 24
       # - id: matte_layer_id
-      #   type: u4 # 161-164
+      #   type: u4
       #   doc: only for AE >= 23
     instances:
+      start_time:
+        value: 'start_time_dividend.as<f4> / start_time_divisor.as<f4>'
+      in_point:
+        value: 'in_point_dividend.as<f4> / in_point_divisor.as<f4>'
+      out_point:
+        value: 'out_point_dividend.as<f4> / out_point_divisor.as<f4>'
       environment_layer:
         value: '(attributes[0] & (1 << 5)) != 0'
       guide_layer:
@@ -517,30 +526,30 @@ types:
   opti_body:
     seq:
       - id: asset_type
-        size: 4 # 1-4
+        size: 4
         type: strz
         encoding: ascii
         # enum: asset_type
       - id: asset_type_int
-        type: u2 # 5-6
-      - size: 4 # 7-10
+        type: u2
+      - size: 4
         if: asset_type == "Soli"
       - id: color
-        type: f4 # 11-14
+        type: f4
         repeat: expr
         repeat-expr: 4
         if: asset_type == "Soli"
       - id: solid_name
         type: strz
         encoding: cp1250
-        size: 256 # 27-282
+        size: 256
         if: asset_type == "Soli"
-      - size: 4 # 7-10
+      - size: 4
         if: asset_type_int == 2
       - id: placeholder_name
         type: strz
         encoding: cp1250
-        size-eos: true # 11-268
+        size-eos: true
         if: asset_type_int == 2
     instances:
       red:
@@ -557,22 +566,22 @@ types:
         if: asset_type == "Soli"
   pard_body:
     seq:
-      - size: 15 # 1-15
+      - size: 15
       - id: property_control_type
-        type: u1 # 16
+        type: u1
         enum: property_control_type
       - id: name
-        size: 32 # 17-48
+        size: 32
         type: strz
         encoding: cp1250
-      - size: 8 # 49-56
+      - size: 8
       - id: last_color
-        type: u1 #
+        type: u1
         repeat: expr
         repeat-expr: 4
         if: property_control_type == property_control_type::color
       - id: default_color
-        type: u1 #
+        type: u1
         repeat: expr
         repeat-expr: 4
         if: property_control_type == property_control_type::color
@@ -635,7 +644,7 @@ types:
       - size: 2
         if: property_control_type == property_control_type::scalar
       - id: max_color
-        type: u1 # 53-55
+        type: u1
         repeat: expr
         repeat-expr: 4
         if: property_control_type == property_control_type::color
@@ -664,26 +673,26 @@ types:
         if: property_control_type == property_control_type::three_d
   sspc_body:
     seq:
-      - size: 32 # 1-32
+      - size: 32
       - id: width
-        type: u2 # 33-34
-      - size: 2 # 35-36
+        type: u2
+      - size: 2
       - id: height
-        type: u2 # 37-38
+        type: u2
       - id: duration_dividend
-        type: u4 # 39-42
+        type: u4
       - id: duration_divisor
-        type: u4 # 43-46
-      - size: 10 # 47-56
+        type: u4
+      - size: 10
       - id: frame_rate_base
-        type: u4 # 57-60
+        type: u4
       - id: frame_rate_dividend
-        type: u2 # 61-62
-      - size: 110 # 61-62
+        type: u2
+      - size: 110
       - id: start_frame
-        type: u4 # 61-62
+        type: u4
       - id: end_frame
-        type: u4 # 61-62
+        type: u4
     instances:
       duration:
         value: 'duration_dividend.as<f4> / duration_divisor.as<f4>'
@@ -853,9 +862,6 @@ enums:
     15: unknown
     18: three_d
   blending_mode:
-    # missing : add, alpha_add, classic_color_burn, classic_color_dodge,
-    # classic_difference, dancing_dissolve, dissolve, divide, luminescent_premul,
-    # silhouete_alpha, silhouette_luma, stencil_alpha, stencil_luma, subtract
     2: normal
     3: dissolve
     4: add

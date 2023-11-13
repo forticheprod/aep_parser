@@ -10,10 +10,9 @@ from builtins import str
 class Layer(object):
     def __init__(self,
                  auto_orient, comment, effects, enabled, frame_in_point,
-                 frame_out_point, frame_start_time, label, layer_id, locked, markers,
-                 name, null_layer, parent_id, shy, solo, stretch, text, time, transform,
-                 containing_comp_id=None, in_point=None, out_point=None, start_time=None
-                 ):
+                 frame_out_point, frame_start_time, in_point, label, layer_id, locked,
+                 markers, name, null_layer, out_point, parent_id, start_time, shy, solo,
+                 stretch, text, time, transform, containing_comp_id=None):
         """
         Base class for layers.
         Args:
@@ -97,31 +96,3 @@ class Layer(object):
     @name.setter
     def name(self, value):
         self._name = value
-
-    @property
-    def active(self):
-        """
-        Corresponds to the setting of the eyeball icon. When true, the layer's video is
-        active at the current time.
-        """
-        return self.active_at_time(self.time)
-        pass
-
-    def active_at_time(self, time):
-        """
-        Returns true if this layer will be active at the specified time. To return true,
-        the layer must be enabled, no other layer may be soloing unless this layer is
-        soloed too, and the time must be between the inPoint and outPoint values of this
-        layer.
-        Args:
-            time (float): The time in seconds.
-        """
-        return self.enabled and self.in_point <= time <= self.out_point
-
-    @property
-    def has_video(self):
-        """
-        When true, the layer has a video switch (the eyeball icon) in the Timeline panel
-        """
-        # TODO
-        pass

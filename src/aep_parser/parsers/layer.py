@@ -20,7 +20,17 @@ from .utils import (
 )
 
 
-def parse_layer(layer_chunk, time_scale):
+def parse_layer(layer_chunk, composition):
+    """
+    Parses a composition layer. This layer is an instance of an item in a composition.
+    Some information can only be found on the source item. To access it, use
+    `source_item = project.project_items[layer.source_id]`.
+    Args:
+        layer_chunk (Aep.Chunk): The LIST chunk to parse.
+        composition (CompItem): The composition.
+    Returns:
+        AVLayer: The parsed layer.
+    """
     # TODO split parser for different layer types (camera, etc)
     child_chunks = layer_chunk.data.chunks
     
@@ -39,7 +49,7 @@ def parse_layer(layer_chunk, time_scale):
     ldta_data = ldta_chunk.data
     layer_type = ldta_data.layer_type
     try:
-        stretch = float(ldta_data.stretch_numerator) / ldta_data.stretch_denominator
+        stretch = float(ldta_data.stretch_dividend) / ldta_data.stretch_divisor
     except ZeroDivisionError:
         stretch = None
 
@@ -48,18 +58,21 @@ def parse_layer(layer_chunk, time_scale):
         comment=comment,
         effects=[],
         enabled=ldta_data.enabled,
-        frame_in_point=int((ldta_data.in_point_raw + ldta_data.start_time_raw) / time_scale),
-        frame_out_point=int((ldta_data.out_point_raw + ldta_data.start_time_raw) / time_scale),
+        frame_in_point=int(round((ldta_data.in_point + ldta_data.start_time) * composition.frame_rate)),
+        frame_out_point=int(round((ldta_data.out_point + ldta_data.start_time) * composition.frame_rate)),
+        frame_start_time=int(round(ldta_data.start_time * composition.frame_rate)),
+        in_point=ldta_data.in_point + ldta_data.start_time,
         label=ldta_data.label,
         layer_id=ldta_data.layer_id,
         locked=ldta_data.locked,
         markers=[],
         name=name,
         null_layer=ldta_data.null_layer,
+        out_point=ldta_data.out_point + ldta_data.start_time,
         parent_id=ldta_data.parent_id,
         shy=ldta_data.shy,
         solo=ldta_data.solo,
-        frame_start_time=int(ldta_data.start_time_raw / time_scale),  # TODO check this
+        start_time=ldta_data.start_time,
         stretch=stretch,
         text=[],
         time=0,  # TODO get from composition ?
@@ -96,7 +109,7 @@ def parse_layer(layer_chunk, time_scale):
         transform_prop = parse_property_group(
             tdgp_chunk=transform_tdgp[0],
             group_match_name="ADBE Transform Group",
-            time_scale=time_scale,
+            time_scale=composition.time_scale,
         )
         layer.transform = transform_prop.properties
 
@@ -106,7 +119,7 @@ def parse_layer(layer_chunk, time_scale):
         effects_prop = parse_property_group(
             tdgp_chunk=effects_tdgp[0],
             group_match_name="ADBE Effect Parade",
-            time_scale=time_scale,
+            time_scale=composition.time_scale,
         )
         layer.effects = effects_prop.properties
 
@@ -116,7 +129,7 @@ def parse_layer(layer_chunk, time_scale):
         layer.text = parse_property_group(
             tdgp_chunk=text_tdgp[0],
             group_match_name="ADBE Text Properties",
-            time_scale=time_scale,
+            time_scale=composition.time_scale,
         )
 
     # Parse markers
@@ -125,7 +138,7 @@ def parse_layer(layer_chunk, time_scale):
         layer.markers = parse_markers(
             mrst_chunk=markers_mrst[0],
             group_match_name="ADBE Marker",
-            time_scale=time_scale,
+            time_scale=composition.time_scale,
         )
 
     return layer

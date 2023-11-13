@@ -13,6 +13,12 @@ from ..kaitai.utils import (
 
 
 def get_name(child_chunks):
+    """
+    Args:
+        child_chunks (list): The child chunks of the item.
+    Returns:
+        str: The name of the item.
+    """
     name_chunk = find_by_type(
         chunks=child_chunks,
         chunk_type="Utf8"
@@ -22,6 +28,12 @@ def get_name(child_chunks):
 
 
 def get_comment(child_chunks):
+    """
+    Args:
+        child_chunks (list): The child chunks of the item.
+    Returns:
+        str: The comment of the item.
+    """
     cmta_chunk = find_by_type(
         chunks=child_chunks,
         chunk_type="cmta"
@@ -33,7 +45,6 @@ def get_comment(child_chunks):
 
 def get_chunks_by_match_name(root_chunk):
     """
-    Returns a dictionary of chunks, grouped by their match name.
     Args:
         root_chunk (Aep.Chunk): The LIST chunk to parse.
     Returns:

@@ -16,7 +16,7 @@ class AVItem(Item):
         Generalized object storing information about compositions or footages
         Args:
             duration (float): The duration of the item in seconds.
-            frame_duration (float): The duration of the item in seconds.
+            frame_duration (int): The duration of the item in frames.
             frame_rate (float): The frame rate of the item in frames per second.
             height (int): The height of the item in pixels.
             pixel_aspect (float): The pixel aspect ratio of the item (1.0 is square).
@@ -28,13 +28,17 @@ class AVItem(Item):
         self.frame_rate = frame_rate
         self.height = height
         self.pixel_aspect = pixel_aspect
+        self.width = width
         # I did not implement self.used_in as this would cause infinite recursion when
         # trying to print the object and we would have to override repr,
         # copy.deepcopy(self.__dict__) then override used_in and it slows things down
         # quite a bit
-        self.width = width
 
     def __repr__(self):
+        """
+        Returns:
+            str: string representation of the object's attributes
+        """
         return str(self.__dict__)
 
     @property

@@ -41,19 +41,25 @@ class PropertyBase(ABC):
         self.enabled = enabled
 
     def __repr__(self):
+        """
+        Returns:
+            str: The string representation of the property.
+        """
         return str(self.__dict__)
 
     @property
     def active(self):
         """
-        Same as enabled
+        Returns:
+            bool: Same as enabled.
         """
         return self.enabled
 
     @property
     def is_modified(self):
         """
-        When true, this property has been changed since its creation.
+        Returns:
+            bool: True if this property has been changed since its creation.
         """
         # TODO
         pass

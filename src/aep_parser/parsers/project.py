@@ -69,22 +69,15 @@ def parse_project(aep_file_path):
 
         parse_item(root_folder_chunk, project, parent_id=None)
 
-        # Layers that have not been given an explicit name should be named after their source
+        # Use source item properties for layers
         for composition in project.compositions:
             for layer in composition.layers:
-                if not layer.name:
-                    layer_source_item = project.project_items[layer.source_id]
-                    layer.name = layer_source_item.name
+                layer_source_item = project.project_items[layer.source_id]
+                if layer_source_item.is_footage or layer_source_item.is_composition:
+                    if not layer.name:
+                        layer.name = layer_source_item.name
                     layer.width = layer_source_item.width
                     layer.height = layer_source_item.height
-                    if layer_source_item.frame_rate:
-                        layer.in_point = layer.frame_in_point / layer_source_item.frame_rate
-                        layer.out_point = layer.frame_out_point / layer_source_item.frame_rate
-                        layer.start_time = layer.frame_start_time / layer_source_item.frame_rate
-                    else:
-                        layer.in_point = layer.frame_in_point / composition.frame_rate
-                        layer.out_point = layer.frame_out_point / composition.frame_rate
-                        layer.start_time = layer.frame_start_time / composition.frame_rate
 
         return project
 

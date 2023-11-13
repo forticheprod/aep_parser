@@ -14,17 +14,23 @@ from .layer import parse_layer
 
 
 def parse_composition(child_chunks, item_id, item_name, label, parent_id, comment):
+    """
+    Parses a composition item.
+    Args:
+        child_chunks (list[Aep.Chunk]): child chunks of the composition LIST chunk.
+        item_id (int): The unique item ID.
+        item_name (str): The composition name.
+        label (int): The composition label color.
+        parent_id (int): The composition's parent folder unique ID.
+        comment (str): The composition comment.
+    Returns:
+        CompItem: The parsed composition.
+    """
     cdta_chunk = find_by_type(
         chunks=child_chunks,
         chunk_type="cdta"
     )
     cdta_data = cdta_chunk.data
-    time_scale = cdta_data.time_scale
-
-    markers = _get_markers(
-        child_chunks=child_chunks,
-        time_scale=time_scale,
-    )
 
     composition = CompItem(
         comment=comment,
@@ -45,7 +51,7 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
         frame_blending=cdta_data.frame_blending,
         hide_shy_layers=cdta_data.hide_shy_layers,  # TODO check this (could be just a shy attribute)
         layers=[],
-        markers=markers,
+        markers=[],
         motion_blur=cdta_data.motion_blur,
         motion_blur_adaptive_sample_limit=cdta_data.motion_blur_adaptive_sample_limit,
         motion_blur_samples_per_frame=cdta_data.motion_blur_samples_per_frame,
@@ -54,7 +60,7 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
         shutter_angle=cdta_data.shutter_angle,
         shutter_phase=cdta_data.shutter_phase,
         resolution_factor=cdta_data.resolution_factor,
-        time_scale=time_scale,
+        time_scale=cdta_data.time_scale,
 
         in_point=cdta_data.in_point,
         frame_in_point=int(cdta_data.frame_in_point),
@@ -66,6 +72,11 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
         display_start_frame=int(cdta_data.display_start_frame),
     )
 
+    composition.markers = _get_markers(
+        child_chunks=child_chunks,
+        composition=composition,
+    )
+
     # Parse composition's layers
     layer_sub_chunks = filter_by_list_type(
         chunks=child_chunks,
@@ -74,7 +85,7 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
     for layer_chunk in layer_sub_chunks:
         layer = parse_layer(
             layer_chunk=layer_chunk,
-            time_scale=time_scale,
+            composition=composition,
         )
         layer.containing_comp_id = item_id
         composition.layers.append(layer)
@@ -82,13 +93,20 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
     return composition
 
 
-def _get_markers(child_chunks, time_scale):
+def _get_markers(child_chunks, composition):
+    """
+    Args:
+        child_chunks (list[Aep.Chunk]): child chunks of the composition LIST chunk.
+        composition (CompItem): The parent composition.
+    Returns:
+        list[Marker]: The composition markers.
+    """
     markers_layer_chunk = find_by_list_type(
         chunks=child_chunks,
         list_type="SecL"
     )
     markers_layer = parse_layer(
         layer_chunk=markers_layer_chunk,
-        time_scale=time_scale,
+        composition=composition,
     )
     return markers_layer.markers

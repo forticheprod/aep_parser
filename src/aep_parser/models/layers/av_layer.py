@@ -76,32 +76,3 @@ class AVLayer(Layer):
                   the layer does not have a source.
         """
         return bool(self.source_id) and not(self.is_name_set)
-
-    @property
-    def audio_active(self):
-        """
-        Returns:
-            bool: True if the layer's audio is active at the current time.
-        """
-        return self.audio_active_at_time(self.time)
-
-    @property
-    def has_audio(self):
-        """
-        Returns:
-            bool: True if the layer contains an audio component, regardless of whether
-                  it is audio-enabled or soloed.
-        """
-        # TODO
-        pass
-
-    def audio_active_at_time(self, frame_time):
-        """
-        Returns:
-            bool: True if this layer's audio will be active at the specified time. For
-                  this method to return true, audioEnabled must be true, no other layer
-                  with audio may be soloing unless this layer is soloed too, and the
-                  time must be between the frame_in_point and frame_out_point of this
-                  layer.
-        """
-        return self.enabled and self.frame_in_point <= frame_time <= self.frame_out_point

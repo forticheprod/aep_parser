@@ -21,6 +21,17 @@ from ..models.sources.placeholder import PlaceholderSource
 
 
 def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
+    """
+    Args:
+        child_chunks (list): The footage item child chunks.
+        item_id (int): The item's unique id.
+        item_name (str): The item's name.
+        label (str): The item's label color.
+        parent_id (int): The item's parent folder's unique id.
+        comment (str): The item's comment.
+    Returns:
+        FootageItem: The parsed footage item.
+    """
     pin_chunk = find_by_list_type(
         chunks=child_chunks,
         list_type="Pin "
@@ -62,10 +73,11 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
         main_source = _parse_file_source(pin_child_chunks)
 
         if not item_name:
-            # TODO image sequence (frame numbers), psd (layers)
-            # TODO add is_name_set like in Layer
+            # TODO Handle image sequence (frame numbers), psd (layers), ...
+            # TODO Add is_name_set like in Layer ?
             item_name = os.path.basename(main_source.file)
 
+        # If start frame or end frame is undefined, try to get it from the filenames
         if 0xffffffff in (start_frame, end_frame):
             first_file_numbers = re.findall(r"\d+", main_source.file_names[0])
             last_file_numbers = re.findall(r"\d+", main_source.file_names[-1])
@@ -101,6 +113,12 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
 
 
 def _parse_file_source(pin_child_chunks):
+    """
+    Args:
+        pin_child_chunks (list[Aep.Chunk]): The Pin chunk's child chunks.
+    Returns:
+        FileSource: The parsed file source.
+    """
     file_source_data = _get_file_source_data(pin_child_chunks)
     stvc_chunk = find_by_list_type(
         chunks=pin_child_chunks,
@@ -132,6 +150,12 @@ def _parse_file_source(pin_child_chunks):
 
 
 def _get_file_source_data(pin_child_chunks):
+    """
+    Args:
+        pin_child_chunks (list[Aep.Chunk]): The Pin chunk's child chunks.
+    Returns:
+        dict: The file source data.
+    """
     als2_chunk = find_by_list_type(
         chunks=pin_child_chunks,
         list_type="Als2"

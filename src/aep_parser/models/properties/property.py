@@ -74,7 +74,7 @@ class Property(PropertyBase):
         Returns:
             int: The index of the keyframe nearest to the specified time.
         """
-        return min(self.keyframes, key=lambda k: abs(k.time - time))
+        return min(self.keyframes, key=lambda k: abs(k.time - time))  # FIXME does not return index
 
     @property
     def is_dropdown_effect(self):

@@ -13,12 +13,14 @@ from enum import Enum
 This file was generated from aep.ksy using https://ide.kaitai.io/
 Then modified to:
 - add slots to all classes
-- replace massive "elif" block in Chunk._read() with a dict
+- add _ON_TO_KAITAISTRUCT_TYPE dict
+- replace massive "elif" block in Chunk._read() with a dict lookup
 """
 
 
 if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 9):
     raise Exception("Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s" % (kaitaistruct.__version__))
+
 
 class Aep(KaitaiStruct):
     __slots__ = (
@@ -94,7 +96,6 @@ class Aep(KaitaiStruct):
         darker_color = 36
         subtract = 37
         divide = 38
-
 
     class FrameBlendingType(Enum):
         frame_mix = 0
@@ -334,36 +335,9 @@ class Aep(KaitaiStruct):
             self._raw_data = self._io.read_bytes(((self._io.size() - self._io.pos()) if self.len_data > (self._io.size() - self._io.pos()) else self.len_data))
             _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
             _on = self.chunk_type
-            _ON_TO_KAITAISTRUCT_TYPE = {
-                "alas": Aep.Utf8Body,
-                "cdat": Aep.CdatBody,
-                "cdta": Aep.CdtaBody,
-                "cmta": Aep.Utf8Body,
-                "fdta": Aep.FdtaBody,
-                "fnam": Aep.ChildUtf8Body,
-                "head": Aep.HeadBody,
-                "idta": Aep.IdtaBody,
-                "ldat": Aep.LdatBody,
-                "ldta": Aep.LdtaBody,
-                "lhd3": Aep.Lhd3Body,
-                "LIST": Aep.ListBody,
-                "NmHd": Aep.NmhdBody,
-                "nnhd": Aep.NnhdBody,
-                "opti": Aep.OptiBody,
-                "pard": Aep.PardBody,
-                "pdnm": Aep.ChildUtf8Body,
-                "pjef": Aep.Utf8Body,
-                "sspc": Aep.SspcBody,
-                "tdb4": Aep.Tdb4Body,
-                "tdmn": Aep.Utf8Body,
-                "tdsb": Aep.TdsbBody,
-                "tdsn": Aep.ChildUtf8Body,
-                "Utf8": Aep.Utf8Body,
-            }
             self.data = _ON_TO_KAITAISTRUCT_TYPE.get(_on, Aep.AsciiBody)(_io__raw_data, self, self._root)
             if (self.len_data % 2) != 0:
                 self.padding = self._io.read_bytes(1)
-
 
 
     class Lhd3Body(KaitaiStruct):
@@ -1579,13 +1553,13 @@ class Aep(KaitaiStruct):
             "layer_id",
             "quality",
             "_unnamed2",
-            "stretch_numerator",
-            "_unnamed4",
-            "start_time_raw",
-            "_unnamed6",
-            "in_point_raw",
-            "_unnamed8",
-            "out_point_raw",
+            "stretch_dividend",
+            "start_time_dividend",
+            "start_time_divisor",
+            "in_point_dividend",
+            "in_point_divisor",
+            "out_point_dividend",
+            "out_point_divisor",
             "_unnamed10",
             "attributes",
             "source_id",
@@ -1600,11 +1574,14 @@ class Aep(KaitaiStruct):
             "_unnamed21",
             "track_matte_type",
             "_unnamed23",
-            "stretch_denominator",
+            "stretch_divisor",
             "_unnamed25",
             "layer_type",
             "parent_id",
             "_unnamed28",
+            "_m_start_time",
+            "_m_in_point",
+            "_m_out_point",
             "_m_environment_layer",
             "_m_null_layer",
             "_m_guide_layer",
@@ -1634,14 +1611,14 @@ class Aep(KaitaiStruct):
             self.layer_id = self._io.read_u4be()
             self.quality = KaitaiStream.resolve_enum(Aep.LayerQuality, self._io.read_u2be())
             self._unnamed2 = self._io.read_bytes(4)
-            self.stretch_numerator = self._io.read_u2be()
-            self._unnamed4 = self._io.read_bytes(1)
-            self.start_time_raw = self._io.read_u2be()
-            self._unnamed6 = self._io.read_bytes(6)
-            self.in_point_raw = self._io.read_u2be()
-            self._unnamed8 = self._io.read_bytes(6)
-            self.out_point_raw = self._io.read_u2be()
-            self._unnamed10 = self._io.read_bytes(6)
+            self.stretch_dividend = self._io.read_u2be()
+            self.start_time_dividend = self._io.read_u4be()
+            self.start_time_divisor = self._io.read_u4be()
+            self.in_point_dividend = self._io.read_u4be()
+            self.in_point_divisor = self._io.read_u4be()
+            self.out_point_dividend = self._io.read_u4be()
+            self.out_point_divisor = self._io.read_u4be()
+            self._unnamed10 = self._io.read_bytes(1)
             self.attributes = self._io.read_bytes(3)
             self.source_id = self._io.read_u4be()
             self._unnamed13 = self._io.read_bytes(17)
@@ -1655,11 +1632,35 @@ class Aep(KaitaiStruct):
             self._unnamed21 = self._io.read_bytes(3)
             self.track_matte_type = KaitaiStream.resolve_enum(Aep.TrackMatteType, self._io.read_u1())
             self._unnamed23 = self._io.read_bytes(2)
-            self.stretch_denominator = self._io.read_u2be()
+            self.stretch_divisor = self._io.read_u2be()
             self._unnamed25 = self._io.read_bytes(19)
             self.layer_type = KaitaiStream.resolve_enum(Aep.LayerType, self._io.read_u1())
             self.parent_id = self._io.read_u4be()
             self._unnamed28 = self._io.read_bytes(24)
+
+        @property
+        def start_time(self):
+            if hasattr(self, '_m_start_time'):
+                return self._m_start_time
+
+            self._m_start_time = (self.start_time_dividend / self.start_time_divisor)
+            return getattr(self, '_m_start_time', None)
+
+        @property
+        def in_point(self):
+            if hasattr(self, '_m_in_point'):
+                return self._m_in_point
+
+            self._m_in_point = (self.in_point_dividend / self.in_point_divisor)
+            return getattr(self, '_m_in_point', None)
+
+        @property
+        def out_point(self):
+            if hasattr(self, '_m_out_point'):
+                return self._m_out_point
+
+            self._m_out_point = (self.out_point_dividend / self.out_point_divisor)
+            return getattr(self, '_m_out_point', None)
 
         @property
         def environment_layer(self):
@@ -1806,4 +1807,31 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_audio_enabled', None)
 
 
-
+# This dict is used to map chunk types to KaitaiStruct classes
+# and is not part of the auto-generated code
+_ON_TO_KAITAISTRUCT_TYPE = {
+    "alas": Aep.Utf8Body,
+    "cdat": Aep.CdatBody,
+    "cdta": Aep.CdtaBody,
+    "cmta": Aep.Utf8Body,
+    "fdta": Aep.FdtaBody,
+    "fnam": Aep.ChildUtf8Body,
+    "head": Aep.HeadBody,
+    "idta": Aep.IdtaBody,
+    "ldat": Aep.LdatBody,
+    "ldta": Aep.LdtaBody,
+    "lhd3": Aep.Lhd3Body,
+    "LIST": Aep.ListBody,
+    "NmHd": Aep.NmhdBody,
+    "nnhd": Aep.NnhdBody,
+    "opti": Aep.OptiBody,
+    "pard": Aep.PardBody,
+    "pdnm": Aep.ChildUtf8Body,
+    "pjef": Aep.Utf8Body,
+    "sspc": Aep.SspcBody,
+    "tdb4": Aep.Tdb4Body,
+    "tdmn": Aep.Utf8Body,
+    "tdsb": Aep.TdsbBody,
+    "tdsn": Aep.ChildUtf8Body,
+    "Utf8": Aep.Utf8Body,
+}

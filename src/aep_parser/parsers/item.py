@@ -21,6 +21,15 @@ from .utils import (
 
 
 def parse_item(item_chunk, project, parent_id):
+    """
+    Parses an item (composition, footage or folder)
+    Args:
+        item_chunk (Aep.Chunk): The LIST chunk to parse.
+        project (Project): The project.
+        parent_id (int): The parent folder unique ID.
+    Returns:
+        Any[CompItem, Folder, FootageItem]: The parsed item.
+    """
     is_root = item_chunk.data.list_type == "Fold"
     child_chunks = item_chunk.data.chunks
     comment = get_comment(child_chunks)
@@ -81,6 +90,21 @@ def parse_item(item_chunk, project, parent_id):
 
 
 def parse_folder(is_root, child_chunks, project, item_id, item_name, label, parent_id, comment):
+    """
+    Parses a folder item. This function cannot be moved to it's own file as it calls
+    `parse_item`, which can call `parse_folder`.
+    Args:
+        is_root (bool): Whether the folder is the root folder (ID 0).
+        child_chunks (list[Aep.Chunk]): child chunks of the folder LIST chunk.
+        project (Project): The project.
+        item_id (int): The unique item ID.
+        item_name (str): The folder name.
+        label (int): The folder label color.
+        parent_id (int): The folder's parent folder unique ID.
+        comment (str): The folder comment.
+    Returns:
+        Folder: The parsed folder.
+    """
     item = Folder(
         comment=comment,
         item_id=item_id,
