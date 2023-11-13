@@ -20,7 +20,9 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
         child_chunks (list[Aep.Chunk]): child chunks of the composition LIST chunk.
         item_id (int): The unique item ID.
         item_name (str): The composition name.
-        label (int): The composition label color.
+        label (Aep.MarkerLabel): The label color. Colors are represented by their number
+                                 (0 for None, or 1 to 16 for one of the preset colors in
+                                 the Labels preferences).
         parent_id (int): The composition's parent folder unique ID.
         comment (str): The composition comment.
     Returns:

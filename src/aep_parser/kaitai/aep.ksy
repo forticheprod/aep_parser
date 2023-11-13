@@ -40,29 +40,29 @@ types:
           switch-on: chunk_type
           cases:
             '"LIST"': list_body # List of chunks
-            '"tdmn"': utf8_body # Transform property group end
-            '"Utf8"': utf8_body
-            '"tdsb"': tdsb_body # transform property group flags
-            '"tdsn"': child_utf8_body # user-defined name of a property. contains a single utf-8 chunk but no list_type
-            '"tdb4"': tdb4_body # property metadata
+            '"tdmn"': utf8_body # Property or parameter name
+            '"Utf8"': utf8_body # Contains text
+            '"tdsb"': tdsb_body # Transform property group flags
+            '"tdsn"': child_utf8_body # User-defined name of a property. Contains a single utf-8 chunk but no list_type
+            '"tdb4"': tdb4_body # Property metadata
             '"cdat"': cdat_body # Property value(s)
-            '"pard"': pard_body # property ??
-            '"lhd3"': lhd3_body # Number of keyframes of a property
+            '"pard"': pard_body # Property default values and ranges
+            '"lhd3"': lhd3_body # Number of keyframes and keyframe size for a property
             '"ldta"': ldta_body # Layer data
-            '"pdnm"': child_utf8_body # Parameter control strings. contains a single utf-8 chunk but no list_type
+            '"pdnm"': child_utf8_body # Parameter control strings. Contains a single utf-8 chunk but no list_type
             '"ldat"': ldat_body # Data of a keyframe
-            '"sspc"': sspc_body # Sub properties ??
-            '"fnam"': child_utf8_body # Effect name. contains a single utf-8 chunk but no list_type
+            '"sspc"': sspc_body # Footage data
+            '"fnam"': child_utf8_body # Effect name. Contains a single utf-8 chunk but no list_type
             '"idta"': idta_body # Item data
             '"opti"': opti_body # Footage data
-            '"alas"': utf8_body # File footage data in json format as a string
+            '"alas"': utf8_body # File footage data in json format as a string, contains file path
             '"NmHd"': nmhd_body # Marker data
             '"cdta"': cdta_body # Composition data
-            '"pjef"': utf8_body # effect names
+            '"pjef"': utf8_body # Effect names
             '"cmta"': utf8_body # Comment data
             '"fdta"': fdta_body # Folder data
             '"nnhd"': nnhd_body # Project data
-            '"head"': head_body # contains AE version and file revision
+            '"head"': head_body # Contains AE version and file revision
             _: ascii_body
       - id: padding
         size: 1

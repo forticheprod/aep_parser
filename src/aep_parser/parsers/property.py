@@ -365,7 +365,7 @@ def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
                     _io=KaitaiStream(BytesIO(keyframe_data)),
                 )
                 keyframe = Keyframe(
-                    time=int(round(kf_chunk.time_raw / time_scale)),
+                    frame_time=int(round(kf_chunk.time_raw / time_scale)),
                     keyframe_interpolation_type=kf_chunk.keyframe_interpolation_type,
                     label=kf_chunk.label,
                     continuous_bezier=kf_chunk.continuous_bezier,
@@ -589,7 +589,7 @@ def parse_markers(mrst_chunk, group_match_name, time_scale):
         marker = parse_marker(
             nmrd_chunk=nmrd_chunk
         )
-        marker.time = marker_group.keyframes[i].time
+        marker.frame_time = marker_group.keyframes[i].frame_time
         markers.append(marker)
     return markers
 

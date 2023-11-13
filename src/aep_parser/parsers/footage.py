@@ -26,7 +26,9 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
         child_chunks (list): The footage item child chunks.
         item_id (int): The item's unique id.
         item_name (str): The item's name.
-        label (str): The item's label color.
+        label (Aep.MarkerLabel): The label color. Colors are represented by their number
+                                 (0 for None, or 1 to 16 for one of the preset colors in
+                                 the Labels preferences).
         parent_id (int): The item's parent folder's unique id.
         comment (str): The item's comment.
     Returns:

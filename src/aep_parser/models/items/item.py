@@ -25,9 +25,14 @@ class Item(ABC):
         Args:
             comment (str): The item comment.
             item_id (int): The item unique identifier.
-            label (int): The item label color.
-            name (str): The item name.
-            type_name (str): The item type ("Folder", "Composition" or "Footage").
+            label (Aep.MarkerLabel): The label color. Colors are represented by their
+                                     number (0 for None, or 1 to 16 for one of the
+                                     preset colors in the Labels preferences).
+            name (str): The name of the item, as shown in the Project panel.
+            type_name (str): A user-readable name for the item type ("Folder", "Footage"
+                             or "Composition"). These names are application
+                             locale-dependent, meaning that they are different depending
+                             on the application's UI language.
             parent_id (int): The unique identifier of the item's parent folder.
         """
         self.comment = comment

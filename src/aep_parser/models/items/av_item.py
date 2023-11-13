@@ -15,9 +15,11 @@ class AVItem(Item):
         """
         Generalized object storing information about compositions or footages
         Args:
-            duration (float): The duration of the item in seconds.
-            frame_duration (int): The duration of the item in frames.
-            frame_rate (float): The frame rate of the item in frames per second.
+            duration (float): The duration of the item in seconds. Still fotages have a
+                              duration of 0.
+            frame_duration (int): The duration of the item in frames. Still fotages have a
+                                  duration of 0.
+            frame_rate (float): The frame rate of the item in frames-per-second.
             height (int): The height of the item in pixels.
             pixel_aspect (float): The pixel aspect ratio of the item (1.0 is square).
             width (int): The width of the item in pixels.

@@ -23,11 +23,10 @@ SOFTWARE_AGENT_XPATH = ".//{*}softwareAgent"
 
 def parse_project(aep_file_path):
     """
-    Parse an After Effects project file
     Args:
         aep_file_path (str): path to the project file
     Returns:
-        Project: parsed project
+        Project: The parsed After Effects (.aep) project
     """
     with Aep.from_file(aep_file_path) as aep:
         root_chunks = aep.data.chunks
@@ -84,7 +83,6 @@ def parse_project(aep_file_path):
 
 def _get_expression_engine(root_chunks):
     """
-    Get expression engine used in project
     Args:
         root_chunks (Aep.Chunk): list of root chunks of the project
     Returns:
@@ -100,7 +98,6 @@ def _get_expression_engine(root_chunks):
 
 def _get_effect_names(root_chunks):
     """
-    Get names of effects used in project.
     Args:
         root_chunks (Aep.Chunk): list of root chunks of the project
     Returns:

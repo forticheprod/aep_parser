@@ -31,9 +31,9 @@ class Layer(object):
                                     composition time (frames).
             in_point (float): The "in" point of the layer, expressed in composition time
                               (seconds).
-            label (int): The label color for the layer. Colors are represented by their
-                         number (0 for None, or 1 to 16 for one of the preset colors in
-                         the Labels preferences).
+            label (Aep.MarkerLabel): The label color. Colors are represented by their
+                                     number (0 for None, or 1 to 16 for one of the
+                                     preset colors in the Labels preferences).
             layer_id (int): Unique and persistent identification number used internally
                             to identify a Layer between sessions.
             locked (bool): When true, the layer is locked. This corresponds to the lock
@@ -61,7 +61,6 @@ class Layer(object):
             transform (list[Property]): Contains a layer's transform properties
         """
         self.enabled = enabled
-        self._name = name
         self.auto_orient = auto_orient
         self.comment = comment
         self.frame_in_point = frame_in_point
@@ -72,6 +71,7 @@ class Layer(object):
         self.layer_id = layer_id
         self.label = label
         self.locked = locked
+        self.name = name
         self.null_layer = null_layer
         self.out_point = out_point
         self.parent_id = parent_id
@@ -87,12 +87,8 @@ class Layer(object):
         self.containing_comp_id = containing_comp_id
 
     def __repr__(self):
+        """
+        Returns:
+            str: A string representation of the object.
+        """
         return str(self.__dict__)
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        self._name = value

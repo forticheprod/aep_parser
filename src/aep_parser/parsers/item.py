@@ -99,7 +99,9 @@ def parse_folder(is_root, child_chunks, project, item_id, item_name, label, pare
         project (Project): The project.
         item_id (int): The unique item ID.
         item_name (str): The folder name.
-        label (int): The folder label color.
+        label (Aep.MarkerLabel): The label color. Colors are represented by their number
+                                 (0 for None, or 1 to 16 for one of the preset colors in
+                                 the Labels preferences).
         parent_id (int): The folder's parent folder unique ID.
         comment (str): The folder comment.
     Returns:
