@@ -1,3 +1,4 @@
+# coding: utf-8
 from __future__ import (
     absolute_import,
     unicode_literals,
@@ -49,26 +50,26 @@ class Item(ABC):
         """
         return str(self.__dict__)
 
-    @abc.abstractmethod
-    def is_composition(self):
-        """
-        Returns:
-            bool: True if the item is a composition, False otherwise.
-        """
-        pass
-
-    @abc.abstractmethod
+    @property
     def is_folder(self):
         """
         Returns:
-            bool: True if the item is a folder, False otherwise.
+            bool: True if the item is a folder.
         """
-        pass
-
-    @abc.abstractmethod
+        return self.type_name == "Folder"
+    
+    @property
+    def is_composition(self):
+        """
+        Returns:
+            bool: True if the item is a composition.
+        """
+        return self.type_name == "Composition"
+    
+    @property
     def is_footage(self):
         """
         Returns:
-            bool: True if the item is a footage, False otherwise.
+            bool: True if the item is a footage.
         """
-        pass
+        return self.type_name == "Footage"

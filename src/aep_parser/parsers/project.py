@@ -71,8 +71,8 @@ def parse_project(aep_file_path):
         # Use source item properties for layers
         for composition in project.compositions:
             for layer in composition.layers:
-                layer_source_item = project.project_items[layer.source_id]
-                if layer_source_item.is_footage or layer_source_item.is_composition:
+                if layer.layer_type == Aep.LayerType.footage:
+                    layer_source_item = project.project_items[layer.source_id]
                     if not layer.name:
                         layer.name = layer_source_item.name
                     layer.width = layer_source_item.width

@@ -63,7 +63,7 @@ class Project(object):
     def __iter__(self):
         """
         Returns:
-            iter: An iterator over the project's items.
+            iter: An iterator over the project's items (compositions, footages, folders).
         """
         return iter(self.project_items.values())
 
@@ -106,6 +106,17 @@ class Project(object):
             ]
         return self._compositions
 
+    def composition(self, name):
+        """
+        Args:
+            name (str): The name of the composition.
+        Returns:
+            CompItem: The composition whose name is `name`.
+        """
+        for comp in self.compositions:
+            if comp.name == name:
+                return comp
+
     @property
     def folders(self):
         """
@@ -120,6 +131,17 @@ class Project(object):
             ]
         return self._folders
 
+    def folder(self, name):
+        """
+        Args:
+            name (str): The name of the folder.
+        Returns:
+            Folder: The folder whose name is `name`.
+        """
+        for folder in self.folders:
+            if folder.name == name:
+                return folder
+
     @property
     def footages(self):
         """
@@ -133,3 +155,14 @@ class Project(object):
                 if item.is_footage
             ]
         return self._footages
+
+    def footage(self, name):
+        """
+        Args:
+            name (str): The name of the footage.
+        Returns:
+            FootageItem: The footage whose name is `name`.
+        """
+        for footage in self.footages:
+            if footage.name == name:
+                return footage

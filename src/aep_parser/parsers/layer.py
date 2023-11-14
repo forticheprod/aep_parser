@@ -48,6 +48,7 @@ def parse_layer(layer_chunk, composition):
 
     ldta_data = ldta_chunk.data
     layer_type = ldta_data.layer_type
+    # TODO use different classes for different layer types (camera, light, etc)
     try:
         stretch = float(ldta_data.stretch_dividend) / ldta_data.stretch_divisor
     except ZeroDivisionError:
@@ -64,6 +65,7 @@ def parse_layer(layer_chunk, composition):
         in_point=ldta_data.in_point + ldta_data.start_time,
         label=ldta_data.label,
         layer_id=ldta_data.layer_id,
+        layer_type=layer_type,
         locked=ldta_data.locked,
         markers=[],
         name=name,
@@ -94,8 +96,6 @@ def parse_layer(layer_chunk, composition):
         three_d_layer=ldta_data.three_d_layer,
         track_matte_type=ldta_data.track_matte_type,
     )
-    # TODO use different classes for different layer types (camera, light, etc)
-    layer.layer_type = layer_type
 
     root_tdgp_chunk = find_by_list_type(
         chunks=child_chunks,
