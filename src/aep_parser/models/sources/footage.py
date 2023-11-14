@@ -27,4 +27,15 @@ class FootageSource(ABC):
         pass
 
     def __repr__(self):
+        """
+        Returns:
+            str: A string representation of the object.
+        """
         return str(self.__dict__)
+
+    def is_solid(self):
+        """
+        Returns:
+            bool: False
+        """
+        return False

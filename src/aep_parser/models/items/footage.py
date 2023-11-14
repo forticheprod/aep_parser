@@ -29,27 +29,3 @@ class FootageItem(AVItem):
             return self.main_source.file
         except AttributeError:
             return None
-
-    @property
-    def is_composition(self):
-        """
-        Returns:
-            bool: False.
-        """
-        return False
-
-    @property
-    def is_folder(self):
-        """
-        Returns:
-            bool: False.
-        """
-        return False
-
-    @property
-    def is_footage(self):
-        """
-        Returns:
-            bool: True.
-        """
-        return True

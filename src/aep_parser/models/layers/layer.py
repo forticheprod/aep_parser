@@ -10,9 +10,10 @@ from builtins import str
 class Layer(object):
     def __init__(self,
                  auto_orient, comment, effects, enabled, frame_in_point,
-                 frame_out_point, frame_start_time, in_point, label, layer_id, locked,
-                 markers, name, null_layer, out_point, parent_id, start_time, shy, solo,
-                 stretch, text, time, transform, containing_comp_id=None):
+                 frame_out_point, frame_start_time, in_point, label, layer_id,
+                 layer_type, locked, markers, name, null_layer, out_point, parent_id,
+                 start_time, shy, solo, stretch, text, time, transform,
+                 containing_comp_id=None):
         """
         Base class for layers.
         Args:
@@ -36,6 +37,8 @@ class Layer(object):
                                      preset colors in the Labels preferences).
             layer_id (int): Unique and persistent identification number used internally
                             to identify a Layer between sessions.
+            layer_type (Aep.LayerType): The type of layer (footage, light, camera, text,
+                                        shape)
             locked (bool): When true, the layer is locked. This corresponds to the lock
                            toggle in the Layer panel.
             markers (list[Marker]): Contains a layer's markers.
@@ -69,6 +72,7 @@ class Layer(object):
         self.in_point = in_point
         self.is_name_set = bool(name)
         self.layer_id = layer_id
+        self.layer_type = layer_type
         self.label = label
         self.locked = locked
         self.name = name

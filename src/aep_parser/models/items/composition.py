@@ -145,27 +145,3 @@ class CompItem(AVItem):
             return self.layers[self.layers.index(other_layer) + rel_index]
         else:
             return None
-
-    @property
-    def is_composition(self):
-        """
-        Returns:
-            bool: True.
-        """
-        return True
-
-    @property
-    def is_folder(self):
-        """
-        Returns:
-            bool: False.
-        """
-        return False
-
-    @property
-    def is_footage(self):
-        """
-        Returns:
-            bool: False.
-        """
-        return False

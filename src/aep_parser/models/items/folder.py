@@ -23,27 +23,3 @@ class Folder(Item):
             index (int): The index of the item to return.
         """
         return self.folder_items[index]
-
-    @property
-    def is_composition(self):
-        """
-        Returns:
-            bool: False.
-        """
-        return False
-
-    @property
-    def is_folder(self):
-        """
-        Returns:
-            bool: True.
-        """
-        return True
-
-    @property
-    def is_footage(self):
-        """
-        Returns:
-            bool: False.
-        """
-        return False

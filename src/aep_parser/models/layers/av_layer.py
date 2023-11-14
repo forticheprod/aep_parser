@@ -75,4 +75,4 @@ class AVLayer(Layer):
                   layer.source.name. False if the layer has an expressly set name, or if
                   the layer does not have a source.
         """
-        return bool(self.source_id) and not(self.is_name_set)  # FIXME doen't work
+        return bool(self.source_id) and not(self.is_name_set)

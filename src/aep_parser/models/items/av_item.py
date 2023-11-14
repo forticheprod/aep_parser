@@ -51,4 +51,3 @@ class AVItem(Item):
         """
         if not os.path.isfile(self.file):
             return self.file
-
