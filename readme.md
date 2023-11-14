@@ -7,9 +7,9 @@
   <p align="center">
     An After Effects file parser in Python!
     <br />
-    <a href="https://gitlab.com/delaunay.ben/aep-parser/-/issues">Report Bug</a>
+    <a href="https://github.com/forticheprod/aep_parser/issues">Report Bug</a>
     ·
-    <a href="https://gitlab.com/delaunay.ben/aep-parser/-/issues">Request Feature</a>
+    <a href="https://github.com/forticheprod/aep_parser/issues">Request Feature</a>
   </p>
 </div>
 
@@ -19,16 +19,8 @@
 <details>
   <summary>Table of Contents</summary>
   <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
+    <li><a href="#about-the-project">About The Project</a></li>
+    <li><a href="#installation">Installation</a></li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
@@ -50,15 +42,12 @@ This as a .aep (After Effects Project) parser in Python. After Effects files (.a
 
 
 
-<!-- GETTING STARTED -->
-## Getting Started
+<!-- INSTALLATION -->
+## Installation
 
-### Installation
-
-1. Clone the repo
-   ```sh
-   pip install aep_parser
-   ```
+```sh
+pip install aep_parser
+```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -91,7 +80,7 @@ project = parse_project(aep_file_path)
     - [x] After Effects 2018
     - [ ] After Effects 2022
 
-See the [open issues](https://gitlab.com/delaunay.ben/aep-parser/-/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/forticheprod/aep_parser/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -109,7 +98,7 @@ If you have a suggestion that would make this better, please fork the repo and c
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Merge Request
+5. Open a Pull Request
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -131,7 +120,7 @@ Distributed under the MIT License.
 
 Benoit Delaunay - benoit.delaunay@forticheprod.com
 
-Project Link: [https://gitlab.com/delaunay.ben/aep-parser](https://gitlab.com/delaunay.ben/aep-parser)
+Project Link: [https://github.com/forticheprod/aep_parser](https://github.com/forticheprod/aep_parser)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
