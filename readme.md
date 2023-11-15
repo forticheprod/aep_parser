@@ -72,14 +72,6 @@ project = parse_project(aep_file_path)
 <!-- ROADMAP -->
 ## Roadmap
 
-- [x] Get an initial working version
-- [ ] Add unit tests
-- [ ] Add Changelog
-- [x] Ensure python 2 compatibility
-- [ ] Multi-version Support
-    - [x] After Effects 2018
-    - [ ] After Effects 2022
-
 See the [open issues](https://github.com/forticheprod/aep_parser/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
