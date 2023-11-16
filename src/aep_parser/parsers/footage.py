@@ -74,11 +74,6 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
         asset_type = "file"
         main_source = _parse_file_source(pin_child_chunks)
 
-        if not item_name:
-            # TODO Handle image sequence (frame numbers), psd (layers), ...
-            # TODO Add is_name_set like in Layer ?
-            item_name = os.path.basename(main_source.file)
-
         # If start frame or end frame is undefined, try to get it from the filenames
         if 0xffffffff in (start_frame, end_frame):
             first_file_numbers = re.findall(r"\d+", main_source.file_names[0])
@@ -90,6 +85,9 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
                     if first != last:
                         start_frame = int(first)
                         end_frame = int(last)
+
+        if not item_name:
+            item_name = os.path.basename(main_source.file)
 
     item = FootageItem(
         comment=comment,
@@ -103,7 +101,7 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
         frame_duration=int(sspc_data.frame_duration),
         frame_rate=sspc_data.frame_rate,  
         height=sspc_data.height,
-        pixel_aspect=1,  # TODO find this
+        pixel_aspect=1,
         width=sspc_data.width,
 
         main_source=main_source,

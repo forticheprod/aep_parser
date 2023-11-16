@@ -51,14 +51,14 @@ class CompItem(AVItem):
             preserve_nested_frame_rate (bool): When true, the frame rate of nested
                                                compositions is preserved in the current
                                                composition. Corresponds to the value of
-                                               the “Preserve frame rate when nested or
-                                               in render queue” option in the Advanced
+                                               the "Preserve frame rate when nested or
+                                               in render queue" option in the Advanced
                                                tab of the Composition Settings dialog
                                                box.
             preserve_nested_resolution (bool): When true, the resolution of nested
                                                compositions is preserved in the current
                                                composition. Corresponds to the value of
-                                               the “Preserve Resolution When Nested”
+                                               the "Preserve Resolution When Nested"
                                                option in the Advanced tab of the
                                                Composition Settings dialog box.
             shutter_angle (int): The shutter angle setting for the composition. This
@@ -76,10 +76,10 @@ class CompItem(AVItem):
                                            half resolution is [2, 2], and quarter
                                            resolution is [4, 4]. The default is [1, 1].
             time_scale (int): The time scale, used as a divisor for some time values.
-            in_point (float): The composition "in point" (seconds).  # TODO find a better definition
-            frame_in_point (int): The composition "in point" (frames).  # TODO find a better definition
-            out_point (float): The composition "out point" (seconds).  # TODO find a better definition
-            frame_out_point (int): The composition "out point" (frames).  # TODO find a better definition
+            in_point (float): The composition "in point" (seconds).
+            frame_in_point (int): The composition "in point" (frames).
+            out_point (float): The composition "out point" (seconds).
+            frame_out_point (int): The composition "out point" (frames).
             frame_time (int): The playhead timestamp, in composition time (frame).
             time (float): The playhead timestamp, in composition time (seconds).
         """
@@ -108,9 +108,6 @@ class CompItem(AVItem):
         self.frame_out_point = frame_out_point
         self.time = time
         self.frame_time = frame_time
-        # TODO remove float stuff from kaitai instances and do it here ?
-        # duration, in_point, display_start_time, time, frame_rate, work_area_start, out_point, pixel_aspect
-        # same for other classes
         self.work_area_duration = self.out_point - self.in_point
         self.work_area_duration_frame = self.frame_out_point - self.frame_in_point
 

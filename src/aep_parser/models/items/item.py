@@ -1,4 +1,3 @@
-# coding: utf-8
 from __future__ import (
     absolute_import,
     unicode_literals,
@@ -57,7 +56,7 @@ class Item(ABC):
             bool: True if the item is a folder.
         """
         return self.type_name == "Folder"
-    
+
     @property
     def is_composition(self):
         """
@@ -65,7 +64,7 @@ class Item(ABC):
             bool: True if the item is a composition.
         """
         return self.type_name == "Composition"
-    
+
     @property
     def is_footage(self):
         """

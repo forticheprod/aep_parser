@@ -10,6 +10,7 @@ class SolidSource(FootageSource):
         super(SolidSource, self).__init__(*args, **kwargs)
         self.color = color
 
+    @property
     def is_solid(self):
         """
         Returns:

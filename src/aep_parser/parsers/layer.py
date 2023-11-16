@@ -31,7 +31,6 @@ def parse_layer(layer_chunk, composition):
     Returns:
         AVLayer: The parsed layer.
     """
-    # TODO split parser for different layer types (camera, etc)
     child_chunks = layer_chunk.data.chunks
     
     comment = get_comment(child_chunks)
@@ -48,14 +47,13 @@ def parse_layer(layer_chunk, composition):
 
     ldta_data = ldta_chunk.data
     layer_type = ldta_data.layer_type
-    # TODO use different classes for different layer types (camera, light, etc)
     try:
         stretch = float(ldta_data.stretch_dividend) / ldta_data.stretch_divisor
     except ZeroDivisionError:
         stretch = None
 
     layer = AVLayer(
-        auto_orient=ldta_data.auto_orient,  # FIXME should be an enum
+        auto_orient=ldta_data.auto_orient,
         comment=comment,
         effects=[],
         enabled=ldta_data.enabled,
@@ -77,7 +75,7 @@ def parse_layer(layer_chunk, composition):
         start_time=ldta_data.start_time,
         stretch=stretch,
         text=[],
-        time=0,  # TODO get from composition ?
+        time=0,
         transform=[],
         adjustment_layer=ldta_data.adjustment_layer,
         audio_enabled=ldta_data.audio_enabled,
