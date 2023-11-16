@@ -51,7 +51,7 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
 
         bg_color=cdta_data.bg_color,
         frame_blending=cdta_data.frame_blending,
-        hide_shy_layers=cdta_data.hide_shy_layers,  # TODO check this (could be just a shy attribute)
+        hide_shy_layers=cdta_data.hide_shy_layers,
         layers=[],
         markers=[],
         motion_blur=cdta_data.motion_blur,

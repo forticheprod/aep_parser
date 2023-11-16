@@ -1,4 +1,3 @@
-# coding: utf-8
 from __future__ import (
     absolute_import,
     unicode_literals,
@@ -114,7 +113,6 @@ def parse_property_group(tdgp_chunk, group_match_name, time_scale):
                 time_scale=time_scale,
             )
         else:
-            # TODO Parse om-s, GCst, mrst, btds, OvG2
             raise NotImplementedError(
                 "Cannot parse {} property".format(
                     first_chunk.data.list_type
@@ -167,7 +165,6 @@ def parse_orientation(otst_chunk, match_name, time_scale):
     #     chunks=otky_chunk.data.chunks,
     #     chunk_type="otda"
     # )
-    # TODO parse otda_chunks
     return prop
 
 
@@ -205,11 +202,9 @@ def parse_text_document(btds_chunk, match_name, time_scale):
     #     io.BytesIO(btdk_chunk.data.binary_data),
     #     len(btdk_chunk.data.binary_data)
     # )
-    # FIXME does not work in PY2 as cos.py uses b-strings
+
     # if sys.version_info >= (3, 0):
     #     content_as_dict = parser.parse()
-    #     # TODO get rid of "\ufeff" in string values
-    #     # TODO convert resulting dict into readable data
     return prop
 
 
@@ -258,7 +253,7 @@ def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
     tdb4_data = tdb4_chunk.data
     prop.is_spatial = tdb4_data.is_spatial
     prop.expression_enabled = tdb4_data.expression_enabled
-    # TODO make better use of this data, then remove it from property class
+    # TODO make better use of the following data, then remove it from property class
     prop.animated = tdb4_data.animated
     prop.dimensions = tdb4_data.dimensions
     prop.integer = tdb4_data.integer
@@ -372,7 +367,6 @@ def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
                     auto_bezier=kf_chunk.auto_bezier,
                     roving_across_time=kf_chunk.roving_across_time,
                 )
-                # TODO implement extra data for each type of keyframe
                 # kf_data = kf_chunk.kf_data
                 prop.keyframes.append(keyframe)
 
@@ -454,7 +448,6 @@ def parse_effect(sspc_chunk, group_match_name, time_scale):
                     )
                     break
         elif first_chunk.data.list_type == "tdgp":
-            # TODO implement this.
             # Encountered with "ADBE FreePin3" effect (Obsolete > Puppet)
             pass
         else:

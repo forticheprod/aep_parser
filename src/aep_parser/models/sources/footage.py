@@ -20,10 +20,6 @@ else:
 
 class FootageSource(ABC):
     def __init__(self):
-        # TODO conformFrameRate
-        # TODO displayFrameRate
-        # TODO isStill
-        # TODO nativeFrameRate
         pass
 
     def __repr__(self):
@@ -33,6 +29,7 @@ class FootageSource(ABC):
         """
         return str(self.__dict__)
 
+    @property
     def is_solid(self):
         """
         Returns:

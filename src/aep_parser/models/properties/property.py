@@ -30,7 +30,7 @@ class Property(PropertyBase):
                                          attribute set to true.
             is_spatial (bool): When true, the property is a spatial property.
             property_parameters (list[str]): A list of parameters for this property.
-            locked_ratio (bool): When true, the property's X/Y ratio locked.
+            locked_ratio (bool): When true, the property's X/Y ratio is locked.
             
         """
         super(Property, self).__init__(*args, **kwargs)
@@ -44,11 +44,7 @@ class Property(PropertyBase):
         self.dimensions_separated = dimensions_separated
         self.is_spatial = is_spatial
         self.property_parameters = property_parameters  # enum choices
-        self.locked_ratio = locked_ratio  # TODO figure out what this does
-        # TODO isSeparationFollower
-        # TODO isSeparationLeader
-        # TODO separationDimension
-        # TODO separationLeader
+        self.locked_ratio = locked_ratio
 
         self.keyframes = []
         self.elided = False
@@ -74,7 +70,7 @@ class Property(PropertyBase):
         Returns:
             int: The index of the keyframe nearest to the specified time.
         """
-        return min(self.keyframes, key=lambda k: abs(k.time - time))  # FIXME does not return index
+        return min(self.keyframes, key=lambda k: abs(k.time - time))
 
     @property
     def is_dropdown_effect(self):

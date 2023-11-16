@@ -31,7 +31,6 @@ class PropertyBase(ABC):
             name (str): Display name of the property.
             enabled (bool): Corresponds to the setting of the eyeball icon.
         """
-        # TODO isMask
         self.match_name = match_name
         self.name = name
         # I did not implement self.parent_property as this would cause infinite

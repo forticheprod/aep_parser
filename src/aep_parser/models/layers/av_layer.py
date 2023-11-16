@@ -62,7 +62,7 @@ class AVLayer(Layer):
         self.sampling_quality = sampling_quality
         self.source_id = source_id
         self.three_d_layer = three_d_layer
-        self.time_remap_enabled = time_remap_enabled  # TODO get value from the "ADBE Time Remapping" property 
+        self.time_remap_enabled = time_remap_enabled
         self.track_matte_type = track_matte_type
         self.width = width
 
