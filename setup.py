@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name="aep_parser",
-    version="0.0.1",
+    version="0.0.2",
     author="Benoit Delaunay",
     author_email="delaunay.ben@gmail.com",
     description="A .aep (After Effects Project) parser",
@@ -40,6 +40,7 @@ setup(
         "kaitaistruct>=0.9",
         "enum34 ; python_version<'3.4'",
         "future ; python_version<'3.0'",
+        "six ; python_version<'3.0'",
     ],
     python_requires=">=2.7",
     options={
