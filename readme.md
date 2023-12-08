@@ -46,7 +46,7 @@ This as a .aep (After Effects Project) parser in Python. After Effects files (.a
 ## Installation
 
 ```sh
-pip install aep_parser
+pip install aep-parser
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
