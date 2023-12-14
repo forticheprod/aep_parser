@@ -2,9 +2,9 @@ from .av_item import AVItem
 
 
 class FootageItem(AVItem):
-    def __init__(self,
-                 main_source, asset_type, end_frame, start_frame,
-                 *args, **kwargs):
+    def __init__(
+        self, main_source, asset_type, end_frame, start_frame, *args, **kwargs
+    ):
         """
         Footage item.
         Args:

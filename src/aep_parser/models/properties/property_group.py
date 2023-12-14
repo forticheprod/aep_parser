@@ -42,4 +42,3 @@ class PropertyGroup(PropertyBase):
                 for prop in self.properties:
                     if prop.name == defined_arg or prop.match_name == defined_arg:
                         return prop
-

@@ -1,8 +1,4 @@
-from __future__ import (
-    absolute_import,
-    unicode_literals,
-    division
-)
+from __future__ import absolute_import, unicode_literals, division
 
 from ..kaitai.utils import (
     find_by_list_type,
@@ -28,10 +24,7 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
     Returns:
         CompItem: The parsed composition.
     """
-    cdta_chunk = find_by_type(
-        chunks=child_chunks,
-        chunk_type="cdta"
-    )
+    cdta_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     cdta_data = cdta_chunk.data
 
     composition = CompItem(
@@ -41,14 +34,14 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
         name=item_name,
         type_name="Composition",
         parent_id=parent_id,
-
         duration=cdta_data.duration,
-        frame_duration=int(cdta_data.frame_duration),  # in JSX API, this value is 1 / frame_rate. Here, duration * frame_rate
+        frame_duration=int(
+            cdta_data.frame_duration
+        ),  # in JSX API, this value is 1 / frame_rate. Here, duration * frame_rate
         frame_rate=cdta_data.frame_rate,
         height=cdta_data.height,
         pixel_aspect=cdta_data.pixel_aspect,
         width=cdta_data.width,
-
         bg_color=cdta_data.bg_color,
         frame_blending=cdta_data.frame_blending,
         hide_shy_layers=cdta_data.hide_shy_layers,
@@ -63,7 +56,6 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
         shutter_phase=cdta_data.shutter_phase,
         resolution_factor=cdta_data.resolution_factor,
         time_scale=cdta_data.time_scale,
-
         in_point=cdta_data.in_point,
         frame_in_point=int(cdta_data.frame_in_point),
         out_point=cdta_data.out_point,
@@ -80,10 +72,7 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
     )
 
     # Parse composition's layers
-    layer_sub_chunks = filter_by_list_type(
-        chunks=child_chunks,
-        list_type="Layr"
-    )
+    layer_sub_chunks = filter_by_list_type(chunks=child_chunks, list_type="Layr")
     for layer_chunk in layer_sub_chunks:
         layer = parse_layer(
             layer_chunk=layer_chunk,
@@ -103,10 +92,7 @@ def _get_markers(child_chunks, composition):
     Returns:
         list[Marker]: The composition markers.
     """
-    markers_layer_chunk = find_by_list_type(
-        chunks=child_chunks,
-        list_type="SecL"
-    )
+    markers_layer_chunk = find_by_list_type(chunks=child_chunks, list_type="SecL")
     markers_layer = parse_layer(
         layer_chunk=markers_layer_chunk,
         composition=composition,

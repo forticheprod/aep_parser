@@ -1,16 +1,22 @@
-from __future__ import (
-    absolute_import,
-    unicode_literals,
-    division
-)
+from __future__ import absolute_import, unicode_literals, division
 from builtins import str
 
 
 class Project(object):
-    def __init__(self,
-                 bits_per_channel, effect_names, expression_engine, file,
-                 footage_timecode_display_start_type, frame_rate, frames_count_type,
-                 project_items, time_display_type, ae_version=None, xmp_packet=None):
+    def __init__(
+        self,
+        bits_per_channel,
+        effect_names,
+        expression_engine,
+        file,
+        footage_timecode_display_start_type,
+        frame_rate,
+        frames_count_type,
+        project_items,
+        time_display_type,
+        ae_version=None,
+        xmp_packet=None,
+    ):
         """
         Args:
             ae_version (str): The version of After Effects that created the project.
@@ -100,9 +106,7 @@ class Project(object):
         """
         if self._compositions is None:
             self._compositions = [
-                item
-                for item in self.project_items.values()
-                if item.is_composition
+                item for item in self.project_items.values() if item.is_composition
             ]
         return self._compositions
 
@@ -125,9 +129,7 @@ class Project(object):
         """
         if self._folders is None:
             self._folders = [
-                item
-                for item in self.project_items.values()
-                if item.is_folder
+                item for item in self.project_items.values() if item.is_folder
             ]
         return self._folders
 
@@ -150,9 +152,7 @@ class Project(object):
         """
         if self._footages is None:
             self._footages = [
-                item
-                for item in self.project_items.values()
-                if item.is_footage
+                item for item in self.project_items.values() if item.is_footage
             ]
         return self._footages
 

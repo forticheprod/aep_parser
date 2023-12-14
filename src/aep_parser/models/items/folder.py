@@ -2,7 +2,7 @@ from .item import Item
 
 
 class Folder(Item):
-    def __init__(self, folder_items,  *args, **kwargs):
+    def __init__(self, folder_items, *args, **kwargs):
         """
         Args:
             folder_items (list[Item]): The folder items.

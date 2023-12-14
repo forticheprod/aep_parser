@@ -1,8 +1,4 @@
-from __future__ import (
-    absolute_import,
-    unicode_literals,
-    division
-)
+from __future__ import absolute_import, unicode_literals, division
 from builtins import str
 
 
@@ -19,10 +15,7 @@ def find_by_type(chunks, chunk_type):
     """
     Return first chunk that has the provided chunk_type.
     """
-    return _find_chunk(
-        chunks=chunks,
-        func=lambda chunk: chunk.chunk_type == chunk_type
-    )
+    return _find_chunk(chunks=chunks, func=lambda chunk: chunk.chunk_type == chunk_type)
 
 
 def find_by_list_type(chunks, list_type):
@@ -32,10 +25,10 @@ def find_by_list_type(chunks, list_type):
     return _find_chunk(
         chunks=chunks,
         func=lambda chunk: (
-            chunk.chunk_type == "LIST"
-            and chunk.data.list_type == list_type
-        )
+            chunk.chunk_type == "LIST" and chunk.data.list_type == list_type
+        ),
     )
+
 
 def _filter_chunks(chunks, func):
     """
@@ -51,9 +44,8 @@ def filter_by_list_type(chunks, list_type):
     return _filter_chunks(
         chunks=chunks,
         func=lambda chunk: (
-            chunk.chunk_type == "LIST"
-            and chunk.data.list_type == list_type
-        )
+            chunk.chunk_type == "LIST" and chunk.data.list_type == list_type
+        ),
     )
 
 
@@ -62,11 +54,9 @@ def filter_by_type(chunks, chunk_type):
     Return chunks that have the provided chunk_type.
     """
     return _filter_chunks(
-        chunks=chunks,
-        func=lambda chunk: (
-            chunk.chunk_type == chunk_type
-        )
+        chunks=chunks, func=lambda chunk: (chunk.chunk_type == chunk_type)
     )
+
 
 def str_contents(chunk):
     """
