@@ -1,8 +1,4 @@
-from __future__ import (
-    absolute_import,
-    unicode_literals,
-    division
-)
+from __future__ import absolute_import, unicode_literals, division
 import sys
 import xml.etree.ElementTree as ET
 
@@ -30,14 +26,8 @@ def parse_project(aep_file_path):
     with Aep.from_file(aep_file_path) as aep:
         root_chunks = aep.data.chunks
 
-        root_folder_chunk = find_by_list_type(
-            chunks=root_chunks,
-            list_type="Fold"
-        )
-        nnhd_chunk = find_by_type(
-            chunks=root_chunks,
-            chunk_type="nnhd"
-        )
+        root_folder_chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")
+        nnhd_chunk = find_by_type(chunks=root_chunks, chunk_type="nnhd")
         nnhd_data = nnhd_chunk.data
 
         project = Project(
@@ -89,10 +79,7 @@ def _get_expression_engine(root_chunks):
     Returns:
         str: expression engine used in the project
     """
-    expression_engine_chunk = find_by_list_type(
-        chunks=root_chunks,
-        list_type="ExEn"
-    )
+    expression_engine_chunk = find_by_list_type(chunks=root_chunks, list_type="ExEn")
     if expression_engine_chunk:
         return str_contents(expression_engine_chunk)
 
@@ -104,16 +91,7 @@ def _get_effect_names(root_chunks):
     Returns:
         list[str]: list of effect names used in the project.
     """
-    pefl_chunk = find_by_list_type(
-        chunks=root_chunks,
-        list_type="Pefl"
-    )
+    pefl_chunk = find_by_list_type(chunks=root_chunks, list_type="Pefl")
     pefl_child_chunks = pefl_chunk.data.chunks
-    pjef_chunks = filter_by_type(
-        chunks=pefl_child_chunks,
-        chunk_type="pjef"
-    )
-    return [
-        str_contents(chunk)
-        for chunk in pjef_chunks
-    ]
+    pjef_chunks = filter_by_type(chunks=pefl_child_chunks, chunk_type="pjef")
+    return [str_contents(chunk) for chunk in pjef_chunks]

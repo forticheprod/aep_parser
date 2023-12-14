@@ -1,18 +1,36 @@
-from __future__ import (
-    absolute_import,
-    unicode_literals,
-    division
-)
+from __future__ import absolute_import, unicode_literals, division
 from builtins import str
 
 
 class Layer(object):
-    def __init__(self,
-                 auto_orient, comment, effects, enabled, frame_in_point,
-                 frame_out_point, frame_start_time, in_point, label, layer_id,
-                 layer_type, locked, markers, name, null_layer, out_point, parent_id,
-                 start_time, shy, solo, stretch, text, time, transform,
-                 containing_comp_id=None):
+    def __init__(
+        self,
+        auto_orient,
+        comment,
+        effects,
+        enabled,
+        frame_in_point,
+        frame_out_point,
+        frame_start_time,
+        in_point,
+        label,
+        layer_id,
+        layer_type,
+        locked,
+        markers,
+        name,
+        null_layer,
+        out_point,
+        parent_id,
+        start_time,
+        shy,
+        solo,
+        stretch,
+        text,
+        time,
+        transform,
+        containing_comp_id=None,
+    ):
         """
         Base class for layers.
         Args:

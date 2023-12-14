@@ -1,8 +1,4 @@
-from __future__ import (
-    absolute_import,
-    unicode_literals,
-    division
-)
+from __future__ import absolute_import, unicode_literals, division
 
 from ..kaitai.aep import Aep
 from ..kaitai.utils import (
@@ -41,10 +37,7 @@ def parse_item(item_chunk, project, parent_id):
     else:
         item_name = get_name(child_chunks)
 
-        idta_chunk = find_by_type(
-            chunks=child_chunks,
-            chunk_type="idta"
-        )
+        idta_chunk = find_by_type(chunks=child_chunks, chunk_type="idta")
         idta_data = idta_chunk.data
 
         item_id = idta_data.item_id
@@ -88,7 +81,9 @@ def parse_item(item_chunk, project, parent_id):
     return item
 
 
-def parse_folder(is_root, child_chunks, project, item_id, item_name, label, parent_id, comment):
+def parse_folder(
+    is_root, child_chunks, project, item_id, item_name, label, parent_id, comment
+):
     """
     Parses a folder item. This function cannot be moved to it's own file as it calls
     `parse_item`, which can call `parse_folder`.
@@ -117,26 +112,16 @@ def parse_folder(is_root, child_chunks, project, item_id, item_name, label, pare
     )
     # Get folder contents
     if is_root:
-        child_item_chunks = filter_by_list_type(
-            chunks=child_chunks,
-            list_type="Item"
-        )
+        child_item_chunks = filter_by_list_type(chunks=child_chunks, list_type="Item")
     else:
-        sfdr_chunk = find_by_list_type(
-            chunks=child_chunks,
-            list_type="Sfdr"
-        )
+        sfdr_chunk = find_by_list_type(chunks=child_chunks, list_type="Sfdr")
         child_item_chunks = filter_by_list_type(
-            chunks=sfdr_chunk.data.chunks,
-            list_type="Item"
+            chunks=sfdr_chunk.data.chunks, list_type="Item"
         )
     for child_item_chunk in child_item_chunks:
         child_item = parse_item(
-            item_chunk=child_item_chunk,
-            project=project,
-            parent_id=item_id
+            item_chunk=child_item_chunk, project=project, parent_id=item_id
         )
         item.folder_items.append(child_item.item_id)
 
     return item
-

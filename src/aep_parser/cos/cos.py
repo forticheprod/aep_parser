@@ -1,9 +1,5 @@
 # coding: utf-8
-from __future__ import (
-    absolute_import,
-    unicode_literals,
-    division
-)
+from __future__ import absolute_import, unicode_literals, division
 import io
 import enum
 
@@ -11,6 +7,7 @@ import enum
 https://gitlab.com/mattbas/python-lottie/-/blob/master/lib/lottie/parsers/aep/cos.py
 https://lottiefiles.github.io/lottie-docs/aep/#list-btdk
 """
+
 
 class TokenType(enum.Enum):
     # /foo
@@ -46,10 +43,8 @@ class TokenType(enum.Enum):
 
 
 class Token:
-    __slots__ = (
-        "type",
-        "value"
-    )
+    __slots__ = ("type", "value")
+
     def __init__(self, type, value=None):
         self.type = type
         self.value = value
@@ -62,11 +57,8 @@ class Token:
 
 
 class IndirectObject(object):
-    __slots__ = (
-        "object_number",
-        "generation_number",
-        "data"
-    )
+    __slots__ = ("object_number", "generation_number", "data")
+
     def __init__(self, object_number, generation_number, data):
         self.object_number = object_number
         self.generation_number = generation_number
@@ -74,31 +66,24 @@ class IndirectObject(object):
 
 
 class IndirectReference(object):
-    __slots__ = (
-        "object_number",
-        "generation_number"
-    )
+    __slots__ = ("object_number", "generation_number")
+
     def __init__(self, object_number, generation_number):
         self.object_number = object_number
         self.generation_number = generation_number
 
 
 class Stream(object):
-    __slots__ = (
-        "dictionary",
-        "data"
-    )
+    __slots__ = ("dictionary", "data")
+
     def __init__(self, dictionary, data):
         self.dictionary = dictionary
         self.data = data
 
 
 class CosParser:
-    __slots__ = (
-        "file",
-        "max_pos",
-        "lookahead"
-    )
+    __slots__ = ("file", "max_pos", "lookahead")
+
     def __init__(self, file, max_pos=None):
         self.file = file
         self.max_pos = max_pos
@@ -117,12 +102,12 @@ class CosParser:
 
     def parse_value(self):
         if (
-            self.lookahead.type == TokenType.String or
-            self.lookahead.type == TokenType.HexString or
-            self.lookahead.type == TokenType.Null or
-            self.lookahead.type == TokenType.Boolean or
-            self.lookahead.type == TokenType.Identifier or
-            self.lookahead.type == TokenType.Stream
+            self.lookahead.type == TokenType.String
+            or self.lookahead.type == TokenType.HexString
+            or self.lookahead.type == TokenType.Null
+            or self.lookahead.type == TokenType.Boolean
+            or self.lookahead.type == TokenType.Identifier
+            or self.lookahead.type == TokenType.Stream
         ):
             val = self.lookahead.value
             self.lex()
@@ -177,7 +162,10 @@ class CosParser:
     def parse_dict_content(self):
         value = {}
         while True:
-            if self.lookahead.type == TokenType.Eof or self.lookahead.type == TokenType.ObjectEnd:
+            if (
+                self.lookahead.type == TokenType.Eof
+                or self.lookahead.type == TokenType.ObjectEnd
+            ):
                 break
 
             self.expect(TokenType.Identifier)
@@ -191,7 +179,10 @@ class CosParser:
     def parse_array_content(self):
         value = []
         while True:
-            if self.lookahead.type == TokenType.Eof or self.lookahead.type == TokenType.ArrayEnd:
+            if (
+                self.lookahead.type == TokenType.Eof
+                or self.lookahead.type == TokenType.ArrayEnd
+            ):
                 break
             value.append(self.parse_value())
         return value
@@ -273,7 +264,7 @@ class CosParser:
     def expect_char(self, exp, head):
         char = self.get_char()
         if char != exp:
-            self.raise_lex(head+char, head+exp)
+            self.raise_lex(head + char, head + exp)
 
     def raise_lex(self, token, exp=None):
         msg = "Unknown COS token %s" % token
@@ -301,22 +292,22 @@ class CosParser:
     def lex_comment(self):
         while True:
             char = self.get_char()
-            if char == b'\n':
+            if char == b"\n":
                 break
             elif char is None:
                 break
 
     def lex_number(self, char):
-        if char == b'.':
+        if char == b".":
             return self.lex_num_fract(self.get_char(), char)
-        elif char == b'+' or char == b'-':
+        elif char == b"+" or char == b"-":
             return self.lex_num_int(self.get_char(), char)
         else:
-            return self.lex_num_int(char, b'')
+            return self.lex_num_int(char, b"")
 
     def lex_num_int(self, char, head):
         while True:
-            if char == b'.':
+            if char == b".":
                 return self.lex_num_fract(self.get_char(), head + char)
             elif char is None:
                 break
@@ -373,14 +364,14 @@ class CosParser:
 
     def lex_stream(self):
         char = self.get_char()
-        if char == b'\r':
-            if self.get_char() != b'\n':
+        if char == b"\r":
+            if self.get_char() != b"\n":
                 raise SyntaxError("Invalid newline")
-        elif char != b'\n':
+        elif char != b"\n":
             raise SyntaxError("Expected newline after `stream`")
 
-        stream = b''
-        marker = b'endstream'
+        stream = b""
+        marker = b"endstream"
         while True:
             char = self.get_char()
             if char is None:
@@ -389,10 +380,10 @@ class CosParser:
             if stream.endswith(marker):
                 break
 
-        return Token(TokenType.Stream, stream[:-len(marker)])
+        return Token(TokenType.Stream, stream[: -len(marker)])
 
     def lex_string(self):
-        string = b''
+        string = b""
         encoding = "utf-8"
 
         for i in range(2):
@@ -402,9 +393,9 @@ class CosParser:
             string += char
 
         bom = string
-        if bom == b'\xfe\xff':
+        if bom == b"\xfe\xff":
             encoding = "utf-16-be"
-        elif bom == b'\xff\xfe':
+        elif bom == b"\xff\xfe":
             encoding = "utf-16-le"
 
         while True:
@@ -422,18 +413,18 @@ class CosParser:
         char = self.get_char()
         if char is None:
             raise SyntaxError("Unterminated string")
-        elif char == b')':
+        elif char == b")":
             return None
-        elif char == b'\\':
+        elif char == b"\\":
             return self.lex_string_escape()
-        elif char == b'\r':
-            if self.get_char() != b'\n':
+        elif char == b"\r":
+            if self.get_char() != b"\n":
                 self.unget()
-            return b'\n'
-        elif char == b'\n':
-            if self.get_char() != b'\r':
+            return b"\n"
+        elif char == b"\n":
+            if self.get_char() != b"\r":
                 self.unget()
-            return b'\n'
+            return b"\n"
         else:
             return char
 
@@ -442,22 +433,22 @@ class CosParser:
         if char is None:
             raise SyntaxError("Unterminated string")
 
-        if char == b'n':
-            return b'\n'
-        elif char == b'r':
-            return b'\r'
-        elif char == b'b':
-            return b'\b'
-        elif char == b'f':
-            return b'\f'
-        elif char == b'(':
-            return b'('
-        elif char == b')':
-            return b')'
-        elif char == b'\\':
-            return b'\\'
+        if char == b"n":
+            return b"\n"
+        elif char == b"r":
+            return b"\r"
+        elif char == b"b":
+            return b"\b"
+        elif char == b"f":
+            return b"\f"
+        elif char == b"(":
+            return b"("
+        elif char == b")":
+            return b")"
+        elif char == b"\\":
+            return b"\\"
         elif self.is_octal(char):
-            octal = char[0] - b'0'[0]
+            octal = char[0] - b"0"[0]
             for i in range(2):
                 char = self.get_char()
                 if char is None:
@@ -465,16 +456,16 @@ class CosParser:
                 elif not self.is_octal(char):
                     self.unget()
                     break
-                octal = octal*8 + char - b'0'[0]
+                octal = octal * 8 + char - b"0"[0]
             return octal.to_bytes(1, "big")
 
         raise SyntaxError("Invalid escape sequence")
 
     def is_octal(self, char):
-        return b'0' <= char <= b'8'
+        return b"0" <= char <= b"8"
 
     def is_hex(self, char):
-        return char.isdigit() or b'a' <= char <= b'f' or b'A' <= char <= b'F'
+        return char.isdigit() or b"a" <= char <= b"f" or b"A" <= char <= b"F"
 
     def lex_hex_string(self, hstr):
         while True:
@@ -483,32 +474,32 @@ class CosParser:
                 raise SyntaxError("Unterminated hex string")
             elif char.is_hex():
                 hstr += char
-            elif char == b'>':
+            elif char == b">":
                 break
             elif not char.isspace():
                 raise SyntaxError("Invalid character in hex string: %s" % char)
 
         if len(hstr) % 2:
-            hstr += b'0'
+            hstr += b"0"
 
-        data = b''
+        data = b""
         for i in range(0, len(hstr), 2):
-            data += int(hstr[i:i+1], 16).to_bytes(1, "big")
+            data += int(hstr[i : i + 1], 16).to_bytes(1, "big")
 
         return Token(TokenType.HexString, data)
 
     def lex_identifier(self):
         ident = ""
-        special = b'()[]<>{}/%'
+        special = b"()[]<>{}/%"
         while True:
             char = self.get_char()
             if char is None:
                 break
-            elif char < b'!' or char > b'~':
+            elif char < b"!" or char > b"~":
                 self.unget()
                 break
-            elif char == b'#':
-                hexstr = b''
+            elif char == b"#":
+                hexstr = b""
                 for i in range(2):
                     char = self.get_char()
                     if char is None or not self.is_hex(char):

@@ -1,14 +1,17 @@
-from __future__ import (
-    absolute_import,
-    unicode_literals,
-    division
-)
+from __future__ import absolute_import, unicode_literals, division
 from builtins import str
 
 
 class Keyframe(object):
-    def __init__(self, frame_time=0, keyframe_interpolation_type=None, label=None,
-                 continuous_bezier=False, auto_bezier=False, roving_across_time=False):
+    def __init__(
+        self,
+        frame_time=0,
+        keyframe_interpolation_type=None,
+        label=None,
+        continuous_bezier=False,
+        auto_bezier=False,
+        roving_across_time=False,
+    ):
         """
         Keyframe of a property.
         Args:

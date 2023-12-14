@@ -1,17 +1,21 @@
-from __future__ import (
-    absolute_import,
-    unicode_literals,
-    division
-)
+from __future__ import absolute_import, unicode_literals, division
 import os
 from builtins import str
 from .item import Item
 
 
 class AVItem(Item):
-    def __init__(self,
-                 duration, frame_duration, frame_rate, height, pixel_aspect, width,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        duration,
+        frame_duration,
+        frame_rate,
+        height,
+        pixel_aspect,
+        width,
+        *args,
+        **kwargs
+    ):
         """
         Generalized object storing information about compositions or footages
         Args:

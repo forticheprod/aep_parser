@@ -1,8 +1,4 @@
-from __future__ import (
-    absolute_import,
-    unicode_literals,
-    division
-)
+from __future__ import absolute_import, unicode_literals, division
 import abc
 import sys
 from builtins import str
@@ -11,16 +7,11 @@ from builtins import str
 if sys.version_info >= (3, 4):
     ABC = abc.ABC
 else:
-    ABC = abc.ABCMeta(
-        b'ABC',
-        (object,),
-        {'__slots__': ()}
-    )
+    ABC = abc.ABCMeta(b"ABC", (object,), {"__slots__": ()})
 
 
 class PropertyBase(ABC):
-    def __init__(self,
-                 match_name, name, enabled=None):
+    def __init__(self, match_name, name, enabled=None):
         """
         Base class for both Property and PropertyGroup.
         Args:
