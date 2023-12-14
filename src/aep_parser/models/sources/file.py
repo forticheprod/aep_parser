@@ -15,7 +15,7 @@ class FileSource(FootageSource):
         self.file = file
         self.file_names = file_names
         self.target_is_folder = target_is_folder
-    
+
     @property
     def missing_footage_path(self):
         """

@@ -3,13 +3,22 @@ from .property_base import PropertyBase
 
 
 class Property(PropertyBase):
-    def __init__(self,
-                 property_control_type=Aep.PropertyControlType.unknown, expression=None,
-                 expression_enabled=None,
-                 property_value_type=Aep.PropertyValueType.unknown, value=None,
-                 max_value=None, min_value=None, dimensions_separated=None,
-                 is_spatial=None, property_parameters=None, locked_ratio=None,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        property_control_type=Aep.PropertyControlType.unknown,
+        expression=None,
+        expression_enabled=None,
+        property_value_type=Aep.PropertyValueType.unknown,
+        value=None,
+        max_value=None,
+        min_value=None,
+        dimensions_separated=None,
+        is_spatial=None,
+        property_parameters=None,
+        locked_ratio=None,
+        *args,
+        **kwargs
+    ):
         """
         Property object of a layer or nested property.
         Args:
@@ -31,7 +40,7 @@ class Property(PropertyBase):
             is_spatial (bool): When true, the property is a spatial property.
             property_parameters (list[str]): A list of parameters for this property.
             locked_ratio (bool): When true, the property's X/Y ratio is locked.
-            
+
         """
         super(Property, self).__init__(*args, **kwargs)
         self.property_control_type = property_control_type

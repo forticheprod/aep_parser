@@ -1,8 +1,4 @@
-from __future__ import (
-    absolute_import,
-    unicode_literals,
-    division
-)
+from __future__ import absolute_import, unicode_literals, division
 
 from ..kaitai.utils import (
     find_by_type,
@@ -32,17 +28,11 @@ def parse_layer(layer_chunk, composition):
         AVLayer: The parsed layer.
     """
     child_chunks = layer_chunk.data.chunks
-    
+
     comment = get_comment(child_chunks)
 
-    ldta_chunk = find_by_type(
-        chunks=child_chunks,
-        chunk_type="ldta"
-    )
-    name_chunk = find_by_type(
-        chunks=child_chunks,
-        chunk_type="Utf8"
-    )
+    ldta_chunk = find_by_type(chunks=child_chunks, chunk_type="ldta")
+    name_chunk = find_by_type(chunks=child_chunks, chunk_type="Utf8")
     name = str_contents(name_chunk)
 
     ldta_data = ldta_chunk.data
@@ -57,8 +47,12 @@ def parse_layer(layer_chunk, composition):
         comment=comment,
         effects=[],
         enabled=ldta_data.enabled,
-        frame_in_point=int(round((ldta_data.in_point + ldta_data.start_time) * composition.frame_rate)),
-        frame_out_point=int(round((ldta_data.out_point + ldta_data.start_time) * composition.frame_rate)),
+        frame_in_point=int(
+            round((ldta_data.in_point + ldta_data.start_time) * composition.frame_rate)
+        ),
+        frame_out_point=int(
+            round((ldta_data.out_point + ldta_data.start_time) * composition.frame_rate)
+        ),
         frame_start_time=int(round(ldta_data.start_time * composition.frame_rate)),
         in_point=ldta_data.in_point + ldta_data.start_time,
         label=ldta_data.label,
@@ -95,10 +89,7 @@ def parse_layer(layer_chunk, composition):
         track_matte_type=ldta_data.track_matte_type,
     )
 
-    root_tdgp_chunk = find_by_list_type(
-        chunks=child_chunks,
-        list_type="tdgp"
-    )
+    root_tdgp_chunk = find_by_list_type(chunks=child_chunks, list_type="tdgp")
     tdgp_map = get_chunks_by_match_name(root_tdgp_chunk)
 
     # Parse transform stack

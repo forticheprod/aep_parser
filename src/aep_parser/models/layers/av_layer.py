@@ -1,15 +1,31 @@
-
 from .layer import Layer
 
 
 class AVLayer(Layer):
-    def __init__(self,
-                 adjustment_layer, audio_enabled, blending_mode,
-                 collapse_transformation, effects_active, environment_layer,
-                 frame_blending, frame_blending_type, guide_layer, motion_blur,
-                 preserve_transparency, quality, sampling_quality, source_id,
-                 three_d_layer, track_matte_type, time_remap_enabled=None, height=0,
-                 width=0, *args, **kwargs):
+    def __init__(
+        self,
+        adjustment_layer,
+        audio_enabled,
+        blending_mode,
+        collapse_transformation,
+        effects_active,
+        environment_layer,
+        frame_blending,
+        frame_blending_type,
+        guide_layer,
+        motion_blur,
+        preserve_transparency,
+        quality,
+        sampling_quality,
+        source_id,
+        three_d_layer,
+        track_matte_type,
+        time_remap_enabled=None,
+        height=0,
+        width=0,
+        *args,
+        **kwargs
+    ):
         """
         An AVLayer object represents an audiovisual layer within a composition.
         Args:
@@ -77,4 +93,4 @@ class AVLayer(Layer):
                   layer.source.name. False if the layer has an expressly set name, or if
                   the layer does not have a source.
         """
-        return bool(self.source_id) and not(self.is_name_set)
+        return bool(self.source_id) and not (self.is_name_set)

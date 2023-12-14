@@ -2,14 +2,33 @@ from .av_item import AVItem
 
 
 class CompItem(AVItem):
-    def __init__(self,
-                 bg_color, display_start_frame, display_start_time, frame_blending,
-                 hide_shy_layers, layers, markers, motion_blur,
-                 motion_blur_adaptive_sample_limit, motion_blur_samples_per_frame,
-                 preserve_nested_frame_rate, preserve_nested_resolution, shutter_angle,
-                 shutter_phase, resolution_factor, time_scale,
-                 in_point, frame_in_point, out_point, frame_out_point, frame_time, time,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        bg_color,
+        display_start_frame,
+        display_start_time,
+        frame_blending,
+        hide_shy_layers,
+        layers,
+        markers,
+        motion_blur,
+        motion_blur_adaptive_sample_limit,
+        motion_blur_samples_per_frame,
+        preserve_nested_frame_rate,
+        preserve_nested_resolution,
+        shutter_angle,
+        shutter_phase,
+        resolution_factor,
+        time_scale,
+        in_point,
+        frame_in_point,
+        out_point,
+        frame_out_point,
+        frame_time,
+        time,
+        *args,
+        **kwargs
+    ):
         """
         Object storing information about a composition.
         Args:

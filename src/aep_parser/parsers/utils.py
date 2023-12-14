@@ -1,8 +1,4 @@
-from __future__ import (
-    absolute_import,
-    unicode_literals,
-    division
-)
+from __future__ import absolute_import, unicode_literals, division
 import collections
 
 from ..kaitai.utils import (
@@ -18,10 +14,7 @@ def get_name(child_chunks):
     Returns:
         str: The name of the item.
     """
-    name_chunk = find_by_type(
-        chunks=child_chunks,
-        chunk_type="Utf8"
-    )
+    name_chunk = find_by_type(chunks=child_chunks, chunk_type="Utf8")
     item_name = str_contents(name_chunk)
     return item_name
 
@@ -33,10 +26,7 @@ def get_comment(child_chunks):
     Returns:
         str: The comment of the item.
     """
-    cmta_chunk = find_by_type(
-        chunks=child_chunks,
-        chunk_type="cmta"
-    )
+    cmta_chunk = find_by_type(chunks=child_chunks, chunk_type="cmta")
     if cmta_chunk:
         return str_contents(cmta_chunk)
     return ""
@@ -63,7 +53,9 @@ def get_chunks_by_match_name(root_chunk):
                     skip_to_next_tdmn_flag = True
                 else:
                     skip_to_next_tdmn_flag = False
-            elif (not skip_to_next_tdmn_flag) and chunk.chunk_type not in SKIP_CHUNK_TYPES:
+            elif (
+                not skip_to_next_tdmn_flag
+            ) and chunk.chunk_type not in SKIP_CHUNK_TYPES:
                 chunks_by_match_name.setdefault(match_name, []).append(chunk)
     return chunks_by_match_name
 
@@ -78,4 +70,4 @@ def split_in_chunks(iterable, n):
         list: The chunks.
     """
     for i in range(0, len(iterable), n):
-        yield iterable[i:i + n]
+        yield iterable[i : i + n]
