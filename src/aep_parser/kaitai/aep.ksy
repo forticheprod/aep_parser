@@ -153,8 +153,6 @@ types:
         value: 'duration_dividend.as<f4> / duration_divisor.as<f4>'
       frame_duration:
         value: 'duration * frame_rate'
-      display_start_time:
-        value: 'display_start_frame.as<f4> / frame_rate'
       pixel_aspect:
         value: 'pixel_ratio_width.as<f4> / pixel_ratio_height.as<f4>'
       frame_time:

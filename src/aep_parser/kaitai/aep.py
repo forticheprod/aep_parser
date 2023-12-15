@@ -8,9 +8,9 @@ from enum import Enum
 """
 This file was generated from aep.ksy using https://ide.kaitai.io/
 Then modified to:
-- add slots to all classes
-- add _ON_TO_KAITAISTRUCT_TYPE dict
-- replace massive "elif" block in Chunk._read() with a dict lookup
+- add slots to all classes (23% faster on py2, no impact on py3)
+- add _ON_TO_KAITAISTRUCT_TYPE dict and replace massive "elif" block in Chunk._read() with a dict lookup
+- mmap.mmap was tested but does not seem to help with performance
 """
 
 
@@ -210,6 +210,7 @@ class Aep(KaitaiStruct):
         _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
         self.data = Aep.Chunks(_io__raw_data, self, self._root)
         self.xmp_packet = (self._io.read_bytes_full()).decode("utf8")
+
 
     class Keyframe(KaitaiStruct):
         __slots__ = (
@@ -957,6 +958,7 @@ class Aep(KaitaiStruct):
                 Aep.BitsPerChannel, self._io.read_u1()
             )
             self._unnamed9 = self._io.read_bytes(15)
+
 
     class KfColor(KaitaiStruct):
         __slots__ = (
