@@ -43,9 +43,5 @@ setup(
         "six ; python_version<'3.0'",
     ],
     python_requires=">=2.7",
-    options={
-        "bdist_wheel": {
-            "universal": True
-        }
-    }
+    options={"bdist_wheel": {"universal": True}},
 )
