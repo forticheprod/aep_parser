@@ -1,3 +1,4 @@
+from ...kaitai.aep import Aep
 from .av_item import AVItem
 
 
@@ -110,6 +111,8 @@ class CompItem(AVItem):
         self.frame_time = frame_time
         self.work_area_duration = self.out_point - self.in_point
         self.work_area_duration_frame = self.frame_out_point - self.frame_in_point
+        self._composition_layers = None
+        self._footage_layers = None
 
     def __iter__(self):
         """
@@ -142,3 +145,31 @@ class CompItem(AVItem):
             return self.layers[self.layers.index(other_layer) + rel_index]
         else:
             return None
+
+    @property
+    def composition_layers(self):
+        """
+        Returns:
+            list[AVLayer]: A list of the composition layers whose source are compositions.
+        """
+        if self._composition_layers is None:
+            self._composition_layers = [
+                layer
+                for layer in self.layers
+                if layer.source_is_composition
+            ]
+        return self._composition_layers
+
+    @property
+    def footage_layers(self):
+        """
+        Returns:
+            list[AVLayer]: A list of the composition layers whose source are footages.
+        """
+        if self._footage_layers is None:
+            self._footage_layers = [
+                layer
+                for layer in self.layers
+                if layer.source_is_footage
+            ]
+        return self._footage_layers
