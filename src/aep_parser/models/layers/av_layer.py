@@ -65,6 +65,8 @@ class AVLayer(Layer):
         self.time_remap_enabled = time_remap_enabled
         self.track_matte_type = track_matte_type
         self.width = width
+        self.source_is_composition = None
+        self.source_is_footage = None
 
     @property
     def is_name_from_source(self):

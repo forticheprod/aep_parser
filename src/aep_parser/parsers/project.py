@@ -76,6 +76,8 @@ def parse_project(aep_file_path):
                         layer.name = layer_source_item.name
                     layer.width = layer_source_item.width
                     layer.height = layer_source_item.height
+                    layer.source_is_composition = layer_source_item.is_composition
+                    layer.source_is_footage = layer_source_item.is_footage
 
         return project
 
