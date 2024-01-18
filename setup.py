@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name="aep_parser",
-    version="0.0.2",
+    version="0.0.3",
     author="Benoit Delaunay",
     author_email="delaunay.ben@gmail.com",
     description="A .aep (After Effects Project) parser",
