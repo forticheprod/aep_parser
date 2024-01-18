@@ -974,7 +974,7 @@ enums:
     17:
       id: orientation
       doc: ??
-  # ae_version:
+  # ae_version:  # https://github.com/tinogithub/aftereffects-version-check/blob/main/ae-builds.json
   #   0x5c06073806b4: v15_0
   #   0x5d040b0006eb: v16_0
   #   0x5d040b000e30: v16_0_1
