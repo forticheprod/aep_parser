@@ -211,7 +211,6 @@ class Aep(KaitaiStruct):
         self.data = Aep.Chunks(_io__raw_data, self, self._root)
         self.xmp_packet = (self._io.read_bytes_full()).decode("utf8")
 
-
     class Keyframe(KaitaiStruct):
         __slots__ = (
             "_io",
@@ -958,7 +957,6 @@ class Aep(KaitaiStruct):
                 Aep.BitsPerChannel, self._io.read_u1()
             )
             self._unnamed9 = self._io.read_bytes(15)
-
 
     class KfColor(KaitaiStruct):
         __slots__ = (
