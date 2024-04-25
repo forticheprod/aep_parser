@@ -95,10 +95,10 @@ class CompItem(AVItem):
                                            half resolution is [2, 2], and quarter
                                            resolution is [4, 4]. The default is [1, 1].
             time_scale (int): The time scale, used as a divisor for some time values.
-            in_point (float): The composition "in point" (seconds).
-            frame_in_point (int): The composition "in point" (frames).
-            out_point (float): The composition "out point" (seconds).
-            frame_out_point (int): The composition "out point" (frames).
+            in_point (float): The composition "work area" start (seconds).
+            frame_in_point (int): The composition "work area" start (frames).
+            out_point (float): The composition "work area" end (seconds).
+            frame_out_point (int): The composition "work area" end (frames).
             frame_time (int): The playhead timestamp, in composition time (frame).
             time (float): The playhead timestamp, in composition time (seconds).
         """
