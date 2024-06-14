@@ -42,19 +42,22 @@ def parse_layer(layer_chunk, composition):
     except ZeroDivisionError:
         stretch = None
 
+    # Maybe we need to use composition.display_start_time or
+    # layer_source_item.display_start_time instead of ldta_data.start_time for
+    # in_point, out_point (and display_start_frame for frame_in_point, frame_out_point)
     layer = AVLayer(
         auto_orient=ldta_data.auto_orient,
         comment=comment,
         effects=[],
         enabled=ldta_data.enabled,
         frame_in_point=int(
-            round((ldta_data.in_point + ldta_data.start_time) * composition.frame_rate)
+            round((ldta_data.start_time + ldta_data.in_point) * composition.frame_rate)
         ),
         frame_out_point=int(
-            round((ldta_data.out_point + ldta_data.start_time) * composition.frame_rate)
+            round((ldta_data.start_time + ldta_data.out_point) * composition.frame_rate)
         ),
         frame_start_time=int(round(ldta_data.start_time * composition.frame_rate)),
-        in_point=ldta_data.in_point + ldta_data.start_time,
+        in_point=ldta_data.start_time + ldta_data.in_point,
         label=ldta_data.label,
         layer_id=ldta_data.layer_id,
         layer_type=layer_type,
@@ -62,7 +65,7 @@ def parse_layer(layer_chunk, composition):
         markers=[],
         name=name,
         null_layer=ldta_data.null_layer,
-        out_point=ldta_data.out_point + ldta_data.start_time,
+        out_point=ldta_data.start_time + ldta_data.out_point,
         parent_id=ldta_data.parent_id,
         shy=ldta_data.shy,
         solo=ldta_data.solo,
