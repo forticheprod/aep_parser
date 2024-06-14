@@ -71,10 +71,11 @@ def parse_project(aep_file_path):
                     # Sometimes out_point - in_point + 1 is greater than the duration of
                     # the source item
                     layer.out_point = min(
-                        layer.out_point,
-                        layer.start_time + layer_source_item.duration
+                        layer.out_point, layer.start_time + layer_source_item.duration
                     )
-                    layer.frame_out_point = int(round(layer.out_point * composition.frame_rate))
+                    layer.frame_out_point = int(
+                        round(layer.out_point * composition.frame_rate)
+                    )
 
         return project
 
