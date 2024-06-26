@@ -110,7 +110,7 @@ Distributed under the MIT License.
 <!-- CONTACT -->
 ## Contact
 
-Benoit Delaunay - benoit.delaunay@forticheprod.com
+Benoit Delaunay - delaunay.ben@gmail.com
 
 Project Link: [https://github.com/forticheprod/aep_parser](https://github.com/forticheprod/aep_parser)
 
