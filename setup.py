@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name="aep_parser",
-    version="0.0.3",
+    version="0.0.4",
     author="Aurore Delaunay",
     author_email="del-github@blurme.net",
     description="A .aep (After Effects Project) parser",
@@ -33,6 +33,8 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: File Formats",
         "Topic :: Multimedia :: Graphics",
     ],
