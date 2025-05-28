@@ -6,8 +6,8 @@ from setuptools import setup
 setup(
     name="aep_parser",
     version="0.0.3",
-    author="Benoit Delaunay",
-    author_email="delaunay.ben@gmail.com",
+    author="Aurore Delaunay",
+    author_email="del-github@blurme.net",
     description="A .aep (After Effects Project) parser",
     long_description=io.open("readme.md", mode="r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
