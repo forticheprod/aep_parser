@@ -768,15 +768,16 @@ types:
         value: '(expression_flags[3] & 1) == 0'
   tdsb_body:
     seq:
-      - id: flags
-        size: 4
-    instances:
-      locked_ratio:
-        value: '(flags[2] & 1 << 4) != 0'
-      enabled:
-        value: '(flags[3] & 1) != 0'
-      dimensions_separated:
-        value: '(flags[3] & 1 << 1) != 0'
+      - size: 2   # skip first 2 bytes (16 bits)
+      - type: b3  # skip first 3 bits of byte 2 
+      - id: locked_ratio
+        type: b1  # bit 4 of byte 2 (0-indexed from right, but big-endian)
+      - type: b4  # skip remaining 4 bits of byte 2
+      - type: b6  # skip first 6 bits of byte 3
+      - id: dimensions_separated  
+        type: b1  # bit 1 of byte 3 (from right, LSB+1)
+      - id: enabled
+        type: b1  # bit 0 of byte 3 (from right, LSB)
   utf8_body:
     seq:
       - id: data
