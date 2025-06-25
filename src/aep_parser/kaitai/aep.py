@@ -588,8 +588,11 @@ class Aep(KaitaiStruct):
             self._unnamed22 = self._io.read_f8be()
             self._unnamed23 = self._io.read_f8be()
             self._unnamed24 = self._io.read_f8be()
-            self.expression_flags = self._io.read_bytes(4)
-            self._unnamed26 = self._io.read_bytes(4)
+            self._unnamed25 = self._io.read_bytes(3)
+            self._unnamed26 = self._io.read_bits_int_be(7)
+            self.expression_disabled = self._io.read_bits_int_be(1) != 0
+            self._io.align_to_byte()
+            self._unnamed28 = self._io.read_bytes(4)
 
         @property
         def integer(self):
@@ -644,7 +647,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_expression_enabled'):
                 return self._m_expression_enabled
 
-            self._m_expression_enabled = (KaitaiStream.byte_array_index(self.expression_flags, 3) & 1) == 0
+            self._m_expression_enabled = not (self.expression_disabled)
             return getattr(self, '_m_expression_enabled', None)
 
 

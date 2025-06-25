@@ -744,8 +744,10 @@ types:
         doc: Always 0.0?
       - type: f8
         doc: Mostly 0.0, sometimes 0.333
-      - id: expression_flags
-        size: 4
+      - size: 3  # skip first 3 bytes of expression_flags
+      - type: b7  # skip first 7 bits of byte 3
+      - id: expression_disabled
+        type: b1  # bit 0 of expression_flags[3] (inverted from original expression_enabled)
       - size: 4
         doc: Probs some flags
     instances:
@@ -762,7 +764,7 @@ types:
       vector:
         value: '(property_control_type[3] & (1 << 3)) != 0'
       expression_enabled:
-        value: '(expression_flags[3] & 1) == 0'
+        value: 'not expression_disabled'
   tdsb_body:
     seq:
       - size: 2   # skip first 2 bytes (16 bits)
