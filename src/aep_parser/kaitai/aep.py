@@ -196,7 +196,12 @@ class Aep(KaitaiStruct):
             self._unnamed2 = self._io.read_bytes(2)
             self.keyframe_interpolation_type = KaitaiStream.resolve_enum(Aep.KeyframeInterpolationType, self._io.read_u1())
             self.label = KaitaiStream.resolve_enum(Aep.Label, self._io.read_u1())
-            self.attributes = self._io.read_bytes(1)
+            self._unnamed5 = self._io.read_bits_int_be(2)
+            self.roving_across_time = self._io.read_bits_int_be(1) != 0
+            self.auto_bezier = self._io.read_bits_int_be(1) != 0
+            self.continuous_bezier = self._io.read_bits_int_be(1) != 0
+            self._unnamed9 = self._io.read_bits_int_be(3)
+            self._io.align_to_byte()
             _on = self.key_type
             if _on == Aep.PropertyValueType.marker:
                 self.kf_data = Aep.KfUnknownData(self._io, self, self._root)
@@ -224,30 +229,6 @@ class Aep(KaitaiStruct):
                 self.kf_data = Aep.KfMultiDimensional(2, self._io, self, self._root)
             elif _on == Aep.PropertyValueType.color:
                 self.kf_data = Aep.KfColor(self._io, self, self._root)
-
-        @property
-        def continuous_bezier(self):
-            if hasattr(self, '_m_continuous_bezier'):
-                return self._m_continuous_bezier
-
-            self._m_continuous_bezier = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 3)) != 0
-            return getattr(self, '_m_continuous_bezier', None)
-
-        @property
-        def auto_bezier(self):
-            if hasattr(self, '_m_auto_bezier'):
-                return self._m_auto_bezier
-
-            self._m_auto_bezier = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 4)) != 0
-            return getattr(self, '_m_auto_bezier', None)
-
-        @property
-        def roving_across_time(self):
-            if hasattr(self, '_m_roving_across_time'):
-                return self._m_roving_across_time
-
-            self._m_roving_across_time = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 5)) != 0
-            return getattr(self, '_m_roving_across_time', None)
 
 
     class ChildUtf8Body(KaitaiStruct):
@@ -453,30 +434,29 @@ class Aep(KaitaiStruct):
                 self.bg_color.append(self._io.read_u1())
 
             self._unnamed15 = self._io.read_bytes(84)
-            self.attributes = self._io.read_bytes(1)
+            self.preserve_nested_resolution = self._io.read_bits_int_be(1) != 0
+            self._unnamed17 = self._io.read_bits_int_be(1) != 0
+            self.preserve_nested_frame_rate = self._io.read_bits_int_be(1) != 0
+            self.frame_blending = self._io.read_bits_int_be(1) != 0
+            self.motion_blur = self._io.read_bits_int_be(1) != 0
+            self._unnamed21 = self._io.read_bits_int_be(2)
+            self.hide_shy_layers = self._io.read_bits_int_be(1) != 0
+            self._io.align_to_byte()
             self.width = self._io.read_u2be()
             self.height = self._io.read_u2be()
             self.pixel_ratio_width = self._io.read_u4be()
             self.pixel_ratio_height = self._io.read_u4be()
-            self._unnamed21 = self._io.read_bytes(4)
+            self._unnamed27 = self._io.read_bytes(4)
             self.frame_rate_integer = self._io.read_u2be()
-            self._unnamed23 = self._io.read_bytes(6)
+            self._unnamed29 = self._io.read_bytes(6)
             self.display_start_time_dividend = self._io.read_u4be()
             self.display_start_time_divisor = self._io.read_u4be()
-            self._unnamed26 = self._io.read_bytes(2)
+            self._unnamed32 = self._io.read_bytes(2)
             self.shutter_angle = self._io.read_u2be()
             self.shutter_phase = self._io.read_u4be()
-            self._unnamed29 = self._io.read_bytes(16)
+            self._unnamed35 = self._io.read_bytes(16)
             self.motion_blur_adaptive_sample_limit = self._io.read_s4be()
             self.motion_blur_samples_per_frame = self._io.read_s4be()
-
-        @property
-        def motion_blur(self):
-            if hasattr(self, '_m_motion_blur'):
-                return self._m_motion_blur
-
-            self._m_motion_blur = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 3)) != 0
-            return getattr(self, '_m_motion_blur', None)
 
         @property
         def pixel_aspect(self):
@@ -493,38 +473,6 @@ class Aep(KaitaiStruct):
 
             self._m_out_point = (self.frame_out_point / self.frame_rate)
             return getattr(self, '_m_out_point', None)
-
-        @property
-        def hide_shy_layers(self):
-            if hasattr(self, '_m_hide_shy_layers'):
-                return self._m_hide_shy_layers
-
-            self._m_hide_shy_layers = (KaitaiStream.byte_array_index(self.attributes, 0) & 1) != 0
-            return getattr(self, '_m_hide_shy_layers', None)
-
-        @property
-        def preserve_nested_frame_rate(self):
-            if hasattr(self, '_m_preserve_nested_frame_rate'):
-                return self._m_preserve_nested_frame_rate
-
-            self._m_preserve_nested_frame_rate = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 5)) != 0
-            return getattr(self, '_m_preserve_nested_frame_rate', None)
-
-        @property
-        def frame_blending(self):
-            if hasattr(self, '_m_frame_blending'):
-                return self._m_frame_blending
-
-            self._m_frame_blending = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 4)) != 0
-            return getattr(self, '_m_frame_blending', None)
-
-        @property
-        def preserve_nested_resolution(self):
-            if hasattr(self, '_m_preserve_nested_resolution'):
-                return self._m_preserve_nested_resolution
-
-            self._m_preserve_nested_resolution = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 7)) != 0
-            return getattr(self, '_m_preserve_nested_resolution', None)
 
         @property
         def frame_out_point(self):
@@ -877,35 +825,15 @@ class Aep(KaitaiStruct):
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(3)
-            self.attributes = self._io.read_bytes(1)
-            self._unnamed2 = self._io.read_bytes(4)
+            self._unnamed1 = self._io.read_bits_int_be(5)
+            self.unknown = self._io.read_bits_int_be(1) != 0
+            self.protected_region = self._io.read_bits_int_be(1) != 0
+            self.navigation = self._io.read_bits_int_be(1) != 0
+            self._io.align_to_byte()
+            self._unnamed5 = self._io.read_bytes(4)
             self.frame_duration = self._io.read_u4be()
-            self._unnamed4 = self._io.read_bytes(4)
+            self._unnamed7 = self._io.read_bytes(4)
             self.label = KaitaiStream.resolve_enum(Aep.Label, self._io.read_u1())
-
-        @property
-        def navigation(self):
-            if hasattr(self, '_m_navigation'):
-                return self._m_navigation
-
-            self._m_navigation = (KaitaiStream.byte_array_index(self.attributes, 0) & 1) != 0
-            return getattr(self, '_m_navigation', None)
-
-        @property
-        def protected_region(self):
-            if hasattr(self, '_m_protected_region'):
-                return self._m_protected_region
-
-            self._m_protected_region = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 1)) != 0
-            return getattr(self, '_m_protected_region', None)
-
-        @property
-        def unknown(self):
-            if hasattr(self, '_m_unknown'):
-                return self._m_unknown
-
-            self._m_unknown = (KaitaiStream.byte_array_index(self.attributes, 0) & (1 << 2)) != 0
-            return getattr(self, '_m_unknown', None)
 
 
     class SspcBody(KaitaiStruct):

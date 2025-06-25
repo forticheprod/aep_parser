@@ -114,8 +114,18 @@ types:
         repeat: expr
         repeat-expr: 3
       - size: 84
-      - id: attributes
-        size: 1
+      - id: preserve_nested_resolution
+        type: b1  # bit 7 of attributes[0]
+      - type: b1  # skip bit 6
+      - id: preserve_nested_frame_rate
+        type: b1  # bit 5 of attributes[0]
+      - id: frame_blending
+        type: b1  # bit 4 of attributes[0]
+      - id: motion_blur
+        type: b1  # bit 3 of attributes[0]
+      - type: b2  # skip bits 2-1
+      - id: hide_shy_layers
+        type: b1  # bit 0 of attributes[0]
       - id: width
         type: u2
       - id: height
@@ -167,16 +177,6 @@ types:
         value: 'display_start_frame + (out_point_raw == 0xffff ? frame_duration : (out_point_raw / time_scale))'
       out_point:
         value: 'frame_out_point / frame_rate'
-      hide_shy_layers:
-        value: '(attributes[0] & 1) != 0'
-      motion_blur:
-        value: '(attributes[0] & (1 << 3)) != 0'
-      frame_blending:
-        value: '(attributes[0] & (1 << 4)) != 0'
-      preserve_nested_frame_rate:
-        value: '(attributes[0] & (1 << 5)) != 0'
-      preserve_nested_resolution:
-        value: '(attributes[0] & (1 << 7)) != 0'
   child_utf8_body:
     seq:
       - id: chunk
@@ -224,8 +224,14 @@ types:
       - id: label
         type: u1
         enum: label
-      - id: attributes
-        size: 1
+      - type: b2  # skip first 2 bits of attributes byte
+      - id: roving_across_time
+        type: b1  # bit 5 of attributes[0]
+      - id: auto_bezier
+        type: b1  # bit 4 of attributes[0]
+      - id: continuous_bezier
+        type: b1  # bit 3 of attributes[0]
+      - type: b3  # skip remaining 3 bits
       - id: kf_data
         type:
           switch-on: key_type
@@ -243,13 +249,6 @@ types:
             'property_value_type::no_value': kf_no_value
             'property_value_type::one_d': kf_multi_dimensional(1)
             'property_value_type::marker': kf_unknown_data
-    instances:
-      continuous_bezier:
-        value: '(attributes[0] & (1 << 3)) != 0'
-      auto_bezier:
-        value: '(attributes[0] & (1 << 4)) != 0'
-      roving_across_time:
-        value: '(attributes[0] & (1 << 5)) != 0'
   kf_unknown_data:
     seq:
       - id: data
@@ -484,8 +483,13 @@ types:
   nmhd_body:
     seq:
       - size: 3
-      - id: attributes
-        size: 1
+      - type: b5  # skip first 5 bits of attributes byte
+      - id: unknown
+        type: b1  # bit 2 of attributes[0]
+      - id: protected_region
+        type: b1  # bit 1 of attributes[0]
+      - id: navigation
+        type: b1  # bit 0 of attributes[0]
       - size: 4
       - id: frame_duration
         type: u4
@@ -493,13 +497,6 @@ types:
       - id: label
         type: u1
         enum: label
-    instances:
-      navigation:
-        value: '(attributes[0] & 1) != 0'
-      protected_region:
-        value: '(attributes[0] & (1 << 1)) != 0'
-      unknown:
-        value: '(attributes[0] & (1 << 2)) != 0'
   nnhd_body:
     seq:
       - size: 8
