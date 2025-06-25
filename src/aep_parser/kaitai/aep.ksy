@@ -114,8 +114,18 @@ types:
         repeat: expr
         repeat-expr: 3
       - size: 84
-      - id: attributes
-        size: 1
+      - id: preserve_nested_resolution
+        type: b1  # bit 7 of attributes[0]
+      - type: b1  # skip bit 6
+      - id: preserve_nested_frame_rate
+        type: b1  # bit 5 of attributes[0]
+      - id: frame_blending
+        type: b1  # bit 4 of attributes[0]
+      - id: motion_blur
+        type: b1  # bit 3 of attributes[0]
+      - type: b2  # skip bits 2-1
+      - id: hide_shy_layers
+        type: b1  # bit 0 of attributes[0]
       - id: width
         type: u2
       - id: height
@@ -167,16 +177,6 @@ types:
         value: 'display_start_frame + (out_point_raw == 0xffff ? frame_duration : (out_point_raw / time_scale))'
       out_point:
         value: 'frame_out_point / frame_rate'
-      hide_shy_layers:
-        value: '(attributes[0] & 1) != 0'
-      motion_blur:
-        value: '(attributes[0] & (1 << 3)) != 0'
-      frame_blending:
-        value: '(attributes[0] & (1 << 4)) != 0'
-      preserve_nested_frame_rate:
-        value: '(attributes[0] & (1 << 5)) != 0'
-      preserve_nested_resolution:
-        value: '(attributes[0] & (1 << 7)) != 0'
   child_utf8_body:
     seq:
       - id: chunk
@@ -224,8 +224,14 @@ types:
       - id: label
         type: u1
         enum: label
-      - id: attributes
-        size: 1
+      - type: b2  # skip first 2 bits of attributes byte
+      - id: roving_across_time
+        type: b1  # bit 5 of attributes[0]
+      - id: auto_bezier
+        type: b1  # bit 4 of attributes[0]
+      - id: continuous_bezier
+        type: b1  # bit 3 of attributes[0]
+      - type: b3  # skip remaining 3 bits
       - id: kf_data
         type:
           switch-on: key_type
@@ -243,13 +249,6 @@ types:
             'property_value_type::no_value': kf_no_value
             'property_value_type::one_d': kf_multi_dimensional(1)
             'property_value_type::marker': kf_unknown_data
-    instances:
-      continuous_bezier:
-        value: '(attributes[0] & (1 << 3)) != 0'
-      auto_bezier:
-        value: '(attributes[0] & (1 << 4)) != 0'
-      roving_across_time:
-        value: '(attributes[0] & (1 << 5)) != 0'
   kf_unknown_data:
     seq:
       - id: data
@@ -484,8 +483,13 @@ types:
   nmhd_body:
     seq:
       - size: 3
-      - id: attributes
-        size: 1
+      - type: b5  # skip first 5 bits of attributes byte
+      - id: unknown
+        type: b1  # bit 2 of attributes[0]
+      - id: protected_region
+        type: b1  # bit 1 of attributes[0]
+      - id: navigation
+        type: b1  # bit 0 of attributes[0]
       - size: 4
       - id: frame_duration
         type: u4
@@ -493,13 +497,6 @@ types:
       - id: label
         type: u1
         enum: label
-    instances:
-      navigation:
-        value: '(attributes[0] & 1) != 0'
-      protected_region:
-        value: '(attributes[0] & (1 << 1)) != 0'
-      unknown:
-        value: '(attributes[0] & (1 << 2)) != 0'
   nnhd_body:
     seq:
       - size: 8
@@ -747,8 +744,10 @@ types:
         doc: Always 0.0?
       - type: f8
         doc: Mostly 0.0, sometimes 0.333
-      - id: expression_flags
-        size: 4
+      - size: 3  # skip first 3 bytes of expression_flags
+      - type: b7  # skip first 7 bits of byte 3
+      - id: expression_disabled
+        type: b1  # bit 0 of expression_flags[3] (inverted from original expression_enabled)
       - size: 4
         doc: Probs some flags
     instances:
@@ -765,18 +764,19 @@ types:
       vector:
         value: '(property_control_type[3] & (1 << 3)) != 0'
       expression_enabled:
-        value: '(expression_flags[3] & 1) == 0'
+        value: 'not expression_disabled'
   tdsb_body:
     seq:
-      - id: flags
-        size: 4
-    instances:
-      locked_ratio:
-        value: '(flags[2] & 1 << 4) != 0'
-      enabled:
-        value: '(flags[3] & 1) != 0'
-      dimensions_separated:
-        value: '(flags[3] & 1 << 1) != 0'
+      - size: 2   # skip first 2 bytes (16 bits)
+      - type: b3  # skip first 3 bits of byte 2 
+      - id: locked_ratio
+        type: b1  # bit 4 of byte 2 (0-indexed from right, but big-endian)
+      - type: b4  # skip remaining 4 bits of byte 2
+      - type: b6  # skip first 6 bits of byte 3
+      - id: dimensions_separated  
+        type: b1  # bit 1 of byte 3 (from right, LSB+1)
+      - id: enabled
+        type: b1  # bit 0 of byte 3 (from right, LSB)
   utf8_body:
     seq:
       - id: data
