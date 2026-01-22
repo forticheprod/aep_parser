@@ -274,7 +274,7 @@ class CosParser:
 
     def get_char(self):
         if self.max_pos is None:
-            return self.file.read(1)
+            return self.file.reads(1)
 
         if self.max_pos <= 0:
             return None
@@ -386,47 +386,23 @@ class CosParser:
         string = b""
         encoding = "utf-8"
 
-        # Read up to 3 characters to check for BOMs (UTF-8 BOM is 3 bytes)
-        initial_chars = []
-        end_of_string = False
-        for i in range(3):
+        for i in range(2):
             char = self.lex_string_char()
             if char is None:
-                # Hit end of string (closing parenthesis), stop reading
-                end_of_string = True
                 break
-            initial_chars.append(char)
+            string += char
 
-        # Check for UTF-8 BOM first (needs exactly 3 bytes)
-        if len(initial_chars) == 3 and b"".join(initial_chars) == b"\xef\xbb\xbf":
-            # UTF-8 BOM detected, remove it and use UTF-8 encoding
-            encoding = "utf-8"
-            string = b""  # Start with empty string (BOM removed)
-        # Check for UTF-16 BOMs using first 2 bytes
-        elif len(initial_chars) >= 2:
-            bom = b"".join(initial_chars[:2])
-            if bom == b"\xfe\xff":
-                encoding = "utf-16-be"
-                # Start with empty string (BOM removed), keep any remaining chars
-                string = b"".join(initial_chars[2:])
-            elif bom == b"\xff\xfe":
-                encoding = "utf-16-le"
-                # Start with empty string (BOM removed), keep any remaining chars
-                string = b"".join(initial_chars[2:])
-            else:
-                # No BOM detected, keep all initial characters
-                string = b"".join(initial_chars)
-        else:
-            # Not enough characters for BOM (0 or 1 chars), keep what we have
-            string = b"".join(initial_chars)
+        bom = string
+        if bom == b"\xfe\xff":
+            encoding = "utf-16-be"
+        elif bom == b"\xff\xfe":
+            encoding = "utf-16-le"
 
-        # Continue reading the rest of the string only if we haven't hit the end
-        if not end_of_string:
-            while True:
-                char = self.lex_string_char()
-                if char is None:
-                    break
-                string += char
+        while True:
+            char = self.lex_string_char()
+            if char is None:
+                break
+            string += char
 
         try:
             return Token(TokenType.String, string.decode(encoding))
@@ -435,7 +411,7 @@ class CosParser:
 
     def lex_string_char(self):
         char = self.get_char()
-        if char is None or char == b"":
+        if char is None:
             raise SyntaxError("Unterminated string")
         elif char == b")":
             return None
