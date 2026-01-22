@@ -398,7 +398,6 @@ class CosParser:
         if string.startswith(b"\xef\xbb\xbf"):
             # UTF-8 BOM - remove it (3 bytes)
             string = string[3:]
-            encoding = "utf-8"
         elif string.startswith(b"\xfe\xff"):
             # UTF-16 BE BOM - remove it (2 bytes)
             string = string[2:]
