@@ -274,7 +274,7 @@ class CosParser:
 
     def get_char(self):
         if self.max_pos is None:
-            return self.file.reads(1)
+            return self.file.read(1)
 
         if self.max_pos <= 0:
             return None
@@ -383,26 +383,30 @@ class CosParser:
         return Token(TokenType.Stream, stream[: -len(marker)])
 
     def lex_string(self):
+        # Read the entire string content first
         string = b""
-        encoding = "utf-8"
-
-        for i in range(2):
-            char = self.lex_string_char()
-            if char is None:
-                break
-            string += char
-
-        bom = string
-        if bom == b"\xfe\xff":
-            encoding = "utf-16-be"
-        elif bom == b"\xff\xfe":
-            encoding = "utf-16-le"
-
         while True:
             char = self.lex_string_char()
             if char is None:
                 break
             string += char
+
+        # Default to UTF-8 encoding
+        encoding = "utf-8"
+
+        # Check for BOM at the start of the string and remove it
+        if string.startswith(b"\xef\xbb\xbf"):
+            # UTF-8 BOM - remove it (3 bytes)
+            string = string[3:]
+            encoding = "utf-8"
+        elif string.startswith(b"\xfe\xff"):
+            # UTF-16 BE BOM - remove it (2 bytes)
+            string = string[2:]
+            encoding = "utf-16-be"
+        elif string.startswith(b"\xff\xfe"):
+            # UTF-16 LE BOM - remove it (2 bytes)
+            string = string[2:]
+            encoding = "utf-16-le"
 
         try:
             return Token(TokenType.String, string.decode(encoding))
