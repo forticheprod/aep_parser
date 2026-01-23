@@ -54,7 +54,6 @@ def test_sample_files_exist():
     assert os.path.exists(SAMPLES_DIR), f"Samples directory not found at {SAMPLES_DIR}"
     sample_files = get_sample_files()
     assert len(sample_files) > 0, "No sample .aep files found"
-    print(f"Found {len(sample_files)} sample files for testing")
 
 
 def test_no_bom_artifacts_in_parsed_strings():
@@ -107,6 +106,9 @@ def test_baseline_parsing_count():
     
     This provides a regression check - if the count drops significantly,
     it indicates the BOM fix may have broken something.
+    
+    The 95% threshold is based on the current state where 72/74 files parse
+    successfully (97%). This allows for some variation while catching major regressions.
     """
     sample_files = get_sample_files()
     if not sample_files:
@@ -123,6 +125,8 @@ def test_baseline_parsing_count():
             pass
     
     # We should be able to parse at least 95% of the sample files
+    # (currently 72/74 = 97%, so this allows for minor variations)
+    MIN_SUCCESS_RATE = 0.95
     success_rate = successful / len(sample_files)
-    assert success_rate >= 0.95, \
-        f"Only {successful}/{len(sample_files)} ({success_rate:.1%}) files parsed successfully. Expected >= 95%"
+    assert success_rate >= MIN_SUCCESS_RATE, \
+        f"Only {successful}/{len(sample_files)} ({success_rate:.1%}) files parsed successfully. Expected >= {MIN_SUCCESS_RATE:.0%}"
