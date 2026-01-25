@@ -192,8 +192,7 @@ def parse_text_document(
     #     len(btdk_chunk.data.binary_data)
     # )
 
-    # if sys.version_info >= (3, 0):
-    #     content_as_dict = parser.parse()
+    # content_as_dict = parser.parse()
     return prop
 
 

@@ -17,7 +17,12 @@ SOFTWARE_AGENT_XPATH = ".//{*}softwareAgent"
 
 
 def parse_project(aep_file_path: str) -> Project:
-    """Parse an After Effects (.aep) project file."""
+    """
+    Parse an After Effects (.aep) project file.
+
+    Args:
+        aep_file_path (str): path to the project file
+    """
     with Aep.from_file(aep_file_path) as aep:
         root_chunks = aep.data.chunks
 
@@ -67,7 +72,12 @@ def parse_project(aep_file_path: str) -> Project:
 
 
 def _get_expression_engine(root_chunks: list[Aep.Chunk]) -> str | None:
-    """Get the expression engine used in the project."""
+    """
+    Get the expression engine used in the project.
+
+    Args:
+        root_chunks (Aep.Chunk): list of root chunks of the project
+    """
     expression_engine_chunk = find_by_list_type(chunks=root_chunks, list_type="ExEn")
     if expression_engine_chunk:
         return str_contents(expression_engine_chunk)
@@ -75,7 +85,12 @@ def _get_expression_engine(root_chunks: list[Aep.Chunk]) -> str | None:
 
 
 def _get_effect_names(root_chunks: list[Aep.Chunk]) -> list[str]:
-    """Get the list of effect names used in the project."""
+    """
+    Get the list of effect names used in the project.
+
+    Args:
+        root_chunks (Aep.Chunk): list of root chunks of the project
+    """
     pefl_chunk = find_by_list_type(chunks=root_chunks, list_type="Pefl")
     pefl_child_chunks = pefl_chunk.data.chunks
     pjef_chunks = filter_by_type(chunks=pefl_child_chunks, chunk_type="pjef")
