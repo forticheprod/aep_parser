@@ -13,7 +13,8 @@ from ..models.project import Project
 from .item import parse_item
 
 
-SOFTWARE_AGENT_XPATH = ".//{*}softwareAgent"
+SOFTWARE_AGENT_XPATH = ".//stEvt:softwareAgent"
+XMP_NAMESPACES = {"stEvt": "http://ns.adobe.com/xap/1.0/sType/ResourceEvent#"}
 
 
 def parse_project(aep_file_path: str) -> Project:
@@ -43,8 +44,11 @@ def parse_project(aep_file_path: str) -> Project:
         )
 
         project.xmp_packet = ET.fromstring(aep.xmp_packet)
-        software_agent = project.xmp_packet.find(path=SOFTWARE_AGENT_XPATH)
-        project.ae_version = software_agent.text
+        software_agents = project.xmp_packet.findall(
+            path=SOFTWARE_AGENT_XPATH, namespaces=XMP_NAMESPACES
+        )
+        if software_agents:
+            project.ae_version = software_agents[-1].text
 
         parse_item(root_folder_chunk, project, parent_id=None)
 
