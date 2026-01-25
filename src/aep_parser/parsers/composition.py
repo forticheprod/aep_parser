@@ -1,4 +1,6 @@
-from __future__ import absolute_import, unicode_literals, division
+from __future__ import annotations
+
+import typing
 
 from ..kaitai.utils import (
     find_by_list_type,
@@ -8,21 +10,30 @@ from ..kaitai.utils import (
 from ..models.items.composition import CompItem
 from .layer import parse_layer
 
+if typing.TYPE_CHECKING:
+    from ..kaitai.aep import Aep
+    from ..models.properties.marker import Marker
 
-def parse_composition(child_chunks, item_id, item_name, label, parent_id, comment):
+
+def parse_composition(
+    child_chunks: list[Aep.Chunk],
+    item_id: int,
+    item_name: str,
+    label: Aep.Label,
+    parent_id: int | None,
+    comment: str,
+) -> CompItem:
     """
-    Parses a composition item.
+    Parse a composition item.
     Args:
-        child_chunks (list[Aep.Chunk]): child chunks of the composition LIST chunk.
-        item_id (int): The unique item ID.
-        item_name (str): The composition name.
-        label (Aep.MarkerLabel): The label color. Colors are represented by their number
-                                 (0 for None, or 1 to 16 for one of the preset colors in
-                                 the Labels preferences).
-        parent_id (int): The composition's parent folder unique ID.
-        comment (str): The composition comment.
-    Returns:
-        CompItem: The parsed composition.
+        child_chunks: child chunks of the composition LIST chunk.
+        item_id: The unique item ID.
+        item_name: The composition name.
+        label: The label color. Colors are represented by their number (0 for
+            None, or 1 to 16 for one of the preset colors in the Labels
+            preferences).
+        parent_id: The composition's parent folder unique ID.
+        comment: The composition comment.
     """
     cdta_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     cdta_data = cdta_chunk.data
@@ -84,13 +95,14 @@ def parse_composition(child_chunks, item_id, item_name, label, parent_id, commen
     return composition
 
 
-def _get_markers(child_chunks, composition):
+def _get_markers(
+    child_chunks: list[Aep.Chunk], composition: CompItem
+) -> list[Marker]:
     """
+    Get the composition markers.
     Args:
-        child_chunks (list[Aep.Chunk]): child chunks of the composition LIST chunk.
-        composition (CompItem): The parent composition.
-    Returns:
-        list[Marker]: The composition markers.
+        child_chunks: child chunks of the composition LIST chunk.
+        composition: The parent composition.
     """
     markers_layer_chunk = find_by_list_type(chunks=child_chunks, list_type="SecL")
     markers_layer = parse_layer(

@@ -1,19 +1,20 @@
+from __future__ import annotations
+
 from .footage import FootageSource
 
 
 class SolidSource(FootageSource):
-    def __init__(self, color, *args, **kwargs):
+    def __init__(self, color: list[float], *args, **kwargs):
         """
+        Solid source.
+
         Args:
-            color (str): The solid color (RGBA).
+            color: The solid color (RGBA).
         """
-        super(SolidSource, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.color = color
 
     @property
-    def is_solid(self):
-        """
-        Returns:
-            bool: True.
-        """
+    def is_solid(self) -> bool:
+        """Whether this is a solid source."""
         return True

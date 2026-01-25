@@ -1,26 +1,25 @@
-from __future__ import absolute_import, unicode_literals, division
+from __future__ import annotations
+
 import abc
-import sys
-from builtins import str
 
 
-if sys.version_info >= (3, 4):
-    ABC = abc.ABC
-else:
-    ABC = abc.ABCMeta(b"ABC", (object,), {"__slots__": ()})
-
-
-class PropertyBase(ABC):
-    def __init__(self, match_name, name, enabled=None):
+class PropertyBase(abc.ABC):
+    def __init__(
+        self,
+        match_name: str,
+        name: str,
+        enabled: bool | None = None,
+    ):
         """
         Base class for both Property and PropertyGroup.
+
         Args:
-            match_name (str): A special name for the property used to build unique
-                              naming paths. The match name is not displayed, but you
-                              can refer to it in scripts. Every property has a unique
-                              match-name identifier..
-            name (str): Display name of the property.
-            enabled (bool): Corresponds to the setting of the eyeball icon.
+            match_name: A special name for the property used to build unique
+                naming paths. The match name is not displayed, but you can
+                refer to it in scripts. Every property has a unique match-name
+                identifier.
+            name: Display name of the property.
+            enabled: Corresponds to the setting of the eyeball icon.
         """
         self.match_name = match_name
         self.name = name
@@ -30,26 +29,17 @@ class PropertyBase(ABC):
         # down quite a bit
         self.enabled = enabled
 
-    def __repr__(self):
-        """
-        Returns:
-            str: The string representation of the property.
-        """
+    def __repr__(self) -> str:
+        """Return the string representation of the property."""
         return str(self.__dict__)
 
     @property
-    def active(self):
-        """
-        Returns:
-            bool: Same as enabled.
-        """
+    def active(self) -> bool | None:
+        """Same as enabled."""
         return self.enabled
 
     @property
-    def is_modified(self):
-        """
-        Returns:
-            bool: True if this property has been changed since its creation.
-        """
+    def is_modified(self) -> bool | None:
+        """True if this property has been changed since its creation."""
         # TODO
         pass

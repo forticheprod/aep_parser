@@ -1,0 +1,39 @@
+[project]
+name = "aep_parser"
+version = "0.0.4"
+description = "A .aep (After Effects Project) parser"
+readme = "readme.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Aurore Delaunay", email = "del-github@blurme.net"}
+]
+requires-python = ">=3.7"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: File Formats",
+    "Topic :: Multimedia :: Graphics",
+]
+dependencies = [
+    "kaitaistruct>=0.9",
+]
+
+[project.urls]
+Homepage = "https://github.com/forticheprod/aep_parser"
+Repository = "https://github.com/forticheprod/aep_parser"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

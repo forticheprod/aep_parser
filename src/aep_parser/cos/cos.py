@@ -1,7 +1,7 @@
-# coding: utf-8
-from __future__ import absolute_import, unicode_literals, division
-import io
+from __future__ import annotations
+
 import enum
+import io
 
 """
 https://gitlab.com/mattbas/python-lottie/-/blob/master/lib/lottie/parsers/aep/cos.py

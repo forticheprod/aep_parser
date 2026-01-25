@@ -1,4 +1,6 @@
-from __future__ import absolute_import, unicode_literals, division
+from __future__ import annotations
+
+import typing
 
 from ..kaitai.aep import Aep
 from ..kaitai.utils import (
@@ -14,16 +16,22 @@ from .utils import (
     get_comment,
 )
 
+if typing.TYPE_CHECKING:
+    from ..models.items.composition import CompItem
+    from ..models.items.footage import FootageItem
+    from ..models.project import Project
 
-def parse_item(item_chunk, project, parent_id):
+
+def parse_item(
+    item_chunk: Aep.Chunk, project: Project, parent_id: int | None
+) -> CompItem | Folder | FootageItem:
     """
-    Parses an item (composition, footage or folder)
+    Parse an item (composition, footage or folder).
+    
     Args:
-        item_chunk (Aep.Chunk): The LIST chunk to parse.
-        project (Project): The project.
-        parent_id (int): The parent folder unique ID.
-    Returns:
-        Any[CompItem, Folder, FootageItem]: The parsed item.
+        item_chunk: The LIST chunk to parse.
+        project: The project.
+        parent_id: The parent folder unique ID.
     """
     is_root = item_chunk.data.list_type == "Fold"
     child_chunks = item_chunk.data.chunks
@@ -82,24 +90,32 @@ def parse_item(item_chunk, project, parent_id):
 
 
 def parse_folder(
-    is_root, child_chunks, project, item_id, item_name, label, parent_id, comment
-):
+    is_root: bool,
+    child_chunks: list[Aep.Chunk],
+    project: Project,
+    item_id: int,
+    item_name: str,
+    label: Aep.Label,
+    parent_id: int | None,
+    comment: str,
+) -> Folder:
     """
-    Parses a folder item. This function cannot be moved to it's own file as it calls
-    `parse_item`, which can call `parse_folder`.
+    Parse a folder item.
+
+    This function cannot be moved to its own file as it calls `parse_item`,
+    which can call `parse_folder`.
+    
     Args:
-        is_root (bool): Whether the folder is the root folder (ID 0).
-        child_chunks (list[Aep.Chunk]): child chunks of the folder LIST chunk.
-        project (Project): The project.
-        item_id (int): The unique item ID.
-        item_name (str): The folder name.
-        label (Aep.MarkerLabel): The label color. Colors are represented by their number
-                                 (0 for None, or 1 to 16 for one of the preset colors in
-                                 the Labels preferences).
-        parent_id (int): The folder's parent folder unique ID.
-        comment (str): The folder comment.
-    Returns:
-        Folder: The parsed folder.
+        is_root: Whether the folder is the root folder (ID 0).
+        child_chunks: child chunks of the folder LIST chunk.
+        project: The project.
+        item_id: The unique item ID.
+        item_name: The folder name.
+        label: The label color. Colors are represented by their number (0 for
+            None, or 1 to 16 for one of the preset colors in the Labels
+            preferences).
+        parent_id: The folder's parent folder unique ID.
+        comment: The folder comment.
     """
     item = Folder(
         comment=comment,
