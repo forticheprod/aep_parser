@@ -1,4 +1,6 @@
-from __future__ import absolute_import, unicode_literals, division
+from __future__ import annotations
+
+import typing
 
 from ..kaitai.utils import (
     find_by_type,
@@ -15,17 +17,22 @@ from .utils import (
     get_comment,
 )
 
+if typing.TYPE_CHECKING:
+    from ..kaitai.aep import Aep
+    from ..models.items.composition import CompItem
 
-def parse_layer(layer_chunk, composition):
+
+def parse_layer(layer_chunk: Aep.Chunk, composition: CompItem) -> AVLayer:
     """
-    Parses a composition layer. This layer is an instance of an item in a composition.
-    Some information can only be found on the source item. To access it, use
+    Parse a composition layer.
+
+    This layer is an instance of an item in a composition. Some information can
+    only be found on the source item. To access it, use
     `source_item = project.project_items[layer.source_id]`.
+
     Args:
-        layer_chunk (Aep.Chunk): The LIST chunk to parse.
-        composition (CompItem): The composition.
-    Returns:
-        AVLayer: The parsed layer.
+        layer_chunk: The LIST chunk to parse.
+        composition: The composition.
     """
     child_chunks = layer_chunk.data.chunks
 

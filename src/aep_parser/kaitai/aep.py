@@ -1,14 +1,15 @@
-from __future__ import absolute_import, unicode_literals, division
+from __future__ import annotations
+
+from enum import Enum
 
 import kaitaistruct
 from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
-from enum import Enum
 
 
 """
 This file was generated from aep.ksy using https://ide.kaitai.io/
 Then modified to:
-- add slots to all classes (23% faster on py2, no impact on py3)
+- add slots to all classes
 - add _ON_TO_KAITAISTRUCT_TYPE dict and replace massive "elif" block in Chunk._read() with a dict lookup
 - mmap.mmap was tested but does not seem to help with performance
 """

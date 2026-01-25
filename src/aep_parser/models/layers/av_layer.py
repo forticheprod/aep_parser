@@ -1,67 +1,72 @@
+from __future__ import annotations
+
+import typing
+
 from .layer import Layer
+
+if typing.TYPE_CHECKING:
+    from ...kaitai.aep import Aep
 
 
 class AVLayer(Layer):
     def __init__(
         self,
-        adjustment_layer,
-        audio_enabled,
-        blending_mode,
-        collapse_transformation,
-        effects_active,
-        environment_layer,
-        frame_blending,
-        frame_blending_type,
-        guide_layer,
-        motion_blur,
-        preserve_transparency,
-        quality,
-        sampling_quality,
-        source_id,
-        three_d_layer,
-        track_matte_type,
-        time_remap_enabled=None,
-        height=0,
-        width=0,
+        adjustment_layer: bool,
+        audio_enabled: bool,
+        blending_mode: int,
+        collapse_transformation: bool,
+        effects_active: bool,
+        environment_layer: bool,
+        frame_blending: bool,
+        frame_blending_type: Aep.FrameBlendingType,
+        guide_layer: bool,
+        motion_blur: bool,
+        preserve_transparency: bool,
+        quality: Aep.LayerQuality,
+        sampling_quality: Aep.SamplingQuality,
+        source_id: int | None,
+        three_d_layer: bool,
+        track_matte_type: Aep.TrackMatteType,
+        time_remap_enabled: bool | None = None,
+        height: int = 0,
+        width: int = 0,
         *args,
-        **kwargs
+        **kwargs,
     ):
         """
         An AVLayer object represents an audiovisual layer within a composition.
+
         Args:
-            adjustment_layer (bool): When true, the layer is an adjustment layer.
-            audio_enabled (bool): When true, the layer's audio is enabled. This value
-                                  corresponds to the audio toggle switch in the Timeline
-                                  panel.
-            blending_mode (int): The blending mode of the layer. See Blending modes.
-            collapse_transformation (bool): True if collapse transformation is on for
-                                            this layer.
-            effects_active (bool): True if the layer's effects are active, as indicated
-                                   by the <f> icon next to it in the user interface.
-            environment_layer (bool): True if this is an environment layer in a
-                                      Ray-traced 3D composition. Setting this attribute
-                                      to true automatically makes the layer 3D
-                                      (three_d_layer becomes true).
-            frame_blending (bool): True if frame blending is enabled for this layer.
-            frame_blending_type (Aep.FrameBlendingType): The type of frame blending to
-                                                         perform when frame blending is
-                                                         enabled for the layer.
-            guide_layer (bool): True if the layer is a guide layer.
-            height (float): The height of the layer in pixels.
-            motion_blur (bool): True if motion blur is enabled for the layer.
-            preserve_transparency (bool): True if preserve transparency is enabled for
-                                         the layer.
-            quality (Aep.LayerQuality): The layer's draft quality setting.
-            sampling_quality (Aep.SamplingQuality): The layer's sampling method
-            source_id (int): The ID of the source item for this layer. None for a text
-                             layer
-            three_d_layer (bool): True if this layer is a 3D layer.
-            time_remap_enabled (bool): True if time remapping is enabled for this layer.
-            track_matte_type (Aep.TrackMatteType): Specifies the way the track matte is
-                                                   applied
-            width (int): The width of the layer in pixels.
+            adjustment_layer: When true, the layer is an adjustment layer.
+            audio_enabled: When true, the layer's audio is enabled. This value
+                corresponds to the audio toggle switch in the Timeline panel.
+            blending_mode: The blending mode of the layer. See Blending modes.
+            collapse_transformation: True if collapse transformation is on for
+                this layer.
+            effects_active: True if the layer's effects are active, as
+                indicated by the <f> icon next to it in the user interface.
+            environment_layer: True if this is an environment layer in a
+                Ray-traced 3D composition. Setting this attribute to true
+                automatically makes the layer 3D (three_d_layer becomes true).
+            frame_blending: True if frame blending is enabled for this layer.
+            frame_blending_type: The type of frame blending to perform when
+                frame blending is enabled for the layer.
+            guide_layer: True if the layer is a guide layer.
+            height: The height of the layer in pixels.
+            motion_blur: True if motion blur is enabled for the layer.
+            preserve_transparency: True if preserve transparency is enabled for
+                the layer.
+            quality: The layer's draft quality setting.
+            sampling_quality: The layer's sampling method.
+            source_id: The ID of the source item for this layer. None for a
+                text layer.
+            three_d_layer: True if this layer is a 3D layer.
+            time_remap_enabled: True if time remapping is enabled for this
+                layer.
+            track_matte_type: Specifies the way the track matte is applied.
+            width: The width of the layer in pixels.
         """
-        super(AVLayer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.adjustment_layer = adjustment_layer
         self.audio_enabled = audio_enabled
         self.blending_mode = blending_mode
@@ -85,12 +90,12 @@ class AVLayer(Layer):
         self.source_is_footage = None
 
     @property
-    def is_name_from_source(self):
+    def is_name_from_source(self) -> bool:
         """
-        Returns:
-            bool: True if the layer has no expressly set name, but contains a named
-                  source. In this case, layer.name has the same value as
-                  layer.source.name. False if the layer has an expressly set name, or if
-                  the layer does not have a source.
+        True if the layer has no expressly set name, but contains a named source.
+
+        In this case, layer.name has the same value as layer.source.name.
+        False if the layer has an expressly set name, or if the layer does not
+        have a source.
         """
         return bool(self.source_id) and not (self.is_name_set)

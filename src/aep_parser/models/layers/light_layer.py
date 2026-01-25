@@ -1,13 +1,22 @@
+from __future__ import annotations
+
+import typing
+
 from .layer import Layer
+
+if typing.TYPE_CHECKING:
+    from ...kaitai.aep import Aep
 
 
 class LightLayer(Layer):
-    def __init__(self, light_type, *args, **kwargs):
+    def __init__(self, light_type: Aep.LightType, *args, **kwargs):
         """
-        This class is not used at the moment.
         The LightLayer object represents a light layer within a composition.
+
+        This class is not used at the moment.
+
         Args:
-            light_type (Aep.LightType): The type of light.
+            light_type: The type of light.
         """
-        super(Layer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.light_type = light_type
