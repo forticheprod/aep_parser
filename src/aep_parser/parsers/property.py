@@ -1,4 +1,4 @@
-from __future__ import absolute_import, unicode_literals, division
+from __future__ import annotations
 
 from kaitaistruct import KaitaiStream, BytesIO
 
@@ -44,24 +44,25 @@ MATCH_NAME_TO_NICE_NAME = {
 }
 
 
-def parse_property_group(tdgp_chunk, group_match_name, time_scale):
+def parse_property_group(
+    tdgp_chunk: Aep.Chunk, group_match_name: str, time_scale: float
+) -> PropertyGroup:
     """
+    Parse a property group.
+
     Args:
-        tdgp_chunk (Aep.Chunk): The TDGP chunk to parse.
-        group_match_name (str): A special name for the property used to build unique
-                                naming paths. The match name is not displayed, but you
-                                can refer to it in scripts. Every property has a unique
-                                match-name identifier. Match names are stable from
-                                version to version regardless of the display name (the
-                                name attribute value) or any changes to the application.
-                                Unlike the display name, it is not localized. An indexed
-                                group (PropertyBase.propertyType ==
-                                Aep.PropertyType.indexed_group) may not have a name
-                                value, but always has a match_name value.
-        time_scale (float): The time scale of the parent composition, used as a divisor
-                            for some frame values.
-    Returns:
-        PropertyGroup: The parsed property group.
+        tdgp_chunk: The TDGP chunk to parse.
+        group_match_name: A special name for the property used to build unique
+            naming paths. The match name is not displayed, but you can refer
+            to it in scripts. Every property has a unique match-name
+            identifier. Match names are stable from version to version
+            regardless of the display name (the name attribute value) or any
+            changes to the application. Unlike the display name, it is not
+            localized. An indexed group (PropertyBase.propertyType ==
+            Aep.PropertyType.indexed_group) may not have a name value, but
+            always has a match_name value.
+        time_scale: The time scale of the parent composition, used as a divisor
+            for some frame values.
     """
     nice_name = MATCH_NAME_TO_NICE_NAME.get(group_match_name, group_match_name)
 
@@ -113,21 +114,23 @@ def parse_property_group(tdgp_chunk, group_match_name, time_scale):
     return prop_group
 
 
-def parse_orientation(otst_chunk, match_name, time_scale):
+def parse_orientation(
+    otst_chunk: Aep.Chunk, match_name: str, time_scale: float
+) -> Property:
     """
+    Parse an orientation property.
+
     Args:
-        otst_chunk (Aep.Chunk): The OTST chunk to parse.
-        match_name (str): A special name for the property used to build unique naming
-                          paths. The match name is not displayed, but you can refer to
-                          it in scripts. Every property has a unique match-name
-                          identifier. Match names are stable from version to version
-                          regardless of the display name (the name attribute value) or
-                          any changes to the application. Unlike the display name, it is
-                          not localized.
-        time_scale (float): The time scale of the parent composition, used as a divisor
-                            for some frame values.
-    Returns:
-        Property: The parsed orientation property.
+        otst_chunk: The OTST chunk to parse.
+        match_name: A special name for the property used to build unique
+            naming paths. The match name is not displayed, but you can refer
+            to it in scripts. Every property has a unique match-name
+            identifier. Match names are stable from version to version
+            regardless of the display name (the name attribute value) or any
+            changes to the application. Unlike the display name, it is not
+            localized.
+        time_scale: The time scale of the parent composition, used as a divisor
+            for some frame values.
     """
     tdbs_chunk = find_by_list_type(chunks=otst_chunk.data.chunks, list_type="tdbs")
     prop_name = MATCH_NAME_TO_NICE_NAME.get(match_name, match_name)
@@ -155,21 +158,23 @@ def parse_orientation(otst_chunk, match_name, time_scale):
     return prop
 
 
-def parse_text_document(btds_chunk, match_name, time_scale):
+def parse_text_document(
+    btds_chunk: Aep.Chunk, match_name: str, time_scale: float
+) -> Property:
     """
+    Parse a text document property.
+
     Args:
-        btds_chunk (Aep.Chunk): The BTDS chunk to parse.
-        match_name (str): A special name for the property used to build unique naming
-                          paths. The match name is not displayed, but you can refer to
-                          it in scripts. Every property has a unique match-name
-                          identifier. Match names are stable from version to version
-                          regardless of the display name (the name attribute value) or
-                          any changes to the application. Unlike the display name, it is
-                          not localized.
-        time_scale (float): The time scale of the parent composition, used as a divisor
-                            for some frame values.
-    Returns:
-        Property: The parsed text document property.
+        btds_chunk: The BTDS chunk to parse.
+        match_name: A special name for the property used to build unique
+            naming paths. The match name is not displayed, but you can refer
+            to it in scripts. Every property has a unique match-name
+            identifier. Match names are stable from version to version
+            regardless of the display name (the name attribute value) or any
+            changes to the application. Unlike the display name, it is not
+            localized.
+        time_scale: The time scale of the parent composition, used as a divisor
+            for some frame values.
     """
     tdbs_chunk = find_by_list_type(chunks=btds_chunk.data.chunks, list_type="tdbs")
     prop = parse_property(
@@ -192,21 +197,26 @@ def parse_text_document(btds_chunk, match_name, time_scale):
     return prop
 
 
-def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
+def parse_property(
+    tdbs_chunk: Aep.Chunk,
+    match_name: str,
+    time_scale: float,
+    prop: Property | None = None,
+) -> Property:
     """
+    Parse a property.
+
     Args:
-        tdbs_chunk (Aep.Chunk): The TDBS chunk to parse.
-        match_name (str): A special name for the property used to build unique naming
-                          paths. The match name is not displayed, but you can refer to
-                          it in scripts. Every property has a unique match-name
-                          identifier. Match names are stable from version to version
-                          regardless of the display name (the name attribute value) or
-                          any changes to the application. Unlike the display name, it is
-                          not localized.
-        time_scale (float): The time scale of the parent composition, used as a divisor
-                            for some frame values.
-    Returns:
-        Property: The parsed property.
+        tdbs_chunk: The TDBS chunk to parse.
+        match_name: A special name for the property used to build unique
+            naming paths. The match name is not displayed, but you can refer
+            to it in scripts. Every property has a unique match-name
+            identifier. Match names are stable from version to version
+            regardless of the display name (the name attribute value) or any
+            changes to the application. Unlike the display name, it is not
+            localized.
+        time_scale: The time scale of the parent composition, used as a divisor
+            for some frame values.
     """
     if prop is None:
         prop_name = MATCH_NAME_TO_NICE_NAME.get(match_name, match_name)
@@ -337,24 +347,25 @@ def parse_property(tdbs_chunk, match_name, time_scale, prop=None):
     return prop
 
 
-def parse_effect(sspc_chunk, group_match_name, time_scale):
+def parse_effect(
+    sspc_chunk: Aep.Chunk, group_match_name: str, time_scale: float
+) -> PropertyGroup:
     """
+    Parse an effect.
+
     Args:
-        sspc_chunk (Aep.Chunk): The SSPC chunk to parse.
-        group_match_name (str): A special name for the property used to build unique
-                                naming paths. The match name is not displayed, but you
-                                can refer to it in scripts. Every property has a unique
-                                match-name identifier. Match names are stable from
-                                version to version regardless of the display name (the
-                                name attribute value) or any changes to the application.
-                                Unlike the display name, it is not localized. An indexed
-                                group (PropertyBase.propertyType ==
-                                Aep.PropertyType.indexed_group) may not have a name
-                                value, but always has a match_name value.
-        time_scale (float): The time scale of the parent composition, used as a divisor
-                            for some frame values.
-    Returns:
-        PropertyGroup: The parsed effect.
+        sspc_chunk: The SSPC chunk to parse.
+        group_match_name: A special name for the property used to build unique
+            naming paths. The match name is not displayed, but you can refer
+            to it in scripts. Every property has a unique match-name
+            identifier. Match names are stable from version to version
+            regardless of the display name (the name attribute value) or any
+            changes to the application. Unlike the display name, it is not
+            localized. An indexed group (PropertyBase.propertyType ==
+            Aep.PropertyType.indexed_group) may not have a name value, but
+            always has a match_name value.
+        time_scale: The time scale of the parent composition, used as a divisor
+            for some frame values.
     """
     sspc_child_chunks = sspc_chunk.data.chunks
     fnam_chunk = find_by_type(chunks=sspc_child_chunks, chunk_type="fnam")
@@ -415,21 +426,23 @@ def parse_effect(sspc_chunk, group_match_name, time_scale):
     return effect
 
 
-def parse_effect_parameter(parameter_chunks, match_name, time_scale):
+def parse_effect_parameter(
+    parameter_chunks: list[Aep.Chunk], match_name: str, time_scale: float
+) -> Property:
     """
+    Parse an effect parameter.
+
     Args:
-        parameter_chunks (list[Aep.Chunk]): The parameter's chunks.
-        match_name (str): A special name for the property used to build unique naming
-                          paths. The match name is not displayed, but you can refer to
-                          it in scripts. Every property has a unique match-name
-                          identifier. Match names are stable from version to version
-                          regardless of the display name (the name attribute value) or
-                          any changes to the application. Unlike the display name, it is
-                          not localized.
-        time_scale (float): The time scale of the parent composition, used as a divisor
-                            for some frame values.
-    Returns:
-        Property: The parsed effect parameter.
+        parameter_chunks: The parameter's chunks.
+        match_name: A special name for the property used to build unique
+            naming paths. The match name is not displayed, but you can refer
+            to it in scripts. Every property has a unique match-name
+            identifier. Match names are stable from version to version
+            regardless of the display name (the name attribute value) or any
+            changes to the application. Unlike the display name, it is not
+            localized.
+        time_scale: The time scale of the parent composition, used as a divisor
+            for some frame values.
     """
     pard_chunk = find_by_type(chunks=parameter_chunks, chunk_type="pard")
     pard_data = pard_chunk.data
@@ -490,19 +503,25 @@ def parse_effect_parameter(parameter_chunks, match_name, time_scale):
     return parameter
 
 
-def parse_markers(mrst_chunk, group_match_name, time_scale):
+def parse_markers(
+    mrst_chunk: Aep.Chunk, group_match_name: str, time_scale: float
+) -> list[Marker]:
     """
+    Parse markers.
+
     Args:
-        mrst_chunk (Aep.Chunk): The MRST chunk to parse.
-        group_match_name (str): A special name for the property used to build unique
-                                naming paths. The match name is not displayed, but you
-                                can refer to it in scripts. Every property has a unique
-                                match-name identifier. Match names are stable from
-                                version to version regardless of the display name (the
-                                name attribute value) or any changes to the application.
-                                Unlike the display name, it is not localized.
-        time_scale (float): The time scale of the parent composition, used as a divisor
-                            for some frame values.
+        mrst_chunk: The MRST chunk to parse.
+        group_match_name: A special name for the property used to build unique
+            naming paths. The match name is not displayed, but you can refer
+            to it in scripts. Every property has a unique match-name
+            identifier. Match names are stable from version to version
+            regardless of the display name (the name attribute value) or any
+            changes to the application. Unlike the display name, it is not
+            localized. An indexed group (PropertyBase.propertyType ==
+            Aep.PropertyType.indexed_group) may not have a name value, but
+            always has a match_name value.
+        time_scale: The time scale of the parent composition, used as a divisor
+            for some frame values.
     """
     tdbs_chunk = find_by_list_type(chunks=mrst_chunk.data.chunks, list_type="tdbs")
     # get keyframes (markers time)
@@ -522,12 +541,12 @@ def parse_markers(mrst_chunk, group_match_name, time_scale):
     return markers
 
 
-def parse_marker(nmrd_chunk):
+def parse_marker(nmrd_chunk: Aep.Chunk) -> Marker:
     """
+    Parse a marker.
+
     Args:
-        nmrd_chunk (Aep.Chunk): The NMRD chunk to parse.
-    Returns:
-        Marker: The parsed marker.
+        nmrd_chunk: The NMRD chunk to parse.
     """
     nmhd_chunk = find_by_type(chunks=nmrd_chunk.data.chunks, chunk_type="NmHd")
     nmhd_data = nmhd_chunk.data
@@ -551,12 +570,11 @@ def parse_marker(nmrd_chunk):
     return marker
 
 
-def _get_nice_name(root_chunk):
-    """
+def _get_nice_name(root_chunk: Aep.Chunk) -> str | None:
+    """Get the user defined name of the property if there is one, else None.
+    
     Args:
         root_chunk (Aep.Chunk): The LIST chunk to parse.
-    Returns:
-        str: The user defined name of the property if there is one, else None.
     """
     # Look for a tdsn which specifies the user-defined name of the property
     tdsn_chunk = find_by_type(chunks=root_chunk.data.chunks, chunk_type="tdsn")

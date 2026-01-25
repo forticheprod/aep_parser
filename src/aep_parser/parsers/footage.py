@@ -1,8 +1,9 @@
-from __future__ import absolute_import, unicode_literals, division
+from __future__ import annotations
 
 import json
 import os
 import re
+import typing
 
 from ..kaitai.utils import (
     filter_by_type,
@@ -15,20 +16,29 @@ from ..models.sources.file import FileSource
 from ..models.sources.solid import SolidSource
 from ..models.sources.placeholder import PlaceholderSource
 
+if typing.TYPE_CHECKING:
+    from ..kaitai.aep import Aep
 
-def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
+
+def parse_footage(
+    child_chunks: list[Aep.Chunk],
+    item_id: int,
+    item_name: str,
+    label: Aep.Label,
+    parent_id: int | None,
+    comment: str,
+) -> FootageItem:
     """
+    Parse a footage item.
     Args:
-        child_chunks (list): The footage item child chunks.
-        item_id (int): The item's unique id.
-        item_name (str): The item's name.
-        label (Aep.MarkerLabel): The label color. Colors are represented by their number
-                                 (0 for None, or 1 to 16 for one of the preset colors in
-                                 the Labels preferences).
-        parent_id (int): The item's parent folder's unique id.
-        comment (str): The item's comment.
-    Returns:
-        FootageItem: The parsed footage item.
+        child_chunks: The footage item child chunks.
+        item_id: The item's unique id.
+        item_name: The item's name.
+        label: The label color. Colors are represented by their number (0 for
+            None, or 1 to 16 for one of the preset colors in the Labels
+            preferences).
+        parent_id: The item's parent folder's unique id.
+        comment: The item's comment.
     """
     pin_chunk = find_by_list_type(chunks=child_chunks, list_type="Pin ")
     pin_child_chunks = pin_chunk.data.chunks
@@ -92,12 +102,11 @@ def parse_footage(child_chunks, item_id, item_name, label, parent_id, comment):
     return item
 
 
-def _parse_file_source(pin_child_chunks):
+def _parse_file_source(pin_child_chunks: list[Aep.Chunk]) -> FileSource:
     """
+    Parse a file source.
     Args:
-        pin_child_chunks (list[Aep.Chunk]): The Pin chunk's child chunks.
-    Returns:
-        FileSource: The parsed file source.
+        pin_child_chunks: The Pin chunk's child chunks.
     """
     file_source_data = _get_file_source_data(pin_child_chunks)
     stvc_chunk = find_by_list_type(chunks=pin_child_chunks, list_type="StVc")
@@ -120,12 +129,11 @@ def _parse_file_source(pin_child_chunks):
     return file_source
 
 
-def _get_file_source_data(pin_child_chunks):
+def _get_file_source_data(pin_child_chunks: list[Aep.Chunk]) -> dict:
     """
+    Get file source data from the Pin chunk.
     Args:
-        pin_child_chunks (list[Aep.Chunk]): The Pin chunk's child chunks.
-    Returns:
-        dict: The file source data.
+        pin_child_chunks: The Pin chunk's child chunks.
     """
     als2_chunk = find_by_list_type(chunks=pin_child_chunks, list_type="Als2")
     als2_child_chunks = als2_chunk.data.chunks

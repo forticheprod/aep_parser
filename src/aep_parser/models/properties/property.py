@@ -1,48 +1,54 @@
+from __future__ import annotations
+
+import typing
+
 from ...kaitai.aep import Aep
 from .property_base import PropertyBase
+
+if typing.TYPE_CHECKING:
+    from typing import Any
+
+    from .keyframe import Keyframe
 
 
 class Property(PropertyBase):
     def __init__(
         self,
-        property_control_type=Aep.PropertyControlType.unknown,
-        expression=None,
-        expression_enabled=None,
-        property_value_type=Aep.PropertyValueType.unknown,
-        value=None,
-        max_value=None,
-        min_value=None,
-        dimensions_separated=None,
-        is_spatial=None,
-        property_parameters=None,
-        locked_ratio=None,
+        property_control_type: Aep.PropertyControlType = Aep.PropertyControlType.unknown,
+        expression: list[str] | None = None,
+        expression_enabled: bool | None = None,
+        property_value_type: Aep.PropertyValueType = Aep.PropertyValueType.unknown,
+        value: Any = None,
+        max_value: Any = None,
+        min_value: Any = None,
+        dimensions_separated: bool | None = None,
+        is_spatial: bool | None = None,
+        property_parameters: list[str] | None = None,
+        locked_ratio: bool | None = None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         """
         Property object of a layer or nested property.
-        Args:
-            property_control_type (Aep.PropertyControlType): The type of the property
-                                                             (scalar, color, enum).
-            expression (str): The expression for the named property
-            excpression_enabled (bool): True if the expression is enabled.
-            property_value_type (Aep.PropertyValueType): The type of value stored in
-                                                         this property.
-            value (any): The value of this property.
-            max_value (any): The maximum permitted value for this property.
-            min_value (any): The minimum permitted value for this property.
-            dimensions_separated (bool): When true, the property's dimensions are
-                                         represented as separate properties. For
-                                         example, if the layer's position is represented
-                                         as X Position and Y Position properties in the
-                                         Timeline panel, the Position property has this
-                                         attribute set to true.
-            is_spatial (bool): When true, the property is a spatial property.
-            property_parameters (list[str]): A list of parameters for this property.
-            locked_ratio (bool): When true, the property's X/Y ratio is locked.
 
+        Args:
+            property_control_type: The type of the property (scalar, color, enum).
+            expression: The expression for the named property.
+            expression_enabled: True if the expression is enabled.
+            property_value_type: The type of value stored in this property.
+            value: The value of this property.
+            max_value: The maximum permitted value for this property.
+            min_value: The minimum permitted value for this property.
+            dimensions_separated: When true, the property's dimensions are
+                represented as separate properties. For example, if the layer's
+                position is represented as X Position and Y Position properties
+                in the Timeline panel, the Position property has this attribute
+                set to true.
+            is_spatial: When true, the property is a spatial property.
+            property_parameters: A list of parameters for this property.
+            locked_ratio: When true, the property's X/Y ratio is locked.
         """
-        super(Property, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.property_control_type = property_control_type
         self.expression = expression
         self.expression_enabled = expression_enabled
@@ -55,61 +61,58 @@ class Property(PropertyBase):
         self.property_parameters = property_parameters  # enum choices
         self.locked_ratio = locked_ratio
 
-        self.keyframes = []
-        self.elided = False
+        self.keyframes: list[Keyframe] = []
+        self.elided: bool = False
 
-    def get_separation_follower(self, dim):
+    def get_separation_follower(self, dim: int) -> Property | None:
         """
-        For a separated, multidimensional property, retrieves a specific follower
-        property. For example, you can use this method on the Position property to
-        access the separated X Position and Y Position properties.
+        Retrieve a specific follower property for a separated, multidimensional property.
+
+        For example, you can use this method on the Position property to access the
+        separated X Position and Y Position properties.
+
         Args:
-            dim (int): The dimension number (starting at 0).
-        Returns:
-            Property: The follower property.
+            dim: The dimension number (starting at 0).
         """
         pass  # TODO
 
-    def nearest_key_index(self, time):
+    def nearest_key_index(self, time: float) -> int:
         """
         Returns the index of the keyframe nearest to the specified time.
+
         Args:
-            time (float): The time in seconds; a floating-point value.
-                          The beginning of the composition is 0.
-        Returns:
-            int: The index of the keyframe nearest to the specified time.
+            time: The time in seconds; a floating-point value. The beginning
+                of the composition is 0.
         """
-        return min(self.keyframes, key=lambda k: abs(k.time - time))
+        return min(range(len(self.keyframes)), key=lambda i: abs(self.keyframes[i].frame_time - time))
+
+    def nearest_key(self, time: float) -> Keyframe:
+        """
+        Returns the keyframe nearest to the specified time.
+
+        Args:
+            time: The time in seconds; a floating-point value. The beginning
+                of the composition is 0.
+        """
+        index = self.nearest_key_index(time)
+        return self.keyframes[index]
 
     @property
-    def is_dropdown_effect(self):
-        """
-        Returns:
-            bool: True if the property is the Menu property of a Dropdown Menu Control
-                  effect.
-        """
+    def is_dropdown_effect(self) -> bool:
+        """True if the property is the Menu property of a Dropdown Menu Control effect."""
         return self.property_control_type == Aep.PropertyControlType.enum
 
     @property
-    def is_time_varying(self):
-        """
-        Returns:
-            bool: True if the named property has keyframes or an enabled expression.
-        """
+    def is_time_varying(self) -> bool:
+        """True if the named property has keyframes or an enabled expression."""
         return bool((self.expression and self.expression_enabled) or self.animated)
 
     @property
-    def has_max(self):
-        """
-        Returns:
-            bool: True if there is a maximum permitted value for the named property.
-        """
+    def has_max(self) -> bool:
+        """True if there is a maximum permitted value for the named property."""
         return bool(self.max_value)
 
     @property
-    def has_min(self):
-        """
-        Returns:
-            bool: True if there is a minimum permitted value for the named property.
-        """
+    def has_min(self) -> bool:
+        """True if there is a minimum permitted value for the named property."""
         return bool(self.min_value)
