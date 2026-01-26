@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 try:
-    from importlib.metadata import version, PackageNotFoundError
+    from importlib.metadata import PackageNotFoundError, version
 except ImportError:
-    from importlib_metadata import version, PackageNotFoundError  # type: ignore[import,no-redef]  # Python 3.7
+    from importlib_metadata import (  # type: ignore[import,no-redef]  # Python 3.7
+        PackageNotFoundError,
+        version,
+    )
 
 from .models.project import Project
 from .parsers.project import parse_project
