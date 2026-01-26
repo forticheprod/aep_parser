@@ -1,49 +1,32 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from .item import Item
 
 
+@dataclass
 class AVItem(Item):
-    def __init__(
-        self,
-        duration: float,
-        frame_duration: int,
-        frame_rate: float,
-        height: int,
-        pixel_aspect: float,
-        width: int,
-        *args,
-        **kwargs,
-    ):
-        """
-        Generalized object storing information about compositions or footages.
+    """
+    Abstract base class storing information about compositions or footages.
 
-        Args:
-            duration: The duration of the item in seconds. Still fotages have
-                a duration of 0.
-            frame_duration: The duration of the item in frames. Still fotages
-                have a duration of 0.
-            frame_rate: The frame rate of the item in frames-per-second.
-            height: The height of the item in pixels.
-            pixel_aspect: The pixel aspect ratio of the item (1.0 is square).
-            width: The width of the item in pixels.
-        """
-        super().__init__(*args, **kwargs)
-        self.duration = duration
-        self.frame_duration = frame_duration
-        self.frame_rate = frame_rate
-        self.height = height
-        self.pixel_aspect = pixel_aspect
-        self.width = width
-        # I did not implement self.used_in as this would cause infinite recursion when
-        # trying to print the object and we would have to override repr,
-        # copy.deepcopy(self.__dict__) then override used_in and it slows things down
-        # quite a bit
+    Attributes:
+        duration: The duration of the item in seconds. Still footages have
+            a duration of 0.
+        frame_duration: The duration of the item in frames. Still footages
+            have a duration of 0.
+        frame_rate: The frame rate of the item in frames-per-second.
+        height: The height of the item in pixels.
+        pixel_aspect: The pixel aspect ratio of the item (1.0 is square).
+        width: The width of the item in pixels.
+    """
 
-    def __repr__(self) -> str:
-        """Return string representation of the object's attributes."""
-        return str(self.__dict__)
-
+    duration: float
+    frame_duration: int
+    frame_rate: float
+    height: int
+    pixel_aspect: float
+    width: int
 
     @property
     def footage_missing(self) -> bool:

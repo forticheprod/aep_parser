@@ -1,20 +1,21 @@
 from __future__ import annotations
 
 import typing
+from dataclasses import dataclass
 
 from .item import Item
 
 
+@dataclass
 class Folder(Item):
-    def __init__(self, folder_items: list[int], *args, **kwargs):
-        """
-        Folder item.
+    """
+    Folder item.
 
-        Args:
-            folder_items: The IDs of items in this folder.
-        """
-        super().__init__(*args, **kwargs)
-        self.folder_items = folder_items
+    Attributes:
+        folder_items: The IDs of items in this folder.
+    """
+
+    folder_items: list[int]
 
     def __iter__(self) -> typing.Iterator[int]:
         """Return an iterator over the folder item IDs."""

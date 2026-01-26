@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-import abc
+from abc import ABC
+from dataclasses import dataclass
 
 
-class FootageSource(abc.ABC):
-    def __init__(self):
-        pass
-
-    def __repr__(self) -> str:
-        """Return a string representation of the object."""
-        return str(self.__dict__)
+@dataclass
+class FootageSource(ABC):
+    """Base class for footage sources."""
 
     @property
     def is_solid(self) -> bool:
