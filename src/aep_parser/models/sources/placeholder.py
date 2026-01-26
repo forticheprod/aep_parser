@@ -9,4 +9,7 @@ from .footage import FootageSource
 class PlaceholderSource(FootageSource):
     """Placeholder source."""
 
-    pass
+    @property
+    def is_solid(self) -> bool:
+        """Whether this is a solid source."""
+        return False

@@ -3,11 +3,12 @@ from __future__ import annotations
 import typing
 
 from ..kaitai.utils import (
-    find_by_type,
     find_by_list_type,
+    find_by_type,
     str_contents,
 )
 from ..models.layers.av_layer import AVLayer
+
 from .property import (
     parse_markers,
     parse_property_group,
