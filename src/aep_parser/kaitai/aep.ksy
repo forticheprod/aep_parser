@@ -114,8 +114,18 @@ types:
         repeat: expr
         repeat-expr: 3
       - size: 84
-      - id: attributes
-        size: 1
+      - id: preserve_nested_resolution
+        type: b1  # bit 7
+      - type: b1  # skip bit 6
+      - id: preserve_nested_frame_rate
+        type: b1  # bit 5
+      - id: frame_blending
+        type: b1  # bit 4
+      - id: motion_blur
+        type: b1  # bit 3
+      - type: b2  # skip bits 2-1
+      - id: hide_shy_layers
+        type: b1  # bit 0
       - id: width
         type: u2
       - id: height
@@ -167,16 +177,6 @@ types:
         value: 'display_start_frame + (out_point_raw == 0xffff ? frame_duration : (out_point_raw / time_scale))'
       out_point:
         value: 'frame_out_point / frame_rate'
-      hide_shy_layers:
-        value: '(attributes[0] & 1) != 0'
-      motion_blur:
-        value: '(attributes[0] & (1 << 3)) != 0'
-      frame_blending:
-        value: '(attributes[0] & (1 << 4)) != 0'
-      preserve_nested_frame_rate:
-        value: '(attributes[0] & (1 << 5)) != 0'
-      preserve_nested_resolution:
-        value: '(attributes[0] & (1 << 7)) != 0'
   child_utf8_body:
     seq:
       - id: chunk
@@ -224,8 +224,14 @@ types:
       - id: label
         type: u1
         enum: label
-      - id: attributes
-        size: 1
+      - type: b2  # skip first 2 bits
+      - id: roving_across_time
+        type: b1  # bit 5
+      - id: auto_bezier
+        type: b1  # bit 4
+      - id: continuous_bezier
+        type: b1  # bit 3
+      - type: b3  # skip remaining 3 bits
       - id: kf_data
         type:
           switch-on: key_type
@@ -243,13 +249,6 @@ types:
             'property_value_type::no_value': kf_no_value
             'property_value_type::one_d': kf_multi_dimensional(1)
             'property_value_type::marker': kf_unknown_data
-    instances:
-      continuous_bezier:
-        value: '(attributes[0] & (1 << 3)) != 0'
-      auto_bezier:
-        value: '(attributes[0] & (1 << 4)) != 0'
-      roving_across_time:
-        value: '(attributes[0] & (1 << 5)) != 0'
   kf_unknown_data:
     seq:
       - id: data
@@ -360,8 +359,48 @@ types:
       - id: out_point_divisor
         type: u4
       - size: 1
-      - id: attributes
-        size: 3
+      - type: b1  # skip bit 7
+      - id: sampling_quality
+        type: b1  # bit 6
+        enum: sampling_quality
+      - id: environment_layer
+        type: b1  # bit 5
+      - type: b2  # skip bits 4-3
+      - id: frame_blending_type
+        type: b1  # bit 2
+        enum: frame_blending_type
+      - id: guide_layer
+        type: b1  # bit 1
+      - type: b1  # skip bit 0
+      - id: null_layer
+        type: b1  # bit 7
+      - type: b2  # skip bits 6-5
+      - id: markers_locked
+        type: b1  # bit 4
+      - id: solo
+        type: b1  # bit 3
+      - id: three_d_layer
+        type: b1  # bit 2
+      - id: adjustment_layer
+        type: b1  # bit 1
+      - id: auto_orient
+        type: b1  # bit 0
+      - id: collapse_transformation
+        type: b1  # bit 7
+      - id: shy
+        type: b1  # bit 6
+      - id: locked
+        type: b1  # bit 5
+      - id: frame_blending
+        type: b1  # bit 4
+      - id: motion_blur
+        type: b1  # bit 3
+      - id: effects_active
+        type: b1  # bit 2
+      - id: audio_enabled
+        type: b1  # bit 1
+      - id: enabled
+        type: b1  # bit 0
       - id: source_id
         type: u4
       - size: 17
@@ -404,44 +443,6 @@ types:
         value: 'in_point_dividend.as<f4> / in_point_divisor.as<f4>'
       out_point:
         value: 'out_point_dividend.as<f4> / out_point_divisor.as<f4>'
-      environment_layer:
-        value: '(attributes[0] & (1 << 5)) != 0'
-      guide_layer:
-        value: '(attributes[0] & (1 << 1)) != 0'
-      frame_blending_type:
-        value: '(attributes[0] & (1 << 2)) >> 2'
-        enum: frame_blending_type
-      sampling_quality:
-        value: '(attributes[0] & (1 << 6)) >> 6'
-        enum: sampling_quality
-      auto_orient:
-        value: '(attributes[1] & 1) != 0'
-      adjustment_layer:
-        value: '(attributes[1] & (1 << 1)) != 0'
-      three_d_layer:
-        value: '(attributes[1] & (1 << 2)) != 0'
-      solo:
-        value: '(attributes[1] & (1 << 3)) != 0'
-      markers_locked:
-        value: '(attributes[1] & (1 << 4)) != 0'
-      null_layer:
-        value: '(attributes[1] & (1 << 7)) != 0'
-      enabled:
-        value: '(attributes[2] & (1 << 0)) != 0'
-      audio_enabled:
-        value: '(attributes[2] & (1 << 1)) != 0'
-      effects_active:
-        value: '(attributes[2] & (1 << 2)) != 0'
-      motion_blur:
-        value: '(attributes[2] & (1 << 3)) != 0'
-      frame_blending:
-        value: '(attributes[2] & (1 << 4)) != 0'
-      locked:
-        value: '(attributes[2] & (1 << 5)) != 0'
-      shy:
-        value: '(attributes[2] & (1 << 6)) != 0'
-      collapse_transformation:
-        value: '(attributes[2] & (1 << 7)) != 0'
   lhd3_body:
     seq:
       - size: 10
@@ -484,8 +485,13 @@ types:
   nmhd_body:
     seq:
       - size: 3
-      - id: attributes
-        size: 1
+      - type: b5  # skip first 5 bits
+      - id: unknown
+        type: b1  # bit 2
+      - id: protected_region
+        type: b1  # bit 1
+      - id: navigation
+        type: b1  # bit 0
       - size: 4
       - id: frame_duration
         type: u4
@@ -493,13 +499,6 @@ types:
       - id: label
         type: u1
         enum: label
-    instances:
-      navigation:
-        value: '(attributes[0] & 1) != 0'
-      protected_region:
-        value: '(attributes[0] & (1 << 1)) != 0'
-      unknown:
-        value: '(attributes[0] & (1 << 2)) != 0'
   nnhd_body:
     seq:
       - size: 8
@@ -704,8 +703,13 @@ types:
       - id: dimensions
         type: u2
         doc: Number of values in a multi-dimensional
-      - id: attributes
-        size: 2
+      - size: 1  # skip first byte
+      - type: b4  # skip bits 7-4
+      - id: is_spatial
+        type: b1  # bit 3
+      - type: b2  # skip bits 2-1
+      - id: static
+        type: b1  # bit 0
       - size: 1
       - size: 1
         doc: Some sort of flag, it has value 03 for position properties
@@ -725,8 +729,20 @@ types:
         doc: Always 1.0?
       - type: f8
         doc: Always 1.0?
-      - id: property_control_type
-        size: 4
+      # property_control_type - 4 bytes
+      - size: 1  # skip first byte
+      - type: b7  # skip bits 7-1
+      - id: no_value
+        type: b1  # bit 0
+      - size: 1  # skip second byte
+      - type: b4  # skip bits 7-4
+      - id: vector
+        type: b1  # bit 3
+      - id: integer
+        type: b1  # bit 2
+      - type: b1  # skip bit 1
+      - id: color
+        type: b1  # bit 0
       - size: 1
         doc: Seems correlated with the previous byte, 04 for enum properties
       - size: 7
@@ -747,36 +763,27 @@ types:
         doc: Always 0.0?
       - type: f8
         doc: Mostly 0.0, sometimes 0.333
-      - id: expression_flags
-        size: 4
+      - size: 3  # skip first 3 bytes
+      - type: b7  # skip first 7 bits
+      - id: expression_disabled
+        type: b1  # bit 0
       - size: 4
         doc: Probs some flags
     instances:
-      static:
-        value: '(attributes[1] & 1) != 0'
-      is_spatial:
-        value: '(attributes[1] & (1 << 3)) != 0'
-      no_value:
-        value: '(property_control_type[1] & 1) != 0'
-      color:
-        value: '(property_control_type[3] & 1) != 0'
-      integer:
-        value: '(property_control_type[3] & (1 << 2)) != 0'
-      vector:
-        value: '(property_control_type[3] & (1 << 3)) != 0'
       expression_enabled:
-        value: '(expression_flags[3] & 1) == 0'
+        value: 'not expression_disabled'
   tdsb_body:
     seq:
-      - id: flags
-        size: 4
-    instances:
-      locked_ratio:
-        value: '(flags[2] & 1 << 4) != 0'
-      enabled:
-        value: '(flags[3] & 1) != 0'
-      dimensions_separated:
-        value: '(flags[3] & 1 << 1) != 0'
+      - size: 2   # skip first 2 bytes
+      - type: b3  # skip first 3 bits
+      - id: locked_ratio
+        type: b1  # bit 4
+      - type: b4  # skip remaining 4 bits
+      - type: b6  # skip first 6 bits
+      - id: dimensions_separated  
+        type: b1  # bit 1
+      - id: enabled
+        type: b1  # bit 0
   utf8_body:
     seq:
       - id: data
