@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import enum
 import io
+from enum import Enum, auto
 
 """
 https://gitlab.com/mattbas/python-lottie/-/blob/master/lib/lottie/parsers/aep/cos.py
@@ -9,81 +9,56 @@ https://lottiefiles.github.io/lottie-docs/aep/#list-btdk
 """
 
 
-class TokenType(enum.Enum):
-    # /foo
-    Identifier = 1
-    # 123
-    Number = 2
-    # (foo)
-    String = 3
-    # <f000>
-    HexString = 4
-    # true
-    Boolean = 5
-    # <<
-    ObjectStart = 6
-    # >>
-    ObjectEnd = 7
-    # [
-    ArrayStart = 8
-    # ]
-    ArrayEnd = 9
-    # null
-    Null = 10
-    # end of file
-    Eof = 11
-    # obj
-    IndirectObjectStart = 12
-    # endobj
-    IndirectObjectEnd = 13
-    # R
-    IndirectReference = 14
-    # stream...endstream
-    Stream = 15
+class TokenType(Enum):
+    Identifier = auto()  # /foo
+    Number = auto()  # 123
+    String = auto()  # (foo)
+    HexString = auto()  # <f000>
+    Boolean = auto()  # true
+    ObjectStart = auto()  # <<
+    ObjectEnd = auto()  # >>
+    ArrayStart = auto()  # [
+    ArrayEnd = auto()  # ]
+    Null = auto()  # null
+    Eof = auto()  # end of file
+    IndirectObjectStart = auto()  # obj
+    IndirectObjectEnd = auto()  # endobj
+    IndirectReference = auto()  # R
+    Stream = auto()  # stream...endstream
 
 
 class Token:
-    __slots__ = ("type", "value")
-
     def __init__(self, type, value=None):
         self.type = type
         self.value = value
 
     def __str__(self):
-        return "(%s, %s)" % (self.type.name, self.value)
+        return f"({self.type.name}, {self.value})"
 
     def __repr__(self):
-        return "<Token %s>" % self
+        return f"<Token {self}>"
 
 
-class IndirectObject(object):
-    __slots__ = ("object_number", "generation_number", "data")
-
+class IndirectObject:
     def __init__(self, object_number, generation_number, data):
         self.object_number = object_number
         self.generation_number = generation_number
         self.data = data
 
 
-class IndirectReference(object):
-    __slots__ = ("object_number", "generation_number")
-
+class IndirectReference:
     def __init__(self, object_number, generation_number):
         self.object_number = object_number
         self.generation_number = generation_number
 
 
-class Stream(object):
-    __slots__ = ("dictionary", "data")
-
+class Stream:
     def __init__(self, dictionary, data):
         self.dictionary = dictionary
         self.data = data
 
 
 class CosParser:
-    __slots__ = ("file", "max_pos", "lookahead")
-
     def __init__(self, file, max_pos=None):
         self.file = file
         self.max_pos = max_pos
@@ -150,7 +125,7 @@ class CosParser:
             self.lex()
             return val
 
-        raise SyntaxError("Expected COS value, got %s" % self.lookahead)
+        raise SyntaxError(f"Expected COS value, got {self.lookahead}")
 
     def save_state(self):
         return (self.max_pos, self.file.tell(), self.lookahead)
@@ -199,11 +174,11 @@ class CosParser:
             self.lex()
             return IndirectReference(object_number, generation_number)
         else:
-            raise SyntaxError("Expected `obj` or `R`, got %s" % self.lookahead)
+            raise SyntaxError(f"Expected `obj` or `R`, got {self.lookahead}")
 
     def expect(self, token_type):
         if self.lookahead.type != token_type:
-            raise SyntaxError("Expected %s, got %s" % (token_type, self.lookahead))
+            raise SyntaxError(f"Expected {token_type}, got {self.lookahead}")
 
     def lex(self):
         self.lookahead = self.lex_token()
@@ -267,9 +242,9 @@ class CosParser:
             self.raise_lex(head + char, head + exp)
 
     def raise_lex(self, token, exp=None):
-        msg = "Unknown COS token %s" % token
+        msg = f"Unknown COS token {token}"
         if exp is not None:
-            msg += ", expected %s" % exp
+            msg += f", expected {exp}"
         raise SyntaxError(msg)
 
     def get_char(self):
@@ -360,7 +335,7 @@ class CosParser:
         elif kw == b"xref":
             return Token(TokenType.Eof)
         else:
-            raise SyntaxError("Unknown keyword %s" % kw)
+            raise SyntaxError(f"Unknown keyword {kw}")
 
     def lex_stream(self):
         char = self.get_char()
@@ -452,7 +427,7 @@ class CosParser:
             return b"\\"
         elif self.is_octal(char):
             octal = char[0] - b"0"[0]
-            for i in range(2):
+            for _ in range(2):
                 char = self.get_char()
                 if char is None:
                     break
@@ -480,7 +455,7 @@ class CosParser:
             elif char == b">":
                 break
             elif not char.isspace():
-                raise SyntaxError("Invalid character in hex string: %s" % char)
+                raise SyntaxError(f"Invalid character in hex string: {char}")
 
         if len(hstr) % 2:
             hstr += b"0"
@@ -503,7 +478,7 @@ class CosParser:
                 break
             elif char == b"#":
                 hexstr = b""
-                for i in range(2):
+                for _ in range(2):
                     char = self.get_char()
                     if char is None or not self.is_hex(char):
                         raise SyntaxError("Invalid identifier")
