@@ -7,28 +7,8 @@
   <p align="center">
     An After Effects file parser in Python!
     <br />
-    <a href="https://github.com/forticheprod/aep_parser/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/forticheprod/aep_parser/issues">Request Feature</a>
   </p>
 </div>
-
-
-
-<!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li><a href="#about-the-project">About The Project</a></li>
-    <li><a href="#installation">Installation</a></li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
-  </ol>
-</details>
 
 
 
@@ -58,9 +38,9 @@ pip install aep-parser
 ## Usage
 
 ```python
-from aep_parser.parsers.project import parse_project
+from aep_parser import parse_project
 
-aep_file_path = "01_empty.aep"
+aep_file_path = "samples/01_empty.aep"
 project = parse_project(aep_file_path)
 ```
 
