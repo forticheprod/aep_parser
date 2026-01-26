@@ -14,12 +14,10 @@ from ..models.properties.keyframe import Keyframe
 from ..models.properties.marker import Marker
 from ..models.properties.property import Property
 from ..models.properties.property_group import PropertyGroup
-
 from .utils import (
     get_chunks_by_match_name,
     split_in_chunks,
 )
-
 
 MATCH_NAME_TO_NICE_NAME = {
     "ADBE Marker": "Marker",
