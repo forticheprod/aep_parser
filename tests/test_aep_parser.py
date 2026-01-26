@@ -4,11 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 import aep_parser
-from aep_parser import parse_project, Project
-
+from aep_parser import Project, parse_project
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples"
 
