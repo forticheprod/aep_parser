@@ -9,7 +9,6 @@ from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 """
 This file was generated from aep.ksy using https://ide.kaitai.io/
 Then modified to:
-- add slots to all classes
 - add _ON_TO_KAITAISTRUCT_TYPE dict and replace massive "elif" block in Chunk._read() with a dict lookup
 - mmap.mmap was tested but does not seem to help with performance
 """
@@ -23,17 +22,6 @@ if getattr(kaitaistruct, "API_VERSION", (0, 9)) < (0, 9):
 
 
 class Aep(KaitaiStruct):
-    __slots__ = (
-        "_io",
-        "_parent",
-        "_root",
-        "header",
-        "len_data",
-        "format",
-        "data",
-        "xmp_packet",
-        "_raw_data",
-    )
 
     class TimeDisplayType(Enum):
         timecode = 0
@@ -213,22 +201,6 @@ class Aep(KaitaiStruct):
         self.xmp_packet = (self._io.read_bytes_full()).decode("utf8")
 
     class Keyframe(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "key_type",
-            "_unnamed0",
-            "time_raw",
-            "_unnamed2",
-            "keyframe_interpolation_type",
-            "label",
-            "attributes",
-            "kf_data",
-            "_m_continuous_bezier",
-            "_m_auto_bezier",
-            "_m_roving_across_time",
-        )
 
         def __init__(self, key_type, _io, _parent=None, _root=None):
             self._io = _io
@@ -305,12 +277,6 @@ class Aep(KaitaiStruct):
             return getattr(self, "_m_roving_across_time", None)
 
     class ChildUtf8Body(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "chunk",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -322,16 +288,6 @@ class Aep(KaitaiStruct):
             self.chunk = Aep.Chunk(self._io, self, self._root)
 
     class Chunk(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "chunk_type",
-            "len_data",
-            "_raw_data",
-            "data",
-            "padding",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -361,18 +317,6 @@ class Aep(KaitaiStruct):
                 self.padding = self._io.read_bytes(1)
 
     class Lhd3Body(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "_unnamed0",
-            "nb_keyframes",
-            "_unnamed2",
-            "len_keyframe",
-            "_unnamed4",
-            "keyframes_type_raw",
-            "_m_keyframes_type",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -470,14 +414,6 @@ class Aep(KaitaiStruct):
             return getattr(self, "_m_keyframes_type", None)
 
     class ListBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "list_type",
-            "chunks",
-            "binary_data",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -498,60 +434,6 @@ class Aep(KaitaiStruct):
                 self.binary_data = self._io.read_bytes_full()
 
     class CdtaBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "resolution_factor",
-            "_unnamed1",
-            "time_scale",
-            "_unnamed3",
-            "frame_rate_dividend",
-            "_unnamed5",
-            "time_raw",
-            "_unnamed7",
-            "in_point_raw",
-            "_unnamed9",
-            "out_point_raw",
-            "_unnamed11",
-            "duration_dividend",
-            "duration_divisor",
-            "bg_color",
-            "_unnamed15",
-            "attributes",
-            "width",
-            "height",
-            "pixel_ratio_width",
-            "pixel_ratio_height",
-            "_unnamed21",
-            "frame_rate_integer",
-            "_unnamed23",
-            "display_start_time_dividend",
-            "display_start_time_divisor",
-            "_unnamed26",
-            "shutter_angle",
-            "shutter_phase",
-            "_unnamed29",
-            "motion_blur_adaptive_sample_limit",
-            "motion_blur_samples_per_frame",
-            "_m_motion_blur",
-            "_m_pixel_aspect",
-            "_m_out_point",
-            "_m_hide_shy_layers",
-            "_m_preserve_nested_frame_rate",
-            "_m_frame_blending",
-            "_m_preserve_nested_resolution",
-            "_m_frame_out_point",
-            "_m_frame_duration",
-            "_m_frame_rate",
-            "_m_display_start_time",
-            "_m_display_start_frame",
-            "_m_duration",
-            "_m_time",
-            "_m_in_point",
-            "_m_frame_time",
-            "_m_frame_in_point",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -754,45 +636,6 @@ class Aep(KaitaiStruct):
             return getattr(self, "_m_frame_in_point", None)
 
     class Tdb4Body(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "_unnamed0",
-            "dimensions",
-            "attributes",
-            "_unnamed3",
-            "_unnamed4",
-            "_unnamed5",
-            "_unnamed6",
-            "_unnamed7",
-            "_unnamed8",
-            "_unnamed9",
-            "_unnamed10",
-            "_unnamed11",
-            "_unnamed12",
-            "_unnamed13",
-            "property_control_type",
-            "_unnamed15",
-            "_unnamed16",
-            "animated",
-            "_unnamed18",
-            "_unnamed19",
-            "_unnamed20",
-            "_unnamed21",
-            "_unnamed22",
-            "_unnamed23",
-            "_unnamed24",
-            "expression_flags",
-            "_unnamed26",
-            "_m_integer",
-            "_m_position",
-            "_m_vector",
-            "_m_static",
-            "_m_no_value",
-            "_m_color",
-            "_m_expression_enabled",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -900,12 +743,6 @@ class Aep(KaitaiStruct):
             return getattr(self, "_m_color", None)
 
     class LdatBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "keyframes",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -917,21 +754,6 @@ class Aep(KaitaiStruct):
             self.keyframes = self._io.read_bytes_full()
 
     class NnhdBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "_unnamed0",
-            "time_display_type",
-            "footage_timecode_display_start_type",
-            "_unnamed3",
-            "frame_rate",
-            "_unnamed5",
-            "frames_count_type",
-            "_unnamed7",
-            "bits_per_channel",
-            "_unnamed9",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -960,19 +782,6 @@ class Aep(KaitaiStruct):
             self._unnamed9 = self._io.read_bytes(15)
 
     class KfColor(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "_unnamed0",
-            "_unnamed1",
-            "in_speed",
-            "in_influence",
-            "out_speed",
-            "out_influence",
-            "value",
-            "_unnamed7",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -996,12 +805,6 @@ class Aep(KaitaiStruct):
                 self._unnamed7.append(self._io.read_f8be())
 
     class FdtaBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "_unnamed0",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1013,17 +816,6 @@ class Aep(KaitaiStruct):
             self._unnamed0 = self._io.read_bytes(1)
 
     class KfMultiDimensional(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "nb_dimensions",
-            "value",
-            "in_speed",
-            "in_influence",
-            "out_speed",
-            "out_influence",
-        )
 
         def __init__(self, nb_dimensions, _io, _parent=None, _root=None):
             self._io = _io
@@ -1054,12 +846,6 @@ class Aep(KaitaiStruct):
                 self.out_influence.append(self._io.read_f8be())
 
     class Chunks(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "chunks",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1075,12 +861,6 @@ class Aep(KaitaiStruct):
                 i += 1
 
     class Utf8Body(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "data",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1092,16 +872,6 @@ class Aep(KaitaiStruct):
             self.data = (self._io.read_bytes_full()).decode("utf8")
 
     class IdtaBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "item_type",
-            "_unnamed1",
-            "item_id",
-            "_unnamed3",
-            "label",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1119,21 +889,6 @@ class Aep(KaitaiStruct):
             self.label = KaitaiStream.resolve_enum(Aep.Label, self._io.read_u1())
 
     class KfPosition(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "nb_dimensions",
-            "_unnamed0",
-            "_unnamed1",
-            "in_speed",
-            "in_influence",
-            "out_speed",
-            "out_influence",
-            "value",
-            "tan_in",
-            "tan_out",
-        )
 
         def __init__(self, nb_dimensions, _io, _parent=None, _root=None):
             self._io = _io
@@ -1162,20 +917,6 @@ class Aep(KaitaiStruct):
                 self.tan_out.append(self._io.read_f8be())
 
     class NmhdBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "_unnamed0",
-            "attributes",
-            "_unnamed2",
-            "frame_duration",
-            "_unnamed4",
-            "label",
-            "_m_navigation",
-            "_m_protected_region",
-            "_m_unknown",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1222,26 +963,6 @@ class Aep(KaitaiStruct):
             return getattr(self, "_m_unknown", None)
 
     class SspcBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "_unnamed0",
-            "width",
-            "_unnamed2",
-            "height",
-            "duration_dividend",
-            "duration_divisor",
-            "_unnamed6",
-            "frame_rate_base",
-            "frame_rate_dividend",
-            "_unnamed9",
-            "start_frame",
-            "end_frame",
-            "_m_duration",
-            "_m_frame_rate",
-            "_m_frame_duration",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1290,22 +1011,6 @@ class Aep(KaitaiStruct):
             return getattr(self, "_m_frame_duration", None)
 
     class OptiBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "asset_type",
-            "asset_type_int",
-            "_unnamed2",
-            "color",
-            "solid_name",
-            "_unnamed5",
-            "placeholder_name",
-            "_m_red",
-            "_m_green",
-            "_m_blue",
-            "_m_alpha",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1380,14 +1085,6 @@ class Aep(KaitaiStruct):
             return getattr(self, "_m_alpha", None)
 
     class HeadBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "ae_version",
-            "_unnamed1",
-            "file_revision",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1401,12 +1098,6 @@ class Aep(KaitaiStruct):
             self.file_revision = self._io.read_u2be()
 
     class AlasBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "contents",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1418,12 +1109,6 @@ class Aep(KaitaiStruct):
             self.contents = (self._io.read_bytes_full()).decode("ascii")
 
     class KfUnknownData(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "data",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1435,12 +1120,6 @@ class Aep(KaitaiStruct):
             self.data = self._io.read_bytes_full()
 
     class CdatBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "value",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1454,17 +1133,6 @@ class Aep(KaitaiStruct):
                 self.value.append(self._io.read_f8be())
 
     class KfNoValue(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "_unnamed0",
-            "_unnamed1",
-            "in_speed",
-            "in_influence",
-            "out_speed",
-            "out_influence",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1481,12 +1149,6 @@ class Aep(KaitaiStruct):
             self.out_influence = self._io.read_f8be()
 
     class AsciiBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "data",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1498,31 +1160,6 @@ class Aep(KaitaiStruct):
             self.data = self._io.read_bytes_full()
 
     class PardBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "_unnamed0",
-            "property_control_type",
-            "name",
-            "_unnamed3",
-            "last_color",
-            "default_color",
-            "last_value",
-            "last_value_x_raw",
-            "last_value_y_raw",
-            "last_value_z_raw",
-            "nb_options",
-            "default",
-            "_unnamed12",
-            "min_value",
-            "_unnamed14",
-            "max_color",
-            "max_value",
-            "_m_last_value_x",
-            "_m_last_value_y",
-            "_m_last_value_z",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1682,15 +1319,6 @@ class Aep(KaitaiStruct):
             return getattr(self, "_m_last_value_z", None)
 
     class TdsbBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "flags",
-            "_m_locked_ratio",
-            "_m_enabled",
-            "_m_dimensions_separated",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -1730,61 +1358,6 @@ class Aep(KaitaiStruct):
             return getattr(self, "_m_dimensions_separated", None)
 
     class LdtaBody(KaitaiStruct):
-        __slots__ = (
-            "_io",
-            "_parent",
-            "_root",
-            "layer_id",
-            "quality",
-            "_unnamed2",
-            "stretch_dividend",
-            "start_time_dividend",
-            "start_time_divisor",
-            "in_point_dividend",
-            "in_point_divisor",
-            "out_point_dividend",
-            "out_point_divisor",
-            "_unnamed10",
-            "attributes",
-            "source_id",
-            "_unnamed13",
-            "label",
-            "_unnamed15",
-            "layer_name",
-            "_unnamed17",
-            "blending_mode",
-            "_unnamed19",
-            "preserve_transparency",
-            "_unnamed21",
-            "track_matte_type",
-            "_unnamed23",
-            "stretch_divisor",
-            "_unnamed25",
-            "layer_type",
-            "parent_id",
-            "_unnamed28",
-            "_m_start_time",
-            "_m_in_point",
-            "_m_out_point",
-            "_m_environment_layer",
-            "_m_null_layer",
-            "_m_guide_layer",
-            "_m_auto_orient",
-            "_m_motion_blur",
-            "_m_enabled",
-            "_m_frame_blending",
-            "_m_effects_active",
-            "_m_solo",
-            "_m_markers_locked",
-            "_m_locked",
-            "_m_three_d_layer",
-            "_m_collapse_transformation",
-            "_m_frame_blending_type",
-            "_m_adjustment_layer",
-            "_m_shy",
-            "_m_sampling_quality",
-            "_m_audio_enabled",
-        )
 
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
