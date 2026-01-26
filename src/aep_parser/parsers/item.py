@@ -9,7 +9,6 @@ from ..kaitai.utils import (
     find_by_type,
 )
 from ..models.items.folder import Folder
-
 from .composition import parse_composition
 from .footage import parse_footage
 from .utils import (

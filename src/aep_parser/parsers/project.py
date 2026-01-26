@@ -10,9 +10,7 @@ from ..kaitai.utils import (
     str_contents,
 )
 from ..models.project import Project
-
 from .item import parse_item
-
 
 SOFTWARE_AGENT_XPATH = ".//stEvt:softwareAgent"
 XMP_NAMESPACES = {"stEvt": "http://ns.adobe.com/xap/1.0/sType/ResourceEvent#"}
