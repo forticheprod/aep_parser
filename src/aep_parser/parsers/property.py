@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from kaitaistruct import KaitaiStream, BytesIO
+from kaitaistruct import BytesIO, KaitaiStream
 
 from ..kaitai.aep import Aep
 from ..kaitai.utils import (
@@ -14,6 +14,7 @@ from ..models.properties.keyframe import Keyframe
 from ..models.properties.marker import Marker
 from ..models.properties.property import Property
 from ..models.properties.property_group import PropertyGroup
+
 from .utils import (
     get_chunks_by_match_name,
     split_in_chunks,
@@ -107,7 +108,7 @@ def parse_property_group(
             )
         else:
             raise NotImplementedError(
-                "Cannot parse {} property".format(first_chunk.data.list_type)
+                f"Cannot parse {first_chunk.data.list_type} property"
             )
         prop_group.properties.append(sub_prop)
 
@@ -279,27 +280,16 @@ def parse_property(
                     prop.property_value_type = Aep.PropertyValueType.three_d
     if prop.property_control_type == Aep.PropertyControlType.unknown:
         print(
-            "Could not determine type for property {match_name}"
-            " | nice_name: {nice_name}"
-            " | dimensions: {dimensions}"
-            " | animated: {animated}"
-            " | integer: {integer}"
-            " | is_spatial: {is_spatial}"
-            " | vector: {vector}"
-            " | static: {static}"
-            " | no_value: {no_value}"
-            " | color: {color}".format(
-                match_name=match_name,
-                nice_name=nice_name,
-                dimensions=prop.dimensions,
-                animated=prop.animated,
-                integer=prop.integer,
-                is_spatial=prop.is_spatial,
-                vector=prop.vector,
-                static=prop.static,
-                no_value=prop.no_value,
-                color=prop.color,
-            )
+            f"Could not determine type for property {match_name}"
+            f" | nice_name: {nice_name}"
+            f" | dimensions: {prop.dimensions}"
+            f" | animated: {prop.animated}"
+            f" | integer: {prop.integer}"
+            f" | is_spatial: {prop.is_spatial}"
+            f" | vector: {prop.vector}"
+            f" | static: {prop.static}"
+            f" | no_value: {prop.no_value}"
+            f" | color: {prop.color}"
         )
 
     # Get property value
@@ -419,7 +409,7 @@ def parse_effect(
             pass
         else:
             raise NotImplementedError(
-                "Cannot parse parameter value : {}".format(first_chunk.data.list_type)
+                f"Cannot parse parameter value : {first_chunk.data.list_type}"
             )
 
     return effect
@@ -560,7 +550,7 @@ def parse_marker(nmrd_chunk: Aep.Chunk) -> Marker:
         url=str_contents(utf8_chunks[2]),
         label=nmhd_data.label,
         protected_region=nmhd_data.protected_region,
-        params=dict(),
+        params={},
         frame_duration=nmhd_data.frame_duration,
     )
     for param_name, param_value in split_in_chunks(utf8_chunks[5:], 2):
@@ -571,7 +561,7 @@ def parse_marker(nmrd_chunk: Aep.Chunk) -> Marker:
 
 def _get_nice_name(root_chunk: Aep.Chunk) -> str | None:
     """Get the user defined name of the property if there is one, else None.
-    
+
     Args:
         root_chunk (Aep.Chunk): The LIST chunk to parse.
     """

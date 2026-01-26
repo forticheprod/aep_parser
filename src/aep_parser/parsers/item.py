@@ -9,11 +9,12 @@ from ..kaitai.utils import (
     find_by_type,
 )
 from ..models.items.folder import Folder
+
 from .composition import parse_composition
 from .footage import parse_footage
 from .utils import (
-    get_name,
     get_comment,
+    get_name,
 )
 
 if typing.TYPE_CHECKING:
@@ -27,7 +28,7 @@ def parse_item(
 ) -> CompItem | Folder | FootageItem:
     """
     Parse an item (composition, footage or folder).
-    
+
     Args:
         item_chunk: The LIST chunk to parse.
         project: The project.
@@ -104,7 +105,7 @@ def parse_folder(
 
     This function cannot be moved to its own file as it calls `parse_item`,
     which can call `parse_folder`.
-    
+
     Args:
         is_root: Whether the folder is the root folder (ID 0).
         child_chunks: child chunks of the folder LIST chunk.

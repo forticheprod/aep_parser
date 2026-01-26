@@ -25,3 +25,8 @@ class FileSource(FootageSource):
     def missing_footage_path(self) -> str:
         """The missing footage path if the footage is missing, else empty."""
         return self.file if not os.path.exists(self.file) else ""
+
+    @property
+    def is_solid(self) -> bool:
+        """Whether this is a solid source."""
+        return False

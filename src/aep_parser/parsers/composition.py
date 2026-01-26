@@ -3,11 +3,12 @@ from __future__ import annotations
 import typing
 
 from ..kaitai.utils import (
+    filter_by_list_type,
     find_by_list_type,
     find_by_type,
-    filter_by_list_type,
 )
 from ..models.items.composition import CompItem
+
 from .layer import parse_layer
 
 if typing.TYPE_CHECKING:

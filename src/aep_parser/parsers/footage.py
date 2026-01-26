@@ -13,8 +13,8 @@ from ..kaitai.utils import (
 )
 from ..models.items.footage import FootageItem
 from ..models.sources.file import FileSource
-from ..models.sources.solid import SolidSource
 from ..models.sources.placeholder import PlaceholderSource
+from ..models.sources.solid import SolidSource
 
 if typing.TYPE_CHECKING:
     from ..kaitai.aep import Aep
