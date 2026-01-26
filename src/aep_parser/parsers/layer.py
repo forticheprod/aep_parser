@@ -8,7 +8,6 @@ from ..kaitai.utils import (
     str_contents,
 )
 from ..models.layers.av_layer import AVLayer
-
 from .property import (
     parse_markers,
     parse_property_group,
