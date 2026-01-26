@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from dataclasses import dataclass
 
 from .av_item import AVItem
 
@@ -10,30 +11,22 @@ if typing.TYPE_CHECKING:
     from ..sources.solid import SolidSource
 
 
+@dataclass
 class FootageItem(AVItem):
-    def __init__(
-        self,
-        main_source: FileSource | SolidSource | PlaceholderSource,
-        asset_type: str,
-        end_frame: int,
-        start_frame: int,
-        *args,
-        **kwargs,
-    ):
-        """
-        Footage item.
+    """
+    Footage item.
 
-        Args:
-            main_source: The footage source.
-            asset_type: The footage type (placeholder, solid, file).
-            end_frame: The footage end frame.
-            start_frame: The footage start frame.
-        """
-        super().__init__(*args, **kwargs)
-        self.main_source = main_source
-        self.asset_type = asset_type
-        self.end_frame = end_frame
-        self.start_frame = start_frame
+    Attributes:
+        main_source: The footage source.
+        asset_type: The footage type (placeholder, solid, file).
+        end_frame: The footage end frame.
+        start_frame: The footage start frame.
+    """
+
+    main_source: FileSource | SolidSource | PlaceholderSource
+    asset_type: str
+    end_frame: int
+    start_frame: int
 
     @property
     def file(self) -> str | None:

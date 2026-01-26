@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from dataclasses import dataclass, field
 
 from ...kaitai.aep import Aep
 from .property_base import PropertyBase
@@ -11,58 +12,48 @@ if typing.TYPE_CHECKING:
     from .keyframe import Keyframe
 
 
+@dataclass
 class Property(PropertyBase):
-    def __init__(
-        self,
-        property_control_type: Aep.PropertyControlType = Aep.PropertyControlType.unknown,
-        expression: list[str] | None = None,
-        expression_enabled: bool | None = None,
-        property_value_type: Aep.PropertyValueType = Aep.PropertyValueType.unknown,
-        value: Any = None,
-        max_value: Any = None,
-        min_value: Any = None,
-        dimensions_separated: bool | None = None,
-        is_spatial: bool | None = None,
-        property_parameters: list[str] | None = None,
-        locked_ratio: bool | None = None,
-        *args,
-        **kwargs,
-    ):
-        """
-        Property object of a layer or nested property.
+    """
+    Property object of a layer or nested property.
 
-        Args:
-            property_control_type: The type of the property (scalar, color, enum).
-            expression: The expression for the named property.
-            expression_enabled: True if the expression is enabled.
-            property_value_type: The type of value stored in this property.
-            value: The value of this property.
-            max_value: The maximum permitted value for this property.
-            min_value: The minimum permitted value for this property.
-            dimensions_separated: When true, the property's dimensions are
-                represented as separate properties. For example, if the layer's
-                position is represented as X Position and Y Position properties
-                in the Timeline panel, the Position property has this attribute
-                set to true.
-            is_spatial: When true, the property is a spatial property.
-            property_parameters: A list of parameters for this property.
-            locked_ratio: When true, the property's X/Y ratio is locked.
-        """
-        super().__init__(*args, **kwargs)
-        self.property_control_type = property_control_type
-        self.expression = expression
-        self.expression_enabled = expression_enabled
-        self.property_value_type = property_value_type
-        self.value = value
-        self.max_value = max_value
-        self.min_value = min_value
-        self.dimensions_separated = dimensions_separated
-        self.is_spatial = is_spatial
-        self.property_parameters = property_parameters  # enum choices
-        self.locked_ratio = locked_ratio
+    Attributes:
+        property_control_type: The type of the property (scalar, color, enum).
+        expression: The expression for the named property.
+        expression_enabled: True if the expression is enabled.
+        property_value_type: The type of value stored in this property.
+        value: The value of this property.
+        max_value: The maximum permitted value for this property.
+        min_value: The minimum permitted value for this property.
+        dimensions_separated: When true, the property's dimensions are
+            represented as separate properties. For example, if the layer's
+            position is represented as X Position and Y Position properties
+            in the Timeline panel, the Position property has this attribute
+            set to true.
+        is_spatial: When true, the property is a spatial property.
+        property_parameters: A list of parameters for this property.
+        locked_ratio: When true, the property's X/Y ratio is locked.
+    """
 
-        self.keyframes: list[Keyframe] = []
-        self.elided: bool = False
+    property_control_type: Aep.PropertyControlType = Aep.PropertyControlType.unknown
+    expression: list[str] | None = None
+    expression_enabled: bool | None = None
+    property_value_type: Aep.PropertyValueType = Aep.PropertyValueType.unknown
+    value: Any = None
+    max_value: Any = None
+    min_value: Any = None
+    dimensions_separated: bool | None = None
+    is_spatial: bool | None = None
+    property_parameters: list[str] | None = None  # enum choices
+    locked_ratio: bool | None = None
+    keyframes: list[Keyframe] = field(default_factory=list)
+    elided: bool = False
+    animated: bool = False
+    dimensions: int = 0
+    integer: bool = False
+    vector: bool = False
+    no_value: bool = False
+    color: bool = False
 
     def get_separation_follower(self, dim: int) -> Property | None:
         """
@@ -74,7 +65,7 @@ class Property(PropertyBase):
         Args:
             dim: The dimension number (starting at 0).
         """
-        pass  # TODO
+        return None  # TODO
 
     def nearest_key_index(self, time: float) -> int:
         """
@@ -84,7 +75,10 @@ class Property(PropertyBase):
             time: The time in seconds; a floating-point value. The beginning
                 of the composition is 0.
         """
-        return min(range(len(self.keyframes)), key=lambda i: abs(self.keyframes[i].frame_time - time))
+        return min(
+            range(len(self.keyframes)),
+            key=lambda i: abs(self.keyframes[i].frame_time - time),
+        )
 
     def nearest_key(self, time: float) -> Keyframe:
         """

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from dataclasses import dataclass, field
 
 from .property_base import PropertyBase
 
@@ -8,20 +9,22 @@ if typing.TYPE_CHECKING:
     from .property import Property
 
 
+@dataclass
 class PropertyGroup(PropertyBase):
-    def __init__(self, is_effect: bool, *args, **kwargs):
-        """
-        Group of properties.
+    """
+    Group of properties.
 
-        Args:
-            is_effect: When true, this property is an effect PropertyGroup.
-        """
-        super().__init__(*args, **kwargs)
-        self.is_effect = is_effect
+    Attributes:
+        is_effect: When true, this property is an effect PropertyGroup.
+    """
 
-        self.properties = []
-        self.enabled = True
-        self.elided = not is_effect  # there might be more than that
+    is_effect: bool = False
+    properties: list[Property] = field(default_factory=list)
+
+    @property
+    def elided(self) -> bool:
+        """Return True if this property group is elided (not an effect)."""
+        return not self.is_effect
 
     def __iter__(self) -> typing.Iterator[Property]:
         """Return an iterator over the properties in this group."""
@@ -33,8 +36,8 @@ class PropertyGroup(PropertyBase):
         """
         Find and return a child property of this group.
 
-        The property can be specified by either its index or name (match name or display
-        name).
+        The property can be specified by either its index or name (match name
+        or display name).
 
         Args:
             index: The index of the property to return.
@@ -48,3 +51,4 @@ class PropertyGroup(PropertyBase):
                 for prop in self.properties:
                     if prop.name == defined_arg or prop.match_name == defined_arg:
                         return prop
+        return None
