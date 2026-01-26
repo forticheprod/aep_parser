@@ -118,3 +118,6 @@ tags
 tags.lock
 tags.temp
 Session.vim
+
+# Debian packages
+*.deb
