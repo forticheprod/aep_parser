@@ -104,7 +104,7 @@ Project Link: [https://github.com/forticheprod/aep_parser](https://github.com/fo
 
 * [aftereffects-aep-parser](https://github.com/boltframe/aftereffects-aep-parser)
 * [Kaitai Struct](https://kaitai.io)
-* [Lottie](https://lottiefiles.github.io/lottie-docs/aep/)
+* [Lottie](https://github.com/hunger-zh/lottie-docs/blob/main/docs/aep.md)
 * [After Effects Scripting Guide](https://ae-scripting.docsforadobe.dev/)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
