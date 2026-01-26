@@ -4,12 +4,13 @@ import xml.etree.ElementTree as ET
 
 from ..kaitai.aep import Aep
 from ..kaitai.utils import (
+    filter_by_type,
     find_by_list_type,
     find_by_type,
-    filter_by_type,
     str_contents,
 )
 from ..models.project import Project
+
 from .item import parse_item
 
 
@@ -39,7 +40,7 @@ def parse_project(aep_file_path: str) -> Project:
             footage_timecode_display_start_type=nnhd_data.footage_timecode_display_start_type,
             frame_rate=nnhd_data.frame_rate,
             frames_count_type=nnhd_data.frames_count_type,
-            project_items=dict(),
+            project_items={},
             time_display_type=nnhd_data.time_display_type,
         )
 

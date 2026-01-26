@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 if typing.TYPE_CHECKING:
     import xml.etree.ElementTree as ET
+
     from ..kaitai.aep import Aep
     from .items.composition import CompItem
     from .items.folder import Folder
