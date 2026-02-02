@@ -41,6 +41,10 @@ dev = [
 Homepage = "https://github.com/forticheprod/aep_parser"
 Repository = "https://github.com/forticheprod/aep_parser"
 
+[project.scripts]
+aep-visualize = "aep_parser.cli.visualize:main"
+aep-compare = "aep_parser.cli.compare:main"
+
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
