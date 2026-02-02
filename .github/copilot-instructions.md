@@ -47,6 +47,7 @@ ruff format src/
 ### Type Hints
 - All functions require type hints (`disallow_untyped_defs = true`)
 - Use `from __future__ import annotations` for Python 3.7+ compatibility
+- Use `pathlib` for file paths
 - Conditional imports for TYPE_CHECKING to avoid circular imports
 
 ### Adding New Parsed Data
