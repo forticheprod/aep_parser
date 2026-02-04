@@ -38,6 +38,9 @@ def parse_composition(
     cdta_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     cdta_data = cdta_chunk.data
 
+    # Normalize bg_color from 0-255 to 0-1 range to match ExtendScript output
+    bg_color = [c / 255 for c in cdta_data.bg_color]
+
     composition = CompItem(
         comment=comment,
         item_id=item_id,
@@ -48,12 +51,12 @@ def parse_composition(
         duration=cdta_data.duration,
         frame_duration=int(
             cdta_data.frame_duration
-        ),  # in JSX API, this value is 1 / frame_rate. Here, duration * frame_rate
+        ),  # in JSX API, this value is 1 / frame_rate (the duration of a frame). Here, duration * frame_rate
         frame_rate=cdta_data.frame_rate,
         height=cdta_data.height,
         pixel_aspect=cdta_data.pixel_aspect,
         width=cdta_data.width,
-        bg_color=cdta_data.bg_color,
+        bg_color=bg_color,
         frame_blending=cdta_data.frame_blending,
         hide_shy_layers=cdta_data.hide_shy_layers,
         layers=[],

@@ -6,7 +6,12 @@ from dataclasses import dataclass, field
 if typing.TYPE_CHECKING:
     import xml.etree.ElementTree as ET
 
-    from ..kaitai.aep import Aep
+    from .enums import (
+        BitsPerChannel,
+        FootageTimecodeDisplayStartType,
+        FramesCountType,
+        TimeDisplayType,
+    )
     from .items.composition import CompItem
     from .items.folder import Folder
     from .items.footage import FootageItem
@@ -39,15 +44,15 @@ class Project:
         xmp_packet: The XMP packet for the project, containing metadata.
     """
 
-    bits_per_channel: Aep.BitsPerChannel
+    bits_per_channel: BitsPerChannel
     effect_names: list[str]
     expression_engine: str | None
     file: str
-    footage_timecode_display_start_type: Aep.FootageTimecodeDisplayStartType
+    footage_timecode_display_start_type: FootageTimecodeDisplayStartType
     frame_rate: float
-    frames_count_type: Aep.FramesCountType
+    frames_count_type: FramesCountType
     project_items: dict[int, Item]
-    time_display_type: Aep.TimeDisplayType
+    time_display_type: TimeDisplayType
     ae_version: str | None = None
     xmp_packet: ET.Element | None = None
     display_start_frame: int = field(init=False)

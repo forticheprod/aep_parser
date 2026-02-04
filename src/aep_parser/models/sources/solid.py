@@ -10,6 +10,9 @@ class SolidSource(FootageSource):
     """
     Solid source.
 
+    Corresponds to After Effects SolidSource object.
+    See: https://ae-scripting.docsforadobe.dev/sources/solidsource/
+
     Attributes:
         color: The solid color (RGBA).
     """

@@ -3,9 +3,28 @@ from __future__ import annotations
 import typing
 
 if typing.TYPE_CHECKING:
+    from enum import Enum
     from typing import Callable
 
     from .aep import Aep
+
+
+def get_enum_value(value: Enum | int) -> int:
+    """Extract integer value from either an enum or raw int.
+
+    Kaitai's resolve_enum returns the enum member if the value exists,
+    or the raw integer if the value is not in the enum. This helper
+    handles both cases safely.
+
+    Args:
+        value: Either a Kaitai enum member or a raw integer.
+
+    Returns:
+        The integer value.
+    """
+    if hasattr(value, "value"):
+        return value.value
+    return value
 
 
 def _find_chunk(

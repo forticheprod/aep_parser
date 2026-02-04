@@ -33,28 +33,21 @@ def parse_item(
         project: The project.
         parent_id: The parent folder unique ID.
     """
-    is_root = item_chunk.data.list_type == "Fold"
     child_chunks = item_chunk.data.chunks
     comment = get_comment(child_chunks)
 
-    if is_root:
-        item_id = 0
-        item_name = "root"
-        item_type = Aep.ItemType.folder
-        label = Aep.Label(0)
-    else:
-        item_name = get_name(child_chunks)
+    item_name = get_name(child_chunks)
 
-        idta_chunk = find_by_type(chunks=child_chunks, chunk_type="idta")
-        idta_data = idta_chunk.data
+    idta_chunk = find_by_type(chunks=child_chunks, chunk_type="idta")
+    idta_data = idta_chunk.data
 
-        item_id = idta_data.item_id
-        item_type = idta_data.item_type
-        label = idta_data.label
+    item_id = idta_data.item_id
+    item_type = idta_data.item_type
+    label = idta_data.label
 
     if item_type == Aep.ItemType.folder:
         item = parse_folder(
-            is_root=is_root,
+            is_root=False,
             child_chunks=child_chunks,
             project=project,
             item_id=item_id,

@@ -9,12 +9,14 @@ from ..kaitai.utils import (
     filter_by_type,
     find_by_list_type,
     find_by_type,
+    get_enum_value,
     str_contents,
 )
 from ..models.items.footage import FootageItem
 from ..models.sources.file import FileSource
 from ..models.sources.placeholder import PlaceholderSource
 from ..models.sources.solid import SolidSource
+from .mappings import map_alpha_mode, map_field_separation_type
 
 if typing.TYPE_CHECKING:
     from ..kaitai.aep import Aep
@@ -51,18 +53,41 @@ def parse_footage(
     start_frame = sspc_data.start_frame
     end_frame = sspc_data.end_frame
 
+    # Common source attributes from sspc
+    source_attrs = {
+        "has_alpha": sspc_data.has_alpha,
+        "alpha_mode": map_alpha_mode(
+            get_enum_value(sspc_data.alpha_mode_raw), sspc_data.has_alpha
+        ),
+        "invert_alpha": sspc_data.invert_alpha,
+        "field_separation_type": map_field_separation_type(
+            get_enum_value(sspc_data.field_separation_type_raw),
+            get_enum_value(sspc_data.field_order),
+        ),
+        "high_quality_field_separation": sspc_data.high_quality_field_separation != 0,
+        "loop": sspc_data.loop,
+        "conform_frame_rate": sspc_data.conform_frame_rate,
+        "is_still": sspc_data.duration == 0,
+        # premul_color: RGB bytes (0-255) converted to floats (0.0-1.0)
+        "premul_color": [
+            sspc_data.premul_color_r / 255.0,
+            sspc_data.premul_color_g / 255.0,
+            sspc_data.premul_color_b / 255.0,
+        ],
+    }
+
     if not asset_type:
         asset_type = "placeholder"
         item_name = opti_data.placeholder_name
-        main_source = PlaceholderSource()
+        main_source = PlaceholderSource(**source_attrs)
     elif asset_type == "Soli":
         asset_type = "solid"
         item_name = opti_data.solid_name
         color = [opti_data.red, opti_data.green, opti_data.blue, opti_data.alpha]
-        main_source = SolidSource(color=color)
+        main_source = SolidSource(color=color, **source_attrs)
     else:
         asset_type = "file"
-        main_source = _parse_file_source(pin_child_chunks)
+        main_source = _parse_file_source(pin_child_chunks, source_attrs)
 
         # If start frame or end frame is undefined, try to get it from the filenames
         if 0xFFFFFFFF in (start_frame, end_frame):
@@ -92,7 +117,7 @@ def parse_footage(
         frame_duration=int(sspc_data.frame_duration),
         frame_rate=sspc_data.frame_rate,
         height=sspc_data.height,
-        pixel_aspect=1,
+        pixel_aspect=sspc_data.pixel_aspect,
         width=sspc_data.width,
         main_source=main_source,
         asset_type=asset_type,
@@ -102,11 +127,14 @@ def parse_footage(
     return item
 
 
-def _parse_file_source(pin_child_chunks: list[Aep.Chunk]) -> FileSource:
+def _parse_file_source(
+    pin_child_chunks: list[Aep.Chunk], source_attrs: dict
+) -> FileSource:
     """
     Parse a file source.
     Args:
         pin_child_chunks: The Pin chunk's child chunks.
+        source_attrs: Common source attributes from sspc.
     """
     file_source_data = _get_file_source_data(pin_child_chunks)
     stvc_chunk = find_by_list_type(chunks=pin_child_chunks, list_type="StVc")
@@ -125,6 +153,7 @@ def _parse_file_source(pin_child_chunks: list[Aep.Chunk]) -> FileSource:
         file=file,
         file_names=file_names,
         target_is_folder=target_is_folder,
+        **source_attrs,
     )
     return file_source
 

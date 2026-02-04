@@ -92,10 +92,7 @@ types:
       - size: 1
       - id: time_scale
         type: u2
-      - size: 2
-      - id: frame_rate_dividend
-        type: u2
-      - size: 10
+      - size: 14
       - id: time_raw
         type: u2
       - size: 6
@@ -135,9 +132,11 @@ types:
       - id: pixel_ratio_height
         type: u4
       - size: 4
-      - id: frame_rate_integer  # probably a divisor
+      - id: frame_rate_integer
         type: u2
-      - size: 6
+      - id: frame_rate_fractional
+        type: u2
+      - size: 4
       - id: display_start_time_dividend
         type: u4
       - id: display_start_time_divisor
@@ -145,9 +144,10 @@ types:
       - size: 2
       - id: shutter_angle
         type: u2
+      - size: 4
       - id: shutter_phase
-        type: u4
-      - size: 16
+        type: s4
+      - size: 12
       - id: motion_blur_adaptive_sample_limit
         type: s4
       - id: motion_blur_samples_per_frame
@@ -156,7 +156,7 @@ types:
       display_start_time:
         value: 'display_start_time_dividend.as<f4> / display_start_time_divisor.as<f4>'
       frame_rate:
-        value: 'frame_rate_dividend.as<f4> / time_scale.as<f4>'
+        value: 'frame_rate_integer + (frame_rate_fractional.as<f4> / 65536.0)'
       display_start_frame:
         value: 'display_start_time * frame_rate'
       duration:
@@ -345,7 +345,7 @@ types:
         enum: layer_quality
       - size: 4
       - id: stretch_dividend
-        type: u2
+        type: s2
       - id: start_time_dividend
         type: u4
       - id: start_time_divisor
@@ -432,7 +432,12 @@ types:
         enum: layer_type
       - id: parent_id
         type: u4
-      - size: 24
+      - size: 3
+      - id: light_type
+        type: u1
+        enum: light_type
+        doc: Type of light for light layers (0=parallel, 1=spot, 2=point, 3=ambient)
+      - size: 20
       # - id: matte_layer_id
       #   type: u4
       #   doc: only for AE >= 23
@@ -669,6 +674,8 @@ types:
         value: 'last_value_z_raw * 512'
         if: property_control_type == property_control_type::three_d
   sspc_body:
+    doc: |
+      Source footage settings chunk. Contains dimension, timing, and alpha/field settings.
     seq:
       - size: 32
       - id: width
@@ -683,9 +690,63 @@ types:
       - size: 10
       - id: frame_rate_base
         type: u4
-      - id: frame_rate_dividend
+      - id: frame_rate_fractional
         type: u2
-      - size: 110
+      - size: 7
+      # Byte 69: alpha flags
+      - type: b6  # skip bits 7-2
+      - id: invert_alpha
+        type: b1  # bit 1
+        doc: True if the alpha channel should be inverted
+      - id: premultiplied
+        type: b1  # bit 0
+        doc: True if alpha is premultiplied (matches alpha_mode=PREMULTIPLIED)
+      # Bytes 70-72: premul color (RGB, 0-255)
+      - id: premul_color_r
+        type: u1
+        doc: Red component of premultiply color (0-255)
+      - id: premul_color_g
+        type: u1
+        doc: Green component of premultiply color (0-255)
+      - id: premul_color_b
+        type: u1
+        doc: Blue component of premultiply color (0-255)
+      - id: alpha_mode_raw
+        type: u1
+        enum: alpha_mode
+        doc: |
+          Alpha interpretation mode. When no_alpha (3), the footage has no alpha channel.
+      - size: 9
+      - id: field_separation_type_raw
+        type: u1
+        enum: field_separation_type
+        doc: |
+          0 = OFF, 1 = enabled (check field_order for UPPER vs LOWER)
+      - size: 3
+      - id: field_order
+        type: u1
+        enum: field_order
+        doc: |
+          Field order when field separation is enabled
+      - size: 41
+      - id: loop
+        type: u1
+        doc: Number of times to loop the footage (1 = no loop, 2+ = loop count)
+      - size: 6
+      - id: pixel_ratio_width
+        type: u4
+      - id: pixel_ratio_height
+        type: u4
+      - size: 5
+      - id: conform_frame_rate
+        type: u1
+        doc: Target frame rate for conforming. 0 = no conforming.
+      - size: 9
+      - id: high_quality_field_separation
+        type: u1
+        doc: |
+          When true (1), After Effects uses special algorithms for high-quality field separation.
+      - size: 12
       - id: start_frame
         type: u4
       - id: end_frame
@@ -694,9 +755,14 @@ types:
       duration:
         value: 'duration_dividend.as<f4> / duration_divisor.as<f4>'
       frame_rate:
-        value: 'frame_rate_base + (frame_rate_dividend.as<f4> / (1 << 16))'
+        value: 'frame_rate_base + (frame_rate_fractional.as<f4> / (1 << 16))'
       frame_duration:
         value: 'duration * frame_rate'
+      pixel_aspect:
+        value: 'pixel_ratio_width.as<f4> / pixel_ratio_height.as<f4>'
+      has_alpha:
+        value: alpha_mode_raw != alpha_mode::no_alpha
+        doc: True if footage has an alpha channel
   tdb4_body:
     seq:
       - size: 2
@@ -809,13 +875,22 @@ enums:
     2: camera
     3: text
     4: shape
+  light_type:
+    0: parallel
+    1: spot
+    2: point
+    3: ambient
+  auto_orient_type:
+    0: no_auto_orient
+    1: along_path
+    2: camera_or_point_of_interest
+    3: characters_toward_camera
   track_matte_type:
     0: none
-    1: no_track_matte
-    2: alpha
-    3: alpha_inverted
-    4: luma
-    5: luma_inverted
+    1: alpha
+    2: alpha_inverted
+    3: luma
+    4: luma_inverted
   label:
     0: none
     1: red
@@ -884,7 +959,7 @@ enums:
     16: luminosity
     17: stencil_alpha
     18: stencil_luma
-    19: silhouette_alpha
+    19: silhouete_alpha
     20: silhouette_luma
     21: luminescent_premul
     22: alpha_add
@@ -914,6 +989,17 @@ enums:
     0: fc_start_0
     1: fc_start_1
     2: fc_timecode_conversion
+  alpha_mode:
+    0: straight
+    1: premultiplied
+    2: ignore
+    3: no_alpha
+  field_separation_type:
+    0: off
+    1: enabled
+  field_order:
+    0: upper_field_first
+    1: lower_field_first
   property_value_type:
     0:
       id: unknown

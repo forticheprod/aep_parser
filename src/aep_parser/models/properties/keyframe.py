@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 if typing.TYPE_CHECKING:
     from ...kaitai.aep import Aep
+    from ..enums import KeyframeInterpolationType
 
 
 @dataclass
@@ -27,9 +28,9 @@ class Keyframe:
             first and last keyframe in a property cannot rove.
     """
 
-    frame_time: int = 0
-    keyframe_interpolation_type: Aep.KeyframeInterpolationType | None = None
-    label: Aep.Label | None = None
-    continuous_bezier: bool = False
-    auto_bezier: bool = False
-    roving_across_time: bool = False
+    frame_time: int
+    keyframe_interpolation_type: KeyframeInterpolationType
+    label: Aep.Label
+    continuous_bezier: bool
+    auto_bezier: bool
+    roving_across_time: bool

@@ -60,3 +60,26 @@ def split_in_chunks(iterable: list, n: int) -> Iterator[list]:
         raise ValueError('n must be at least one')
     for i in range(0, len(iterable), n):
         yield iterable[i : i + n]
+
+
+def property_has_keyframes(property_chunk: Aep.Chunk) -> bool:
+    """
+    Check if a property has keyframes.
+
+    A property with keyframes contains a LIST/list chunk with lhd3/ldat.
+    A property without keyframes contains a cdat chunk (constant data).
+
+    Args:
+        property_chunk: The property's tdbs LIST chunk.
+
+    Returns:
+        True if the property has keyframes, False otherwise.
+    """
+    if property_chunk.chunk_type != "LIST":
+        return False
+    if property_chunk.data.list_type != "tdbs":
+        return False
+    for chunk in property_chunk.data.chunks:
+        if chunk.chunk_type == "LIST" and chunk.data.list_type == "list":
+            return True  # Has keyframes
+    return False  # Has cdat (constant) or other structure

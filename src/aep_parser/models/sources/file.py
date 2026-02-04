@@ -11,6 +11,9 @@ class FileSource(FootageSource):
     """
     File source.
 
+    Corresponds to After Effects FileSource object.
+    See: https://ae-scripting.docsforadobe.dev/sources/filesource/
+
     Attributes:
         file: The full file path.
         file_names: The filenames if the footage is an image sequence.
