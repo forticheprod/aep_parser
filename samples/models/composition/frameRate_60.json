@@ -1,0 +1,86 @@
+{
+  "exportVersion": "1.0",
+  "exportDate": "2026-02-04T11:30:57Z",
+  "aeVersion": "25.6x101",
+  "aeBuildNumber": 101,
+  "projectFile": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\models\\composition\\frameRate_60.aep",
+  "projectName": "frameRate_60.aep",
+  "bitsPerChannel": 32,
+  "colorManagementSystem": 1,
+  "compensateForSceneReferredProfiles": true,
+  "displayStartFrame": 0,
+  "expressionEngine": "extendscript",
+  "feetFramesFilmType": 2413,
+  "footageTimecodeDisplayStartType": 2212,
+  "framesCountType": 2612,
+  "framesUseFeetFrames": true,
+  "gpuAccelType": 1813,
+  "linearBlending": true,
+  "linearizeWorkingSpace": true,
+  "lutInterpolationMethod": 1,
+  "numItems": 1,
+  "ocioConfigurationFile": "ACES 1.2",
+  "revision": 37,
+  "timeDisplayType": 2012,
+  "transparencyGridThumbnails": true,
+  "workingGamma": 2.4,
+  "workingSpace": "None",
+  "items": [
+    {
+      "name": "TestComp",
+      "id": 1,
+      "comment": "",
+      "typeName": "Composition",
+      "label": 15,
+      "itemType": "CompItem",
+      "duration": 1,
+      "footageMissing": false,
+      "frameDuration": 0.01666666666667,
+      "frameRate": 60,
+      "hasAudio": false,
+      "hasVideo": true,
+      "height": 100,
+      "pixelAspect": 1,
+      "time": 0,
+      "useProxy": false,
+      "width": 100,
+      "bgColor": [
+        0,
+        0,
+        0
+      ],
+      "displayStartFrame": 0,
+      "displayStartTime": 0,
+      "draft3d": false,
+      "dropFrame": false,
+      "frameBlending": false,
+      "hideShyLayers": false,
+      "motionBlur": false,
+      "motionBlurAdaptiveSampleLimit": 128,
+      "motionBlurSamplesPerFrame": 16,
+      "numLayers": 0,
+      "preserveNestedFrameRate": false,
+      "preserveNestedResolution": false,
+      "renderer": "ADBE Advanced 3d",
+      "resolutionFactor": [
+        1,
+        1
+      ],
+      "shutterAngle": 180,
+      "shutterPhase": 0,
+      "workAreaDuration": 1,
+      "workAreaStart": 0,
+      "renderers": [
+        "ADBE Advanced 3d",
+        "ADBE Calder",
+        "ADBE Ernst"
+      ],
+      "markers": [
+        
+      ],
+      "layers": [
+        
+      ]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "exportVersion": "1.0",
+  "exportDate": "2026-02-04T11:31:21Z",
+  "aeVersion": "25.6x101",
+  "aeBuildNumber": 101,
+  "projectFile": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\models\\project\\ocioConfigurationFile_custom.aep",
+  "projectName": "ocioConfigurationFile_custom.aep",
+  "bitsPerChannel": 32,
+  "colorManagementSystem": 1,
+  "compensateForSceneReferredProfiles": true,
+  "displayStartFrame": 0,
+  "expressionEngine": "extendscript",
+  "feetFramesFilmType": 2413,
+  "footageTimecodeDisplayStartType": 2212,
+  "framesCountType": 2612,
+  "framesUseFeetFrames": true,
+  "gpuAccelType": 1813,
+  "linearBlending": true,
+  "linearizeWorkingSpace": true,
+  "lutInterpolationMethod": 1,
+  "numItems": 0,
+  "ocioConfigurationFile": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\assets\\config.ocio",
+  "revision": 3,
+  "timeDisplayType": 2012,
+  "transparencyGridThumbnails": true,
+  "workingGamma": 2.4,
+  "workingSpace": "None",
+  "items": [
+    
+  ]
+}

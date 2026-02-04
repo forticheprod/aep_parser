@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import xml.etree.ElementTree as ET
 
 from ..kaitai import Aep
@@ -23,14 +24,15 @@ SOFTWARE_AGENT_XPATH = ".//stEvt:softwareAgent"
 XMP_NAMESPACES = {"stEvt": "http://ns.adobe.com/xap/1.0/sType/ResourceEvent#"}
 
 
-def parse_project(aep_file_path: str) -> Project:
+def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
     """
     Parse an After Effects (.aep) project file.
 
     Args:
-        aep_file_path (str): path to the project file
+        aep_file_path: path to the project file
     """
-    with Aep.from_file(aep_file_path) as aep:
+    file_path = os.fspath(aep_file_path)
+    with Aep.from_file(file_path) as aep:
         root_chunks = aep.data.chunks
 
         root_folder_chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")
@@ -43,7 +45,7 @@ def parse_project(aep_file_path: str) -> Project:
             ),
             effect_names=_get_effect_names(root_chunks),
             expression_engine=_get_expression_engine(root_chunks),  # CC 2019+
-            file=aep_file_path,
+            file=file_path,
             footage_timecode_display_start_type=map_footage_timecode_display_start_type(
                 get_enum_value(nnhd_data.footage_timecode_display_start_type)
             ),
