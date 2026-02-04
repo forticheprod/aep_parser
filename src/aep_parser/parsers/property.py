@@ -8,12 +8,14 @@ from ..kaitai.utils import (
     filter_by_type,
     find_by_list_type,
     find_by_type,
+    get_enum_value,
     str_contents,
 )
 from ..models.properties.keyframe import Keyframe
 from ..models.properties.marker import Marker
 from ..models.properties.property import Property
 from ..models.properties.property_group import PropertyGroup
+from .mappings import map_keyframe_interpolation_type
 from .utils import (
     get_chunks_by_match_name,
     split_in_chunks,
@@ -322,7 +324,9 @@ def parse_property(
                 )
                 keyframe = Keyframe(
                     frame_time=int(round(kf_chunk.time_raw / time_scale)),
-                    keyframe_interpolation_type=kf_chunk.keyframe_interpolation_type,
+                    keyframe_interpolation_type=map_keyframe_interpolation_type(
+                        get_enum_value(kf_chunk.keyframe_interpolation_type)
+                    ),
                     label=kf_chunk.label,
                     continuous_bezier=kf_chunk.continuous_bezier,
                     auto_bezier=kf_chunk.auto_bezier,
@@ -491,7 +495,7 @@ def parse_effect_parameter(
 
 
 def parse_markers(
-    mrst_chunk: Aep.Chunk, group_match_name: str, time_scale: float
+    mrst_chunk: Aep.Chunk, group_match_name: str, time_scale: float, frame_rate: float
 ) -> list[Marker]:
     """
     Parse markers.
@@ -509,6 +513,8 @@ def parse_markers(
             always has a match_name value.
         time_scale: The time scale of the parent composition, used as a divisor
             for some frame values.
+        frame_rate: The frame rate of the parent composition, used to compute
+            marker duration in seconds.
     """
     tdbs_chunk = find_by_list_type(chunks=mrst_chunk.data.chunks, list_type="tdbs")
     # get keyframes (markers time)
@@ -522,27 +528,32 @@ def parse_markers(
     nmrd_chunks = filter_by_list_type(chunks=mrky_chunk.data.chunks, list_type="Nmrd")
     markers = []
     for i, nmrd_chunk in enumerate(nmrd_chunks):
-        marker = parse_marker(nmrd_chunk=nmrd_chunk)
+        marker = parse_marker(nmrd_chunk=nmrd_chunk, frame_rate=frame_rate)
         marker.frame_time = marker_group.keyframes[i].frame_time
         markers.append(marker)
     return markers
 
 
-def parse_marker(nmrd_chunk: Aep.Chunk) -> Marker:
+def parse_marker(nmrd_chunk: Aep.Chunk, frame_rate: float) -> Marker:
     """
     Parse a marker.
 
     Args:
         nmrd_chunk: The NMRD chunk to parse.
+        frame_rate: The frame rate of the parent composition (unused but kept
+            for API consistency).
     """
     nmhd_chunk = find_by_type(chunks=nmrd_chunk.data.chunks, chunk_type="NmHd")
     nmhd_data = nmhd_chunk.data
     utf8_chunks = filter_by_type(chunks=nmrd_chunk.data.chunks, chunk_type="Utf8")
+    # FIXME Marker duration is stored in 600ths of a second
+    # It is hardcoded here until we have a better time representation
+    duration = nmhd_data.frame_duration / 600
     marker = Marker(
         chapter=str_contents(utf8_chunks[1]),
         comment=str_contents(utf8_chunks[0]),
         cue_point_name=str_contents(utf8_chunks[4]),
-        duration=None,
+        duration=duration,
         navigation=nmhd_data.navigation,
         frame_target=str_contents(utf8_chunks[3]),
         url=str_contents(utf8_chunks[2]),

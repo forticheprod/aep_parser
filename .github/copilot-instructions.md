@@ -44,11 +44,14 @@ ruff format src/
 
 ## Code Conventions
 
-### Type Hints
+### Style Guide
 - All functions require type hints (`disallow_untyped_defs = true`)
-- Use `from __future__ import annotations` for Python 3.7+ compatibility
-- Use `pathlib` for file paths
+- Use `from __future__ import annotations` and modern type hints (e.g. `list[int]` instead of `List[int]`)
 - Conditional imports for TYPE_CHECKING to avoid circular imports
+- Follow PEP8 naming conventions (snake_case for functions/variables, PascalCase for classes)
+- Use `pathlib` for file paths
+- Use f-strings for formatting
+- No spaces on empty lines
 
 ### Adding New Parsed Data
 1. Find the chunk type in `kaitai/aep.ksy` or add new chunk definition
@@ -60,7 +63,7 @@ ruff format src/
        data_chunk = find_by_type(chunks=child_chunks, chunk_type="xxxx")
        return ThingModel(field=data_chunk.data.field)
    ```
-4. Do not add tests, it will come later.
+4. Add test case in `tests/test_models_*.py` using sample .aep files
 
 ### Binary Format Debugging
 See `docs/flags_tutorial.md` for reverse-engineering bitflags:
@@ -97,7 +100,7 @@ layer_chunks = filter_by_list_type(chunks=comp_chunks, list_type="Layr")
 ## Testing
 - Tests use sample .aep files from `samples/` directory
 - Each sample file tests a specific AE feature (markers, expressions, compositions, etc.)
-- Do not add tests for now, they will be added later.
+- Add test case in `tests/test_models_*.py` using sample .aep files
 
 ## Regenerating Kaitai Parser
 When modifying `aep.ksy`, regenerate the Python parser:
