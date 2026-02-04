@@ -5,7 +5,7 @@ from abc import ABC
 from dataclasses import dataclass, field
 
 if typing.TYPE_CHECKING:
-    from ...kaitai.aep import Aep
+    from ...kaitai import Aep
     from ..properties.marker import Marker
     from ..properties.property import Property
     from ..properties.property_group import PropertyGroup

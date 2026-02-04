@@ -4,7 +4,7 @@ import typing
 from dataclasses import dataclass
 
 if typing.TYPE_CHECKING:
-    from ...kaitai.aep import Aep
+    from ...kaitai import Aep
     from ..enums import KeyframeInterpolationType
 
 

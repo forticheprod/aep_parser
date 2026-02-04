@@ -10,7 +10,7 @@ from ..kaitai.utils import (
 if typing.TYPE_CHECKING:
     from typing import Iterator
 
-    from ..kaitai.aep import Aep
+    from ..kaitai import Aep
 
 
 def get_name(child_chunks: list[Aep.Chunk]) -> str:

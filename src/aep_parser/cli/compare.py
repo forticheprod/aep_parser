@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterator
 
-from ..kaitai.aep import Aep
+from ..kaitai import Aep
 
 
 @dataclass

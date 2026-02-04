@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 from dataclasses import dataclass, field
 
-from ...kaitai.aep import Aep
+from ...kaitai import Aep
 from .property_base import PropertyBase
 
 if typing.TYPE_CHECKING:
