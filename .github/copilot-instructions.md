@@ -107,9 +107,10 @@ When modifying `aep.ksy`, regenerate the Python parser:
 ```powershell
 kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_parser/kaitai/aep.ksy
 ```
-Then manually optimize the generated `aep.py`: replace large `if/elif/else` blocks with `try: dict[key]; except KeyError: default_value` pattern for better performance (see `_ON_TO_KAITAISTRUCT_TYPE` for example).
+No manual modifications are needed after regeneration. Performance optimizations (dict-based chunk type lookup) are applied automatically via the `aep_optimized.py` wrapper module.
 
 ## Important Notes
 - `kaitai/aep.py` is **auto-generated** - edit `aep.ksy` and regenerate (see above)
+- `kaitai/aep_optimized.py` applies performance optimizations via monkey-patching
 - Python 3.7+ compatibility required (no walrus operator, no match case, use union types via annotations)
 - Model docstrings should reference equivalent After Effects ExtendScript properties from [After Effects Scripting Guide](https://ae-scripting.docsforadobe.dev/).

@@ -1,6 +1,6 @@
 """Kaitai Struct parser for AEP file format."""
 
-from .aep import Aep
+from .aep_optimized import Aep
 from .utils import (
     filter_by_list_type,
     filter_by_type,

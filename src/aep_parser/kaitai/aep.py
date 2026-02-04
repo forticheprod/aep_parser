@@ -8,14 +8,6 @@ import kaitaistruct
 from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
 
 
-"""
-This file was generated from aep.ksy using https://ide.kaitai.io/
-Then modified to:
-- add _ON_TO_KAITAISTRUCT_TYPE dict and replace massive "elif" block in Chunk._read() with a dict lookup
-- mmap.mmap was tested but does not seem to help with performance
-"""
-
-
 if getattr(kaitaistruct, "API_VERSION", (0, 9)) < (0, 9):
     raise Exception(
         "Incompatible Kaitai Struct Python API: 0.9 or later is required, but you have %s"
@@ -291,23 +283,61 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            """
-            This function has been modified a lot for optimisation purposes
-            """
-            self.chunk_type = (self._io.read_bytes(4)).decode("ascii")
+            self.chunk_type = (self._io.read_bytes(4)).decode(u"ascii")
             self.len_data = self._io.read_u4be()
-            self._raw_data = self._io.read_bytes(
-                (
-                    (self._io.size() - self._io.pos())
-                    if self.len_data > (self._io.size() - self._io.pos())
-                    else self.len_data
-                )
-            )
+            self._raw_data = self._io.read_bytes((self.len_data if self.len_data <= (self._io.size() - self._io.pos()) else (self._io.size() - self._io.pos())))
             _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
             _on = self.chunk_type
-            self.data = _ON_TO_KAITAISTRUCT_TYPE.get(_on, Aep.AsciiBody)(
-                _io__raw_data, self, self._root
-            )
+            if _on == u"sspc":
+                self.data = Aep.SspcBody(_io__raw_data, self, self._root)
+            elif _on == u"tdmn":
+                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+            elif _on == u"tdsn":
+                self.data = Aep.ChildUtf8Body(_io__raw_data, self, self._root)
+            elif _on == u"lhd3":
+                self.data = Aep.Lhd3Body(_io__raw_data, self, self._root)
+            elif _on == u"nnhd":
+                self.data = Aep.NnhdBody(_io__raw_data, self, self._root)
+            elif _on == u"idta":
+                self.data = Aep.IdtaBody(_io__raw_data, self, self._root)
+            elif _on == u"cmta":
+                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+            elif _on == u"ldat":
+                self.data = Aep.LdatBody(_io__raw_data, self, self._root)
+            elif _on == u"ldta":
+                self.data = Aep.LdtaBody(_io__raw_data, self, self._root)
+            elif _on == u"NmHd":
+                self.data = Aep.NmhdBody(_io__raw_data, self, self._root)
+            elif _on == u"pard":
+                self.data = Aep.PardBody(_io__raw_data, self, self._root)
+            elif _on == u"cdta":
+                self.data = Aep.CdtaBody(_io__raw_data, self, self._root)
+            elif _on == u"Utf8":
+                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+            elif _on == u"tdsb":
+                self.data = Aep.TdsbBody(_io__raw_data, self, self._root)
+            elif _on == u"alas":
+                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+            elif _on == u"fnam":
+                self.data = Aep.ChildUtf8Body(_io__raw_data, self, self._root)
+            elif _on == u"head":
+                self.data = Aep.HeadBody(_io__raw_data, self, self._root)
+            elif _on == u"opti":
+                self.data = Aep.OptiBody(_io__raw_data, self, self._root)
+            elif _on == u"pdnm":
+                self.data = Aep.ChildUtf8Body(_io__raw_data, self, self._root)
+            elif _on == u"cdat":
+                self.data = Aep.CdatBody(_io__raw_data, self, self._root)
+            elif _on == u"fdta":
+                self.data = Aep.FdtaBody(_io__raw_data, self, self._root)
+            elif _on == u"LIST":
+                self.data = Aep.ListBody(_io__raw_data, self, self._root)
+            elif _on == u"pjef":
+                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+            elif _on == u"tdb4":
+                self.data = Aep.Tdb4Body(_io__raw_data, self, self._root)
+            else:
+                self.data = Aep.AsciiBody(_io__raw_data, self, self._root)
             if (self.len_data % 2) != 0:
                 self.padding = self._io.read_bytes(1)
 
@@ -1212,34 +1242,3 @@ class Aep(KaitaiStruct):
 
             self._m_out_point = (self.out_point_dividend / self.out_point_divisor)
             return getattr(self, '_m_out_point', None)
-
-
-
-
-
-_ON_TO_KAITAISTRUCT_TYPE = {
-    "alas": Aep.Utf8Body,
-    "cdat": Aep.CdatBody,
-    "cdta": Aep.CdtaBody,
-    "cmta": Aep.Utf8Body,
-    "fdta": Aep.FdtaBody,
-    "fnam": Aep.ChildUtf8Body,
-    "head": Aep.HeadBody,
-    "idta": Aep.IdtaBody,
-    "ldat": Aep.LdatBody,
-    "ldta": Aep.LdtaBody,
-    "lhd3": Aep.Lhd3Body,
-    "LIST": Aep.ListBody,
-    "NmHd": Aep.NmhdBody,
-    "nnhd": Aep.NnhdBody,
-    "opti": Aep.OptiBody,
-    "pard": Aep.PardBody,
-    "pdnm": Aep.ChildUtf8Body,
-    "pjef": Aep.Utf8Body,
-    "sspc": Aep.SspcBody,
-    "tdb4": Aep.Tdb4Body,
-    "tdmn": Aep.Utf8Body,
-    "tdsb": Aep.TdsbBody,
-    "tdsn": Aep.ChildUtf8Body,
-    "Utf8": Aep.Utf8Body,
-}

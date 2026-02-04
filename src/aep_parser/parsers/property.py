@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from kaitaistruct import BytesIO, KaitaiStream
 
-from ..kaitai.aep import Aep
+from ..kaitai import Aep
 from ..kaitai.utils import (
     filter_by_list_type,
     filter_by_type,

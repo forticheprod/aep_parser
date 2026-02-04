@@ -6,7 +6,7 @@ if typing.TYPE_CHECKING:
     from enum import Enum
     from typing import Callable
 
-    from .aep import Aep
+    from .aep_optimized import Aep
 
 
 def get_enum_value(value: Enum | int) -> int:

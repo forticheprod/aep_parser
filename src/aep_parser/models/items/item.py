@@ -5,7 +5,7 @@ from abc import ABC
 from dataclasses import dataclass
 
 if typing.TYPE_CHECKING:
-    from ...kaitai.aep import Aep
+    from ...kaitai import Aep
 
 
 @dataclass

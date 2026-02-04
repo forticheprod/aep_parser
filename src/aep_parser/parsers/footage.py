@@ -19,7 +19,7 @@ from ..models.sources.solid import SolidSource
 from .mappings import map_alpha_mode, map_field_separation_type
 
 if typing.TYPE_CHECKING:
-    from ..kaitai.aep import Aep
+    from ..kaitai import Aep
 
 
 def parse_footage(
