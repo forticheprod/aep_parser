@@ -11,7 +11,7 @@ from ..models.items.composition import CompItem
 from .layer import parse_layer
 
 if typing.TYPE_CHECKING:
-    from ..kaitai.aep import Aep
+    from ..kaitai import Aep
     from ..models.properties.marker import Marker
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import typing
 
-from ..kaitai.aep import Aep
+from ..kaitai import Aep
 from ..kaitai.utils import (
     filter_by_list_type,
     find_by_list_type,
