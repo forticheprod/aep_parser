@@ -510,7 +510,7 @@ Examples:
         print(f"Error: File not found: {aep_path}", file=sys.stderr)
         sys.exit(1)
 
-    project = parse_project(str(aep_path))
+    project = parse_project(aep_path)
 
     # Build the node tree
     include_properties = not args.no_properties
