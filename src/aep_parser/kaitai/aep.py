@@ -66,7 +66,7 @@ class Aep(KaitaiStruct):
         luminosity = 16
         stencil_alpha = 17
         stencil_luma = 18
-        silhouette_alpha = 19
+        silhouete_alpha = 19
         silhouette_luma = 20
         luminescent_premul = 21
         alpha_add = 22
@@ -117,11 +117,10 @@ class Aep(KaitaiStruct):
 
     class TrackMatteType(Enum):
         none = 0
-        no_track_matte = 1
-        alpha = 2
-        alpha_inverted = 3
-        luma = 4
-        luma_inverted = 5
+        alpha = 1
+        alpha_inverted = 2
+        luma = 3
+        luma_inverted = 4
 
     class LayerType(Enum):
         footage = 0
@@ -129,6 +128,18 @@ class Aep(KaitaiStruct):
         camera = 2
         text = 3
         shape = 4
+
+    class LightType(Enum):
+        parallel = 0
+        spot = 1
+        point = 2
+        ambient = 3
+
+    class AutoOrientType(Enum):
+        no_auto_orient = 0
+        along_path = 1
+        camera_or_point_of_interest = 2
+        characters_toward_camera = 3
 
     class FramesCountType(Enum):
         fc_start_0 = 0
@@ -178,6 +189,21 @@ class Aep(KaitaiStruct):
         wireframe = 0
         draft = 1
         best = 2
+
+    class AlphaMode(Enum):
+        straight = 0
+        premultiplied = 1
+        ignore = 2
+        no_alpha = 3
+
+    class FieldSeparationType(Enum):
+        off = 0
+        enabled = 1
+
+    class FieldOrder(Enum):
+        upper_field_first = 0
+        lower_field_first = 1
+
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
@@ -347,43 +373,43 @@ class Aep(KaitaiStruct):
 
             self._unnamed1 = self._io.read_bytes(1)
             self.time_scale = self._io.read_u2be()
-            self._unnamed3 = self._io.read_bytes(2)
-            self.frame_rate_dividend = self._io.read_u2be()
-            self._unnamed5 = self._io.read_bytes(10)
+            self._unnamed3 = self._io.read_bytes(14)
             self.time_raw = self._io.read_u2be()
-            self._unnamed7 = self._io.read_bytes(6)
+            self._unnamed5 = self._io.read_bytes(6)
             self.in_point_raw = self._io.read_u2be()
-            self._unnamed9 = self._io.read_bytes(6)
+            self._unnamed7 = self._io.read_bytes(6)
             self.out_point_raw = self._io.read_u2be()
-            self._unnamed11 = self._io.read_bytes(5)
+            self._unnamed9 = self._io.read_bytes(5)
             self.duration_dividend = self._io.read_u4be()
             self.duration_divisor = self._io.read_u4be()
             self.bg_color = []
             for i in range(3):
                 self.bg_color.append(self._io.read_u1())
 
-            self._unnamed15 = self._io.read_bytes(84)
+            self._unnamed13 = self._io.read_bytes(84)
             self.preserve_nested_resolution = self._io.read_bits_int_be(1) != 0
-            self._unnamed17 = self._io.read_bits_int_be(1) != 0
+            self._unnamed15 = self._io.read_bits_int_be(1) != 0
             self.preserve_nested_frame_rate = self._io.read_bits_int_be(1) != 0
             self.frame_blending = self._io.read_bits_int_be(1) != 0
             self.motion_blur = self._io.read_bits_int_be(1) != 0
-            self._unnamed21 = self._io.read_bits_int_be(2)
+            self._unnamed19 = self._io.read_bits_int_be(2)
             self.hide_shy_layers = self._io.read_bits_int_be(1) != 0
             self._io.align_to_byte()
             self.width = self._io.read_u2be()
             self.height = self._io.read_u2be()
             self.pixel_ratio_width = self._io.read_u4be()
             self.pixel_ratio_height = self._io.read_u4be()
-            self._unnamed27 = self._io.read_bytes(4)
+            self._unnamed26 = self._io.read_bytes(4)
             self.frame_rate_integer = self._io.read_u2be()
-            self._unnamed29 = self._io.read_bytes(6)
+            self.frame_rate_fractional = self._io.read_u2be()
+            self._unnamed29 = self._io.read_bytes(4)
             self.display_start_time_dividend = self._io.read_u4be()
             self.display_start_time_divisor = self._io.read_u4be()
             self._unnamed32 = self._io.read_bytes(2)
             self.shutter_angle = self._io.read_u2be()
-            self.shutter_phase = self._io.read_u4be()
-            self._unnamed35 = self._io.read_bytes(16)
+            self._unnamed34 = self._io.read_bytes(4)
+            self.shutter_phase = self._io.read_s4be()
+            self._unnamed36 = self._io.read_bytes(12)
             self.motion_blur_adaptive_sample_limit = self._io.read_s4be()
             self.motion_blur_samples_per_frame = self._io.read_s4be()
 
@@ -424,7 +450,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_frame_rate'):
                 return self._m_frame_rate
 
-            self._m_frame_rate = (self.frame_rate_dividend / self.time_scale)
+            self._m_frame_rate = self.frame_rate_integer + self.frame_rate_fractional / 65536.0
             return getattr(self, '_m_frame_rate', None)
 
         @property
@@ -751,8 +777,30 @@ class Aep(KaitaiStruct):
             self.duration_divisor = self._io.read_u4be()
             self._unnamed6 = self._io.read_bytes(10)
             self.frame_rate_base = self._io.read_u4be()
-            self.frame_rate_dividend = self._io.read_u2be()
-            self._unnamed9 = self._io.read_bytes(110)
+            self.frame_rate_fractional = self._io.read_u2be()
+            self._unnamed9 = self._io.read_bytes(7)
+            self._unnamed10 = self._io.read_bits_int_be(6)
+            self.invert_alpha = self._io.read_bits_int_be(1) != 0
+            self.premultiplied = self._io.read_bits_int_be(1) != 0
+            self._io.align_to_byte()
+            self.premul_color_r = self._io.read_u1()
+            self.premul_color_g = self._io.read_u1()
+            self.premul_color_b = self._io.read_u1()
+            self.alpha_mode_raw = Aep.AlphaMode(self._io.read_u1())
+            self._unnamed17 = self._io.read_bytes(9)
+            self.field_separation_type_raw = Aep.FieldSeparationType(self._io.read_u1())
+            self._unnamed19 = self._io.read_bytes(3)
+            self.field_order = Aep.FieldOrder(self._io.read_u1())
+            self._unnamed21 = self._io.read_bytes(41)
+            self.loop = self._io.read_u1()
+            self._unnamed23 = self._io.read_bytes(6)
+            self.pixel_ratio_width = self._io.read_u4be()
+            self.pixel_ratio_height = self._io.read_u4be()
+            self._unnamed26 = self._io.read_bytes(5)
+            self.conform_frame_rate = self._io.read_u1()
+            self._unnamed28 = self._io.read_bytes(9)  # bytes 150-158
+            self.high_quality_field_separation = self._io.read_u1()  # byte 159
+            self._unnamed30 = self._io.read_bytes(12)  # bytes 160-171
             self.start_frame = self._io.read_u4be()
             self.end_frame = self._io.read_u4be()
 
@@ -769,7 +817,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_frame_rate'):
                 return self._m_frame_rate
 
-            self._m_frame_rate = (self.frame_rate_base + (self.frame_rate_dividend / (1 << 16)))
+            self._m_frame_rate = (self.frame_rate_base + (self.frame_rate_fractional / (1 << 16)))
             return getattr(self, '_m_frame_rate', None)
 
         @property
@@ -779,6 +827,23 @@ class Aep(KaitaiStruct):
 
             self._m_frame_duration = (self.duration * self.frame_rate)
             return getattr(self, '_m_frame_duration', None)
+
+        @property
+        def pixel_aspect(self):
+            if hasattr(self, '_m_pixel_aspect'):
+                return self._m_pixel_aspect
+
+            self._m_pixel_aspect = (self.pixel_ratio_width / self.pixel_ratio_height)
+            return getattr(self, '_m_pixel_aspect', None)
+
+        @property
+        def has_alpha(self):
+            """True if footage has an alpha channel."""
+            if hasattr(self, '_m_has_alpha'):
+                return self._m_has_alpha
+
+            self._m_has_alpha = self.alpha_mode_raw != Aep.AlphaMode.no_alpha
+            return getattr(self, '_m_has_alpha', None)
 
 
     class OptiBody(KaitaiStruct):
@@ -1073,7 +1138,7 @@ class Aep(KaitaiStruct):
             self.layer_id = self._io.read_u4be()
             self.quality = KaitaiStream.resolve_enum(Aep.LayerQuality, self._io.read_u2be())
             self._unnamed2 = self._io.read_bytes(4)
-            self.stretch_dividend = self._io.read_u2be()
+            self.stretch_dividend = self._io.read_s2be()
             self.start_time_dividend = self._io.read_u4be()
             self.start_time_divisor = self._io.read_u4be()
             self.in_point_dividend = self._io.read_u4be()
@@ -1120,7 +1185,9 @@ class Aep(KaitaiStruct):
             self._unnamed46 = self._io.read_bytes(19)
             self.layer_type = KaitaiStream.resolve_enum(Aep.LayerType, self._io.read_u1())
             self.parent_id = self._io.read_u4be()
-            self._unnamed49 = self._io.read_bytes(24)
+            self._unnamed49 = self._io.read_bytes(3)
+            self.light_type = KaitaiStream.resolve_enum(Aep.LightType, self._io.read_u1())
+            self._unnamed51 = self._io.read_bytes(20)
 
         @property
         def start_time(self):

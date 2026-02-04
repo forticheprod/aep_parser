@@ -7,10 +7,17 @@ from ..kaitai.utils import (
     filter_by_type,
     find_by_list_type,
     find_by_type,
+    get_enum_value,
     str_contents,
 )
 from ..models.project import Project
-from .item import parse_item
+from .item import parse_folder
+from .mappings import (
+    map_bits_per_channel,
+    map_footage_timecode_display_start_type,
+    map_frames_count_type,
+    map_time_display_type,
+)
 
 SOFTWARE_AGENT_XPATH = ".//stEvt:softwareAgent"
 XMP_NAMESPACES = {"stEvt": "http://ns.adobe.com/xap/1.0/sType/ResourceEvent#"}
@@ -31,15 +38,23 @@ def parse_project(aep_file_path: str) -> Project:
         nnhd_data = nnhd_chunk.data
 
         project = Project(
-            bits_per_channel=nnhd_data.bits_per_channel,
+            bits_per_channel=map_bits_per_channel(
+                get_enum_value(nnhd_data.bits_per_channel)
+            ),
             effect_names=_get_effect_names(root_chunks),
             expression_engine=_get_expression_engine(root_chunks),  # CC 2019+
             file=aep_file_path,
-            footage_timecode_display_start_type=nnhd_data.footage_timecode_display_start_type,
+            footage_timecode_display_start_type=map_footage_timecode_display_start_type(
+                get_enum_value(nnhd_data.footage_timecode_display_start_type)
+            ),
             frame_rate=nnhd_data.frame_rate,
-            frames_count_type=nnhd_data.frames_count_type,
+            frames_count_type=map_frames_count_type(
+                get_enum_value(nnhd_data.frames_count_type)
+            ),
             project_items={},
-            time_display_type=nnhd_data.time_display_type,
+            time_display_type=map_time_display_type(
+                get_enum_value(nnhd_data.time_display_type)
+            ),
         )
 
         project.xmp_packet = ET.fromstring(aep.xmp_packet)
@@ -49,7 +64,17 @@ def parse_project(aep_file_path: str) -> Project:
         if software_agents:
             project.ae_version = software_agents[-1].text
 
-        parse_item(root_folder_chunk, project, parent_id=None)
+        root_folder = parse_folder(
+            is_root=True,
+            child_chunks=root_folder_chunk.data.chunks,
+            project=project,
+            item_id=0,
+            item_name="root",
+            label=Aep.Label(0),
+            parent_id=None,
+            comment="",
+        )
+        project.project_items[0] = root_folder
 
         # Use source item properties for layers
         for composition in project.compositions:
@@ -63,13 +88,15 @@ def parse_project(aep_file_path: str) -> Project:
                     layer.source_is_composition = layer_source_item.is_composition
                     layer.source_is_footage = layer_source_item.is_footage
                     # Sometimes out_point - in_point + 1 is greater than the duration of
-                    # the source item
-                    layer.out_point = min(
-                        layer.out_point, layer.start_time + layer_source_item.duration
-                    )
-                    layer.frame_out_point = int(
-                        round(layer.out_point * composition.frame_rate)
-                    )
+                    # the source item. But skip this for solids which have duration=0
+                    # (meaning infinite/unlimited duration).
+                    if layer_source_item.duration > 0:
+                        layer.out_point = min(
+                            layer.out_point, layer.start_time + layer_source_item.duration
+                        )
+                        layer.frame_out_point = int(
+                            round(layer.out_point * composition.frame_rate)
+                        )
 
         return project
 
@@ -83,7 +110,10 @@ def _get_expression_engine(root_chunks: list[Aep.Chunk]) -> str | None:
     """
     expression_engine_chunk = find_by_list_type(chunks=root_chunks, list_type="ExEn")
     if expression_engine_chunk:
-        return str_contents(expression_engine_chunk)
+        utf8_chunk = find_by_type(
+            chunks=expression_engine_chunk.data.chunks, chunk_type="Utf8"
+        )
+        return str_contents(utf8_chunk)
     return None
 
 

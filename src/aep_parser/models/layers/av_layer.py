@@ -6,7 +6,13 @@ from dataclasses import dataclass, field
 from .layer import Layer
 
 if typing.TYPE_CHECKING:
-    from ...kaitai.aep import Aep
+    from ..enums import (
+        BlendingMode,
+        FrameBlendingType,
+        LayerQuality,
+        LayerSamplingQuality,
+        TrackMatteType,
+    )
 
 
 @dataclass
@@ -47,22 +53,22 @@ class AVLayer(Layer):
 
     adjustment_layer: bool = False
     audio_enabled: bool = False
-    blending_mode: int = 0
+    blending_mode: BlendingMode = None  # type: ignore[assignment]
     collapse_transformation: bool = False
     effects_active: bool = False
     environment_layer: bool = False
     frame_blending: bool = False
-    frame_blending_type: Aep.FrameBlendingType | None = None
+    frame_blending_type: FrameBlendingType = None  # type: ignore[assignment]
     guide_layer: bool = False
     height: int = 0
     motion_blur: bool = False
     preserve_transparency: bool = False
-    quality: Aep.LayerQuality | None = None
-    sampling_quality: Aep.SamplingQuality | None = None
+    quality: LayerQuality = None  # type: ignore[assignment]
+    sampling_quality: LayerSamplingQuality = None  # type: ignore[assignment]
     source_id: int | None = None
     three_d_layer: bool = False
     time_remap_enabled: bool | None = None
-    track_matte_type: Aep.TrackMatteType | None = None
+    track_matte_type: TrackMatteType = None  # type: ignore[assignment]
     width: int = 0
     source_is_composition: bool | None = field(default=None, init=False)
     source_is_footage: bool | None = field(default=None, init=False)
