@@ -83,9 +83,9 @@ Open `src/aep_parser/kaitai/aep.ksy` and find the chunk definition (e.g., `cdta`
   type: b1  # bit 5
 - id: frame_blending
   type: b1  # bit 4
-- id: motion_blur  # This is your new flag!
+- id: some_existing_flag
   type: b1  # bit 3
-- id: your_new_flag  # <-- Add this
+- id: motion_blur  # <-- Add this (matches bit 2 from example above)
   type: b1  # bit 2
 - type: b2  # skip bits 1-0
 ```
@@ -160,7 +160,10 @@ def parse_av_layer(chunk: Aep.Chunk, context: Context) -> AVLayer:
 Create a test case to validate your new attribute:
 
 1. Create a minimal .aep file with the attribute enabled (`samples/models/layers/motion_blur_enabled.aep`)
-2. Add a test in `tests/test_models_layer.py`:
+2. **Optional**: Use the JSX scripts to generate test samples and validation data:
+   - Run `scripts/jsx/export_project_json.jsx` in After Effects to export the project as JSON for validation
+   - Update `scripts/jsx/generate_model_samples.jsx` if you're adding a new attribute that should be systematically tested
+3. Add a test in `tests/test_models_layer.py`:
 
 ```python
 def test_layer_motion_blur():
