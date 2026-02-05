@@ -73,32 +73,20 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
             item_id=0,
             item_name="root",
             label=Aep.Label(0),
-            parent_id=None,
+            parent_folder=None,
             comment="",
         )
         project.project_items[0] = root_folder
 
-        # Use source item properties for layers
+        # Link layers to their source items and parent layers
         for composition in project.compositions:
+            # Build layer lookup by id for this composition
+            layers_by_id = {layer.layer_id: layer for layer in composition.layers}
             for layer in composition.layers:
                 if layer.layer_type == Aep.LayerType.footage:
-                    layer_source_item = project.project_items[layer.source_id]
-                    if not layer.name:
-                        layer.name = layer_source_item.name
-                    layer.width = layer_source_item.width
-                    layer.height = layer_source_item.height
-                    layer.source_is_composition = layer_source_item.is_composition
-                    layer.source_is_footage = layer_source_item.is_footage
-                    # Sometimes out_point - in_point + 1 is greater than the duration of
-                    # the source item. But skip this for solids which have duration=0
-                    # (meaning infinite/unlimited duration).
-                    if layer_source_item.duration > 0:
-                        layer.out_point = min(
-                            layer.out_point, layer.start_time + layer_source_item.duration
-                        )
-                        layer.frame_out_point = int(
-                            round(layer.out_point * composition.frame_rate)
-                        )
+                    layer.source = project.project_items.get(layer.source_id)
+                if layer.parent_id is not None:
+                    layer.parent = layers_by_id.get(layer.parent_id)
 
         return project
 

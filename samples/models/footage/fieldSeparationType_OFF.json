@@ -1,9 +1,4 @@
 {
-  "exportVersion": "1.0",
-  "exportDate": "2026-02-04T11:31:04Z",
-  "aeVersion": "25.6x101",
-  "aeBuildNumber": 101,
-  "projectFile": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\models\\footage\\fieldSeparationType_OFF.aep",
   "projectName": "fieldSeparationType_OFF.aep",
   "bitsPerChannel": 32,
   "colorManagementSystem": 1,
@@ -23,31 +18,39 @@
   "revision": 2,
   "timeDisplayType": 2012,
   "transparencyGridThumbnails": true,
+  "usedFonts": [
+    
+  ],
   "workingGamma": 2.4,
   "workingSpace": "None",
   "items": [
     {
-      "name": "mov_480.mov",
-      "id": 1,
       "comment": "",
-      "typeName": "Footage",
-      "label": 3,
-      "itemType": "FootageItem",
       "duration": 30.0333333333333,
       "footageMissing": false,
       "frameDuration": 0.03333333333333,
       "frameRate": 30,
+      "frameTime": 0,
       "hasAudio": true,
       "hasVideo": true,
       "height": 270,
+      "id": 1,
+      "isMediaReplacementCompatible": true,
+      "label": 3,
+      "name": "mov_480.mov",
       "pixelAspect": 1,
       "time": 0,
+      "typeName": "Footage",
       "useProxy": false,
       "width": 480,
+      "itemType": "FootageItem",
       "filePath": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\assets\\mov_480.mov",
       "fileName": "mov_480.mov",
       "mainSource": {
         "type": "[object FileSource]",
+        "sourceType": "FileSource",
+        "filePath": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\assets\\mov_480.mov",
+        "fileName": "mov_480.mov",
         "alphaMode": 5412,
         "conformFrameRate": 0,
         "displayFrameRate": 30,
@@ -57,17 +60,14 @@
         "invertAlpha": false,
         "isStill": false,
         "loop": 1,
+        "missingFootagePath": "",
         "nativeFrameRate": 30,
         "premulColor": [
           0,
           0,
           0
         ],
-        "removePulldown": 5813,
-        "sourceType": "FileSource",
-        "missingFootagePath": "",
-        "filePath": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\assets\\mov_480.mov",
-        "fileName": "mov_480.mov"
+        "removePulldown": 5813
       }
     }
   ]

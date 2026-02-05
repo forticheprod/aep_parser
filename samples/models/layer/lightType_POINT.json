@@ -1,9 +1,4 @@
 {
-  "exportVersion": "1.0",
-  "exportDate": "2026-02-04T11:31:11Z",
-  "aeVersion": "25.6x101",
-  "aeBuildNumber": 101,
-  "projectFile": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\models\\layer\\lightType_POINT.aep",
   "projectName": "lightType_POINT.aep",
   "bitsPerChannel": 32,
   "colorManagementSystem": 1,
@@ -23,86 +18,256 @@
   "revision": 43,
   "timeDisplayType": 2012,
   "transparencyGridThumbnails": true,
+  "usedFonts": [
+    
+  ],
   "workingGamma": 2.4,
   "workingSpace": "None",
   "items": [
     {
-      "name": "TestComp",
-      "id": 1,
-      "comment": "",
-      "typeName": "Composition",
-      "label": 15,
-      "itemType": "CompItem",
-      "duration": 10,
-      "footageMissing": false,
-      "frameDuration": 0.04166666666667,
-      "frameRate": 24,
-      "hasAudio": false,
-      "hasVideo": true,
-      "height": 100,
-      "pixelAspect": 1,
-      "time": 0,
-      "useProxy": false,
-      "width": 100,
       "bgColor": [
         0,
         0,
         0
       ],
+      "comment": "",
+      "counters": false,
       "displayStartFrame": 0,
       "displayStartTime": 0,
       "draft3d": false,
       "dropFrame": false,
+      "duration": 10,
+      "footageMissing": false,
       "frameBlending": false,
+      "frameDuration": 0.04166666666667,
+      "frameRate": 24,
+      "frameTime": 0,
+      "hasAudio": false,
+      "hasVideo": true,
+      "height": 100,
       "hideShyLayers": false,
+      "id": 1,
+      "isMediaReplacementCompatible": true,
+      "label": 15,
       "motionBlur": false,
       "motionBlurAdaptiveSampleLimit": 128,
       "motionBlurSamplesPerFrame": 16,
+      "motionGraphicsTemplateControllerCount": 0,
+      "motionGraphicsTemplateName": "Untitled",
+      "name": "TestComp",
       "numLayers": 1,
+      "pixelAspect": 1,
       "preserveNestedFrameRate": false,
       "preserveNestedResolution": false,
       "renderer": "ADBE Advanced 3d",
+      "renderers": [
+        "ADBE Advanced 3d",
+        "ADBE Calder",
+        "ADBE Ernst"
+      ],
       "resolutionFactor": [
         1,
         1
       ],
       "shutterAngle": 180,
       "shutterPhase": 0,
+      "time": 0,
+      "typeName": "Composition",
+      "useProxy": false,
+      "width": 100,
       "workAreaDuration": 10,
       "workAreaStart": 0,
-      "renderers": [
-        "ADBE Advanced 3d",
-        "ADBE Calder",
-        "ADBE Ernst"
-      ],
+      "itemType": "CompItem",
       "markers": [
         
       ],
       "layers": [
         {
-          "name": "TestLight",
-          "index": 1,
+          "active": true,
+          "adjustmentLayer": false,
+          "autoOrient": 4214,
+          "canSetEnabled": true,
           "comment": "",
+          "elided": false,
           "enabled": true,
+          "environmentLayer": false,
           "hasVideo": false,
           "id": 13,
           "inPoint": 0,
+          "index": 1,
+          "isEffect": false,
+          "isMask": false,
+          "isModified": true,
           "isNameSet": true,
           "label": 6,
+          "lightSource": null,
+          "lightType": 4414,
           "locked": false,
+          "matchName": "ADBE Light Layer",
+          "name": "TestLight",
           "nullLayer": false,
+          "numProperties": 3,
           "outPoint": 10,
+          "propertyDepth": 0,
+          "propertyType": 6213,
           "shy": false,
           "solo": false,
           "startTime": 0,
           "stretch": 100,
           "time": 0,
           "layerType": "LightLayer",
-          "lightType": 4414,
-          "autoOrient": 4214,
           "markers": [
             
-          ]
+          ],
+          "transform": {
+            "name": "Transform",
+            "matchName": "ADBE Transform Group",
+            "propertyIndex": 2,
+            "propertyType": "PropertyGroup",
+            "numProperties": 12,
+            "enabled": true,
+            "properties": [
+              {
+                "name": "Point of Interest",
+                "matchName": "ADBE Anchor Point",
+                "propertyIndex": 1,
+                "propertyType": "Property",
+                "isModified": false,
+                "propertyValueType": 6413,
+                "canSetExpression": false,
+                "value": [
+                  50,
+                  50,
+                  0
+                ]
+              },
+              {
+                "name": "Position",
+                "matchName": "ADBE Position",
+                "propertyIndex": 2,
+                "propertyType": "Property",
+                "isModified": true,
+                "propertyValueType": 6413,
+                "canSetExpression": true,
+                "expression": "",
+                "expressionEnabled": false,
+                "expressionError": "",
+                "value": [
+                  0,
+                  0,
+                  -69.444444445
+                ]
+              },
+              {
+                "name": "X Position",
+                "matchName": "ADBE Position_0",
+                "propertyIndex": 3,
+                "propertyType": "Property",
+                "isModified": true,
+                "propertyValueType": 6417,
+                "canSetExpression": false,
+                "value": 0
+              },
+              {
+                "name": "Y Position",
+                "matchName": "ADBE Position_1",
+                "propertyIndex": 4,
+                "propertyType": "Property",
+                "isModified": true,
+                "propertyValueType": 6417,
+                "canSetExpression": false,
+                "value": 0
+              },
+              {
+                "name": "Z Position",
+                "matchName": "ADBE Position_2",
+                "propertyIndex": 5,
+                "propertyType": "Property",
+                "isModified": true,
+                "propertyValueType": 6417,
+                "canSetExpression": false,
+                "value": 0
+              },
+              {
+                "name": "Scale",
+                "matchName": "ADBE Scale",
+                "propertyIndex": 6,
+                "propertyType": "Property",
+                "isModified": false,
+                "propertyValueType": 6414,
+                "canSetExpression": false,
+                "value": [
+                  100,
+                  100,
+                  100
+                ]
+              },
+              {
+                "name": "Orientation",
+                "matchName": "ADBE Orientation",
+                "propertyIndex": 7,
+                "propertyType": "Property",
+                "isModified": false,
+                "propertyValueType": 6413,
+                "canSetExpression": false,
+                "value": [
+                  0,
+                  0,
+                  0
+                ]
+              },
+              {
+                "name": "X Rotation",
+                "matchName": "ADBE Rotate X",
+                "propertyIndex": 8,
+                "propertyType": "Property",
+                "isModified": false,
+                "propertyValueType": 6417,
+                "canSetExpression": false,
+                "value": 0
+              },
+              {
+                "name": "Y Rotation",
+                "matchName": "ADBE Rotate Y",
+                "propertyIndex": 9,
+                "propertyType": "Property",
+                "isModified": false,
+                "propertyValueType": 6417,
+                "canSetExpression": false,
+                "value": 0
+              },
+              {
+                "name": "Z Rotation",
+                "matchName": "ADBE Rotate Z",
+                "propertyIndex": 10,
+                "propertyType": "Property",
+                "isModified": false,
+                "propertyValueType": 6417,
+                "canSetExpression": false,
+                "value": 0
+              },
+              {
+                "name": "Opacity",
+                "matchName": "ADBE Opacity",
+                "propertyIndex": 11,
+                "propertyType": "Property",
+                "isModified": false,
+                "propertyValueType": 6417,
+                "canSetExpression": false,
+                "value": 100
+              },
+              {
+                "name": "Appears in Reflections",
+                "matchName": "ADBE Envir Appear in Reflect",
+                "propertyIndex": 12,
+                "propertyType": "Property",
+                "isModified": false,
+                "propertyValueType": 6417,
+                "canSetExpression": false,
+                "value": 1
+              }
+            ]
+          }
         }
       ]
     }

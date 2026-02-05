@@ -23,7 +23,7 @@ if typing.TYPE_CHECKING:
 
 
 def parse_item(
-    item_chunk: Aep.Chunk, project: Project, parent_id: int | None
+    item_chunk: Aep.Chunk, project: Project, parent_folder: Folder | None
 ) -> CompItem | Folder | FootageItem:
     """
     Parse an item (composition, footage or folder).
@@ -31,7 +31,7 @@ def parse_item(
     Args:
         item_chunk: The LIST chunk to parse.
         project: The project.
-        parent_id: The parent folder unique ID.
+        parent_folder: The parent folder.
     """
     child_chunks = item_chunk.data.chunks
     comment = get_comment(child_chunks)
@@ -53,7 +53,7 @@ def parse_item(
             item_id=item_id,
             item_name=item_name,
             label=label,
-            parent_id=parent_id,
+            parent_folder=parent_folder,
             comment=comment,
         )
 
@@ -63,7 +63,7 @@ def parse_item(
             item_id=item_id,
             item_name=item_name,
             label=label,
-            parent_id=parent_id,
+            parent_folder=parent_folder,
             comment=comment,
         )
 
@@ -73,7 +73,7 @@ def parse_item(
             item_id=item_id,
             item_name=item_name,
             label=label,
-            parent_id=parent_id,
+            parent_folder=parent_folder,
             comment=comment,
         )
 
@@ -89,7 +89,7 @@ def parse_folder(
     item_id: int,
     item_name: str,
     label: Aep.Label,
-    parent_id: int | None,
+    parent_folder: Folder | None,
     comment: str,
 ) -> Folder:
     """
@@ -107,16 +107,16 @@ def parse_folder(
         label: The label color. Colors are represented by their number (0 for
             None, or 1 to 16 for one of the preset colors in the Labels
             preferences).
-        parent_id: The folder's parent folder unique ID.
+        parent_folder: The folder's parent folder.
         comment: The folder comment.
     """
-    item = Folder(
+    folder = Folder(
         comment=comment,
         item_id=item_id,
         label=label,
         name=item_name,
         type_name="Folder",
-        parent_id=parent_id,
+        parent_folder=parent_folder,
         folder_items=[],
     )
     # Get folder contents
@@ -129,8 +129,8 @@ def parse_folder(
         )
     for child_item_chunk in child_item_chunks:
         child_item = parse_item(
-            item_chunk=child_item_chunk, project=project, parent_id=item_id
+            item_chunk=child_item_chunk, project=project, parent_folder=folder
         )
-        item.folder_items.append(child_item.item_id)
+        folder.folder_items.append(child_item.item_id)
 
-    return item
+    return folder

@@ -40,8 +40,11 @@ class Property(PropertyBase):
     expression_enabled: bool | None = None
     property_value_type: Aep.PropertyValueType = Aep.PropertyValueType.unknown
     value: Any = None
+    last_value: Any = None
+    default_value: Any = None
     max_value: Any = None
     min_value: Any = None
+    nb_options: int | None = None
     dimensions_separated: bool | None = None
     is_spatial: bool | None = None
     property_parameters: list[str] | None = None  # enum choices

@@ -1,9 +1,4 @@
 {
-  "exportVersion": "1.0",
-  "exportDate": "2026-02-04T11:31:06Z",
-  "aeVersion": "25.6x101",
-  "aeBuildNumber": 101,
-  "projectFile": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\models\\footage\\placeholder_720p.aep",
   "projectName": "placeholder_720p.aep",
   "bitsPerChannel": 32,
   "colorManagementSystem": 1,
@@ -23,29 +18,35 @@
   "revision": 1,
   "timeDisplayType": 2012,
   "transparencyGridThumbnails": true,
+  "usedFonts": [
+    
+  ],
   "workingGamma": 2.4,
   "workingSpace": "None",
   "items": [
     {
-      "name": "Placeholder",
-      "id": 1,
       "comment": "",
-      "typeName": "Footage",
-      "label": 3,
-      "itemType": "FootageItem",
       "duration": 10,
       "footageMissing": true,
       "frameDuration": 0.04166666666667,
       "frameRate": 24,
+      "frameTime": 0,
       "hasAudio": false,
       "hasVideo": true,
       "height": 720,
+      "id": 1,
+      "isMediaReplacementCompatible": true,
+      "label": 3,
+      "name": "Placeholder",
       "pixelAspect": 1,
       "time": 0,
+      "typeName": "Footage",
       "useProxy": false,
       "width": 1280,
+      "itemType": "FootageItem",
       "mainSource": {
         "type": "[object PlaceholderSource]",
+        "sourceType": "PlaceholderSource",
         "alphaMode": 5412,
         "conformFrameRate": 24,
         "displayFrameRate": 24,
@@ -61,8 +62,7 @@
           0,
           0
         ],
-        "removePulldown": 5813,
-        "sourceType": "PlaceholderSource"
+        "removePulldown": 5813
       }
     }
   ]

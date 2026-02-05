@@ -16,33 +16,11 @@ from ..models.properties.marker import Marker
 from ..models.properties.property import Property
 from ..models.properties.property_group import PropertyGroup
 from .mappings import map_keyframe_interpolation_type
+from .match_names import MATCH_NAME_TO_NICE_NAME
 from .utils import (
     get_chunks_by_match_name,
     split_in_chunks,
 )
-
-MATCH_NAME_TO_NICE_NAME = {
-    "ADBE Marker": "Marker",
-    "ADBE Time Remapping": "Time Remap",
-    "ADBE MTrackers": "Motion Trackers",
-    "ADBE Mask Parade": "Masks",
-    "ADBE Effect Parade": "Effects",
-    "ADBE Layer Overrides": "Essential Properties",
-    "ADBE Transform Group": "Transform",
-    "ADBE Anchor Point": "Anchor Point",
-    "ADBE Position": "Position",
-    "ADBE Position_0": "X Position",
-    "ADBE Position_1": "Y Position",
-    "ADBE Position_2": "Z Position",
-    "ADBE Scale": "Scale",
-    "ADBE Orientation": "Orientation",
-    "ADBE Rotate X": "X Rotation",
-    "ADBE Rotate Y": "Y Rotation",
-    "ADBE Rotate Z": "Z Rotation",
-    "ADBE Opacity": "Opacity",
-    "ADBE Audio Group": "Audio",
-    "ADBE Audio Levels": "Audio Levels",
-}
 
 
 def parse_property_group(
@@ -67,12 +45,7 @@ def parse_property_group(
     """
     nice_name = MATCH_NAME_TO_NICE_NAME.get(group_match_name, group_match_name)
 
-    prop_group = PropertyGroup(
-        match_name=group_match_name,
-        name=nice_name,
-        is_effect=False,
-    )
-
+    properties = []
     chunks_by_sub_prop = get_chunks_by_match_name(tdgp_chunk)
     for match_name, sub_prop_chunks in chunks_by_sub_prop.items():
         first_chunk = sub_prop_chunks[0]
@@ -110,7 +83,14 @@ def parse_property_group(
             raise NotImplementedError(
                 f"Cannot parse {first_chunk.data.list_type} property"
             )
-        prop_group.properties.append(sub_prop)
+        properties.append(sub_prop)
+
+    prop_group = PropertyGroup(
+        match_name=group_match_name,
+        name=nice_name,
+        is_effect=False,
+        properties=properties,
+    )
 
     return prop_group
 
@@ -134,19 +114,14 @@ def parse_orientation(
             for some frame values.
     """
     tdbs_chunk = find_by_list_type(chunks=otst_chunk.data.chunks, list_type="tdbs")
-    prop_name = MATCH_NAME_TO_NICE_NAME.get(match_name, match_name)
-    prop = Property(
-        match_name=match_name,
-        name=prop_name,
-        property_control_type=Aep.PropertyControlType.angle,
-        property_value_type=Aep.PropertyValueType.orientation,
-    )
     prop = parse_property(
         tdbs_chunk=tdbs_chunk,
         match_name=match_name,
         time_scale=time_scale,
-        prop=prop,
     )
+    # Override types for orientation
+    prop.property_control_type = Aep.PropertyControlType.angle
+    prop.property_value_type = Aep.PropertyValueType.orientation
 
     # otky_chunk = find_by_list_type(
     #     chunks=otst_chunk.data.chunks,
@@ -201,7 +176,6 @@ def parse_property(
     tdbs_chunk: Aep.Chunk,
     match_name: str,
     time_scale: float,
-    prop: Property | None = None,
 ) -> Property:
     """
     Parse a property.
@@ -218,124 +192,153 @@ def parse_property(
         time_scale: The time scale of the parent composition, used as a divisor
             for some frame values.
     """
-    if prop is None:
-        prop_name = MATCH_NAME_TO_NICE_NAME.get(match_name, match_name)
-        prop = Property(
-            match_name=match_name,
-            name=prop_name,
-        )
-
     tdbs_child_chunks = tdbs_chunk.data.chunks
 
+    # Get property settings from tdsb chunk
     tdsb_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdsb")
     tdsb_data = tdsb_chunk.data
-    prop.locked_ratio = tdsb_data.locked_ratio
-    prop.enabled = tdsb_data.enabled
-    prop.dimensions_separated = tdsb_data.dimensions_separated
+    locked_ratio = tdsb_data.locked_ratio
+    enabled = tdsb_data.enabled
+    dimensions_separated = tdsb_data.dimensions_separated
 
+    # Get nice name if user-defined
     nice_name = _get_nice_name(tdbs_chunk)
-    if nice_name:
-        prop.name = nice_name
+    name = nice_name or MATCH_NAME_TO_NICE_NAME.get(match_name, match_name)
 
+    # Get property type info from tdb4 chunk
     tdb4_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdb4")
     tdb4_data = tdb4_chunk.data
-    prop.is_spatial = tdb4_data.is_spatial
-    prop.expression_enabled = tdb4_data.expression_enabled
-    # TODO make better use of the following data, then remove it from property class
-    prop.animated = tdb4_data.animated
-    prop.dimensions = tdb4_data.dimensions
-    prop.integer = tdb4_data.integer
-    prop.vector = tdb4_data.vector
-    prop.no_value = tdb4_data.no_value
-    prop.color = tdb4_data.color
+    is_spatial = tdb4_data.is_spatial
+    expression_enabled = tdb4_data.expression_enabled
+    animated = tdb4_data.animated
+    dimensions = tdb4_data.dimensions
+    integer = tdb4_data.integer
+    vector = tdb4_data.vector
+    no_value = tdb4_data.no_value
+    color = tdb4_data.color
 
-    # This needs some work
-    if prop.property_control_type == Aep.PropertyControlType.unknown:
-        if prop.no_value:
-            # TODO could be shapes, gradient, ...
-            prop.property_value_type = Aep.PropertyValueType.no_value
-        if prop.color:
-            prop.property_control_type = Aep.PropertyControlType.color
-            prop.property_value_type = Aep.PropertyValueType.color
-        elif prop.integer:
-            prop.property_control_type = Aep.PropertyControlType.boolean
-            prop.property_value_type = Aep.PropertyValueType.one_d
-        elif prop.vector:
-            if prop.dimensions == 1:
-                prop.property_control_type = (
-                    Aep.PropertyControlType.scalar
-                )  # not sure, could be slider
-                prop.property_control_type = Aep.PropertyValueType.one_d  # not sure
-            elif prop.dimensions == 2:
-                prop.property_control_type = Aep.PropertyControlType.two_d
-                if prop.is_spatial:
-                    prop.property_value_type = Aep.PropertyValueType.two_d_spatial
-                else:
-                    prop.property_value_type = Aep.PropertyValueType.two_d
-            elif prop.dimensions == 3:
-                prop.property_control_type = Aep.PropertyControlType.three_d
-                if prop.is_spatial:
-                    prop.property_value_type = Aep.PropertyValueType.three_d_spatial
-                else:
-                    prop.property_value_type = Aep.PropertyValueType.three_d
-    if prop.property_control_type == Aep.PropertyControlType.unknown:
+    # Determine property control and value types
+    property_control_type = Aep.PropertyControlType.unknown
+    property_value_type = Aep.PropertyValueType.unknown
+
+    if no_value:
+        property_value_type = Aep.PropertyValueType.no_value
+    if color:
+        property_control_type = Aep.PropertyControlType.color
+        property_value_type = Aep.PropertyValueType.color
+    elif integer:
+        property_control_type = Aep.PropertyControlType.boolean
+        property_value_type = Aep.PropertyValueType.one_d
+    elif vector:
+        if dimensions == 1:
+            property_control_type = Aep.PropertyControlType.scalar
+            property_value_type = Aep.PropertyValueType.one_d
+        elif dimensions == 2:
+            property_control_type = Aep.PropertyControlType.two_d
+            property_value_type = (
+                Aep.PropertyValueType.two_d_spatial
+                if is_spatial
+                else Aep.PropertyValueType.two_d
+            )
+        elif dimensions == 3:
+            property_control_type = Aep.PropertyControlType.three_d
+            property_value_type = (
+                Aep.PropertyValueType.three_d_spatial
+                if is_spatial
+                else Aep.PropertyValueType.three_d
+            )
+
+    if property_control_type == Aep.PropertyControlType.unknown:
         print(
             f"Could not determine type for property {match_name}"
             f" | nice_name: {nice_name}"
-            f" | dimensions: {prop.dimensions}"
-            f" | animated: {prop.animated}"
-            f" | integer: {prop.integer}"
-            f" | is_spatial: {prop.is_spatial}"
-            f" | vector: {prop.vector}"
-            f" | static: {prop.static}"
-            f" | no_value: {prop.no_value}"
-            f" | color: {prop.color}"
+            f" | dimensions: {dimensions}"
+            f" | animated: {animated}"
+            f" | integer: {integer}"
+            f" | is_spatial: {is_spatial}"
+            f" | vector: {vector}"
+            f" | no_value: {no_value}"
+            f" | color: {color}"
         )
 
     # Get property value
+    value = None
     cdat_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="cdat")
     if cdat_chunk is not None:
-        cdat_data = cdat_chunk.data
-        prop.value = cdat_data.value[: prop.dimensions]
+        value = cdat_chunk.data.value[:dimensions]
 
     # Get property expression
+    expression = None
     utf8_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="Utf8")
     if utf8_chunk is not None:
-        prop.expression = str_contents(utf8_chunk).splitlines()
+        expression = str_contents(utf8_chunk).splitlines()
 
     # Get property keyframes
-    list_chunk = find_by_list_type(chunks=tdbs_child_chunks, list_type="list")
-    if list_chunk is not None:
-        list_child_chunks = list_chunk.data.chunks
-        lhd3_chunk = find_by_type(chunks=list_child_chunks, chunk_type="lhd3")
-        lhd3_data = lhd3_chunk.data
-        nb_keyframes = lhd3_data.nb_keyframes
-        len_keyframe = lhd3_data.len_keyframe
-        keyframes_type = lhd3_data.keyframes_type
-        if keyframes_type == Aep.PropertyValueType.three_d and prop.is_spatial:
-            keyframes_type = Aep.PropertyValueType.three_d_spatial
-        if nb_keyframes:
-            ldat_chunk = find_by_type(chunks=list_child_chunks, chunk_type="ldat")
-            ldat_data = ldat_chunk.data.keyframes
-            for keyframe_data in split_in_chunks(ldat_data, len_keyframe):
-                kf_chunk = Aep.Keyframe(
-                    key_type=keyframes_type,
-                    _io=KaitaiStream(BytesIO(keyframe_data)),
-                )
-                keyframe = Keyframe(
-                    frame_time=int(round(kf_chunk.time_raw / time_scale)),
-                    keyframe_interpolation_type=map_keyframe_interpolation_type(
-                        get_enum_value(kf_chunk.keyframe_interpolation_type)
-                    ),
-                    label=kf_chunk.label,
-                    continuous_bezier=kf_chunk.continuous_bezier,
-                    auto_bezier=kf_chunk.auto_bezier,
-                    roving_across_time=kf_chunk.roving_across_time,
-                )
-                # kf_data = kf_chunk.kf_data
-                prop.keyframes.append(keyframe)
+    keyframes = _parse_keyframes(tdbs_child_chunks, time_scale, is_spatial)
 
-    return prop
+    return Property(
+        match_name=match_name,
+        name=name,
+        enabled=enabled,
+        property_control_type=property_control_type,
+        expression=expression,
+        expression_enabled=expression_enabled,
+        property_value_type=property_value_type,
+        value=value,
+        dimensions_separated=dimensions_separated,
+        is_spatial=is_spatial,
+        locked_ratio=locked_ratio,
+        keyframes=keyframes,
+        animated=animated,
+        dimensions=dimensions,
+        integer=integer,
+        vector=vector,
+        no_value=no_value,
+        color=color,
+    )
+
+
+def _parse_keyframes(
+    tdbs_child_chunks: list[Aep.Chunk], time_scale: float, is_spatial: bool
+) -> list[Keyframe]:
+    """Parse keyframes from a property's child chunks."""
+    keyframes: list[Keyframe] = []
+    list_chunk = find_by_list_type(chunks=tdbs_child_chunks, list_type="list")
+    if list_chunk is None:
+        return keyframes
+
+    list_child_chunks = list_chunk.data.chunks
+    lhd3_chunk = find_by_type(chunks=list_child_chunks, chunk_type="lhd3")
+    lhd3_data = lhd3_chunk.data
+    nb_keyframes = lhd3_data.nb_keyframes
+    if not nb_keyframes:
+        return keyframes
+
+    len_keyframe = lhd3_data.len_keyframe
+    keyframes_type = lhd3_data.keyframes_type
+    if keyframes_type == Aep.PropertyValueType.three_d and is_spatial:
+        keyframes_type = Aep.PropertyValueType.three_d_spatial
+
+    ldat_chunk = find_by_type(chunks=list_child_chunks, chunk_type="ldat")
+    ldat_data = ldat_chunk.data.keyframes
+    for keyframe_data in split_in_chunks(ldat_data, len_keyframe):
+        kf_chunk = Aep.Keyframe(
+            key_type=keyframes_type,
+            _io=KaitaiStream(BytesIO(keyframe_data)),
+        )
+        keyframes.append(
+            Keyframe(
+                frame_time=int(round(kf_chunk.time_raw / time_scale)),
+                keyframe_interpolation_type=map_keyframe_interpolation_type(
+                    get_enum_value(kf_chunk.keyframe_interpolation_type)
+                ),
+                label=kf_chunk.label,
+                continuous_bezier=kf_chunk.continuous_bezier,
+                auto_bezier=kf_chunk.auto_bezier,
+                roving_across_time=kf_chunk.roving_across_time,
+            )
+        )
+    return keyframes
 
 
 def parse_effect(
@@ -361,17 +364,13 @@ def parse_effect(
     sspc_child_chunks = sspc_chunk.data.chunks
     fnam_chunk = find_by_type(chunks=sspc_child_chunks, chunk_type="fnam")
     utf8_chunk = fnam_chunk.data.chunk
-    nice_name = str_contents(utf8_chunk)
+    tdgp_chunk = find_by_list_type(chunks=sspc_child_chunks, list_type="tdgp")
+    nice_name = _get_nice_name(tdgp_chunk) or str_contents(utf8_chunk)
 
-    effect = PropertyGroup(
-        match_name=group_match_name,
-        name=nice_name,
-        is_effect=True,
-    )
-
+    # Get effect parameter definitions from parT chunk
+    param_defs: dict[str, dict] = {}
     part_chunk = find_by_list_type(chunks=sspc_child_chunks, list_type="parT")
     if part_chunk:
-        # Get effect parameters
         chunks_by_parameter = get_chunks_by_match_name(part_chunk)
         for index, (match_name, parameter_chunks) in enumerate(
             chunks_by_parameter.items()
@@ -379,33 +378,36 @@ def parse_effect(
             # Skip first, it describes parent
             if index == 0:
                 continue
-            parameter = parse_effect_parameter(
-                parameter_chunks=parameter_chunks,
-                match_name=match_name,
-                time_scale=time_scale,
-            )
-            effect.properties.append(parameter)
+            param_defs[match_name] = _parse_effect_parameter_def(parameter_chunks)
 
-    tdgp_chunk = find_by_list_type(chunks=sspc_child_chunks, list_type="tdgp")
-    nice_name = _get_nice_name(tdgp_chunk)
-    if nice_name:
-        effect.name = nice_name
-
-    # Get parameters values
+    # Parse properties and merge with parameter definitions
+    properties: list[Property] = []
     chunks_by_property = get_chunks_by_match_name(tdgp_chunk)
     for match_name, prop_chunks in chunks_by_property.items():
         first_chunk = prop_chunks[0]
         if first_chunk.data.list_type == "tdbs":
-            for parameter in effect.properties:
-                if parameter.match_name == match_name:
-                    # add value
-                    parameter = parse_property(
-                        tdbs_chunk=first_chunk,
-                        match_name=match_name,
-                        time_scale=time_scale,
-                        prop=parameter,
-                    )
-                    break
+            prop = parse_property(
+                tdbs_chunk=first_chunk,
+                match_name=match_name,
+                time_scale=time_scale,
+            )
+            # Merge parameter definition if available
+            if match_name in param_defs:
+                param_def = param_defs[match_name]
+                prop.name = param_def.get("name") or prop.name
+                prop.property_control_type = param_def.get(
+                    "property_control_type", prop.property_control_type
+                )
+                prop.property_value_type = param_def.get(
+                    "property_value_type", prop.property_value_type
+                )
+                prop.last_value = param_def.get("last_value")
+                prop.default_value = param_def.get("default_value")
+                prop.min_value = param_def.get("min_value") or prop.min_value
+                prop.max_value = param_def.get("max_value") or prop.max_value
+                prop.nb_options = param_def.get("nb_options")
+                prop.property_parameters = param_def.get("property_parameters")
+            properties.append(prop)
         elif first_chunk.data.list_type == "tdgp":
             # Encountered with "ADBE FreePin3" effect (Obsolete > Puppet)
             pass
@@ -414,84 +416,74 @@ def parse_effect(
                 f"Cannot parse parameter value : {first_chunk.data.list_type}"
             )
 
-    return effect
+    return PropertyGroup(
+        match_name=group_match_name,
+        name=nice_name,
+        is_effect=True,
+        properties=properties,
+    )
 
 
-def parse_effect_parameter(
-    parameter_chunks: list[Aep.Chunk], match_name: str, time_scale: float
-) -> Property:
-    """
-    Parse an effect parameter.
-
-    Args:
-        parameter_chunks: The parameter's chunks.
-        match_name: A special name for the property used to build unique
-            naming paths. The match name is not displayed, but you can refer
-            to it in scripts. Every property has a unique match-name
-            identifier. Match names are stable from version to version
-            regardless of the display name (the name attribute value) or any
-            changes to the application. Unlike the display name, it is not
-            localized.
-        time_scale: The time scale of the parent composition, used as a divisor
-            for some frame values.
-    """
+def _parse_effect_parameter_def(parameter_chunks: list[Aep.Chunk]) -> dict:
+    """Parse effect parameter definition from pard chunk, returning a dict of values."""
     pard_chunk = find_by_type(chunks=parameter_chunks, chunk_type="pard")
     pard_data = pard_chunk.data
 
-    parameter = Property(
-        match_name=match_name,
-        name=pard_data.name,
-        property_control_type=pard_data.property_control_type,
-    )
+    result: dict = {
+        "name": pard_data.name,
+        "property_control_type": pard_data.property_control_type,
+    }
+    control_type = pard_data.property_control_type
 
-    if parameter.property_control_type == Aep.PropertyControlType.angle:
-        parameter.last_value = pard_data.last_value
-        parameter.property_value_type = Aep.PropertyValueType.orientation
+    if control_type == Aep.PropertyControlType.angle:
+        result["last_value"] = pard_data.last_value
+        result["property_value_type"] = Aep.PropertyValueType.orientation
 
-    elif parameter.property_control_type == Aep.PropertyControlType.boolean:
-        parameter.last_value = pard_data.last_value
-        parameter.default_value = pard_data.default
+    elif control_type == Aep.PropertyControlType.boolean:
+        result["last_value"] = pard_data.last_value
+        result["default_value"] = pard_data.default
 
-    elif parameter.property_control_type == Aep.PropertyControlType.color:
-        parameter.last_value = pard_data.last_color
-        parameter.default_value = pard_data.default_color
-        parameter.max_value = pard_data.max_color
-        parameter.property_value_type = Aep.PropertyValueType.color
+    elif control_type == Aep.PropertyControlType.color:
+        result["last_value"] = pard_data.last_color
+        result["default_value"] = pard_data.default_color
+        result["max_value"] = pard_data.max_color
+        result["property_value_type"] = Aep.PropertyValueType.color
 
-    elif parameter.property_control_type == Aep.PropertyControlType.enum:
-        parameter.last_value = pard_data.last_value
-        parameter.nb_options = pard_data.nb_options
-        parameter.default_value = pard_data.default
+    elif control_type == Aep.PropertyControlType.enum:
+        result["last_value"] = pard_data.last_value
+        result["nb_options"] = pard_data.nb_options
+        result["default_value"] = pard_data.default
 
-    elif parameter.property_control_type == Aep.PropertyControlType.scalar:
-        parameter.last_value = pard_data.last_value
-        parameter.min_value = pard_data.min_value
-        parameter.max_value = pard_data.max_value
+    elif control_type == Aep.PropertyControlType.scalar:
+        result["last_value"] = pard_data.last_value
+        result["min_value"] = pard_data.min_value
+        result["max_value"] = pard_data.max_value
 
-    elif parameter.property_control_type == Aep.PropertyControlType.slider:
-        parameter.last_value = pard_data.last_value
-        parameter.max_value = pard_data.max_value
+    elif control_type == Aep.PropertyControlType.slider:
+        result["last_value"] = pard_data.last_value
+        result["max_value"] = pard_data.max_value
 
-    elif parameter.property_control_type == Aep.PropertyControlType.three_d:
-        parameter.last_value = [
+    elif control_type == Aep.PropertyControlType.three_d:
+        result["last_value"] = [
             pard_data.last_value_x,
             pard_data.last_value_y,
             pard_data.last_value_z,
         ]
 
-    elif parameter.property_control_type == Aep.PropertyControlType.two_d:
-        parameter.last_value = [pard_data.last_value_x, pard_data.last_value_y]
+    elif control_type == Aep.PropertyControlType.two_d:
+        result["last_value"] = [pard_data.last_value_x, pard_data.last_value_y]
 
+    # Check for display name override or enum options
     pdnm_chunk = find_by_type(chunks=parameter_chunks, chunk_type="pdnm")
     if pdnm_chunk is not None:
         utf8_chunk = pdnm_chunk.data.chunk
         pdnm_data = str_contents(utf8_chunk)
-        if parameter.property_control_type == Aep.PropertyControlType.enum:
-            parameter.property_parameters = pdnm_data.split("|")
+        if control_type == Aep.PropertyControlType.enum:
+            result["property_parameters"] = pdnm_data.split("|")
         elif pdnm_data:
-            parameter.name = pdnm_data
+            result["name"] = pdnm_data
 
-    return parameter
+    return result
 
 
 def parse_markers(
@@ -517,24 +509,28 @@ def parse_markers(
             marker duration in seconds.
     """
     tdbs_chunk = find_by_list_type(chunks=mrst_chunk.data.chunks, list_type="tdbs")
-    # get keyframes (markers time)
+    # Get keyframes (markers time)
     marker_group = parse_property(
         tdbs_chunk=tdbs_chunk,
         match_name=group_match_name,
         time_scale=time_scale,
     )
     mrky_chunk = find_by_list_type(chunks=mrst_chunk.data.chunks, list_type="mrky")
-    # Get each marker
+    # Get each marker with its frame_time
     nmrd_chunks = filter_by_list_type(chunks=mrky_chunk.data.chunks, list_type="Nmrd")
     markers = []
     for i, nmrd_chunk in enumerate(nmrd_chunks):
-        marker = parse_marker(nmrd_chunk=nmrd_chunk, frame_rate=frame_rate)
-        marker.frame_time = marker_group.keyframes[i].frame_time
+        frame_time = marker_group.keyframes[i].frame_time
+        marker = parse_marker(
+            nmrd_chunk=nmrd_chunk,
+            frame_rate=frame_rate,
+            frame_time=frame_time,
+        )
         markers.append(marker)
     return markers
 
 
-def parse_marker(nmrd_chunk: Aep.Chunk, frame_rate: float) -> Marker:
+def parse_marker(nmrd_chunk: Aep.Chunk, frame_rate: float, frame_time: int) -> Marker:
     """
     Parse a marker.
 
@@ -542,14 +538,22 @@ def parse_marker(nmrd_chunk: Aep.Chunk, frame_rate: float) -> Marker:
         nmrd_chunk: The NMRD chunk to parse.
         frame_rate: The frame rate of the parent composition (unused but kept
             for API consistency).
+        frame_time: The time of the marker, in frames.
     """
     nmhd_chunk = find_by_type(chunks=nmrd_chunk.data.chunks, chunk_type="NmHd")
     nmhd_data = nmhd_chunk.data
     utf8_chunks = filter_by_type(chunks=nmrd_chunk.data.chunks, chunk_type="Utf8")
+
     # FIXME Marker duration is stored in 600ths of a second
     # It is hardcoded here until we have a better time representation
     duration = nmhd_data.frame_duration / 600
-    marker = Marker(
+
+    # Parse cue point params
+    params = {}
+    for param_name, param_value in split_in_chunks(utf8_chunks[5:], 2):
+        params[str_contents(param_name)] = str_contents(param_value)
+
+    return Marker(
         chapter=str_contents(utf8_chunks[1]),
         comment=str_contents(utf8_chunks[0]),
         cue_point_name=str_contents(utf8_chunks[4]),
@@ -559,13 +563,10 @@ def parse_marker(nmrd_chunk: Aep.Chunk, frame_rate: float) -> Marker:
         url=str_contents(utf8_chunks[2]),
         label=nmhd_data.label,
         protected_region=nmhd_data.protected_region,
-        params={},
+        params=params,
         frame_duration=nmhd_data.frame_duration,
+        frame_time=frame_time,
     )
-    for param_name, param_value in split_in_chunks(utf8_chunks[5:], 2):
-        marker.params[str_contents(param_name)] = str_contents(param_value)
-
-    return marker
 
 
 def _get_nice_name(root_chunk: Aep.Chunk) -> str | None:

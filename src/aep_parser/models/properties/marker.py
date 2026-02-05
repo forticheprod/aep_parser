@@ -50,7 +50,7 @@ class Marker:
     protected_region: bool
     params: dict[str, str]
     frame_duration: int
-    frame_time: int | None = None
+    frame_time: int
     event_cue_point: bool = field(init=False)
 
     def __post_init__(self) -> None:

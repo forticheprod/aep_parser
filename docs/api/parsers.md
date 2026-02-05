@@ -9,10 +9,48 @@ This module contains the internal parsing functions that convert binary chunk da
       show_root_heading: true
       show_source: true
 
-## Internal Parsers
+## Item Parsers
 
-::: aep_parser.parsers
+::: aep_parser.parsers.composition.parse_composition
     options:
-      show_root_heading: false
-      show_source: false
-      members_order: source
+      show_root_heading: true
+      show_source: true
+
+::: aep_parser.parsers.footage.parse_footage
+    options:
+      show_root_heading: true
+      show_source: true
+
+::: aep_parser.parsers.item.parse_folder
+    options:
+      show_root_heading: true
+      show_source: true
+
+## Layer Parser
+
+::: aep_parser.parsers.layer.parse_layer
+    options:
+      show_root_heading: true
+      show_source: true
+
+## Property Parsers
+
+::: aep_parser.parsers.property.parse_property_group
+    options:
+      show_root_heading: true
+      show_source: true
+
+::: aep_parser.parsers.property.parse_property
+    options:
+      show_root_heading: true
+      show_source: true
+
+::: aep_parser.parsers.property.parse_effect
+    options:
+      show_root_heading: true
+      show_source: true
+
+::: aep_parser.parsers.property.parse_markers
+    options:
+      show_root_heading: true
+      show_source: true

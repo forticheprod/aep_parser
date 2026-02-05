@@ -347,15 +347,18 @@ types:
       - id: stretch_dividend
         type: s2
       - id: start_time_dividend
-        type: u4
+        type: s4
+        doc: Signed to allow negative start times
       - id: start_time_divisor
         type: u4
       - id: in_point_dividend
-        type: u4
+        type: s4
+        doc: Signed, stored relative to start_time. Add start_time to get absolute in_point.
       - id: in_point_divisor
         type: u4
       - id: out_point_dividend
-        type: u4
+        type: s4
+        doc: Signed, stored relative to start_time. Add start_time to get absolute out_point.
       - id: out_point_divisor
         type: u4
       - size: 1
@@ -365,7 +368,9 @@ types:
         enum: sampling_quality
       - id: environment_layer
         type: b1  # bit 5
-      - type: b2  # skip bits 4-3
+      - id: characters_toward_camera
+        type: b2  # bits 4-3
+        doc: When value is 3 (0b11), layer has CHARACTERS_TOWARD_CAMERA auto-orient mode
       - id: frame_blending_type
         type: b1  # bit 2
         enum: frame_blending_type
@@ -374,7 +379,10 @@ types:
       - type: b1  # skip bit 0
       - id: null_layer
         type: b1  # bit 7
-      - type: b2  # skip bits 6-5
+      - type: b1  # skip bit 6
+      - id: camera_or_poi_auto_orient
+        type: b1  # bit 5
+        doc: When true and three_d_layer is true, layer has CAMERA_OR_POINT_OF_INTEREST auto-orient mode
       - id: markers_locked
         type: b1  # bit 4
       - id: solo
@@ -383,8 +391,9 @@ types:
         type: b1  # bit 2
       - id: adjustment_layer
         type: b1  # bit 1
-      - id: auto_orient
+      - id: auto_orient_along_path
         type: b1  # bit 0
+        doc: When true, layer has ALONG_PATH auto-orient mode
       - id: collapse_transformation
         type: b1  # bit 7
       - id: shy
@@ -916,7 +925,6 @@ enums:
   frame_blending_type:
     0: frame_mix
     1: pixel_motion
-    2: no_frame_blend
   sampling_quality:
     0: bilinear
     1: bicubic

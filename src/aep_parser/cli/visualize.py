@@ -157,9 +157,8 @@ def build_layer_node(
         attrs["enabled"] = False
     if layer.null_layer:
         attrs["null"] = True
-    if layer.parent_id:
-        parent = project.layer_by_id(layer.parent_id)
-        attrs["parent"] = parent.name if parent else layer.parent_id
+    if layer.parent:
+        attrs["parent"] = layer.parent.name
     if layer.markers:
         attrs["markers"] = len(layer.markers)
 
