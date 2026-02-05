@@ -1,7 +1,7 @@
 /**
  * Generate Test Samples for aep_parser Model Testing
  * 
- * Creates ONE .aep file per test case.
+ * Creates ONE .aep file and corresponding .json export per test case.
  * 
  * Covers ALL attributes from export_project_json.jsx.
  * 
@@ -9,8 +9,12 @@
  *   1. Open After Effects 2019+ (some samples need at least this version)
  *   2. Run this script: File > Scripts > Run Script File
  *   3. Select the 'models' folder in samples/
- *   4. Projects will be saved to samples/models/<type>/<attribute>.aep
+ *   4. Files will be saved to samples/models/<type>/<attribute>.aep and .json
  */
+
+// Include export_project_json as library
+var AEP_EXPORT_AS_LIBRARY = true;
+#include "export_project_json.jsx"
 
 (function() {
     "use strict";
@@ -26,9 +30,31 @@
         return app.newProject();
     }
 
+    /**
+     * Export the current project to JSON using the export_project_json module.
+     */
+    function exportProjectJson(aepFilePath) {
+        var jsonFilePath = aepFilePath.replace(/\.aep$/i, ".json");
+        var jsonFile = new File(jsonFilePath);
+
+        try {
+            var projectData = AepExport.exportProject();
+            var jsonString = JSON.stringify(projectData, null, 2);
+
+            jsonFile.open("w");
+            jsonFile.encoding = "UTF-8";
+            jsonFile.write(jsonString);
+            jsonFile.close();
+        } catch (e) {
+            $.writeln("Warning: Could not export JSON: " + e.toString());
+        }
+    }
+
     function saveProject(project, filePath) {
         var file = new File(filePath);
         project.save(file);
+        // Export JSON
+        exportProjectJson(filePath);
     }
 
     function ensureFolder(folderPath) {
@@ -156,9 +182,13 @@
         proj.colorManagementSystem = 0;
         saveProject(proj, folder.fsName + "/colorManagementSystem_adobe.aep");
 
+        // OCIO config path (relative to outputPath: samples/models)
+        var ocioFile = new File(outputPath + "/../assets/config.ocio");
+
         // colorManagementSystem = 1 (OCIO) (CC 2024+)
         proj = createProject();
         proj.colorManagementSystem = 1;
+        proj.ocioConfigurationFile = ocioFile.fsName;
         saveProject(proj, folder.fsName + "/colorManagementSystem_ocio.aep");
 
         // lutInterpolationMethod = 0 (Trilinear)
@@ -172,19 +202,15 @@
         proj.lutInterpolationMethod = 1;
         saveProject(proj, folder.fsName + "/lutInterpolationMethod_tetrahedral.aep");
 
-        // ocioConfigurationFile (requires OCIO mode)
+        // ocioConfigurationFile (test with explicit custom path)
         proj = createProject();
         proj.colorManagementSystem = 1; // OCIO mode
-        var ocioConfigPath = outputPath + "/../assets/config.ocio";
-        var ocioFile = new File(ocioConfigPath);
         proj.ocioConfigurationFile = ocioFile.fsName;
         saveProject(proj, folder.fsName + "/ocioConfigurationFile_custom.aep");
 
-        // workingSpace with OCIO (uses OCIO color space names)
+        // workingSpace with OCIO (uses OCIO color space names from config)
         proj = createProject();
         proj.colorManagementSystem = 1; // OCIO mode
-        var ocioConfigPath = outputPath + "/../assets/config.ocio";
-        var ocioFile = new File(ocioConfigPath);
         proj.ocioConfigurationFile = ocioFile.fsName;
         proj.workingSpace = "ACEScct";
         saveProject(proj, folder.fsName + "/workingSpace_ocio_acescct.aep");
@@ -441,12 +467,29 @@
         layer.enabled = false;
         saveProject(proj, folder.fsName + "/enabled_false.aep");
 
-        // inPoint
+        // inPoint = 5 (basic case)
         proj = createProject();
         comp = proj.items.addComp("TestComp", 100, 100, 1, 10, 24);
         layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 100, 100, 1);
         layer.inPoint = 5;
         saveProject(proj, folder.fsName + "/inPoint_5.aep");
+
+        // inPoint with startTime offset (tests relative time parsing)
+        // startTime=10, inPoint=5 means inPoint is before startTime
+        // Binary stores in_point_dividend as negative relative to startTime
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 60, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 100, 100, 1);
+        layer.startTime = 10;
+        layer.inPoint = 5;
+        saveProject(proj, folder.fsName + "/inPoint_before_startTime.aep");
+
+        // inPoint at 0 (layer visible from start)
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 30, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 100, 100, 1);
+        layer.inPoint = 0;
+        saveProject(proj, folder.fsName + "/inPoint_0.aep");
 
         // label
         proj = createProject();
@@ -462,12 +505,29 @@
         layer.locked = true;
         saveProject(proj, folder.fsName + "/locked_true.aep");
 
-        // outPoint
+        // outPoint = 10 (basic case, within comp duration)
         proj = createProject();
         comp = proj.items.addComp("TestComp", 100, 100, 1, 60, 24);
         layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 100, 100, 1);
         layer.outPoint = 10;
         saveProject(proj, folder.fsName + "/outPoint_10.aep");
+
+        // outPoint at composition duration (tests clamping behavior)
+        // Solid source has infinite duration, but outPoint clamps to comp duration
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 30, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 100, 100, 1);
+        // Layer keeps default outPoint which equals comp duration
+        saveProject(proj, folder.fsName + "/outPoint_at_duration.aep");
+
+        // outPoint with startTime offset
+        // startTime=-5 means content starts 5 seconds before comp start
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 30, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 100, 100, 1);
+        layer.startTime = -5;
+        layer.outPoint = 20;
+        saveProject(proj, folder.fsName + "/outPoint_with_negative_startTime.aep");
 
         // shy
         proj = createProject();
@@ -554,6 +614,16 @@
         // and the comp must use Cinema 4D or Classic 3D renderer in certain modes
 
         // frameBlendingType
+        // Test NO_FRAME_BLEND: when frameBlending is disabled on the layer
+        // This covers the regression where binary value 0 was incorrectly mapped
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 10, 24);
+        comp.frameBlending = true;  // Enable on comp to allow layer control
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 100, 100, 1);
+        // Default: frameBlendingType is NO_FRAME_BLEND when layer frameBlending is off
+        // layer.frameBlending is read-only and determined by frameBlendingType
+        saveProject(proj, folder.fsName + "/frameBlendingType_NO_FRAME_BLEND.aep");
+
         proj = createProject();
         comp = proj.items.addComp("TestComp", 100, 100, 1, 10, 24);
         comp.frameBlending = true;
@@ -743,6 +813,15 @@
         layer.threeDLayer = true;
         layer.autoOrient = AutoOrientType.CAMERA_OR_POINT_OF_INTEREST;
         saveProject(proj, folder.fsName + "/autoOrient_CAMERA.aep");
+
+        // AutoOrientType.CHARACTERS_TOWARD_CAMERA (per-character 3D text layer only)
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 10, 24);
+        layer = comp.layers.addText("3D Text");
+        layer.threeDLayer = true;
+        layer.threeDPerChar = true;  // Required for CHARACTERS_TOWARD_CAMERA
+        layer.autoOrient = AutoOrientType.CHARACTERS_TOWARD_CAMERA;
+        saveProject(proj, folder.fsName + "/autoOrient_CHARACTERS.aep");
 
         // time (comp.time affects layer.time)
         proj = createProject();
@@ -985,6 +1064,16 @@
         footage = proj.importFile(importOptions);
         footage.mainSource.removePulldown = PulldownPhase.OFF;
         saveProject(proj, folder.fsName + "/removePulldown_OFF.aep");
+
+        // --- Image Sequence ---
+        // Tests the code path that parses frame numbers from filenames
+        // Point to the first file of the sequence, AE will detect the rest
+        var sequenceFile = new File(assetsPath + "/sequence_001.gif");
+        proj = createProject();
+        importOptions = new ImportOptions(sequenceFile);
+        importOptions.sequence = true;
+        footage = proj.importFile(importOptions);
+        saveProject(proj, folder.fsName + "/imageSequence_numbered.aep");
 
         $.writeln("Generated footage samples in: " + folder.fsName);
     }
@@ -1300,6 +1389,36 @@
         prop.expression = "time * 36";
         saveProject(proj, folder.fsName + "/expression_time.aep");
 
+        // --- Effects with different parameter types ---
+
+        // Effect with 2D Point parameter (Lens Flare - Flare Center is 2D point)
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 10, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 100, 100, 1);
+        var effect = layer.property("Effects").addProperty("ADBE Lens Flare");
+        // Flare Center is a 2D point control
+        saveProject(proj, folder.fsName + "/effect_2dPoint.aep");
+
+        // Effect with 3D Point parameter (3D Channel Extract - 3D Point parameter)
+        // Using CC Particle World which has 3D position controls
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 10, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 100, 100, 1);
+        layer.threeDLayer = true;
+        // CC Sphere has 3D rotation which uses 3D controls
+        effect = layer.property("Effects").addProperty("CC Sphere");
+        saveProject(proj, folder.fsName + "/effect_3dPoint.aep");
+
+        // Effect with nested property groups (Puppet/FreePin3)
+        // Tests the tdgp property group parsing in effects (coverage gap)
+        // Just applying the effect creates nested tdgp structure
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 200, 200, 1, 10, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 200, 200, 1);
+        // Puppet effect has nested property groups (tdgp chunks)
+        effect = layer.property("Effects").addProperty("ADBE FreePin3");
+        saveProject(proj, folder.fsName + "/effect_puppet.aep");
+
         $.writeln("Generated property samples in: " + folder.fsName);
     }
 
@@ -1351,14 +1470,12 @@
         $.writeln("");
         $.writeln("=== Sample Generation Complete ===");
         $.writeln("Each .aep file tests ONE attribute for isolation.");
-        $.writeln("");
-        $.writeln("Next steps:");
-        $.writeln("1. Run export_project_json.jsx on each .aep to create .json files or use batch_export_project_json.jsx.");
+        $.writeln("Corresponding .json files have been generated automatically.");
 
         alert("Sample generation complete!\n\n" +
               "Output: " + OUTPUT_FOLDER + "\n\n" +
-              "Each .aep file tests ONE attribute.\n\n" +
-              "Next: Run export_project_json.jsx on each file or use batch_export_project_json.jsx.");
+              "Each .aep file tests ONE attribute.\n" +
+              "Corresponding .json files have been generated.");
     }
 
     main();

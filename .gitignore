@@ -121,3 +121,6 @@ Session.vim
 
 # Debian packages
 *.deb
+
+Adobe After Effects Auto-Save/
+samples/debug/

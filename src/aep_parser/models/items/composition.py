@@ -162,7 +162,9 @@ class CompItem(AVItem):
         """A list of the composition layers whose source are compositions."""
         if self._composition_layers is None:
             self._composition_layers = [
-                layer for layer in self.layers if layer.source_is_composition
+                layer for layer in self.layers
+                if hasattr(layer, "source") and layer.source is not None
+                and layer.source.is_composition
             ]
         return self._composition_layers
 
@@ -171,6 +173,8 @@ class CompItem(AVItem):
         """A list of the composition layers whose source are footages."""
         if self._footage_layers is None:
             self._footage_layers = [
-                layer for layer in self.layers if layer.source_is_footage
+                layer for layer in self.layers
+                if hasattr(layer, "source") and layer.source is not None
+                and layer.source.is_footage
             ]
         return self._footage_layers

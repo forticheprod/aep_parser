@@ -1,9 +1,4 @@
 {
-  "exportVersion": "1.0",
-  "exportDate": "2026-02-04T11:31:05Z",
-  "aeVersion": "25.6x101",
-  "aeBuildNumber": 101,
-  "projectFile": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\models\\footage\\invertAlpha_true.aep",
   "projectName": "invertAlpha_true.aep",
   "bitsPerChannel": 32,
   "colorManagementSystem": 1,
@@ -23,31 +18,39 @@
   "revision": 2,
   "timeDisplayType": 2012,
   "transparencyGridThumbnails": true,
+  "usedFonts": [
+    
+  ],
   "workingGamma": 2.4,
   "workingSpace": "None",
   "items": [
     {
-      "name": "image_with_alpha.png",
-      "id": 1,
       "comment": "",
-      "typeName": "Footage",
-      "label": 5,
-      "itemType": "FootageItem",
       "duration": 0,
       "footageMissing": false,
       "frameDuration": 1,
       "frameRate": 0,
+      "frameTime": 0,
       "hasAudio": false,
       "hasVideo": true,
       "height": 346,
+      "id": 1,
+      "isMediaReplacementCompatible": true,
+      "label": 5,
+      "name": "image_with_alpha.png",
       "pixelAspect": 1,
       "time": 0,
+      "typeName": "Footage",
       "useProxy": false,
       "width": 640,
+      "itemType": "FootageItem",
       "filePath": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\assets\\image_with_alpha.png",
       "fileName": "image_with_alpha.png",
       "mainSource": {
         "type": "[object FileSource]",
+        "sourceType": "FileSource",
+        "filePath": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\assets\\image_with_alpha.png",
+        "fileName": "image_with_alpha.png",
         "alphaMode": 5412,
         "conformFrameRate": 0,
         "displayFrameRate": 0,
@@ -57,17 +60,14 @@
         "invertAlpha": true,
         "isStill": true,
         "loop": 1,
+        "missingFootagePath": "",
         "nativeFrameRate": 0,
         "premulColor": [
           0,
           0,
           0
         ],
-        "removePulldown": 5813,
-        "sourceType": "FileSource",
-        "missingFootagePath": "",
-        "filePath": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\assets\\image_with_alpha.png",
-        "fileName": "image_with_alpha.png"
+        "removePulldown": 5813
       }
     }
   ]

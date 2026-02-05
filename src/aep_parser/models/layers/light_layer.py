@@ -20,4 +20,4 @@ class LightLayer(Layer):
         light_type: The type of light.
     """
 
-    light_type: LightType | None = None
+    light_type: LightType

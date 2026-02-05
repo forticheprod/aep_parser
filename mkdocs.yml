@@ -81,8 +81,10 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - CLI Tools: cli.md
   - API Reference:
     - Overview: api/index.md
+    - Parsers: api/parsers.md
     - Project: api/project.md
     - Items:
       - Base Item: api/items/item.md
@@ -106,6 +108,5 @@ nav:
       - Solid Source: api/sources/solid_source.md
       - Placeholder Source: api/sources/placeholder_source.md
     - Enums: api/enums.md
-    - Parsers: api/parsers.md
   - Guides:
     - Flags Tutorial: guides/flags_tutorial.md

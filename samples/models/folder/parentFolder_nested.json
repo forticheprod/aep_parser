@@ -1,9 +1,4 @@
 {
-  "exportVersion": "1.0",
-  "exportDate": "2026-02-04T11:31:02Z",
-  "aeVersion": "25.6x101",
-  "aeBuildNumber": 101,
-  "projectFile": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\models\\folder\\parentFolder_nested.aep",
   "projectName": "parentFolder_nested.aep",
   "bitsPerChannel": 32,
   "colorManagementSystem": 1,
@@ -23,59 +18,62 @@
   "revision": 5,
   "timeDisplayType": 2012,
   "transparencyGridThumbnails": true,
+  "usedFonts": [
+    
+  ],
   "workingGamma": 2.4,
   "workingSpace": "None",
   "items": [
     {
-      "name": "RootFolder",
-      "id": 1,
       "comment": "",
-      "typeName": "Folder",
+      "id": 1,
       "label": 2,
-      "itemType": "FolderItem",
+      "name": "RootFolder",
       "numItems": 1,
+      "typeName": "Folder",
+      "itemType": "FolderItem",
       "childItemIds": [
         2
       ]
     },
     {
-      "name": "Level1",
-      "id": 2,
       "comment": "",
-      "typeName": "Folder",
+      "id": 2,
       "label": 2,
+      "name": "Level1",
+      "numItems": 1,
+      "typeName": "Folder",
       "parentFolderId": 1,
       "parentFolderName": "RootFolder",
       "itemType": "FolderItem",
-      "numItems": 1,
       "childItemIds": [
         3
       ]
     },
     {
-      "name": "Level2",
-      "id": 3,
       "comment": "",
-      "typeName": "Folder",
+      "id": 3,
       "label": 2,
+      "name": "Level2",
+      "numItems": 1,
+      "typeName": "Folder",
       "parentFolderId": 2,
       "parentFolderName": "Level1",
       "itemType": "FolderItem",
-      "numItems": 1,
       "childItemIds": [
         4
       ]
     },
     {
-      "name": "Level3",
-      "id": 4,
       "comment": "",
-      "typeName": "Folder",
+      "id": 4,
       "label": 2,
+      "name": "Level3",
+      "numItems": 0,
+      "typeName": "Folder",
       "parentFolderId": 3,
       "parentFolderName": "Level2",
       "itemType": "FolderItem",
-      "numItems": 0,
       "childItemIds": [
         
       ]

@@ -1,9 +1,4 @@
 {
-  "exportVersion": "1.0",
-  "exportDate": "2026-02-04T11:31:22Z",
-  "aeVersion": "25.6x101",
-  "aeBuildNumber": 101,
-  "projectFile": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\models\\project\\workingSpace_ocio_acescct.aep",
   "projectName": "workingSpace_ocio_acescct.aep",
   "bitsPerChannel": 32,
   "colorManagementSystem": 1,
@@ -23,6 +18,9 @@
   "revision": 3,
   "timeDisplayType": 2012,
   "transparencyGridThumbnails": true,
+  "usedFonts": [
+    
+  ],
   "workingGamma": 2.4,
   "workingSpace": "ACEScct",
   "items": [
