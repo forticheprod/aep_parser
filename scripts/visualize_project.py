@@ -6,11 +6,11 @@ This is a development wrapper script. After installing the package,
 use the `aep-visualize` command instead.
 
 Usage:
-    python scripts/visualize_project.py samples/02_comp.aep
-    python scripts/visualize_project.py samples/02_comp.aep --format dot > project.dot
-    python scripts/visualize_project.py samples/02_comp.aep --format mermaid
-    python scripts/visualize_project.py samples/02_comp.aep --depth 2
-    python scripts/visualize_project.py samples/02_comp.aep --no-properties
+    python scripts/visualize_project.py samples/models/composition/bgColor_custom.aep
+    python scripts/visualize_project.py samples/models/composition/bgColor_custom.aep --format dot > project.dot
+    python scripts/visualize_project.py samples/models/composition/bgColor_custom.aep --format mermaid
+    python scripts/visualize_project.py samples/models/composition/bgColor_custom.aep --depth 2
+    python scripts/visualize_project.py samples/models/composition/bgColor_custom.aep --no-properties
 """
 
 from __future__ import annotations

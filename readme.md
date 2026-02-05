@@ -42,7 +42,7 @@ pip install aep-parser
 ```python
 from aep_parser import parse_project
 
-aep_file_path = "samples/01_empty.aep"
+aep_file_path = "samples/models/composition/bgColor_custom.aep"
 project = parse_project(aep_file_path)
 ```
 
