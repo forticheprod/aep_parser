@@ -109,4 +109,5 @@ nav:
       - Placeholder Source: api/sources/placeholder_source.md
     - Enums: api/enums.md
   - Guides:
+    - Contributing: guides/contributing.md
     - Flags Tutorial: guides/flags_tutorial.md
