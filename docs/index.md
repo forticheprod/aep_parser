@@ -64,9 +64,14 @@ The library provides dataclasses that mirror After Effects' object model:
 
 Browse the [API Reference](api/index.md) for detailed documentation of all classes and methods.
 
+## Guides
+
+- **[Contributing Guide](guides/contributing.md)**: Learn how to contribute to the project, understand the codebase, debug issues, and add new features
+- **[Flags Tutorial](guides/flags_tutorial.md)**: Step-by-step guide for parsing boolean flags (1-bit attributes) from AEP files
+
 ## Contributing
 
-Contributions are welcome! Please see the [GitHub repository](https://github.com/forticheprod/aep_parser) for more information.
+Contributions are welcome! See the [Contributing Guide](guides/contributing.md) to get started, or visit the [GitHub repository](https://github.com/forticheprod/aep_parser) for more information.
 
 ## License
 
