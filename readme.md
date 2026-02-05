@@ -7,6 +7,8 @@
   <p align="center">
     An After Effects file parser in Python!
     <br />
+    <a href="https://forticheprod.github.io/aep_parser/"><strong>Explore the docs »</strong></a>
+    <br />
   </p>
 </div>
 
