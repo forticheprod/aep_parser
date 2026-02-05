@@ -31,6 +31,9 @@ A Python library for parsing Adobe After Effects project files (.aep). The binar
 # Install with dev dependencies
 pip install -e ".[dev]"
 
+# Install with documentation dependencies
+pip install -e ".[docs]"
+
 # Run tests with coverage (configured in pyproject.toml)
 pytest
 
@@ -40,6 +43,12 @@ mypy src/aep_parser
 # Linting (excludes auto-generated kaitai/aep.py)
 ruff check src/
 ruff format src/
+
+# Build documentation
+mkdocs build --strict
+
+# Serve documentation locally (with live reload)
+mkdocs serve
 ```
 
 ## Code Conventions
@@ -114,3 +123,99 @@ No manual modifications are needed after regeneration. Performance optimizations
 - `kaitai/aep_optimized.py` applies performance optimizations via monkey-patching
 - Python 3.7+ compatibility required (no walrus operator, no match case, use union types via annotations)
 - Model docstrings should reference equivalent After Effects ExtendScript properties from [After Effects Scripting Guide](https://ae-scripting.docsforadobe.dev/).
+
+## Documentation
+
+### Overview
+The project uses **MkDocs with Material theme** to auto-generate API documentation from Python docstrings. Documentation is automatically deployed to GitHub Pages on push/merge to `main` branch.
+
+- **Live site**: https://forticheprod.github.io/aep_parser/
+- **Theme**: Material for MkDocs with dark mode (supports light/dark/auto toggle)
+- **Auto-generation**: mkdocstrings extracts API docs from docstrings with full type hint support
+
+### Documentation Structure
+```
+docs/
+├── index.md              # Overview, installation, quick start
+├── api/                  # Auto-generated API reference
+│   ├── index.md          # API overview with parse_project() entry point
+│   ├── project.md        # Project dataclass
+│   ├── items/            # CompItem, FootageItem, Folder
+│   ├── layers/           # AVLayer, TextLayer, ShapeLayer, etc.
+│   ├── properties/       # Property, PropertyGroup, Keyframe, Marker
+│   ├── sources/          # FileSource, SolidSource, PlaceholderSource
+│   ├── enums.md          # All enumerations
+│   └── parsers.md        # Internal parsing functions
+└── guides/
+    └── flags_tutorial.md # Binary format debugging guide
+```
+
+### Building Documentation Locally
+```bash
+# Install docs dependencies
+pip install -e ".[docs]"
+
+# Build static site (output to site/)
+mkdocs build --strict
+
+# Serve with live reload at http://127.0.0.1:8000
+mkdocs serve
+```
+
+### Docstring Requirements
+For proper documentation generation, all public classes, methods, and functions should have docstrings:
+
+```python
+def parse_thing(chunk: Aep.Chunk, context: Context) -> ThingModel:
+    """Parse a Thing from AEP chunk data.
+    
+    Args:
+        chunk: The RIFX chunk containing Thing data.
+        context: Parsing context with shared state.
+    
+    Returns:
+        A ThingModel instance with parsed data.
+    """
+    # implementation
+```
+
+**Key points**:
+- Use Google-style docstrings (the default for mkdocstrings)
+- Include type hints in function signatures (displayed automatically)
+- Reference AE ExtendScript properties in attribute descriptions
+- Type hints are automatically extracted and displayed with cross-references
+
+### Documentation Configuration
+Configuration in `mkdocs.yml` enables:
+- **Type hint display**: `show_signature_annotations: true` - Shows all type annotations
+- **Cross-references**: `signature_crossrefs: true` - Makes types clickable links
+- **Source code**: `show_source: true` - Links to source code
+- **Navigation**: Organized by module (Items, Layers, Properties, etc.)
+
+### Adding New Documentation Pages
+1. Create markdown file in `docs/api/` directory
+2. Use mkdocstrings syntax to reference Python objects:
+   ```markdown
+   # My Module
+   
+   ::: aep_parser.models.my_module.MyClass
+       options:
+         show_root_heading: true
+         show_source: true
+   ```
+3. Add page to navigation in `mkdocs.yml` under `nav:` section
+4. Build and verify: `mkdocs serve`
+
+### Automatic Deployment
+The `.github/workflows/docs.yml` workflow:
+- Triggers on push/merge to `main` branch
+- Installs dependencies with `pip install -e ".[docs]"`
+- Builds documentation with `mkdocs build --strict`
+- Deploys to GitHub Pages automatically
+- No manual intervention required
+
+### Documentation Dependencies
+Defined in `pyproject.toml` under `[project.optional-dependencies]`:
+- `mkdocs>=1.5.0` - Static site generator
+- `mkdocs-material>=9.0.0` - Material theme with dark mode
+- `mkdocstrings[python]>=0.24.0` - Auto-generates API docs from docstrings with type hint support
