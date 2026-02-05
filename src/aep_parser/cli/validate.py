@@ -22,7 +22,6 @@ from typing import Any
 
 from ..parsers.project import parse_project
 
-
 # Fields to skip to avoid circular references
 SKIP_FIELDS = {"containing_comp", "parent_folder"}
 
@@ -340,7 +339,7 @@ def validate_aep(
     parsed = to_dict(project)
 
     # Load expected JSON
-    with open(json_path, "r", encoding="utf-8") as f:
+    with json_path.open(encoding="utf-8") as f:
         expected = json.load(f)
 
     # Compare project-level properties
