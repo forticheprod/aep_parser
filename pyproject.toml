@@ -49,6 +49,7 @@ Repository = "https://github.com/forticheprod/aep_parser"
 [project.scripts]
 aep-visualize = "aep_parser.cli.visualize:main"
 aep-compare = "aep_parser.cli.compare:main"
+aep-validate = "aep_parser.cli.validate:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]

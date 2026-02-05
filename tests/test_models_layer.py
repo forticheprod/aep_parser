@@ -14,6 +14,7 @@ import pytest
 
 from aep_parser import Project, parse_project
 from aep_parser.models.enums import (
+    AutoOrientType,
     BlendingMode,
     FrameBlendingType,
     LayerQuality,
@@ -402,7 +403,29 @@ class TestQualitySettings:
 
 
 class TestFrameBlending:
-    """Tests for frame blending type."""
+    """Tests for frame blending type.
+
+    The frame blending type depends on two factors:
+    1. The layer's frameBlending boolean (read-only, derived from frameBlendingType)
+    2. The binary frame_blending_type bit (0=FRAME_MIX, 1=PIXEL_MOTION)
+
+    When frameBlending is False, frameBlendingType should be NO_FRAME_BLEND (4012).
+    This was a regression bug where binary value 0 was incorrectly mapped to FRAME_MIX.
+    """
+
+    def test_frameBlendingType_NO_FRAME_BLEND(self) -> None:
+        """Test NO_FRAME_BLEND when layer frame blending is disabled.
+
+        This covers the regression where binary value 0 was incorrectly
+        mapped to FRAME_MIX instead of NO_FRAME_BLEND when frameBlending=False.
+        """
+        expected = load_expected("frameBlendingType_NO_FRAME_BLEND")
+        project = parse_project(SAMPLES_DIR / "frameBlendingType_NO_FRAME_BLEND.aep")
+        layer = get_first_layer(project)
+        layer_json = get_layer_from_json(expected)
+        assert layer_json["frameBlendingType"] == FrameBlendingType.NO_FRAME_BLEND
+        assert layer.frame_blending_type == layer_json["frameBlendingType"]
+        assert layer.frame_blending is False
 
     def test_frameBlendingType_FRAME_MIX(self) -> None:
         """Test Frame Mix blending type."""
@@ -426,30 +449,41 @@ class TestFrameBlending:
 class TestAutoOrient:
     """Tests for auto-orient settings.
 
-    NOTE: The parser currently only reads a single bit for auto_orient, which
-    indicates ALONG_PATH mode. CAMERA mode (autoOrient=4214) is stored differently
-    in the binary format and is not yet parsed correctly.
+    The auto-orient type is stored across multiple bits in the binary format:
+    - ALONG_PATH: auto_orient_along_path bit is set
+    - CAMERA_OR_POINT_OF_INTEREST: camera_or_poi_auto_orient bit is set AND three_d_layer is set
+    - CHARACTERS_TOWARD_CAMERA: characters_toward_camera bits equal 3 (0b11)
+    - NO_AUTO_ORIENT: none of the above
     """
 
     def test_autoOrient_ALONG_PATH(self) -> None:
         """Test auto-orient along path."""
+        expected = load_expected("autoOrient_ALONG_PATH")
         project = parse_project(SAMPLES_DIR / "autoOrient_ALONG_PATH.aep")
         layer = get_first_layer(project)
-        # auto_orient should be True for ALONG_PATH
-        assert layer.auto_orient is True
+        layer_json = get_layer_from_json(expected)
+        assert layer_json["autoOrient"] == AutoOrientType.ALONG_PATH
+        assert layer.auto_orient == layer_json["autoOrient"]
 
     def test_autoOrient_CAMERA(self) -> None:
-        """Test auto-orient towards camera.
-
-        TODO: CAMERA mode (autoOrient=4214) is not correctly parsed yet.
-        The binary format stores this differently than ALONG_PATH.
-        """
+        """Test auto-orient towards camera/point of interest."""
+        expected = load_expected("autoOrient_CAMERA")
         project = parse_project(SAMPLES_DIR / "autoOrient_CAMERA.aep")
         layer = get_first_layer(project)
-        # Current parser returns False for CAMERA mode
-        # JSON shows autoOrient=4214 (CAMERA), but the bit-based parsing doesn't detect it
-        # This test documents current behavior - fix requires investigating binary format
+        layer_json = get_layer_from_json(expected)
+        assert layer_json["autoOrient"] == AutoOrientType.CAMERA_OR_POINT_OF_INTEREST
         assert layer.three_d_layer is True  # CAMERA requires 3D layer
+        assert layer.auto_orient == layer_json["autoOrient"]
+
+    def test_autoOrient_CHARACTERS(self) -> None:
+        """Test auto-orient characters toward camera (per-character 3D text)."""
+        expected = load_expected("autoOrient_CHARACTERS")
+        project = parse_project(SAMPLES_DIR / "autoOrient_CHARACTERS.aep")
+        layer = get_first_layer(project)
+        layer_json = get_layer_from_json(expected)
+        assert layer_json["autoOrient"] == AutoOrientType.CHARACTERS_TOWARD_CAMERA
+        assert layer.three_d_layer is True  # CHARACTERS requires 3D layer
+        assert layer.auto_orient == layer_json["autoOrient"]
 
 
 class TestTrackMatte:

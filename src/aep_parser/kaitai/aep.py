@@ -146,7 +146,6 @@ class Aep(KaitaiStruct):
     class FrameBlendingType(Enum):
         frame_mix = 0
         pixel_motion = 1
-        no_frame_blend = 2
 
     class PropertyValueType(Enum):
         unknown = 0
@@ -1169,27 +1168,28 @@ class Aep(KaitaiStruct):
             self.quality = KaitaiStream.resolve_enum(Aep.LayerQuality, self._io.read_u2be())
             self._unnamed2 = self._io.read_bytes(4)
             self.stretch_dividend = self._io.read_s2be()
-            self.start_time_dividend = self._io.read_u4be()
+            self.start_time_dividend = self._io.read_s4be()
             self.start_time_divisor = self._io.read_u4be()
-            self.in_point_dividend = self._io.read_u4be()
+            self.in_point_dividend = self._io.read_s4be()
             self.in_point_divisor = self._io.read_u4be()
-            self.out_point_dividend = self._io.read_u4be()
+            self.out_point_dividend = self._io.read_s4be()
             self.out_point_divisor = self._io.read_u4be()
             self._unnamed10 = self._io.read_bytes(1)
             self._unnamed11 = self._io.read_bits_int_be(1) != 0
             self.sampling_quality = KaitaiStream.resolve_enum(Aep.SamplingQuality, self._io.read_bits_int_be(1))
             self.environment_layer = self._io.read_bits_int_be(1) != 0
-            self._unnamed14 = self._io.read_bits_int_be(2)
+            self.characters_toward_camera = self._io.read_bits_int_be(2)
             self.frame_blending_type = KaitaiStream.resolve_enum(Aep.FrameBlendingType, self._io.read_bits_int_be(1))
             self.guide_layer = self._io.read_bits_int_be(1) != 0
             self._unnamed17 = self._io.read_bits_int_be(1) != 0
             self.null_layer = self._io.read_bits_int_be(1) != 0
-            self._unnamed19 = self._io.read_bits_int_be(2)
+            self._unnamed19 = self._io.read_bits_int_be(1) != 0
+            self.camera_or_poi_auto_orient = self._io.read_bits_int_be(1) != 0
             self.markers_locked = self._io.read_bits_int_be(1) != 0
             self.solo = self._io.read_bits_int_be(1) != 0
             self.three_d_layer = self._io.read_bits_int_be(1) != 0
             self.adjustment_layer = self._io.read_bits_int_be(1) != 0
-            self.auto_orient = self._io.read_bits_int_be(1) != 0
+            self.auto_orient_along_path = self._io.read_bits_int_be(1) != 0
             self.collapse_transformation = self._io.read_bits_int_be(1) != 0
             self.shy = self._io.read_bits_int_be(1) != 0
             self.locked = self._io.read_bits_int_be(1) != 0

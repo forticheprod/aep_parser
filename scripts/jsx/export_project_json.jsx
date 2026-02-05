@@ -27,209 +27,107 @@ var AepExport = AepExport || {};
     "use strict";
 
     // =========================================================================
-    // Configuration: Define which attributes to export for each object type
-    // These are based on the After Effects Scripting Guide
+    // Configuration: Properties to skip during dynamic discovery
     // =========================================================================
 
-    var PROJECT_ATTRS = [
-        "bitsPerChannel",
-        "colorManagementSystem",
-        "compensateForSceneReferredProfiles",
-        "displayStartFrame",
-        "expressionEngine",
-        "feetFramesFilmType",
-        "footageTimecodeDisplayStartType",
-        "framesCountType",
-        "framesUseFeetFrames",
-        "gpuAccelType",
-        "linearBlending",
-        "linearizeWorkingSpace",
-        "lutInterpolationMethod",
-        "numItems",
-        "ocioConfigurationFile",
-        "revision",
-        "timeDisplayType",
-        "transparencyGridThumbnails",
-        "workingGamma",
-        "workingSpace"
-    ];
+    // Properties that would cause infinite recursion or are not useful
+    var SKIP_PROPERTIES = {
+        // Object references that would cause recursion or duplicates
+        "activeItem": true,
+        "parent": true,
+        "parentFolder": true,
+        "parentProperty": true,
+        "proxySource": true,
+        "rootFolder": true,
+        "selectedLayers": true,
+        "selectedProperties": true,
+        "selection": true,
+        "source": true,
+        "usedIn": true,
 
-    var ITEM_ATTRS = [
-        "name",
-        "id",
-        "comment",
-        "typeName",
-        "label"
-    ];
+        // Methods disguised as properties or internal
+        "reflect": true,
+        "toSource": true,
+        "unwatch": true,
+        "watch": true,
+        
+        // File objects (handled specially)
+        "file": true,
+        "mainSource": true,
+        
+        // Collections (handled separately)
+        "layers": true,
+        "items": true,
 
-    var AVITEM_ATTRS = [
-        "duration",
-        "footageMissing",
-        "frameDuration",
-        "frameRate",
-        "hasAudio",
-        "hasVideo",
-        "height",
-        "pixelAspect",
-        "time",
-        "useProxy",
-        "width"
-    ];
+        // GUI stuff
+        "dirty": true,
+        "toolType": true,
+        "selected": true,
 
-    var COMPITEM_ATTRS = [
-        "bgColor",
-        "displayStartFrame",
-        "displayStartTime",
-        "draft3d",
-        "dropFrame",
-        "frameBlending",
-        "hideShyLayers",
-        "motionBlur",
-        "motionBlurAdaptiveSampleLimit",
-        "motionBlurSamplesPerFrame",
-        "numLayers",
-        "preserveNestedFrameRate",
-        "preserveNestedResolution",
-        "renderer",
-        "resolutionFactor",
-        "shutterAngle",
-        "shutterPhase",
-        "workAreaDuration",
-        "workAreaStart"
-    ];
-
-    var FOOTAGEITEM_ATTRS = [
-        // file is handled separately
-    ];
-
-    var LAYER_ATTRS = [
-        "name",
-        "index",
-        "comment",
-        "enabled",
-        "hasVideo",
-        "id",
-        "inPoint",
-        "isNameSet",
-        "label",
-        "locked",
-        "nullLayer",
-        "outPoint",
-        "shy",
-        "solo",
-        "startTime",
-        "stretch",
-        "time"
-    ];
-
-    var AVLAYER_ATTRS = [
-        "adjustmentLayer",
-        "audioActive",
-        "audioEnabled",
-        "blendingMode",
-        "canSetCollapseTransformation",
-        "canSetTimeRemapEnabled",
-        "collapseTransformation",
-        "effectsActive",
-        "environmentLayer",
-        "frameBlending",
-        "frameBlendingType",
-        "guideLayer",
-        "hasAudio",
-        "hasTrackMatte",
-        "height",
-        "isNameFromSource",
-        "isTrackMatte",
-        "motionBlur",
-        "preserveTransparency",
-        "quality",
-        "samplingQuality",
-        "threeDLayer",
-        "threeDPerChar",
-        "timeRemapEnabled",
-        "trackMatteType",
-        "width"
-    ];
-
-    var LIGHTLAYER_ATTRS = [
-        "lightType"
-    ];
-
-    var FOOTAGE_SOURCE_ATTRS = [
-        "alphaMode",
-        "conformFrameRate",
-        "displayFrameRate",
-        "fieldSeparationType",
-        "hasAlpha",
-        "highQualityFieldSeparation",
-        "invertAlpha",
-        "isStill",
-        "loop",
-        "nativeFrameRate",
-        "premulColor",
-        "removePulldown"
-    ];
-
-    var SOLID_SOURCE_ATTRS = [
-        "color"
-    ];
-
-    var FILE_SOURCE_ATTRS = [
-        "missingFootagePath"
-    ];
-
-    var MARKER_ATTRS = [
-        "comment",
-        "chapter",
-        "url",
-        "frameTarget",
-        "cuePointName",
-        "duration",
-        "label",
-        "protectedRegion"
-    ];
+        // Not useful
+        "xmpPacket": true,
+        "dynamicLinkGUID": true,
+        "guides": true,
+    };
 
     // =========================================================================
     // Helper Functions
     // =========================================================================
 
     /**
-     * Safely get an attribute value, returning null on error.
+     * Check if a value is a simple exportable type.
      */
-    function safeGet(obj, attrName) {
-        try {
-            var value = obj[attrName];
-            // Handle undefined
-            if (typeof value === "undefined") {
-                return {"_undefined": true};
+    function isSimpleValue(value) {
+        var type = typeof value;
+        if (type === "undefined") return true;
+        if (value === null) return true;
+        if (type === "boolean") return true;
+        if (type === "number") return true;
+        if (type === "string") return true;
+        // Arrays of simple values (like bgColor, resolutionFactor)
+        if (value instanceof Array) {
+            for (var i = 0; i < value.length; i++) {
+                if (!isSimpleValue(value[i])) return false;
             }
-            return value;
-        } catch (e) {
-            return {"_error": e.toString()};
+            return true;
         }
+        return false;
     }
 
     /**
-     * Get multiple attributes from an object.
+     * Dynamically get all readable attributes from an object.
+     * Skips functions, complex objects, and properties in SKIP_PROPERTIES.
      */
-    function getAttributes(obj, attrList) {
+    function getAllAttributes(obj) {
         var result = {};
-        for (var i = 0; i < attrList.length; i++) {
-            var attr = attrList[i];
-            result[attr] = safeGet(obj, attr);
+        
+        for (var prop in obj) {
+            // Skip properties in our skip list
+            if (SKIP_PROPERTIES[prop]) continue;
+            
+            try {
+                var value = obj[prop];
+                var type = typeof value;
+                
+                // Skip functions
+                if (type === "function") continue;
+                
+                // Skip complex objects (but allow arrays and null)
+                if (!isSimpleValue(value)) continue;
+                
+                // Handle undefined
+                if (type === "undefined") {
+                    result[prop] = {"_undefined": true};
+                } else {
+                    result[prop] = value;
+                }
+            } catch (e) {
+                // Property threw an error when accessed - skip it
+                // (some properties are only valid in certain states)
+            }
         }
+        
         return result;
-    }
-
-    /**
-     * Convert enum values to readable strings.
-     */
-    function enumToString(value) {
-        if (value === null || typeof value === "undefined") {
-            return null;
-        }
-        // Enums in AE are numbers, try to return the value
-        return value;
     }
 
     /**
@@ -248,16 +146,213 @@ var AepExport = AepExport || {};
                 index: i
             };
 
-            // Get all marker attributes
-            for (var j = 0; j < MARKER_ATTRS.length; j++) {
-                var attr = MARKER_ATTRS[j];
-                marker[attr] = safeGet(markerValue, attr);
+            // Dynamically get all marker attributes
+            var markerAttrs = getAllAttributes(markerValue);
+            for (var key in markerAttrs) {
+                marker[key] = markerAttrs[key];
             }
 
             markers.push(marker);
         }
 
         return markers;
+    }
+
+    /**
+     * Export keyframes from a property.
+     */
+    function exportKeyframes(prop) {
+        var keyframes = [];
+        if (!prop || prop.numKeys === 0) {
+            return keyframes;
+        }
+
+        for (var i = 1; i <= prop.numKeys; i++) {
+            var kf = {
+                index: i,
+                time: prop.keyTime(i),
+                value: prop.keyValue(i)
+            };
+
+            // Get interpolation types
+            try {
+                kf.inInterpolationType = prop.keyInInterpolationType(i);
+                kf.outInterpolationType = prop.keyOutInterpolationType(i);
+            } catch (e) {}
+
+            // Get spatial tangents for position properties
+            try {
+                kf.inSpatialTangent = prop.keyInSpatialTangent(i);
+                kf.outSpatialTangent = prop.keyOutSpatialTangent(i);
+                kf.spatialAutoBezier = prop.keySpatialAutoBezier(i);
+                kf.spatialContinuous = prop.keySpatialContinuous(i);
+                kf.roving = prop.keyRoving(i);
+            } catch (e) {}
+
+            // Get temporal ease
+            try {
+                kf.inTemporalEase = [];
+                kf.outTemporalEase = [];
+                var inEase = prop.keyInTemporalEase(i);
+                var outEase = prop.keyOutTemporalEase(i);
+                for (var j = 0; j < inEase.length; j++) {
+                    kf.inTemporalEase.push({
+                        speed: inEase[j].speed,
+                        influence: inEase[j].influence
+                    });
+                    kf.outTemporalEase.push({
+                        speed: outEase[j].speed,
+                        influence: outEase[j].influence
+                    });
+                }
+                kf.temporalAutoBezier = prop.keyTemporalAutoBezier(i);
+                kf.temporalContinuous = prop.keyTemporalContinuous(i);
+            } catch (e) {}
+
+            keyframes.push(kf);
+        }
+
+        return keyframes;
+    }
+
+    /**
+     * Export a single property (not a group).
+     */
+    function exportProperty(prop) {
+        var result = {
+            name: prop.name,
+            matchName: prop.matchName,
+            propertyIndex: prop.propertyIndex,
+            propertyType: "Property",
+            isModified: prop.isModified
+        };
+
+        // Get property value type
+        try {
+            result.propertyValueType = prop.propertyValueType;
+        } catch (e) {}
+
+        // Check if property has expression
+        try {
+            result.canSetExpression = prop.canSetExpression;
+            if (prop.canSetExpression) {
+                result.expression = prop.expression;
+                result.expressionEnabled = prop.expressionEnabled;
+                result.expressionError = prop.expressionError;
+            }
+        } catch (e) {}
+
+        // Get current value
+        try {
+            var val = prop.value;
+            if (isSimpleValue(val)) {
+                result.value = val;
+            }
+        } catch (e) {}
+
+        // Get keyframes
+        try {
+            if (prop.numKeys > 0) {
+                result.numKeys = prop.numKeys;
+                result.keyframes = exportKeyframes(prop);
+            }
+        } catch (e) {}
+
+        return result;
+    }
+
+    /**
+     * Export a property group recursively.
+     */
+    function exportPropertyGroup(group, depth) {
+        if (!group) return null;
+        if (typeof depth === "undefined") depth = 0;
+        if (depth > 10) return null; // Prevent infinite recursion
+
+        var result = {
+            name: group.name,
+            matchName: group.matchName,
+            propertyIndex: group.propertyIndex,
+            propertyType: "PropertyGroup",
+            numProperties: group.numProperties,
+            enabled: group.enabled
+        };
+
+        // Export child properties
+        result.properties = [];
+        for (var i = 1; i <= group.numProperties; i++) {
+            try {
+                var child = group.property(i);
+                if (!child) continue;
+
+                // Skip markers (handled separately)
+                if (child.matchName === "ADBE Marker") continue;
+
+                if (child.propertyType === PropertyType.PROPERTY) {
+                    result.properties.push(exportProperty(child));
+                } else if (child.propertyType === PropertyType.INDEXED_GROUP || 
+                           child.propertyType === PropertyType.NAMED_GROUP) {
+                    result.properties.push(exportPropertyGroup(child, depth + 1));
+                }
+            } catch (e) {}
+        }
+
+        return result;
+    }
+
+    /**
+     * Export effects from a layer.
+     */
+    function exportEffects(layer) {
+        var effects = [];
+        
+        try {
+            var effectsGroup = layer.property("ADBE Effect Parade");
+            if (!effectsGroup || effectsGroup.numProperties === 0) {
+                return effects;
+            }
+
+            for (var i = 1; i <= effectsGroup.numProperties; i++) {
+                var effect = effectsGroup.property(i);
+                var effectData = {
+                    name: effect.name,
+                    matchName: effect.matchName,
+                    propertyIndex: effect.propertyIndex,
+                    enabled: effect.enabled,
+                    properties: []
+                };
+
+                // Export effect properties
+                for (var j = 1; j <= effect.numProperties; j++) {
+                    try {
+                        var prop = effect.property(j);
+                        if (prop.propertyType === PropertyType.PROPERTY) {
+                            effectData.properties.push(exportProperty(prop));
+                        } else if (prop.propertyType === PropertyType.INDEXED_GROUP || 
+                                   prop.propertyType === PropertyType.NAMED_GROUP) {
+                            effectData.properties.push(exportPropertyGroup(prop, 0));
+                        }
+                    } catch (e) {}
+                }
+
+                effects.push(effectData);
+            }
+        } catch (e) {}
+
+        return effects;
+    }
+
+    /**
+     * Export transform properties from a layer.
+     */
+    function exportTransform(layer) {
+        try {
+            var transform = layer.property("ADBE Transform Group");
+            if (!transform) return null;
+            return exportPropertyGroup(transform, 0);
+        } catch (e) {
+            return null;
+        }
     }
 
     /**
@@ -270,25 +365,11 @@ var AepExport = AepExport || {};
             type: source.toString()
         };
 
-        // Get base FootageSource attributes
-        var baseAttrs = getAttributes(source, FOOTAGE_SOURCE_ATTRS);
-        for (var key in baseAttrs) {
-            result[key] = baseAttrs[key];
-        }
-
-        // Determine source type and get specific attributes
+        // Determine source type
         if (source instanceof SolidSource) {
             result.sourceType = "SolidSource";
-            var solidAttrs = getAttributes(source, SOLID_SOURCE_ATTRS);
-            for (var key in solidAttrs) {
-                result[key] = solidAttrs[key];
-            }
         } else if (source instanceof FileSource) {
             result.sourceType = "FileSource";
-            var fileAttrs = getAttributes(source, FILE_SOURCE_ATTRS);
-            for (var key in fileAttrs) {
-                result[key] = fileAttrs[key];
-            }
             // Get file path
             if (source.file) {
                 result.filePath = source.file.fsName;
@@ -300,6 +381,12 @@ var AepExport = AepExport || {};
             result.sourceType = "FootageSource";
         }
 
+        // Dynamically get all source attributes
+        var sourceAttrs = getAllAttributes(source);
+        for (var key in sourceAttrs) {
+            result[key] = sourceAttrs[key];
+        }
+
         return result;
     }
 
@@ -307,17 +394,14 @@ var AepExport = AepExport || {};
      * Export a Layer object.
      */
     function exportLayer(layer) {
-        var result = getAttributes(layer, LAYER_ATTRS);
+        // Dynamically get all layer attributes
+        var result = getAllAttributes(layer);
 
         // Determine layer type
         if (layer instanceof CameraLayer) {
             result.layerType = "CameraLayer";
         } else if (layer instanceof LightLayer) {
             result.layerType = "LightLayer";
-            var lightAttrs = getAttributes(layer, LIGHTLAYER_ATTRS);
-            for (var key in lightAttrs) {
-                result[key] = lightAttrs[key];
-            }
         } else if (layer instanceof AVLayer) {
             // AVLayer includes TextLayer, ShapeLayer
             if (layer instanceof TextLayer) {
@@ -326,11 +410,6 @@ var AepExport = AepExport || {};
                 result.layerType = "ShapeLayer";
             } else {
                 result.layerType = "AVLayer";
-            }
-
-            var avAttrs = getAttributes(layer, AVLAYER_ATTRS);
-            for (var key in avAttrs) {
-                result[key] = avAttrs[key];
             }
 
             // Get source reference
@@ -348,12 +427,21 @@ var AepExport = AepExport || {};
             result.parentName = layer.parent.name;
         }
 
-        // Get autoOrient (enum)
-        result.autoOrient = enumToString(safeGet(layer, "autoOrient"));
-
         // Export layer markers
         if (layer.marker) {
             result.markers = exportMarkers(layer.marker);
+        }
+
+        // Export transform properties
+        var transform = exportTransform(layer);
+        if (transform) {
+            result.transform = transform;
+        }
+
+        // Export effects
+        var effects = exportEffects(layer);
+        if (effects.length > 0) {
+            result.effects = effects;
         }
 
         return result;
@@ -363,7 +451,8 @@ var AepExport = AepExport || {};
      * Export an Item object (CompItem, FootageItem, or FolderItem).
      */
     function exportItem(item) {
-        var result = getAttributes(item, ITEM_ATTRS);
+        // Dynamically get all item attributes
+        var result = getAllAttributes(item);
 
         // Get parent folder reference
         if (item.parentFolder && item.parentFolder !== app.project.rootFolder) {
@@ -373,21 +462,6 @@ var AepExport = AepExport || {};
 
         if (item instanceof CompItem) {
             result.itemType = "CompItem";
-
-            // Get AVItem attributes
-            var avAttrs = getAttributes(item, AVITEM_ATTRS);
-            for (var key in avAttrs) {
-                result[key] = avAttrs[key];
-            }
-
-            // Get CompItem attributes
-            var compAttrs = getAttributes(item, COMPITEM_ATTRS);
-            for (var key in compAttrs) {
-                result[key] = compAttrs[key];
-            }
-
-            // Get renderers list
-            result.renderers = safeGet(item, "renderers");
 
             // Export composition markers
             if (item.markerProperty) {
@@ -403,12 +477,6 @@ var AepExport = AepExport || {};
         } else if (item instanceof FootageItem) {
             result.itemType = "FootageItem";
 
-            // Get AVItem attributes
-            var avAttrs = getAttributes(item, AVITEM_ATTRS);
-            for (var key in avAttrs) {
-                result[key] = avAttrs[key];
-            }
-
             // Get file reference
             if (item.file) {
                 result.filePath = item.file.fsName;
@@ -420,7 +488,6 @@ var AepExport = AepExport || {};
 
         } else if (item instanceof FolderItem) {
             result.itemType = "FolderItem";
-            result.numItems = item.numItems;
 
             // List child item IDs
             result.childItemIds = [];
@@ -438,24 +505,17 @@ var AepExport = AepExport || {};
     function exportProject() {
         var project = app.project;
 
-        var result = {
-            exportVersion: "1.0",
-            exportDate: new Date().toISOString(),
-            aeVersion: app.version,
-            aeBuildNumber: app.buildNumber
-        };
+        var result = {};
 
         // Get project file info
         if (project.file) {
-            result.projectFile = project.file.fsName;
             result.projectName = project.file.name;
         } else {
-            result.projectFile = null;
             result.projectName = "Untitled";
         }
 
-        // Get project attributes
-        var projectAttrs = getAttributes(project, PROJECT_ATTRS);
+        // Dynamically get all project attributes
+        var projectAttrs = getAllAttributes(project);
         for (var key in projectAttrs) {
             result[key] = projectAttrs[key];
         }

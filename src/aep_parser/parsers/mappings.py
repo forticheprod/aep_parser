@@ -125,14 +125,33 @@ def map_footage_timecode_display_start_type(
     return mapping.get(ftcs_raw, FootageTimecodeDisplayStartType.FTCS_START_0)
 
 
-def map_frame_blending_type(frame_blending_type_raw: int) -> FrameBlendingType:
-    """Map binary frame_blending_type value to ExtendScript FrameBlendingType enum."""
+def map_frame_blending_type(
+    frame_blending_type_raw: int, frame_blending_enabled: bool
+) -> FrameBlendingType:
+    """Map binary frame_blending_type value to ExtendScript FrameBlendingType enum.
+
+    In the binary format, frame_blending_type is stored as a 1-bit value:
+    - 0 = FRAME_MIX (default when frame blending is enabled)
+    - 1 = PIXEL_MOTION
+
+    However, when frame_blending is disabled (False), the returned type
+    should always be NO_FRAME_BLEND (4012), regardless of the bit value.
+
+    Args:
+        frame_blending_type_raw: The raw 1-bit value from the binary.
+        frame_blending_enabled: Whether frame blending is enabled on the layer.
+
+    Returns:
+        The appropriate FrameBlendingType enum value.
+    """
+    if not frame_blending_enabled:
+        return FrameBlendingType.NO_FRAME_BLEND
+
     mapping = {
         0: FrameBlendingType.FRAME_MIX,
         1: FrameBlendingType.PIXEL_MOTION,
-        2: FrameBlendingType.NO_FRAME_BLEND,
     }
-    return mapping.get(frame_blending_type_raw, FrameBlendingType.NO_FRAME_BLEND)
+    return mapping.get(frame_blending_type_raw, FrameBlendingType.FRAME_MIX)
 
 
 def map_frames_count_type(frames_count_type_raw: int) -> FramesCountType:
@@ -197,15 +216,39 @@ def map_track_matte_type(track_matte_type_raw: int) -> TrackMatteType:
     return mapping.get(track_matte_type_raw, TrackMatteType.NO_TRACK_MATTE)
 
 
-def map_auto_orient_type(auto_orient_type_raw: int) -> AutoOrientType:
-    """Map binary auto_orient_type value to ExtendScript AutoOrientType enum."""
-    mapping = {
-        0: AutoOrientType.NO_AUTO_ORIENT,
-        1: AutoOrientType.ALONG_PATH,
-        2: AutoOrientType.CAMERA_OR_POINT_OF_INTEREST,
-        3: AutoOrientType.CHARACTERS_TOWARD_CAMERA,
-    }
-    return mapping.get(auto_orient_type_raw, AutoOrientType.NO_AUTO_ORIENT)
+def map_auto_orient_type(
+    auto_orient_along_path: bool,
+    camera_or_poi_auto_orient: bool,
+    three_d_layer: bool,
+    characters_toward_camera: int,
+) -> AutoOrientType:
+    """Derive the AutoOrientType from binary ldta data bits.
+
+    The auto-orient type is stored across multiple non-contiguous bits in
+    the binary format rather than as a single value:
+
+    - ALONG_PATH: auto_orient_along_path bit is set
+    - CAMERA_OR_POINT_OF_INTEREST: camera_or_poi_auto_orient AND three_d_layer are set
+    - CHARACTERS_TOWARD_CAMERA: characters_toward_camera bits equal 3 (0b11)
+    - NO_AUTO_ORIENT: none of the above conditions are met
+
+    Args:
+        auto_orient_along_path: The auto_orient_along_path bit from ldta.
+        camera_or_poi_auto_orient: The camera_or_poi_auto_orient bit from ldta.
+        three_d_layer: Whether the layer is a 3D layer.
+        characters_toward_camera: The 2-bit characters_toward_camera value from ldta.
+
+    Returns:
+        The derived AutoOrientType enum value.
+    """
+    if auto_orient_along_path:
+        return AutoOrientType.ALONG_PATH
+    elif camera_or_poi_auto_orient and three_d_layer:
+        return AutoOrientType.CAMERA_OR_POINT_OF_INTEREST
+    elif characters_toward_camera == 3:
+        return AutoOrientType.CHARACTERS_TOWARD_CAMERA
+    else:
+        return AutoOrientType.NO_AUTO_ORIENT
 
 
 def map_light_type(light_type_raw: int) -> LightType:

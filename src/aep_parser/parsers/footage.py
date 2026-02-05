@@ -20,6 +20,7 @@ from .mappings import map_alpha_mode, map_field_separation_type
 
 if typing.TYPE_CHECKING:
     from ..kaitai import Aep
+    from ..models.items.folder import Folder
 
 
 def parse_footage(
@@ -27,7 +28,7 @@ def parse_footage(
     item_id: int,
     item_name: str,
     label: Aep.Label,
-    parent_id: int | None,
+    parent_folder: Folder | None,
     comment: str,
 ) -> FootageItem:
     """
@@ -39,7 +40,7 @@ def parse_footage(
         label: The label color. Colors are represented by their number (0 for
             None, or 1 to 16 for one of the preset colors in the Labels
             preferences).
-        parent_id: The item's parent folder's unique id.
+        parent_folder: The item's parent folder.
         comment: The item's comment.
     """
     pin_chunk = find_by_list_type(chunks=child_chunks, list_type="Pin ")
@@ -111,7 +112,7 @@ def parse_footage(
         item_id=item_id,
         label=label,
         name=item_name,
-        parent_id=parent_id,
+        parent_folder=parent_folder,
         type_name="Footage",
         duration=sspc_data.duration,
         frame_duration=int(sspc_data.frame_duration),

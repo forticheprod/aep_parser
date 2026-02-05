@@ -12,6 +12,7 @@ from .layer import parse_layer
 
 if typing.TYPE_CHECKING:
     from ..kaitai import Aep
+    from ..models.items.folder import Folder
     from ..models.properties.marker import Marker
 
 
@@ -20,7 +21,7 @@ def parse_composition(
     item_id: int,
     item_name: str,
     label: Aep.Label,
-    parent_id: int | None,
+    parent_folder: Folder | None,
     comment: str,
 ) -> CompItem:
     """
@@ -32,7 +33,7 @@ def parse_composition(
         label: The label color. Colors are represented by their number (0 for
             None, or 1 to 16 for one of the preset colors in the Labels
             preferences).
-        parent_id: The composition's parent folder unique ID.
+        parent_folder: The composition's parent folder.
         comment: The composition comment.
     """
     cdta_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
@@ -47,7 +48,7 @@ def parse_composition(
         label=label,
         name=item_name,
         type_name="Composition",
-        parent_id=parent_id,
+        parent_folder=parent_folder,
         duration=cdta_data.duration,
         frame_duration=int(
             cdta_data.frame_duration
@@ -92,7 +93,6 @@ def parse_composition(
             layer_chunk=layer_chunk,
             composition=composition,
         )
-        layer.containing_comp_id = item_id
         composition.layers.append(layer)
 
     return composition

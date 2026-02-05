@@ -131,8 +131,8 @@ class TestFolderNesting:
         load_expected("parentFolder_nested")  # Verify JSON exists
         project = parse_project(SAMPLES_DIR / "parentFolder_nested.aep")
         assert len(project.folders) > 2
-        # Verify at least one folder has a parent_id pointing to another folder
-        nested = [f for f in project.folders if f.parent_id]
+        # Verify at least one folder has a parent_folder pointing to another folder
+        nested = [f for f in project.folders if f.parent_folder]
         assert bool(nested)
 
     def test_numItems_3(self) -> None:
