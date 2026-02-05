@@ -189,7 +189,7 @@ pytest tests/test_models_layer.py::test_layer_motion_blur -v
 
 ## Common Pitfalls
 
-- **Wrong bit order**: Remember that bits are numbered right-to-left (7→0), but read left-to-right in the Kaitai schema
+- **Wrong bit order**: Remember that bits are numbered right-to-left (7→0), but in the Kaitai schema you define them top-to-bottom (bit 7 first, then bit 6, etc.)
 - **Missing bits**: Every bit in a byte must be accounted for - use `type: b1` to skip unknown bits
 - **Wrong chunk**: Make sure you're looking at the correct parent chunk (use `aep-compare` to verify)
 - **Forgetting to regenerate**: Always regenerate `aep.py` after editing `aep.ksy`
