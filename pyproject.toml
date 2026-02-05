@@ -36,6 +36,11 @@ dev = [
     "mypy>=1.0",
     "ruff>=0.1",
 ]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.24.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/forticheprod/aep_parser"
