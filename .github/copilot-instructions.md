@@ -131,7 +131,7 @@ The project uses **MkDocs with Material theme** to auto-generate API documentati
 
 - **Live site**: https://forticheprod.github.io/aep_parser/
 - **Theme**: Material for MkDocs with dark mode (supports light/dark/auto toggle)
-- **Auto-generation**: mkdocstrings extracts API docs from docstrings with full type hint support
+- **Auto-generation**: mkdocstrings extracts API docs from docstrings and type hints
 
 ### Documentation Structure
 ```
@@ -183,7 +183,6 @@ def parse_thing(chunk: Aep.Chunk, context: Context) -> ThingModel:
 - Use Google-style docstrings (the default for mkdocstrings)
 - Include type hints in function signatures (displayed automatically)
 - Reference AE ExtendScript properties in attribute descriptions
-- Type hints are automatically extracted and displayed with cross-references
 
 ### Documentation Configuration
 Configuration in `mkdocs.yml` enables:
@@ -218,4 +217,4 @@ The `.github/workflows/docs.yml` workflow:
 Defined in `pyproject.toml` under `[project.optional-dependencies]`:
 - `mkdocs>=1.5.0` - Static site generator
 - `mkdocs-material>=9.0.0` - Material theme with dark mode
-- `mkdocstrings[python]>=0.24.0` - Auto-generates API docs from docstrings with type hint support
+- `mkdocstrings[python]>=0.24.0` - Auto-generates API docs from docstrings and type hints
