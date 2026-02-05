@@ -56,18 +56,19 @@ var AepExport = AepExport || {};
         "mainSource": true,
         
         // Collections (handled separately)
-        "layers": true,
         "items": true,
+        "layers": true,
 
         // GUI stuff
         "dirty": true,
-        "toolType": true,
         "selected": true,
+        "toolType": true,
 
         // Not useful
-        "xmpPacket": true,
         "dynamicLinkGUID": true,
         "guides": true,
+        "revision": true,
+        "xmpPacket": true,
     };
 
     // =========================================================================
