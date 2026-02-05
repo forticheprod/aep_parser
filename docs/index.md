@@ -26,7 +26,7 @@ print(f"Frame Rate: {project.frame_rate}")
 print(f"Bits per Channel: {project.bits_per_channel}")
 
 # Access project items
-for item in project.project_items:
+for item in project:
     print(f"Item: {item.name} ({type(item).__name__})")
 ```
 
@@ -35,7 +35,6 @@ for item in project.project_items:
 - **Full Project Parsing**: Parse complete After Effects projects including compositions, footage, layers, and effects
 - **Type Safety**: Fully typed Python dataclasses for all AE objects
 - **Comprehensive**: Support for layers, properties, effects, keyframes, markers, and more
-- **Binary Format**: Handles RIFX binary format with Kaitai Struct
 - **Python 3.7+**: Compatible with Python 3.7 and above
 
 ## Key Concepts
