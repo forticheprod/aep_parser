@@ -61,9 +61,9 @@ from aep_parser import parse_project
 project = parse_project("myproject.aep")
 
 # Access compositions
-for item in project.project_items:
+for item in project:
     if hasattr(item, 'layers'):  # It's a CompItem
         print(f"Composition: {item.name}")
-        for layer in item.layers:
+        for layer in item:
             print(f"  Layer: {layer.name}")
 ```
