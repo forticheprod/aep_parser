@@ -33,17 +33,16 @@ def parse_item(
         project: The project.
         parent_folder: The parent folder.
     """
-    child_chunks = item_chunk.data.chunks
+    child_chunks = item_chunk.chunks
     comment = get_comment(child_chunks)
 
     item_name = get_name(child_chunks)
 
     idta_chunk = find_by_type(chunks=child_chunks, chunk_type="idta")
-    idta_data = idta_chunk.data
 
-    item_id = idta_data.item_id
-    item_type = idta_data.item_type
-    label = idta_data.label
+    item_id = idta_chunk.item_id
+    item_type = idta_chunk.item_type
+    label = idta_chunk.label
 
     if item_type == Aep.ItemType.folder:
         item = parse_folder(
@@ -77,7 +76,7 @@ def parse_item(
             comment=comment,
         )
 
-    project.project_items[item_id] = item
+    project.items[item_id] = item
 
     return item
 
@@ -102,7 +101,7 @@ def parse_folder(
         is_root: Whether the folder is the root folder (ID 0).
         child_chunks: child chunks of the folder LIST chunk.
         project: The project.
-        item_id: The unique item ID.
+        id: The unique item ID.
         item_name: The folder name.
         label: The label color. Colors are represented by their number (0 for
             None, or 1 to 16 for one of the preset colors in the Labels
@@ -112,12 +111,11 @@ def parse_folder(
     """
     folder = Folder(
         comment=comment,
-        item_id=item_id,
+        id=item_id,
         label=label,
         name=item_name,
         type_name="Folder",
         parent_folder=parent_folder,
-        folder_items=[],
     )
     # Get folder contents
     if is_root:
@@ -125,12 +123,12 @@ def parse_folder(
     else:
         sfdr_chunk = find_by_list_type(chunks=child_chunks, list_type="Sfdr")
         child_item_chunks = filter_by_list_type(
-            chunks=sfdr_chunk.data.chunks, list_type="Item"
+            chunks=sfdr_chunk.chunks, list_type="Item"
         )
     for child_item_chunk in child_item_chunks:
         child_item = parse_item(
             item_chunk=child_item_chunk, project=project, parent_folder=folder
         )
-        folder.folder_items.append(child_item.item_id)
+        folder.items.append(child_item)
 
     return folder

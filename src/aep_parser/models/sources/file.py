@@ -17,7 +17,7 @@ class FileSource(FootageSource):
     Attributes:
         file: The full file path.
         file_names: The filenames if the footage is an image sequence.
-        target_is_folder: True if the file is a folder, else False.
+        target_is_folder: `True` if the file is a folder, else `False`.
     """
 
     file: str

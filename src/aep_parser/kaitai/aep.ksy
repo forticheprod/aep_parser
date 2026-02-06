@@ -63,6 +63,7 @@ types:
             '"fdta"': fdta_body # Folder data
             '"nnhd"': nnhd_body # Project data
             '"head"': head_body # Contains AE version and file revision
+            '"Roou"': roou_body # Output module settings
             _: ascii_body
       - id: padding
         size: 1
@@ -75,7 +76,7 @@ types:
         encoding: ascii
   ascii_body:
     seq:
-      - id: data
+      - id: contents
         size-eos: true
   cdat_body:
     seq:
@@ -208,6 +209,66 @@ types:
     seq:
       - id: keyframes
         size-eos: true
+  roou_body:
+    doc: Output module settings (154 bytes)
+    seq:
+      - id: magic
+        size: 4
+        doc: Magic bytes, typically "FXTC"
+      - id: video_codec
+        type: str
+        size: 4
+        encoding: ascii
+        doc: Video codec 4-char code
+      - size: 24
+        doc: Unknown bytes 8-31
+      - id: width
+        type: u2
+        doc: Output width in pixels
+      - size: 2
+        doc: Unknown bytes 34-35
+      - id: height
+        type: u2
+        doc: Output height in pixels
+      - size: 29
+        doc: Unknown bytes 38-66
+      - id: frame_rate
+        type: u1
+        doc: Frame rate in fps
+      - size: 9
+        doc: Unknown bytes 68-76
+      - id: color_premultiplied
+        type: u1
+        doc: Color premultiplied flag (0=no, 1=yes)
+      - size: 3
+        doc: Unknown bytes 78-80
+      - id: color_matted
+        type: u1
+        doc: Color matted flag (0=no, 1=yes)
+      - size: 26
+        doc: Unknown bytes 82-107
+      - id: audio_disabled_hi
+        type: u1
+        doc: High byte of audio disabled flag (0xFF when disabled)
+      - id: audio_format
+        type: u1
+        doc: Audio format/depth indicator (2=16-bit, 3=24-bit, 4=32-bit)
+      - size: 1
+        doc: Unknown byte 110
+      - id: audio_bit_depth
+        type: u1
+        doc: Audio bit depth indicator (1=8-bit, 2=16-bit, 4=32-bit)
+      - size: 1
+        doc: Unknown byte 112
+      - id: audio_channels
+        type: u1
+        doc: Audio channels (1=mono, 2=stereo)
+      - id: remaining
+        size-eos: true
+        doc: Remaining bytes to end of chunk
+    instances:
+      has_audio:
+        value: audio_disabled_hi != 0xFF
   keyframe:
     params:
       - id: key_type
@@ -251,7 +312,7 @@ types:
             'property_value_type::marker': kf_unknown_data
   kf_unknown_data:
     seq:
-      - id: data
+      - id: contents
         size-eos: true
   kf_no_value:
     seq:
@@ -861,7 +922,7 @@ types:
         type: b1  # bit 0
   utf8_body:
     seq:
-      - id: data
+      - id: contents
         type: str
         encoding: utf8
         size-eos: true

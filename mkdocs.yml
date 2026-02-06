@@ -107,6 +107,10 @@ nav:
       - File Source: api/sources/file_source.md
       - Solid Source: api/sources/solid_source.md
       - Placeholder Source: api/sources/placeholder_source.md
+    - Render Queue:
+      - RenderQueue: api/renderqueue/render_queue.md
+      - RenderQueueItem: api/renderqueue/render_queue_item.md
+      - OutputModule: api/renderqueue/output_module.md
     - Enums: api/enums.md
   - Guides:
     - Contributing: guides/contributing.md

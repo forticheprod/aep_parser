@@ -17,7 +17,7 @@ class Item(ABC):
 
     Attributes:
         comment: The item comment.
-        item_id: The item unique identifier.
+        id: The item unique identifier.
         label: The label color. Colors are represented by their number
             (0 for None, or 1 to 16 for one of the preset colors in the
             Labels preferences).
@@ -31,7 +31,7 @@ class Item(ABC):
     """
 
     comment: str
-    item_id: int
+    id: int
     label: Aep.Label
     name: str
     parent_folder: FolderItem | None = field(repr=False)
@@ -39,15 +39,15 @@ class Item(ABC):
 
     @property
     def is_folder(self) -> bool:
-        """True if the item is a folder."""
+        """`True` if the item is a folder."""
         return self.type_name == "Folder"
 
     @property
     def is_composition(self) -> bool:
-        """True if the item is a composition."""
+        """`True` if the item is a composition."""
         return self.type_name == "Composition"
 
     @property
     def is_footage(self) -> bool:
-        """True if the item is a footage."""
+        """`True` if the item is a footage."""
         return self.type_name == "Footage"

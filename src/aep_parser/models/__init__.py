@@ -58,6 +58,9 @@ from .properties.keyframe import Keyframe
 from .properties.marker import Marker
 from .properties.property import Property
 from .properties.property_group import PropertyGroup
+from .renderqueue.output_module import OutputModule
+from .renderqueue.render_queue import RenderQueue
+from .renderqueue.render_queue_item import RenderQueueItem
 
 __all__ = [
     "AlphaMode",
@@ -97,6 +100,7 @@ __all__ = [
     "MaskFeatherFalloff",
     "MaskMode",
     "MaskMotionBlur",
+    "OutputModule",
     "ParagraphJustification",
     "PlayMode",
     "PostRenderAction",
@@ -110,6 +114,8 @@ __all__ = [
     "PulldownMethod",
     "PulldownPhase",
     "PurgeTarget",
+    "RenderQueue",
+    "RenderQueueItem",
     "ResolveType",
     "RQItemStatus",
     "TimeDisplayType",

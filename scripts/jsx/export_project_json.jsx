@@ -527,6 +527,84 @@ var AepExport = AepExport || {};
             result.items.push(exportItem(project.item(i)));
         }
 
+        // Export render queue
+        result.renderQueue = exportRenderQueue(project.renderQueue);
+
+        return result;
+    }
+
+    /**
+     * Export the render queue.
+     */
+    function exportRenderQueue(renderQueue) {
+        var result = {
+            numItems: renderQueue.numItems,
+            items: []
+        };
+
+        for (var i = 1; i <= renderQueue.numItems; i++) {
+            result.items.push(exportRenderQueueItem(renderQueue.item(i)));
+        }
+
+        return result;
+    }
+
+    /**
+     * Export a single render queue item.
+     */
+    function exportRenderQueueItem(rqItem) {
+        var result = {
+            numOutputModules: rqItem.numOutputModules,
+            outputModules: []
+        };
+
+        // Get basic attributes
+        try { result.status = rqItem.status; } catch (e) {}
+        try { result.render = rqItem.render; } catch (e) {}
+        try { result.startTime = rqItem.startTime; } catch (e) {}
+        try { result.endTime = rqItem.endTime; } catch (e) {}
+        try { result.skipFrames = rqItem.skipFrames; } catch (e) {}
+        try { result.timeSpanStart = rqItem.timeSpanStart; } catch (e) {}
+        try { result.timeSpanDuration = rqItem.timeSpanDuration; } catch (e) {}
+
+        // Get comp reference
+        try {
+            if (rqItem.comp) {
+                result.compName = rqItem.comp.name;
+            }
+        } catch (e) {}
+
+        // Export output modules
+        for (var i = 1; i <= rqItem.numOutputModules; i++) {
+            result.outputModules.push(exportOutputModule(rqItem.outputModule(i)));
+        }
+
+        return result;
+    }
+
+    /**
+     * Export a single output module.
+     */
+    function exportOutputModule(om) {
+        var result = {};
+
+        // Get file path
+        try {
+            if (om.file) {
+                result.file = om.file.fsName;
+            }
+        } catch (e) {}
+
+        // Get templates
+        try {
+            result.templates = om.templates;
+        } catch (e) {}
+
+        // Get other attributes
+        try { result.name = om.name; } catch (e) {}
+        try { result.postRenderAction = om.postRenderAction; } catch (e) {}
+        try { result.includeSourceXMP = om.includeSourceXMP; } catch (e) {}
+
         return result;
     }
 

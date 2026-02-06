@@ -30,7 +30,7 @@ class FootageItem(AVItem):
 
     @property
     def file(self) -> str | None:
-        """The footage file path if its source is a FileSource, else None."""
+        """The footage file path if its source is a `FileSource`, else `None`."""
         try:
             return self.main_source.file
         except AttributeError:

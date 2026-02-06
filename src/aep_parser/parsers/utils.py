@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 import typing
 
 from ..kaitai.utils import (
+    find_by_list_type,
     find_by_type,
     str_contents,
 )
@@ -37,7 +39,7 @@ def get_chunks_by_match_name(root_chunk: Aep.Chunk) -> dict[str, list[Aep.Chunk]
     chunks_by_match_name = {}
     if root_chunk:
         skip_to_next_tdmn_flag = True
-        for chunk in root_chunk.data.chunks:
+        for chunk in root_chunk.chunks:
             if chunk.chunk_type == "tdmn":
                 match_name = str_contents(chunk)
                 if match_name in ("ADBE Group End", "ADBE Effect Built In Params"):
@@ -71,15 +73,43 @@ def property_has_keyframes(property_chunk: Aep.Chunk) -> bool:
 
     Args:
         property_chunk: The property's tdbs LIST chunk.
-
-    Returns:
-        True if the property has keyframes, False otherwise.
     """
     if property_chunk.chunk_type != "LIST":
         return False
-    if property_chunk.data.list_type != "tdbs":
+    if property_chunk.list_type != "tdbs":
         return False
-    for chunk in property_chunk.data.chunks:
-        if chunk.chunk_type == "LIST" and chunk.data.list_type == "list":
+    for chunk in property_chunk.chunks:
+        if chunk.chunk_type == "LIST" and chunk.list_type == "list":
             return True  # Has keyframes
     return False  # Has cdat (constant) or other structure
+
+
+def parse_alas_data(parent_chunks: list[Aep.Chunk]) -> dict:
+    """Parse path information from an Als2/alas chunk structure.
+
+    The Als2 LIST chunk contains an alas chunk with JSON data including:
+    - fullpath: The folder or file path
+    - target_is_folder: Whether fullpath is a folder (`True`) or file (`False`)
+
+    Args:
+        parent_chunks: List of chunks that may contain an Als2 LIST chunk.
+
+    Returns:
+        Dictionary with alas data (fullpath, target_is_folder, etc.),
+        or empty dict if not found or invalid.
+    """
+    als2_chunk = find_by_list_type(chunks=parent_chunks, list_type="Als2")
+    if als2_chunk is None:
+        return {}
+
+    alas_chunk = find_by_type(chunks=als2_chunk.chunks, chunk_type="alas")
+    if alas_chunk is None:
+        return {}
+
+    try:
+        alas_text = str_contents(alas_chunk)
+        if not alas_text:
+            return {}
+        return json.loads(alas_text)
+    except (json.JSONDecodeError, AttributeError):
+        return {}

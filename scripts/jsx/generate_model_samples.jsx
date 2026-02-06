@@ -1423,6 +1423,85 @@ var AEP_EXPORT_AS_LIBRARY = true;
     }
 
     // =========================================================================
+    // RenderQueue Model Samples
+    // Covers: RenderQueue, RenderQueueItem, OutputModule
+    // =========================================================================
+
+    function generateRenderQueueSamples(outputPath) {
+        var folder = ensureFolder(outputPath + "/renderqueue");
+        var proj, comp, rqItem, om;
+
+        // Empty render queue
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 10, 24);
+        saveProject(proj, folder.fsName + "/empty.aep");
+
+        // Single item in render queue
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 10, 24);
+        rqItem = proj.renderQueue.items.add(comp);
+        saveProject(proj, folder.fsName + "/numItems_1.aep");
+
+        // Multiple items in render queue
+        proj = createProject();
+        var comp1 = proj.items.addComp("Comp1", 100, 100, 1, 10, 24);
+        var comp2 = proj.items.addComp("Comp2", 200, 200, 1, 5, 30);
+        proj.renderQueue.items.add(comp1);
+        proj.renderQueue.items.add(comp2);
+        saveProject(proj, folder.fsName + "/numItems_2.aep");
+
+        // Render queue item with output module file path
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 10, 24);
+        rqItem = proj.renderQueue.items.add(comp);
+        om = rqItem.outputModule(1);
+        om.file = new File(folder.fsName + "/test_output.mov");
+        saveProject(proj, folder.fsName + "/outputModule_file.aep");
+
+        // Render queue item with custom output template
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 10, 24);
+        rqItem = proj.renderQueue.items.add(comp);
+        om = rqItem.outputModule(1);
+        // Try to apply a template (may vary by AE installation)
+        try {
+            om.applyTemplate("Lossless");
+        } catch (e) {
+            // Template may not exist, that's okay
+        }
+        saveProject(proj, folder.fsName + "/outputModule_template.aep");
+
+        // Multiple output modules per item
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 10, 24);
+        rqItem = proj.renderQueue.items.add(comp);
+        rqItem.outputModules.add();  // Add a second output module
+        saveProject(proj, folder.fsName + "/numOutputModules_2.aep");
+
+        // Image sequence output (tests file pattern with [#####])
+        proj = createProject();
+        comp = proj.items.addComp("SequenceComp", 100, 100, 1, 10, 24);
+        rqItem = proj.renderQueue.items.add(comp);
+        om = rqItem.outputModule(1);
+        // Set output to PNG sequence with frame number pattern
+        try {
+            om.applyTemplate("TIFF Sequence with Alpha");
+        } catch (e) {
+            // Template may not exist, try another
+            try {
+                om.applyTemplate("Photoshop");
+            } catch (e2) {
+                // Fallback - at least set a file path
+            }
+        }
+        // Set the file to a sequence pattern with [#####] for frame numbers
+        om.file = new File(folder.fsName + "/sequence_output/frame_[#####].tif");
+        saveProject(proj, folder.fsName + "/outputModule_sequence.aep");
+
+        $.writeln("Generated renderqueue samples in: " + folder.fsName);
+    }
+
+    // =========================================================================
     // Main Execution
     // =========================================================================
 
@@ -1461,6 +1540,9 @@ var AEP_EXPORT_AS_LIBRARY = true;
 
             $.writeln("--- Property samples ---");
             generatePropertySamples(OUTPUT_FOLDER);
+
+            $.writeln("--- RenderQueue samples ---");
+            generateRenderQueueSamples(OUTPUT_FOLDER);
         } catch(e) {
             $.writeln("Error: " + e.toString());
             alert("Error generating samples:\n" + e.toString());

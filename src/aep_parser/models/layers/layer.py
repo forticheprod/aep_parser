@@ -30,7 +30,7 @@ class Layer(ABC):
         frame_in_point: The "in" point of the layer, expressed in
             composition time (frames). This is the first frame where the
             layer becomes visible. The binary format stores this relative
-            to start_time; parsed value is absolute composition time.
+            to `start_time`; parsed value is absolute composition time.
         frame_out_point: The "out" point of the layer, expressed in
             composition time (frames). This is the first frame where the
             layer is no longer visible. Clamped to composition duration
@@ -41,31 +41,31 @@ class Layer(ABC):
         in_point: The "in" point of the layer, expressed in composition
             time (seconds). This is the time at which the layer starts
             being visible in the composition. The binary format stores
-            this relative to start_time as a signed integer; parsed value
+            this relative to `start_time` as a signed integer; parsed value
             is absolute composition time.
         label: The label color. Colors are represented by their number
             (0 for None, or 1 to 16 for one of the preset colors in the
             Labels preferences).
-        layer_id: Unique and persistent identification number used
+        id: Unique and persistent identification number used
             internally to identify a Layer between sessions.
         layer_type: The type of layer (footage, light, camera, text, shape).
-        locked: When true, the layer is locked. This corresponds to the
+        locked: When `True`, the layer is locked. This corresponds to the
             lock toggle in the Layer panel.
         markers: Contains a layer's markers.
         name: The name of the layer.
-        null_layer: When true, the layer was created as a null object.
+        null_layer: When `True`, the layer was created as a null object.
         out_point: The "out" point of the layer, expressed in composition
             time (seconds). This is the time at which the layer stops
             being visible in the composition. Clamped to composition
             duration to match ExtendScript API behavior (a layer's
-            out_point cannot exceed its containing composition's duration).
-            The binary format stores this relative to start_time.
-        parent_id: The ID of the layer's parent layer. None if the layer
+            `out_point` cannot exceed its containing composition's duration).
+            The binary format stores this relative to `start_time`.
+        parent_id: The ID of the layer's parent layer. `None` if the layer
             has no parent.
-        shy: When true, the layer is "shy", meaning that it is hidden in
+        shy: When `True`, the layer is "shy", meaning that it is hidden in
             the Layer panel if the composition's "Hide all shy layers"
             option is toggled on.
-        solo: When true, the layer is soloed.
+        solo: When `True`, the layer is soloed.
         start_time: The start time of the layer, expressed in composition
             time (seconds).
         stretch: The layer's time stretch, expressed as a percentage. A
@@ -86,9 +86,9 @@ class Layer(ABC):
     frame_in_point: int
     frame_out_point: int
     frame_start_time: int
+    id: int
     in_point: float
     label: Aep.Label
-    layer_id: int
     layer_type: Aep.LayerType
     locked: bool
     markers: list[Marker]
@@ -110,7 +110,7 @@ class Layer(ABC):
 
     @property
     def parent(self) -> Layer | None:
-        """The parent layer for layer parenting. None if no parent."""
+        """The parent layer for layer parenting. `None` if no parent."""
         return self._parent
 
     @parent.setter

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import typing
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .item import Item
 
@@ -12,20 +12,12 @@ class Folder(Item):
     Folder item.
 
     Attributes:
-        folder_items: The IDs of items in this folder.
+        items: The items in this folder.
     """
 
-    folder_items: list[int]
+    items: list[Item] = field(default_factory=list)
 
-    def __iter__(self) -> typing.Iterator[int]:
-        """Return an iterator over the folder item IDs."""
-        return iter(self.folder_items)
+    def __iter__(self) -> typing.Iterator[Item]:
+        """Return an iterator over the folder items."""
+        return iter(self.items)
 
-    def item(self, index: int) -> int:
-        """
-        Get a folder item ID by index.
-
-        Args:
-            index: The index of the item to return.
-        """
-        return self.folder_items[index]

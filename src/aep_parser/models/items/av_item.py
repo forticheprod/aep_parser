@@ -31,11 +31,11 @@ class AVItem(Item):
     @property
     def footage_missing(self) -> bool:
         """
-        When true, the AVItem is a placeholder, or represents footage with a
+        When `True`, the AVItem is a placeholder, or represents footage with a
         source file that cannot be found. In this case, the path of the
-        missing source file is in the missingFootagePath attribute of the
-        footage item's source-file object. See FootageItem.main_source and
-        FileSource.missing_footage_path.
+        missing source file is in the `missing_footage_path` attribute of the
+        footage item's source-file object. See `FootageItem.main_source` and
+        `FileSource.missing_footage_path`.
         """
         try:
             return bool(self.main_source.missing_footage_path)

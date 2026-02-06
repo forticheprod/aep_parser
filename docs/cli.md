@@ -158,16 +158,30 @@ aep-visualize project.aep --no-properties
 ASCII tree representation in the terminal:
 
 ```
-Project: my_project.aep
-├── Comp 1 (1920x1080, 30fps)
-│   ├── Layer: Background
-│   │   ├── Transform
-│   │   │   ├── Position [100, 200]
-│   │   │   └── Scale [100, 100]
-│   │   └── Effects
-│   └── Layer: Text Layer
-└── Footage: image.png
+📦 my_project.aep {'ae_version': '25.2', 'bits_per_channel': 'BPC_8', 'frame_rate': 30.0}
+├── 🎬 Comp 1 {'size': '1920x1080', 'duration': '10.00s', 'frame_rate': 30.0, 'layers_count': 2}
+│   ├── 📄 Background {'type': 'SOLID'}
+│   │   └── 🔄 Transform {'properties': 5}
+│   └── 📄 Text Layer {'type': 'TEXT'}
+├── 🎞️ image.png {'asset_type': 'image', 'size': '1920x1080'}
+└── 🎯 Render Queue {'items': 1}
+    └── 📋 Item 1 {'output_modules': 1, 'comp': 'Comp 1'}
+        └── 💾 Output Module {'file': 'output.mov', 'template': 'Lossless'}
 ```
+
+The visualization includes:
+
+- **📦 Project**: Root project with version and settings
+- **📁 Folder**: Folder items containing other items
+- **🎬 Composition**: Compositions with layers
+- **🎞️ Footage**: Footage items (images, video, solids)
+- **📄 Layer**: Layers within compositions
+- **🔄 Transform**: Transform property groups
+- **📂 PropertyGroup**: Property groups (effects, text properties)
+- **⚙️ Property**: Individual properties
+- **🎯 RenderQueue**: Render queue (if items present)
+- **📋 RenderQueueItem**: Individual render queue items
+- **💾 OutputModule**: Output module settings
 
 #### DOT (Graphviz)
 Generate DOT format for rendering with Graphviz:

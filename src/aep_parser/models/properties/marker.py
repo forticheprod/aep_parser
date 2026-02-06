@@ -21,36 +21,38 @@ class Marker:
         cue_point_name: The Flash Video cue point name, as shown in the
             Marker dialog box.
         duration: The marker's duration, in seconds.
-        navigation: Whether the marker is a navigation marker.
+        event_cue_point: When `True`, the FlashVideo cue point is for an event;
+            otherwise, it is for navigation.
+        frame_duration: The marker's duration, in frames.
         frame_target: A text frame target for this marker. Together with
             the URL value, this targets a specific frame within a Web page.
-        url: A URL for this marker. This URL is an automatic link to a
-            Web page.
+        frame_time: The time of the marker, in frames.
         label: The label color. Colors are represented by their number
             (0 for None, or 1 to 16 for one of the preset colors in the
             Labels preferences).
+        navigation: Whether the marker is a navigation marker.
+        params: Key-value pairs for Flash Video cue-point parameters.
         protected_region: State of the Protected Region option in the
-            Composition Marker dialog box. When true, the composition
-            marker behaves as a protected region. Will also return true for
+            Composition Marker dialog box. When `True`, the composition
+            marker behaves as a protected region. Will also return `True` for
             protected region markers on nested composition layers, but is
             otherwise not applicable to layer markers.
-        params: Key-value pairs for Flash Video cue-point parameters.
-        frame_duration: The marker's duration, in frames.
-        frame_time: The time of the marker, in frames.
+        url: A URL for this marker. This URL is an automatic link to a
+            Web page.
     """
 
     chapter: str
     comment: str
     cue_point_name: str
     duration: float | None
-    navigation: bool
-    frame_target: str
-    url: str
-    label: Aep.Label
-    protected_region: bool
-    params: dict[str, str]
     frame_duration: int
+    frame_target: str
     frame_time: int
+    label: Aep.Label
+    navigation: bool
+    params: dict[str, str]
+    protected_region: bool
+    url: str
     event_cue_point: bool = field(init=False)
 
     def __post_init__(self) -> None:

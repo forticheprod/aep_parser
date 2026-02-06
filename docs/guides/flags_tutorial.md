@@ -151,7 +151,7 @@ def parse_av_layer(chunk: Aep.Chunk, context: Context) -> AVLayer:
     
     return AVLayer(
         # ... other arguments ...
-        motion_blur=flags_chunk.data.motion_blur,  # <-- Add this
+        motion_blur=flags_chunk.motion_blur,  # <-- Add this
     )
 ```
 

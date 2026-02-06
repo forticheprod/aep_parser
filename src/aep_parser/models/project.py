@@ -17,6 +17,7 @@ if typing.TYPE_CHECKING:
     from .items.footage import FootageItem
     from .items.item import Item
     from .layers.layer import Layer
+    from .renderqueue.render_queue import RenderQueue
 
 
 @dataclass
@@ -38,12 +39,14 @@ class Project:
         frame_rate: The frame rate of the project.
         frames_count_type: The Frame Count menu setting in the Project
             Settings dialog box.
-        project_items: All the items in the project.
+        items: All the items in the project.
+        render_queue: The Render Queue of the project.
         time_display_type: The time display style, corresponding to the
             Time Display Style section in the Project Settings dialog box.
         xmp_packet: The XMP packet for the project, containing metadata.
     """
 
+    ae_version: str | None
     bits_per_channel: BitsPerChannel
     effect_names: list[str]
     expression_engine: str | None
@@ -51,10 +54,10 @@ class Project:
     footage_timecode_display_start_type: FootageTimecodeDisplayStartType
     frame_rate: float
     frames_count_type: FramesCountType
-    project_items: dict[int, Item]
+    items: dict[int, Item] = field(repr=False)  # No repr to avoid printing twice
+    render_queue: RenderQueue
     time_display_type: TimeDisplayType
-    ae_version: str | None = None
-    xmp_packet: ET.Element | None = None
+    xmp_packet: ET.Element
     display_start_frame: int = field(init=False)
     _layers_by_uid: dict[int, Layer] | None = field(
         default=None, init=False, repr=False
@@ -69,13 +72,13 @@ class Project:
 
     def __iter__(self) -> typing.Iterator[Item]:
         """Return an iterator over the project's items."""
-        return iter(self.project_items.values())
+        return iter(self.items.values())
 
     def layer_by_id(self, layer_id: int) -> Layer:
         """Get a layer by its unique ID."""
         if self._layers_by_uid is None:
             self._layers_by_uid = {
-                layer.layer_id: layer
+                layer.id: layer
                 for comp in self.compositions
                 for layer in comp.layers
             }
@@ -89,14 +92,14 @@ class Project:
         This is a virtual folder that contains all items in the Project panel,
         but not items contained inside other folders in the Project panel.
         """
-        return self.project_items[0]
+        return self.items[0]
 
     @property
     def compositions(self) -> list[CompItem]:
         """All the compositions in the project."""
         if self._compositions is None:
             self._compositions = [
-                item for item in self.project_items.values() if item.is_composition
+                item for item in self.items.values() if item.is_composition
             ]
         return self._compositions
 
@@ -112,7 +115,7 @@ class Project:
         """All the folders in the project."""
         if self._folders is None:
             self._folders = [
-                item for item in self.project_items.values() if item.is_folder
+                item for item in self.items.values() if item.is_folder
             ]
         return self._folders
 
@@ -128,7 +131,7 @@ class Project:
         """All the footages in the project."""
         if self._footages is None:
             self._footages = [
-                item for item in self.project_items.values() if item.is_footage
+                item for item in self.items.values() if item.is_footage
             ]
         return self._footages
 

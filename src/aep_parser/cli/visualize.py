@@ -53,9 +53,12 @@ def build_project_node(
 
     children: list[dict[str, Any]] = []
     root = project.root_folder
-    for item_id in root.folder_items:
-        item = project.project_items[item_id]
+    for item in root:
         children.append(build_item_node(item, project, include_properties))
+
+    # Add render queue if it has items
+    if project.render_queue.items:
+        children.append(build_render_queue_node(project))
 
     return {
         "type": "Project",
@@ -89,8 +92,7 @@ def build_folder_node(
 ) -> dict[str, Any]:
     """Build a folder node with its children."""
     children: list[dict[str, Any]] = []
-    for item_id in folder.folder_items:
-        item = project.project_items[item_id]
+    for item in folder:
         children.append(build_item_node(item, project, include_properties))
 
     return {
@@ -233,6 +235,67 @@ def build_property_node(prop: Property) -> dict[str, Any]:
     }
 
 
+def build_render_queue_node(project: Project) -> dict[str, Any]:
+    """Build a render queue node with its items."""
+    attrs: dict[str, Any] = {
+        "items": len(project.render_queue.items),
+    }
+
+    children: list[dict[str, Any]] = []
+    for i, item in enumerate(project.render_queue.items):
+        children.append(build_render_queue_item_node(item, i + 1, project))
+
+    return {
+        "type": "RenderQueue",
+        "name": "Render Queue",
+        "attrs": attrs,
+        "children": children,
+    }
+
+
+def build_render_queue_item_node(
+    item: Any, index: int, project: Project
+) -> dict[str, Any]:
+    """Build a render queue item node with output modules."""
+    attrs: dict[str, Any] = {
+        "output_modules": len(item.output_modules),
+    }
+
+    # Try to find the comp name if comp_id is set
+    if item.comp_id and item.comp_id in project.items:
+        comp = project.items[item.comp_id]
+        attrs["comp"] = getattr(comp, "name", None)
+
+    children: list[dict[str, Any]] = []
+    for om in item.output_modules:
+        children.append(build_output_module_node(om))
+
+    return {
+        "type": "RenderQueueItem",
+        "name": f"Item {index}",
+        "attrs": attrs,
+        "children": children,
+    }
+
+
+def build_output_module_node(om: Any) -> dict[str, Any]:
+    """Build an output module node."""
+    attrs: dict[str, Any] = {}
+    if om.file:
+        attrs["file"] = Path(om.file).name
+    if om.templates:
+        attrs["template"] = om.templates
+    if om.file_name_template:
+        attrs["name_template"] = om.file_name_template
+
+    return {
+        "type": "OutputModule",
+        "name": "Output Module",
+        "attrs": attrs,
+        "children": [],
+    }
+
+
 # =============================================================================
 # Output formatters
 # =============================================================================
@@ -265,6 +328,9 @@ def format_text(
         "PropertyGroup": "📂",
         "Property": "⚙️",
         "Transform": "🔄",
+        "RenderQueue": "🎯",
+        "RenderQueueItem": "📋",
+        "OutputModule": "💾",
     }.get(node["type"], "•")
 
     attrs_str = ""

@@ -15,7 +15,7 @@ class PropertyGroup(PropertyBase):
     Group of properties.
 
     Attributes:
-        is_effect: When true, this property is an effect PropertyGroup.
+        is_effect: When `True`, this property is an effect `PropertyGroup`.
     """
 
     is_effect: bool = False
@@ -23,7 +23,7 @@ class PropertyGroup(PropertyBase):
 
     @property
     def elided(self) -> bool:
-        """Return True if this property group is elided (not an effect)."""
+        """Return `True` if this property group is elided (not an effect)."""
         return not self.is_effect
 
     def __iter__(self) -> typing.Iterator[Property]:

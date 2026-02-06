@@ -335,6 +335,8 @@ class Aep(KaitaiStruct):
                 self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
             elif _on == u"tdb4":
                 self.data = Aep.Tdb4Body(_io__raw_data, self, self._root)
+            elif _on == u"Roou":
+                self.data = Aep.RoouBody(_io__raw_data, self, self._root)
             else:
                 self.data = Aep.AsciiBody(_io__raw_data, self, self._root)
             if (self.len_data % 2) != 0:
@@ -657,6 +659,45 @@ class Aep(KaitaiStruct):
 
 
 
+    class RoouBody(KaitaiStruct):
+        """Output module settings chunk (Roou)."""
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.magic = self._io.read_bytes(4)
+            self.video_codec = (self._io.read_bytes(4)).decode(u"ASCII")
+            self._unnamed2 = self._io.read_bytes(24)  # Unknown bytes 8-31
+            self.width = self._io.read_u2be()
+            self._unnamed4 = self._io.read_bytes(2)  # Unknown bytes 34-35
+            self.height = self._io.read_u2be()
+            self._unnamed6 = self._io.read_bytes(29)  # Unknown bytes 38-66
+            self.frame_rate = self._io.read_u1()
+            self._unnamed8 = self._io.read_bytes(9)  # Unknown bytes 68-76
+            self.color_premultiplied = self._io.read_u1()
+            self._unnamed10 = self._io.read_bytes(3)  # Unknown bytes 78-80
+            self.color_matted = self._io.read_u1()
+            self._unnamed12 = self._io.read_bytes(26)  # Unknown bytes 82-107
+            self.audio_disabled_hi = self._io.read_u1()
+            self.audio_format = self._io.read_u1()
+            self._unnamed15 = self._io.read_bytes(1)  # Unknown byte 110
+            self.audio_bit_depth = self._io.read_u1()
+            self._unnamed17 = self._io.read_bytes(1)  # Unknown byte 112
+            self.audio_channels = self._io.read_u1()
+            self.remaining = self._io.read_bytes_full()
+
+        @property
+        def has_audio(self):
+            if hasattr(self, '_m_has_audio'):
+                return self._m_has_audio
+
+            self._m_has_audio = self.audio_disabled_hi != 0xFF
+            return getattr(self, '_m_has_audio', None)
+
+
     class FdtaBody(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -723,7 +764,7 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.data = (self._io.read_bytes_full()).decode(u"utf8")
+            self.contents = (self._io.read_bytes_full()).decode(u"utf8")
 
 
     class IdtaBody(KaitaiStruct):
@@ -977,7 +1018,7 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.data = self._io.read_bytes_full()
+            self.contents = self._io.read_bytes_full()
 
 
     class CdatBody(KaitaiStruct):
@@ -1018,7 +1059,7 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.data = self._io.read_bytes_full()
+            self.contents = self._io.read_bytes_full()
 
 
     class PardBody(KaitaiStruct):

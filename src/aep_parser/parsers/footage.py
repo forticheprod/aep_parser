@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 import typing
@@ -17,6 +16,7 @@ from ..models.sources.file import FileSource
 from ..models.sources.placeholder import PlaceholderSource
 from ..models.sources.solid import SolidSource
 from .mappings import map_alpha_mode, map_field_separation_type
+from .utils import parse_alas_data
 
 if typing.TYPE_CHECKING:
     from ..kaitai import Aep
@@ -44,47 +44,45 @@ def parse_footage(
         comment: The item's comment.
     """
     pin_chunk = find_by_list_type(chunks=child_chunks, list_type="Pin ")
-    pin_child_chunks = pin_chunk.data.chunks
+    pin_child_chunks = pin_chunk.chunks
     sspc_chunk = find_by_type(chunks=pin_child_chunks, chunk_type="sspc")
     opti_chunk = find_by_type(chunks=pin_child_chunks, chunk_type="opti")
-    sspc_data = sspc_chunk.data
-    opti_data = opti_chunk.data
 
-    asset_type = opti_data.asset_type
-    start_frame = sspc_data.start_frame
-    end_frame = sspc_data.end_frame
+    asset_type = opti_chunk.asset_type
+    start_frame = sspc_chunk.start_frame
+    end_frame = sspc_chunk.end_frame
 
     # Common source attributes from sspc
     source_attrs = {
-        "has_alpha": sspc_data.has_alpha,
+        "has_alpha": sspc_chunk.has_alpha,
         "alpha_mode": map_alpha_mode(
-            get_enum_value(sspc_data.alpha_mode_raw), sspc_data.has_alpha
+            get_enum_value(sspc_chunk.alpha_mode_raw), sspc_chunk.has_alpha
         ),
-        "invert_alpha": sspc_data.invert_alpha,
+        "invert_alpha": sspc_chunk.invert_alpha,
         "field_separation_type": map_field_separation_type(
-            get_enum_value(sspc_data.field_separation_type_raw),
-            get_enum_value(sspc_data.field_order),
+            get_enum_value(sspc_chunk.field_separation_type_raw),
+            get_enum_value(sspc_chunk.field_order),
         ),
-        "high_quality_field_separation": sspc_data.high_quality_field_separation != 0,
-        "loop": sspc_data.loop,
-        "conform_frame_rate": sspc_data.conform_frame_rate,
-        "is_still": sspc_data.duration == 0,
+        "high_quality_field_separation": sspc_chunk.high_quality_field_separation != 0,
+        "loop": sspc_chunk.loop,
+        "conform_frame_rate": sspc_chunk.conform_frame_rate,
+        "is_still": sspc_chunk.duration == 0,
         # premul_color: RGB bytes (0-255) converted to floats (0.0-1.0)
         "premul_color": [
-            sspc_data.premul_color_r / 255.0,
-            sspc_data.premul_color_g / 255.0,
-            sspc_data.premul_color_b / 255.0,
+            sspc_chunk.premul_color_r / 255.0,
+            sspc_chunk.premul_color_g / 255.0,
+            sspc_chunk.premul_color_b / 255.0,
         ],
     }
 
     if not asset_type:
         asset_type = "placeholder"
-        item_name = opti_data.placeholder_name
+        item_name = opti_chunk.placeholder_name
         main_source = PlaceholderSource(**source_attrs)
     elif asset_type == "Soli":
         asset_type = "solid"
-        item_name = opti_data.solid_name
-        color = [opti_data.red, opti_data.green, opti_data.blue, opti_data.alpha]
+        item_name = opti_chunk.solid_name
+        color = [opti_chunk.red, opti_chunk.green, opti_chunk.blue, opti_chunk.alpha]
         main_source = SolidSource(color=color, **source_attrs)
     else:
         asset_type = "file"
@@ -109,17 +107,17 @@ def parse_footage(
 
     item = FootageItem(
         comment=comment,
-        item_id=item_id,
+        id=item_id,
         label=label,
         name=item_name,
         parent_folder=parent_folder,
         type_name="Footage",
-        duration=sspc_data.duration,
-        frame_duration=int(sspc_data.frame_duration),
-        frame_rate=sspc_data.frame_rate,
-        height=sspc_data.height,
-        pixel_aspect=sspc_data.pixel_aspect,
-        width=sspc_data.width,
+        duration=sspc_chunk.duration,
+        frame_duration=int(sspc_chunk.frame_duration),
+        frame_rate=sspc_chunk.frame_rate,
+        height=sspc_chunk.height,
+        pixel_aspect=sspc_chunk.pixel_aspect,
+        width=sspc_chunk.width,
         main_source=main_source,
         asset_type=asset_type,
         end_frame=end_frame,
@@ -137,19 +135,19 @@ def _parse_file_source(
         pin_child_chunks: The Pin chunk's child chunks.
         source_attrs: Common source attributes from sspc.
     """
-    file_source_data = _get_file_source_data(pin_child_chunks)
     stvc_chunk = find_by_list_type(chunks=pin_child_chunks, list_type="StVc")
     file_names = []
     if stvc_chunk:
-        stvc_child_chunks = stvc_chunk.data.chunks
+        stvc_child_chunks = stvc_chunk.chunks
         utf8_chunks = filter_by_type(chunks=stvc_child_chunks, chunk_type="Utf8")
         file_names = [str_contents(chunk) for chunk in utf8_chunks]
+    alas_data = parse_alas_data(pin_child_chunks)
     if file_names:
-        file = os.path.join(file_source_data["fullpath"], file_names[0])
+        file = os.path.join(alas_data.get("fullpath", ""), file_names[0])
     else:
-        file = file_source_data["fullpath"]
+        file = alas_data.get("fullpath", "")
 
-    target_is_folder = file_source_data["target_is_folder"]
+    target_is_folder = alas_data.get("target_is_folder", False)
     file_source = FileSource(
         file=file,
         file_names=file_names,
@@ -157,16 +155,3 @@ def _parse_file_source(
         **source_attrs,
     )
     return file_source
-
-
-def _get_file_source_data(pin_child_chunks: list[Aep.Chunk]) -> dict:
-    """
-    Get file source data from the Pin chunk.
-    Args:
-        pin_child_chunks: The Pin chunk's child chunks.
-    """
-    als2_chunk = find_by_list_type(chunks=pin_child_chunks, list_type="Als2")
-    als2_child_chunks = als2_chunk.data.chunks
-    alas_chunk = find_by_type(chunks=als2_child_chunks, chunk_type="alas")
-    alas_data = json.loads(str_contents(alas_chunk))
-    return alas_data

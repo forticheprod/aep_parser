@@ -18,9 +18,6 @@ def get_enum_value(value: Enum | int) -> int:
 
     Args:
         value: Either a Kaitai enum member or a raw integer.
-
-    Returns:
-        The integer value.
     """
     if hasattr(value, "value"):
         return value.value
@@ -46,7 +43,7 @@ def find_by_list_type(chunks: list[Aep.Chunk], list_type: str) -> Aep.Chunk | No
     return _find_chunk(
         chunks=chunks,
         func=lambda chunk: (
-            chunk.chunk_type == "LIST" and chunk.data.list_type == list_type
+            chunk.chunk_type == "LIST" and chunk.list_type == list_type
         ),
     )
 
@@ -63,7 +60,7 @@ def filter_by_list_type(chunks: list[Aep.Chunk], list_type: str) -> list[Aep.Chu
     return _filter_chunks(
         chunks=chunks,
         func=lambda chunk: (
-            chunk.chunk_type == "LIST" and chunk.data.list_type == list_type
+            chunk.chunk_type == "LIST" and chunk.list_type == list_type
         ),
     )
 
@@ -77,5 +74,5 @@ def filter_by_type(chunks: list[Aep.Chunk], chunk_type: str) -> list[Aep.Chunk]:
 
 def str_contents(chunk: Aep.Chunk) -> str:
     """Return the string contents of a chunk whose chunk_type is Utf8."""
-    text = str(chunk.data.data)
+    text = str(chunk.contents)
     return text.rstrip("\x00")

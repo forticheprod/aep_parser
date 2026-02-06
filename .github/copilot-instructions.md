@@ -68,9 +68,8 @@ mkdocs serve
 3. Add parser function in `parsers/` following the pattern:
    ```python
    def parse_thing(chunk: Aep.Chunk, context: ...) -> ThingModel:
-       child_chunks = chunk.data.chunks
-       data_chunk = find_by_type(chunks=child_chunks, chunk_type="xxxx")
-       return ThingModel(field=data_chunk.data.field)
+       data_chunk = find_by_type(chunks=chunk.chunks, chunk_type="xxxx")
+       return ThingModel(field=data_chunk.field)
    ```
 4. Add test case in `tests/test_models_*.py` using sample .aep files
 
@@ -172,9 +171,6 @@ def parse_thing(chunk: Aep.Chunk, context: Context) -> ThingModel:
     Args:
         chunk: The RIFX chunk containing Thing data.
         context: Parsing context with shared state.
-    
-    Returns:
-        A ThingModel instance with parsed data.
     """
     # implementation
 ```

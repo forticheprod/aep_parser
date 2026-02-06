@@ -174,7 +174,7 @@ def compare_layer(
     """Compare layer properties."""
     layer_mappings = {
         "name": "name",
-        "id": "layer_id",
+        "id": "id",
         "comment": "comment",
         "enabled": "enabled",
         "inPoint": "in_point",
@@ -355,7 +355,7 @@ def validate_aep(
     if verbose:
         print("\n=== Comparing Compositions ===")
     parsed_comps = parsed.get("_compositions", [])
-    parsed_by_id = {comp["item_id"]: comp for comp in parsed_comps}
+    parsed_by_id = {comp["id"]: comp for comp in parsed_comps}
 
     for exp_item in comps:
         item_id = exp_item["id"]
@@ -381,7 +381,7 @@ def validate_aep(
     # Compare folder hierarchy
     if verbose:
         print("\n=== Comparing Folder Hierarchy ===")
-    compare_folder_hierarchy(expected_items, parsed.get("project_items", {}), result)
+    compare_folder_hierarchy(expected_items, parsed.get("items", {}), result)
 
     return result
 

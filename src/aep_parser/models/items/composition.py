@@ -24,16 +24,16 @@ class CompItem(AVItem):
         display_start_time: The time set as the beginning of the composition,
             in seconds. This is the equivalent of the Start Timecode or Start
             Frame setting in the Composition Settings dialog box.
-        frame_blending: When true, frame blending is enabled for this
+        frame_blending: When `True`, frame blending is enabled for this
             Composition. Corresponds to the value of the Frame Blending
             button in the Composition panel.
-        hide_shy_layers: When true, only layers with shy set to false are
-            shown in the Timeline panel. When false, all layers are visible,
-            including those whose shy value is true. Corresponds to the value
+        hide_shy_layers: When `True`, only layers with `shy` set to `False` are
+            shown in the Timeline panel. When `False`, all layers are visible,
+            including those whose `shy` value is `True`. Corresponds to the value
             of the Hide All Shy Layers button in the Composition panel.
-        layers: All the Layer objects for layers in this composition.
+        layers: All the `Layer` objects for layers in this composition.
         markers: All the composition's markers.
-        motion_blur: When true, motion blur is enabled for the composition.
+        motion_blur: When `True`, motion blur is enabled for the composition.
             Corresponds to the value of the Motion Blur button in the
             Composition panel.
         motion_blur_adaptive_sample_limit: The maximum number of motion blur
@@ -45,12 +45,12 @@ class CompItem(AVItem):
             certain effects. This corresponds to the Samples Per Frame
             setting in the Advanced tab of the Composition Settings dialog
             box.
-        preserve_nested_frame_rate: When true, the frame rate of nested
+        preserve_nested_frame_rate: When `True`, the frame rate of nested
             compositions is preserved in the current composition. Corresponds
             to the value of the "Preserve frame rate when nested or in render
             queue" option in the Advanced tab of the Composition Settings
             dialog box.
-        preserve_nested_resolution: When true, the resolution of nested
+        preserve_nested_resolution: When `True`, the resolution of nested
             compositions is preserved in the current composition. Corresponds
             to the value of the "Preserve Resolution When Nested" option in
             the Advanced tab of the Composition Settings dialog box.

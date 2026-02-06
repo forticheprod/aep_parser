@@ -244,11 +244,11 @@ def parse_comp_item(chunk: Aep.Chunk, context: Context) -> CompItem:
     """Parse a composition item."""
     
     # Find the chunk containing your data
-    data_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
+    cdta_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     
     return CompItem(
         # ... other arguments ...
-        shutter_angle=data_chunk.data.shutter_angle,  # <-- Add this
+        shutter_angle=cdta_chunk.shutter_angle,  # <-- Add this
     )
 ```
 
@@ -458,19 +458,19 @@ def parse_thing(chunk: Aep.Chunk, context: Context) -> ThingModel:
     """Parse a Thing from AEP chunk data."""
     
     # Get child chunks
-    child_chunks = chunk.data.chunks
+    child_chunks = chunk.chunks
     
     # Find specific chunks
     data_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     name_chunk = find_by_type(chunks=child_chunks, chunk_type="tdgp")
     
     # Parse name (common pattern)
-    name = name_chunk.data.name.decode("utf-8") if name_chunk else ""
+    name = name_chunk.name.decode("utf-8") if name_chunk else ""
     
     # Return model instance
     return ThingModel(
         name=name,
-        some_value=data_chunk.data.some_value,
+        some_value=data_chunk.some_value,
     )
 ```
 
@@ -480,7 +480,7 @@ def parse_thing(chunk: Aep.Chunk, context: Context) -> ThingModel:
 # Gracefully handle missing chunks
 data_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
 if data_chunk:
-    value = data_chunk.data.value
+    value = data_chunk.value
 else:
     value = None  # or default value
 ```

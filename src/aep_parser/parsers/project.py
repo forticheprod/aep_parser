@@ -19,6 +19,7 @@ from .mappings import (
     map_frames_count_type,
     map_time_display_type,
 )
+from .render_queue import parse_render_queue
 
 SOFTWARE_AGENT_XPATH = ".//stEvt:softwareAgent"
 XMP_NAMESPACES = {"stEvt": "http://ns.adobe.com/xap/1.0/sType/ResourceEvent#"}
@@ -37,38 +38,41 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
 
         root_folder_chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")
         nnhd_chunk = find_by_type(chunks=root_chunks, chunk_type="nnhd")
-        nnhd_data = nnhd_chunk.data
+        xmp_packet = ET.fromstring(aep.xmp_packet)
+        software_agents = xmp_packet.findall(
+            path=SOFTWARE_AGENT_XPATH, namespaces=XMP_NAMESPACES
+        )
+        if software_agents:
+            ae_version = software_agents[-1].text
+        else:
+            ae_version = "unknown"
 
         project = Project(
+            ae_version=ae_version,
             bits_per_channel=map_bits_per_channel(
-                get_enum_value(nnhd_data.bits_per_channel)
+                get_enum_value(nnhd_chunk.bits_per_channel)
             ),
             effect_names=_get_effect_names(root_chunks),
             expression_engine=_get_expression_engine(root_chunks),  # CC 2019+
             file=file_path,
             footage_timecode_display_start_type=map_footage_timecode_display_start_type(
-                get_enum_value(nnhd_data.footage_timecode_display_start_type)
+                get_enum_value(nnhd_chunk.footage_timecode_display_start_type)
             ),
-            frame_rate=nnhd_data.frame_rate,
+            frame_rate=nnhd_chunk.frame_rate,
             frames_count_type=map_frames_count_type(
-                get_enum_value(nnhd_data.frames_count_type)
+                get_enum_value(nnhd_chunk.frames_count_type)
             ),
-            project_items={},
+            items={},
+            render_queue=parse_render_queue(root_chunks),
             time_display_type=map_time_display_type(
-                get_enum_value(nnhd_data.time_display_type)
+                get_enum_value(nnhd_chunk.time_display_type)
             ),
+            xmp_packet=xmp_packet,
         )
-
-        project.xmp_packet = ET.fromstring(aep.xmp_packet)
-        software_agents = project.xmp_packet.findall(
-            path=SOFTWARE_AGENT_XPATH, namespaces=XMP_NAMESPACES
-        )
-        if software_agents:
-            project.ae_version = software_agents[-1].text
 
         root_folder = parse_folder(
             is_root=True,
-            child_chunks=root_folder_chunk.data.chunks,
+            child_chunks=root_folder_chunk.chunks,
             project=project,
             item_id=0,
             item_name="root",
@@ -76,17 +80,22 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
             parent_folder=None,
             comment="",
         )
-        project.project_items[0] = root_folder
+        project.items[0] = root_folder
 
         # Link layers to their source items and parent layers
         for composition in project.compositions:
             # Build layer lookup by id for this composition
-            layers_by_id = {layer.layer_id: layer for layer in composition.layers}
+            layers_by_id = {layer.id: layer for layer in composition.layers}
             for layer in composition.layers:
                 if layer.layer_type == Aep.LayerType.footage:
-                    layer.source = project.project_items.get(layer.source_id)
+                    layer.source = project.items.get(layer.source_id)
                 if layer.parent_id is not None:
                     layer.parent = layers_by_id.get(layer.parent_id)
+
+        # Link render queue items to their compositions
+        for rq_item in project.render_queue.items:
+            if rq_item.comp_id is not None:
+                rq_item.comp = project.items.get(rq_item.comp_id)
 
         return project
 
@@ -101,7 +110,7 @@ def _get_expression_engine(root_chunks: list[Aep.Chunk]) -> str | None:
     expression_engine_chunk = find_by_list_type(chunks=root_chunks, list_type="ExEn")
     if expression_engine_chunk:
         utf8_chunk = find_by_type(
-            chunks=expression_engine_chunk.data.chunks, chunk_type="Utf8"
+            chunks=expression_engine_chunk.chunks, chunk_type="Utf8"
         )
         return str_contents(utf8_chunk)
     return None
@@ -115,6 +124,6 @@ def _get_effect_names(root_chunks: list[Aep.Chunk]) -> list[str]:
         root_chunks (Aep.Chunk): list of root chunks of the project
     """
     pefl_chunk = find_by_list_type(chunks=root_chunks, list_type="Pefl")
-    pefl_child_chunks = pefl_chunk.data.chunks
+    pefl_child_chunks = pefl_chunk.chunks
     pjef_chunks = filter_by_type(chunks=pefl_child_chunks, chunk_type="pjef")
     return [str_contents(chunk) for chunk in pjef_chunks]

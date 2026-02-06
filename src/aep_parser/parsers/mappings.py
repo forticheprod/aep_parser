@@ -140,9 +140,6 @@ def map_frame_blending_type(
     Args:
         frame_blending_type_raw: The raw 1-bit value from the binary.
         frame_blending_enabled: Whether frame blending is enabled on the layer.
-
-    Returns:
-        The appropriate FrameBlendingType enum value.
     """
     if not frame_blending_enabled:
         return FrameBlendingType.NO_FRAME_BLEND
@@ -237,9 +234,6 @@ def map_auto_orient_type(
         camera_or_poi_auto_orient: The camera_or_poi_auto_orient bit from ldta.
         three_d_layer: Whether the layer is a 3D layer.
         characters_toward_camera: The 2-bit characters_toward_camera value from ldta.
-
-    Returns:
-        The derived AutoOrientType enum value.
     """
     if auto_orient_along_path:
         return AutoOrientType.ALONG_PATH
