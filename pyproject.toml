@@ -27,6 +27,7 @@ classifiers = [
 dependencies = [
     "kaitaistruct>=0.9",
     "importlib_metadata; python_version < '3.8'",
+    "six"
 ]
 
 [project.optional-dependencies]
