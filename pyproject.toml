@@ -1,6 +1,6 @@
 [project]
 name = "aep_parser"
-version = "0.1.0"
+version = "0.1.1"
 description = "A .aep (After Effects Project) parser"
 readme = "readme.md"
 license = {text = "MIT"}

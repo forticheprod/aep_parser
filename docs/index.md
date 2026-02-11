@@ -48,14 +48,14 @@ An After Effects project has a hierarchical structure:
 Project
 ├── FolderItem
 │   ├── CompItem
-│   │   ├── AVLayer ──┐
+│   │   ├── AVLayer ───┐
 │   │   ├── TextLayer ─┤
 │   │   ├── ShapeLayer ┤
 │   │   ├── CameraLayer┤
 │   │   └── LightLayer ┘──▶ PropertyGroup
-│   │                          ├── Property
-│   │                          │   └── Keyframe
-│   │                          └── PropertyGroup (nested)
+│   │                       ├── Property
+│   │                       │   └── Keyframe
+│   │                       └── PropertyGroup (nested)
 │   └── FootageItem
 │       ├── FileSource
 │       ├── SolidSource
