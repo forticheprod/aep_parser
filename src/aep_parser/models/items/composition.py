@@ -4,10 +4,10 @@ import typing
 from dataclasses import dataclass, field
 from typing import cast
 
+from ..layers.av_layer import AVLayer
 from .av_item import AVItem
 
 if typing.TYPE_CHECKING:
-    from ..layers.av_layer import AVLayer
     from ..layers.layer import Layer
     from ..properties.marker import MarkerValue
 
