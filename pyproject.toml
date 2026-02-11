@@ -3,7 +3,7 @@ name = "aep_parser"
 version = "0.1.0"
 description = "A .aep (After Effects Project) parser"
 readme = "readme.md"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
     {name = "Aurore Delaunay", email = "del-github@blurme.net"}
 ]
