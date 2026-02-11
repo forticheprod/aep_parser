@@ -78,7 +78,7 @@ def compare_values(expected: Any, parsed: Any, tolerance: float = 0.001) -> bool
         if len(expected) != len(parsed):
             return False
         return all(compare_values(e, p, tolerance) for e, p in zip(expected, parsed))
-    return expected == parsed
+    return bool(expected == parsed)
 
 
 class ValidationResult:
@@ -174,7 +174,7 @@ def compare_layer(
     """Compare layer properties."""
     layer_mappings = {
         "name": "name",
-        "id": "layer_id",
+        "id": "id",
         "comment": "comment",
         "enabled": "enabled",
         "inPoint": "in_point",
@@ -228,7 +228,7 @@ def compare_comp_item(
     """Compare composition item properties."""
     comp_mappings = {
         "name": "name",
-        "id": "item_id",
+        "id": "id",
         "comment": "comment",
         "duration": "duration",
         "frameRate": "frame_rate",
@@ -312,6 +312,156 @@ def compare_folder_hierarchy(
                 )
 
 
+def compare_settings(
+    expected_settings: dict[str, Any],
+    parsed_settings: dict[str, Any] | None,
+    path: str,
+    result: ValidationResult,
+) -> None:
+    """Compare render settings.
+
+    Render settings are now stored as raw integer values with ExtendScript keys.
+    """
+    if parsed_settings is None:
+        result.add_diff(f"{path}", "exists", "missing", "renderqueue")
+        return
+
+    # Map expected JSON keys to parsed ExtendScript keys
+    # Parsed values are raw integers matching ExtendScript
+    key_mappings = {
+        "quality": "Quality",
+        "effects": "Effects",
+        "proxyUse": "Proxy Use",
+        "motionBlur": "Motion Blur",
+        "frameBlending": "Frame Blending",
+        "fieldRender": "Field Render",
+        "guideLayers": "Guide Layers",
+        "soloSwitches": "Solo Switches",
+        "colorDepth": "Color Depth",
+    }
+
+    for exp_key, parsed_key in key_mappings.items():
+        if exp_key in expected_settings:
+            exp_val = expected_settings[exp_key]
+            parsed_val = parsed_settings.get(parsed_key)
+            if exp_val != parsed_val:
+                result.add_diff(
+                    f"{path}.{exp_key}",
+                    exp_val,
+                    parsed_val,
+                    "renderqueue",
+                )
+
+
+def compare_output_module_settings(
+    expected_settings: dict[str, Any],
+    parsed_settings: dict[str, Any] | None,
+    path: str,
+    result: ValidationResult,
+) -> None:
+    """Compare output module settings.
+
+    Output module settings are stored as a dict with ExtendScript keys.
+    """
+    if expected_settings is None:
+        return
+    if parsed_settings is None:
+        result.add_diff(f"{path}", "exists", "missing", "renderqueue")
+        return
+
+    # Compare video output
+    if "videoOutput" in expected_settings:
+        exp_has_video = expected_settings["videoOutput"] == "On"
+        parsed_has_video = parsed_settings.get("Video Output", False)
+        if exp_has_video != parsed_has_video:
+            result.add_diff(
+                f"{path}.videoOutput",
+                expected_settings["videoOutput"],
+                "On" if parsed_has_video else "Off",
+                "renderqueue",
+            )
+
+    # Compare audio output
+    if "audioOutput" in expected_settings:
+        exp_has_audio = expected_settings["audioOutput"] == "On"
+        parsed_has_audio = parsed_settings.get("Output Audio", False)
+        if exp_has_audio != parsed_has_audio:
+            result.add_diff(
+                f"{path}.audioOutput",
+                expected_settings["audioOutput"],
+                "On" if parsed_has_audio else "Off",
+                "renderqueue",
+            )
+
+
+def compare_render_queue(
+    expected_rq: dict[str, Any],
+    parsed_rq: dict[str, Any],
+    result: ValidationResult,
+    verbose: bool = False,
+) -> None:
+    """Compare render queue items."""
+    expected_items = expected_rq.get("items", [])
+    parsed_items = parsed_rq.get("items", [])
+
+    if len(expected_items) != len(parsed_items):
+        result.add_diff(
+            "RenderQueue.numItems",
+            len(expected_items),
+            len(parsed_items),
+            "renderqueue",
+        )
+        if verbose:
+            print(f"  Item count mismatch: expected {len(expected_items)}, got {len(parsed_items)}")
+
+    # Compare each render queue item
+    for i, exp_item in enumerate(expected_items):
+        if i >= len(parsed_items):
+            result.add_diff(f"RenderQueueItem[{i}]", "exists", "missing", "renderqueue")
+            continue
+
+        parsed_item = parsed_items[i]
+        path = f"RenderQueueItem[{i}]"
+
+        # Compare render settings
+        if "settings" in exp_item:
+            compare_settings(
+                exp_item["settings"],
+                parsed_item.get("settings"),
+                f"{path}.settings",
+                result,
+            )
+
+        # Compare output modules
+        exp_oms = exp_item.get("outputModules", [])
+        parsed_oms = parsed_item.get("output_modules", [])
+
+        if len(exp_oms) != len(parsed_oms):
+            result.add_diff(
+                f"{path}.numOutputModules",
+                len(exp_oms),
+                len(parsed_oms),
+                "renderqueue",
+            )
+
+        for j, exp_om in enumerate(exp_oms):
+            if j >= len(parsed_oms):
+                result.add_diff(f"{path}.outputModule[{j}]", "exists", "missing", "renderqueue")
+                continue
+
+            parsed_om = parsed_oms[j]
+            om_path = f"{path}.outputModule[{j}]"
+
+            # Compare output module settings
+            if "settings" in exp_om:
+                compare_output_module_settings(
+                    exp_om["settings"],
+                    parsed_om["settings"],
+                    f"{om_path}.settings",
+                    result,
+                )
+
+
 def validate_aep(
     aep_path: Path,
     json_path: Path,
@@ -355,7 +505,7 @@ def validate_aep(
     if verbose:
         print("\n=== Comparing Compositions ===")
     parsed_comps = parsed.get("_compositions", [])
-    parsed_by_id = {comp["item_id"]: comp for comp in parsed_comps}
+    parsed_by_id = {comp["id"]: comp for comp in parsed_comps}
 
     for exp_item in comps:
         item_id = exp_item["id"]
@@ -381,7 +531,13 @@ def validate_aep(
     # Compare folder hierarchy
     if verbose:
         print("\n=== Comparing Folder Hierarchy ===")
-    compare_folder_hierarchy(expected_items, parsed.get("project_items", {}), result)
+    compare_folder_hierarchy(expected_items, parsed.get("items", {}), result)
+
+    # Compare render queue
+    if verbose:
+        print("\n=== Comparing Render Queue ===")
+    expected_rq = expected.get("renderQueue", {})
+    compare_render_queue(expected_rq, parsed.get("render_queue", {}), result, verbose)
 
     return result
 
@@ -426,7 +582,7 @@ def main(args: list[str] | None = None) -> int:
     parser.add_argument("-v", "--verbose", action="store_true", help="Print detailed progress")
     parser.add_argument(
         "-c", "--category",
-        choices=["project", "composition", "layers", "markers", "folders"],
+        choices=["project", "composition", "layers", "markers", "folders", "renderqueue"],
         help="Filter differences by category",
     )
 

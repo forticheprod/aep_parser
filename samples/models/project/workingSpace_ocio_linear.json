@@ -24,5 +24,11 @@
   "workingSpace": "None",
   "items": [
     
-  ]
+  ],
+  "renderQueue": {
+    "numItems": 0,
+    "items": [
+      
+    ]
+  }
 }

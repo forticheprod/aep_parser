@@ -5,19 +5,17 @@ meta:
 
 seq:
   - id: header
-    contents: [0x52, 0x49, 0x46, 0x58]
-    doc: RIFX
+    contents: RIFX
   - id: len_data
     type: u4
   - id: format
-    contents: [0x45, 0x67, 0x67, 0x21]
-    doc: Egg!
+    contents: "Egg!"
   - id: data
     type: chunks
     size: len_data - format._sizeof
   - id: xmp_packet
     type: str
-    encoding: utf8
+    encoding: UTF-8
     size-eos: true
 
 types:
@@ -31,7 +29,7 @@ types:
       - id: chunk_type
         size: 4
         type: str
-        encoding: ascii
+        encoding: ASCII
       - id: len_data
         type: u4
       - id: data
@@ -61,21 +59,47 @@ types:
             '"pjef"': utf8_body # Effect names
             '"cmta"': utf8_body # Comment data
             '"fdta"': fdta_body # Folder data
+            '"RCom"': child_utf8_body # Render queue item comment. Contains a single utf-8 chunk
             '"nnhd"': nnhd_body # Project data
             '"head"': head_body # Contains AE version and file revision
+            '"Roou"': roou_body # Output module settings
+            '"Rout"': rout_body # Render queue item flags
+            '"acer"': acer_body # Compensate for Scene-Referred Profiles setting
+            '"Rhed"': rhed_body # Render/GPU preferences
+            '"dwga"': dwga_body # Working gamma setting
             _: ascii_body
       - id: padding
         size: 1
         if: (len_data % 2) != 0
-  alas_body:
+  acer_body:
+    doc: |
+      Compensate for Scene-Referred Profiles setting in Project Settings.
+      This setting affects how scene-referred color profiles are handled.
     seq:
-      - id: contents
-        type: str
-        size-eos: true
-        encoding: ascii
+      - id: compensate_for_scene_referred_profiles
+        type: u1
+        doc: Whether to compensate for scene-referred profiles (0=false, 1=true)
+  rhed_body:
+    doc: |
+      Render preferences header. Contains GPU acceleration settings.
+    seq:
+      - size: 13
+        doc: Unknown bytes 0-12
+      - id: gpu_accel_type
+        type: u1
+        doc: GPU acceleration type (raw binary value, needs mapping)
+  dwga_body:
+    doc: |
+      Working gamma setting. Indicates the gamma value used for color management.
+    seq:
+      - id: working_gamma_selector
+        type: u1
+        doc: Working gamma selector (0=2.2, 1=2.4)
+      - size: 3
+        doc: Unknown bytes 1-3
   ascii_body:
     seq:
-      - id: data
+      - id: contents
         size-eos: true
   cdat_body:
     seq:
@@ -185,20 +209,59 @@ types:
     seq:
       - size: 1
   head_body:
+    doc: |
+      After Effects file header. Contains version info encoded as a 32-bit value.
+      Major version = MAJOR-A * 8 + MAJOR-B
+      See: https://github.com/tinogithub/aftereffects-version-check
     seq:
-      - id: ae_version
-        size: 6
-        # enum: ae_version
-      - size: 12
+      - size: 4
+        doc: Reserved/unknown bytes before version
+      # Version bits (32 bits total, MSB first)
+      - type: b1
+        doc: Bit 31 - reserved
+      - id: ae_version_major_a
+        type: b5
+        doc: Bits 30-26 - high bits of major version
+      - id: ae_version_os
+        type: b4
+        doc: Bits 25-22 - OS code (12=Windows, 13=Mac, 14=Mac ARM64)
+      - id: ae_version_major_b
+        type: b3
+        doc: Bits 21-19 - low bits of major version
+      - id: ae_version_minor
+        type: b4
+        doc: Bits 18-15 - minor version number
+      - id: ae_version_patch
+        type: b4
+        doc: Bits 14-11 - patch version number
+      - type: b1
+        doc: Bit 10 - reserved
+      - id: ae_version_beta_flag
+        type: b1
+        doc: Bit 9 - beta flag (false=beta, true=release)
+      - type: b1
+        doc: Bit 8 - reserved
+      - id: ae_build_number
+        type: b8
+        doc: Bits 7-0 - build number
+      - size: 10
+        doc: Padding before file_revision
       - id: file_revision
         type: u2
+    instances:
+      ae_version_major:
+        value: ae_version_major_a * 8 + ae_version_major_b
+        doc: Full major version number (e.g., 25)
+      ae_version_beta:
+        value: not ae_version_beta_flag
+        doc: True if beta version
   idta_body:
     seq:
       - id: item_type
         type: u2
         enum: item_type
       - size: 14
-      - id: item_id
+      - id: id
         type: u4
       - size: 38
       - id: label
@@ -206,13 +269,296 @@ types:
         enum: label
   ldat_body:
     seq:
-      - id: keyframes
+      - id: items
         size-eos: true
-  keyframe:
-    params:
-      - id: key_type
+  roou_body:
+    doc: Output module settings (154 bytes)
+    seq:
+      - id: magic
+        size: 4
+        doc: Magic bytes, typically "FXTC"
+      - id: video_codec
+        type: str
+        size: 4
+        encoding: ASCII
+        doc: Video codec 4-char code
+      - size: 24
+        doc: Unknown bytes 8-31
+      - size: 4
+        doc: Unknown bytes 32-35
+      - id: width
+        type: u2
+        doc: Output width in pixels (0 when video disabled)
+      - size: 2
+        doc: Unknown bytes 38-39
+      - id: height
+        type: u2
+        doc: Output height in pixels (0 when video disabled)
+      - size: 25
+        doc: Unknown bytes 42-66
+      - id: frame_rate
         type: u1
-        enum: property_value_type
+        doc: Frame rate in fps
+      - size: 9
+        doc: Unknown bytes 68-76
+      - id: color_premultiplied
+        type: u1
+        doc: Color premultiplied flag (0=no, 1=yes)
+      - size: 3
+        doc: Unknown bytes 78-80
+      - id: color_matted
+        type: u1
+        doc: Color matted flag (0=no, 1=yes)
+      - size: 26
+        doc: Unknown bytes 82-107
+      - id: audio_disabled_hi
+        type: u1
+        doc: High byte of audio disabled flag (0xFF when disabled)
+      - id: audio_format
+        type: u1
+        doc: Audio format/depth indicator (2=16-bit, 3=24-bit, 4=32-bit)
+      - size: 1
+        doc: Unknown byte 110
+      - id: audio_bit_depth
+        type: u1
+        doc: Audio bit depth indicator (1=8-bit, 2=16-bit, 4=32-bit)
+      - size: 1
+        doc: Unknown byte 112
+      - id: audio_channels
+        type: u1
+        doc: Audio channels (1=mono, 2=stereo)
+      - id: remaining
+        size-eos: true
+        doc: Remaining bytes to end of chunk
+    instances:
+      video_output:
+        value: width > 0 or height > 0
+        doc: True when video output is enabled (width or height non-zero)
+      output_audio:
+        value: audio_disabled_hi != 0xFF
+  rout_body:
+    doc: Render queue item flags (4-byte header + 4 bytes per item)
+    seq:
+      - size: 4
+        doc: Header bytes
+      - id: items
+        type: rout_item
+        repeat: eos
+  rout_item:
+    doc: Per-item render queue flags (4 bytes)
+    seq:
+      - type: b1  # skip bit 7
+      - id: render
+        type: b1  # bit 6
+        doc: True when item is set to render when queue is started
+      - type: b6  # skip bits 5-0
+      - size: 3
+        doc: Remaining bytes
+  output_module_settings_ldat_body:
+    doc: |
+      Per-output-module settings chunk (128 bytes).
+      Used under LIST:list within LIST:LItm for each render queue item.
+      Note: The actual comp_id is stored in render_settings_ldat_body, not here.
+    seq:
+      - size: 7
+        doc: Unknown bytes 0-6
+      - type: b1
+        doc: Unknown bit 7
+      - id: include_source_xmp
+        type: b1
+        doc: Include source XMP metadata in output (bit 6)
+      - type: b6
+        doc: Unknown bits 5-0
+      - id: post_render_target_comp_id
+        type: u4
+        doc: |
+          Composition ID for post-render action target.
+          Only used when post_render_use_comp is 1 (use custom comp).
+          When 0, uses the render queue item's comp.
+      - size: 4
+        doc: Unknown bytes 12-15
+      - size: 15
+        doc: Unknown bytes 16-30
+      - type: b7
+        doc: Unknown bits 7-1 of byte 31
+      - id: crop
+        type: b1
+        doc: Crop checkbox enabled (bit 0 of byte 31)
+      - id: crop_top
+        type: u2
+        doc: Crop top value in pixels (bytes 32-33)
+      - id: crop_left
+        type: u2
+        doc: Crop left value in pixels (bytes 34-35)
+      - id: crop_bottom
+        type: u2
+        doc: Crop bottom value in pixels (bytes 36-37)
+      - id: crop_right
+        type: u2
+        doc: Crop right value in pixels (bytes 38-39)
+      - size: 8
+        doc: Unknown bytes 40-47
+      - id: post_render_action
+        type: u4
+        doc: Post-render action (0=NONE, 1=IMPORT, 2=IMPORT_AND_REPLACE, 3=SET_PROXY)
+      - id: post_render_use_comp
+        type: u4
+        doc: Post-render action target comp (0=use render queue item comp, 1=use custom comp)
+      - id: remaining
+        size: 72
+        doc: Remaining bytes (56-127)
+  render_settings_ldat_body:
+    doc: Render settings ldat chunk (2246 bytes)
+    seq:
+      - size: 7
+        doc: Unknown bytes 0-6
+      - type: b5
+        doc: Unknown bits 7-3
+      - id: queue_item_notify
+        type: b1
+        doc: Queue item notify flag (bit 2)
+      - type: b2
+        doc: Unknown bits 1-0
+      - id: comp_id
+        type: u4
+        doc: Composition ID being rendered
+      - id: status
+        type: u4
+        doc: Render queue item status (0=NEEDS_OUTPUT, 1=UNQUEUED, 2=QUEUED, 3=RENDERING, 4=USER_STOPPED, 5=ERR_STOPPED, 6=DONE)
+      - size: 4
+        doc: Unknown bytes 16-19
+      - id: time_span_start_frames
+        type: u4
+        doc: Time span start numerator (frame count)
+      - id: time_span_start_timebase
+        type: u4
+        doc: Time span start denominator (timebase fps)
+      - id: time_span_duration_frames
+        type: u4
+        doc: Time span duration numerator (frame count)
+      - id: time_span_duration_timebase
+        type: u4
+        doc: Time span duration denominator (timebase fps)
+      - size: 8
+        doc: Unknown bytes 36-43
+      - id: frame_rate_integer
+        type: u2
+        doc: Frame rate integer part in fps
+      - id: frame_rate_fractional
+        type: u2
+        doc: Frame rate fractional part (divide by 65536)
+      - size: 2
+        doc: Unknown bytes 48-49
+      - id: field_render
+        type: u2
+        doc: Field render setting (0=off, 1=upper first, 2=lower first)
+      - size: 2
+        doc: Unknown bytes 52-53
+      - id: pulldown
+        type: u2
+        doc: 3:2 Pulldown setting (0=off, 1=WSSWW, 2=SSWWW, 3=SWWWS, 4=WWWSS, 5=WWSSW)
+      - id: quality
+        type: u2
+        doc: Render quality (0=wireframe, 1=draft, 2=best)
+      - id: resolution_x
+        type: u2
+        doc: Resolution factor X
+      - id: resolution_y
+        type: u2
+        doc: Resolution factor Y
+      - size: 2
+        doc: Unknown bytes 62-63
+      - id: effects
+        type: u2
+        doc: Effects setting (0=all on, 1=all off, 2=current settings)
+      - size: 2
+        doc: Unknown bytes 66-67
+      - id: proxy_use
+        type: u2
+        doc: Proxy use setting (0=use all proxies, 1=use comp proxies only, 3=use no proxies)
+      - size: 2
+        doc: Unknown bytes 70-71
+      - id: motion_blur
+        type: u2
+        doc: Motion blur setting (0=current settings, 1=off for all layers, 2=on for checked layers)
+      - size: 2
+        doc: Unknown bytes 74-75
+      - id: frame_blending
+        type: u2
+        doc: Frame blending setting (0=current settings, 1=off for all layers, 2=on for checked layers)
+      - size: 2
+        doc: Unknown bytes 78-79
+      - id: log_type
+        type: u2
+        doc: Log type (0=errors only, 1=errors+settings, 2=errors+per frame info)
+      - size: 2
+        doc: Unknown bytes 82-83
+      - id: skip_existing_files
+        type: u2
+        doc: Skip existing files (0=off, 1=on)
+      - size: 4
+        doc: Unknown bytes 86-89
+      - id: template_name
+        type: strz
+        size: 64
+        encoding: ASCII
+        doc: Render settings template name
+      - size: 1990
+        doc: Unknown bytes 154-2143
+      - id: use_this_frame_rate
+        type: u2
+        doc: Use this frame rate flag (1=use custom frame rate)
+      - size: 2
+        doc: Unknown bytes 2146-2147
+      - id: time_span_source
+        type: u2
+        doc: Time span source (0=length of comp, 1=work area only, 2=custom)
+      - size: 14
+        doc: Unknown bytes 2150-2163
+      - id: solo_switches
+        type: u2
+        doc: Solo switches setting (0=current settings, 2=all off)
+      - size: 2
+        doc: Unknown bytes 2166-2167
+      - id: disk_cache
+        type: u2
+        doc: Disk cache setting (0=read only, 2=current settings)
+      - size: 2
+        doc: Unknown bytes 2170-2171
+      - id: guide_layers
+        type: u2
+        doc: Guide layers setting (0=current settings, 2=all off)
+      - size: 6
+        doc: Unknown bytes 2174-2179
+      - id: color_depth
+        type: u2
+        doc: Color depth setting (0xFFFF=current, 0=8bpc, 1=16bpc, 2=32bpc)
+      - size: 16
+        doc: Unknown bytes 2182-2197
+      - id: start_time
+        type: u4
+        doc: Render start timestamp (seconds since Mac HFS+ epoch Jan 1, 1904)
+      - id: elapsed_seconds
+        type: u4
+        doc: Elapsed render time in seconds
+      - id: remaining
+        size: 40
+        doc: Remaining bytes (2206-2245)
+    instances:
+      time_span_start:
+        value: 'time_span_start_timebase != 0 ? time_span_start_frames * 1.0 / time_span_start_timebase : 0'
+        doc: Time span start in seconds
+      time_span_duration:
+        value: 'time_span_duration_timebase != 0 ? time_span_duration_frames * 1.0 / time_span_duration_timebase : 0'
+        doc: Time span duration in seconds
+      frame_rate:
+        value: 'frame_rate_integer + (frame_rate_fractional * 1.0 / 65536)'
+        doc: Frame rate in fps (integer + fractional)
+  ldat_item:
+    params:
+      - id: item_type
+        type: u1
+        enum: ldat_item_type
     seq:
       - size: 1
       - id: time_raw
@@ -220,7 +566,6 @@ types:
       - size: 2
       - id: keyframe_interpolation_type
         type: u1
-        enum: keyframe_interpolation_type
       - id: label
         type: u1
         enum: label
@@ -234,24 +579,24 @@ types:
       - type: b3  # skip remaining 3 bits
       - id: kf_data
         type:
-          switch-on: key_type
+          switch-on: item_type
           cases:
-            'property_value_type::unknown': kf_unknown_data
-            'property_value_type::lrdr': kf_unknown_data
-            'property_value_type::litm': kf_unknown_data
-            'property_value_type::gide': kf_unknown_data
-            'property_value_type::color': kf_color
-            'property_value_type::three_d_spatial': kf_position(3)
-            'property_value_type::three_d': kf_multi_dimensional(3)
-            'property_value_type::two_d_spatial': kf_position(2)
-            'property_value_type::two_d': kf_multi_dimensional(2)
-            'property_value_type::orientation': kf_multi_dimensional(1)
-            'property_value_type::no_value': kf_no_value
-            'property_value_type::one_d': kf_multi_dimensional(1)
-            'property_value_type::marker': kf_unknown_data
+            'ldat_item_type::unknown': kf_unknown_data
+            'ldat_item_type::lrdr': render_settings_ldat_body
+            'ldat_item_type::litm': output_module_settings_ldat_body
+            'ldat_item_type::gide': kf_unknown_data
+            'ldat_item_type::color': kf_color
+            'ldat_item_type::three_d_spatial': kf_position(3)
+            'ldat_item_type::three_d': kf_multi_dimensional(3)
+            'ldat_item_type::two_d_spatial': kf_position(2)
+            'ldat_item_type::two_d': kf_multi_dimensional(2)
+            'ldat_item_type::orientation': kf_multi_dimensional(1)
+            'ldat_item_type::no_value': kf_no_value
+            'ldat_item_type::one_d': kf_multi_dimensional(1)
+            'ldat_item_type::marker': kf_unknown_data
   kf_unknown_data:
     seq:
-      - id: data
+      - id: contents
         size-eos: true
   kf_no_value:
     seq:
@@ -286,7 +631,7 @@ types:
         repeat-expr: 8
   kf_position:
     params:
-      - id: nb_dimensions
+      - id: num_value
         type: u1
     seq:
       - type: u8
@@ -302,47 +647,46 @@ types:
       - id: value
         type: f8
         repeat: expr
-        repeat-expr: nb_dimensions
+        repeat-expr: num_value
       - id: tan_in
         type: f8
         repeat: expr
-        repeat-expr: nb_dimensions
+        repeat-expr: num_value
       - id: tan_out
         type: f8
         repeat: expr
-        repeat-expr: nb_dimensions
+        repeat-expr: num_value
   kf_multi_dimensional:
     params:
-      - id: nb_dimensions
+      - id: num_value
         type: u1
     seq:
       - id: value
         type: f8
         repeat: expr
-        repeat-expr: nb_dimensions
+        repeat-expr: num_value
       - id: in_speed
         type: f8
         repeat: expr
-        repeat-expr: nb_dimensions
+        repeat-expr: num_value
       - id: in_influence
         type: f8
         repeat: expr
-        repeat-expr: nb_dimensions
+        repeat-expr: num_value
       - id: out_speed
         type: f8
         repeat: expr
-        repeat-expr: nb_dimensions
+        repeat-expr: num_value
       - id: out_influence
         type: f8
         repeat: expr
-        repeat-expr: nb_dimensions
+        repeat-expr: num_value
   ldta_body:
     seq:
       - id: layer_id
         type: u4
       - id: quality
         type: u2
-        enum: layer_quality
       - size: 4
       - id: stretch_dividend
         type: s2
@@ -365,7 +709,6 @@ types:
       - type: b1  # skip bit 7
       - id: sampling_quality
         type: b1  # bit 6
-        enum: sampling_quality
       - id: environment_layer
         type: b1  # bit 5
       - id: characters_toward_camera
@@ -373,7 +716,6 @@ types:
         doc: When value is 3 (0b11), layer has CHARACTERS_TOWARD_CAMERA auto-orient mode
       - id: frame_blending_type
         type: b1  # bit 2
-        enum: frame_blending_type
       - id: guide_layer
         type: b1  # bit 1
       - type: b1  # skip bit 0
@@ -420,18 +762,16 @@ types:
       - id: layer_name
         size: 32
         type: str
-        encoding: cp1250
+        encoding: windows-1250
       - size: 3
       - id: blending_mode
         type: u1
-        enum: blending_mode
       - size: 3
       - id: preserve_transparency
         type: u1
       - size: 3
       - id: track_matte_type
         type: u1
-        enum: track_matte_type
       - size: 2
       - id: stretch_divisor
         type: u2
@@ -444,7 +784,6 @@ types:
       - size: 3
       - id: light_type
         type: u1
-        enum: light_type
         doc: Type of light for light layers (0=parallel, 1=spot, 2=point, 3=ambient)
       - size: 20
       # - id: matte_layer_id
@@ -458,36 +797,43 @@ types:
       out_point:
         value: 'out_point_dividend.as<f4> / out_point_divisor.as<f4>'
   lhd3_body:
+    doc: |
+      Header for item/keyframe lists. AE reuses this structure for:
+      - Property keyframes (count = keyframe count, item_size = keyframe data size)
+      - Render queue items (count = item count, item_size = 2246 for settings)
+      - Output module items (count = item count, item_size = 128 for settings)
     seq:
       - size: 10
-      - id: nb_keyframes
+      - id: count
         type: u2
+        doc: Number of items/keyframes in the associated ldat chunk
       - size: 6
-      - id: len_keyframe
+      - id: item_size
         type: u2
+        doc: Size in bytes of each item/keyframe in the associated ldat chunk
       - size: 3
-      - id: keyframes_type_raw
+      - id: item_type_raw
         type: u1
     instances:
-      keyframes_type:
+      item_type:
         value: >-
-          keyframes_type_raw == 1 and len_keyframe == 2246 ? property_value_type::lrdr :
-          keyframes_type_raw == 1 and len_keyframe == 128 ? property_value_type::litm :
-          keyframes_type_raw == 2 and len_keyframe == 1 ? property_value_type::gide :
-          keyframes_type_raw == 4 and len_keyframe == 152 ? property_value_type::color :
-          keyframes_type_raw == 4 and len_keyframe == 128 ? property_value_type::three_d :
-          keyframes_type_raw == 4 and len_keyframe == 104 ? property_value_type::two_d_spatial :
-          keyframes_type_raw == 4 and len_keyframe == 88 ? property_value_type::two_d :
-          keyframes_type_raw == 4 and len_keyframe == 80 ? property_value_type::orientation :
-          keyframes_type_raw == 4 and len_keyframe == 64 ? property_value_type::no_value :
-          keyframes_type_raw == 4 and len_keyframe == 48 ? property_value_type::one_d :
-          keyframes_type_raw == 4 and len_keyframe == 16 ? property_value_type::marker :
-          property_value_type::unknown
+          item_type_raw == 1 and item_size == 2246 ? ldat_item_type::lrdr :
+          item_type_raw == 1 and item_size == 128 ? ldat_item_type::litm :
+          item_type_raw == 2 and item_size == 1 ? ldat_item_type::gide :
+          item_type_raw == 4 and item_size == 152 ? ldat_item_type::color :
+          item_type_raw == 4 and item_size == 128 ? ldat_item_type::three_d :
+          item_type_raw == 4 and item_size == 104 ? ldat_item_type::two_d_spatial :
+          item_type_raw == 4 and item_size == 88 ? ldat_item_type::two_d :
+          item_type_raw == 4 and item_size == 80 ? ldat_item_type::orientation :
+          item_type_raw == 4 and item_size == 64 ? ldat_item_type::no_value :
+          item_type_raw == 4 and item_size == 48 ? ldat_item_type::one_d :
+          item_type_raw == 4 and item_size == 16 ? ldat_item_type::marker :
+          ldat_item_type::unknown
   list_body:
     seq:
       - id: list_type
         type: str
-        encoding: cp1250
+        encoding: windows-1250
         size: 4
       - id: chunks
         type: chunk
@@ -517,29 +863,44 @@ types:
     seq:
       - size: 8
       - id: time_display_type
-        type: u1
-        enum: time_display_type
+        type: b7
+        doc: Time display type (0=TIMECODE, 1=FRAMES)
+      - id: feet_frames_film_type
+        type: b1
+        doc: Feet+Frames film type (0=MM35, 1=MM16)
       - id: footage_timecode_display_start_type
         type: u1
-        enum: footage_timecode_display_start_type
-      - size: 4
+      - size: 1
+      - type: b7
+      - id: frames_use_feet_frames
+        type: b1
+        doc: Whether to use feet+frames for timecode display (0=false, 1=true)
+      - size: 2
       - id: frame_rate
         type: u2
       - size: 4
       - id: frames_count_type
         type: u1
-        enum: frames_count_type
       - size: 3
       - id: bits_per_channel
         type: u1
-        enum: bits_per_channel
-      - size: 15
+      - size: 6
+        doc: Unknown bytes 25-30
+      - type: b2
+        doc: Unknown bits 7-6
+      - id: linearize_working_space
+        type: b1
+        doc: Whether to linearize working space for blending (0=false, 1=true)
+      - type: b5
+        doc: Unknown bits 4-0
+      - size: 8
+        doc: Unknown bytes 32-39
   opti_body:
     seq:
       - id: asset_type
         size: 4
         type: strz
-        encoding: ascii
+        encoding: ASCII
         # enum: asset_type
       - id: asset_type_int
         type: u2
@@ -552,14 +913,14 @@ types:
         if: asset_type == "Soli"
       - id: solid_name
         type: strz
-        encoding: cp1250
+        encoding: windows-1250
         size: 256
         if: asset_type == "Soli"
       - size: 4
         if: asset_type_int == 2
       - id: placeholder_name
         type: strz
-        encoding: cp1250
+        encoding: windows-1250
         size-eos: true
         if: asset_type_int == 2
     instances:
@@ -584,7 +945,7 @@ types:
       - id: name
         size: 32
         type: strz
-        encoding: cp1250
+        encoding: windows-1250
       - size: 8
       - id: last_color
         type: u1
@@ -722,19 +1083,16 @@ types:
         doc: Blue component of premultiply color (0-255)
       - id: alpha_mode_raw
         type: u1
-        enum: alpha_mode
         doc: |
           Alpha interpretation mode. When no_alpha (3), the footage has no alpha channel.
       - size: 9
       - id: field_separation_type_raw
         type: u1
-        enum: field_separation_type
         doc: |
           0 = OFF, 1 = enabled (check field_order for UPPER vs LOWER)
       - size: 3
       - id: field_order
         type: u1
-        enum: field_order
         doc: |
           Field order when field separation is enabled
       - size: 41
@@ -770,46 +1128,34 @@ types:
       pixel_aspect:
         value: 'pixel_ratio_width.as<f4> / pixel_ratio_height.as<f4>'
       has_alpha:
-        value: alpha_mode_raw != alpha_mode::no_alpha
-        doc: True if footage has an alpha channel
+        value: alpha_mode_raw != 3
+        doc: True if footage has an alpha channel (3 means no_alpha)
   tdb4_body:
     seq:
       - size: 2
       - id: dimensions
         type: u2
         doc: Number of values in a multi-dimensional
-      - size: 1  # skip first byte
+      - size: 1
       - type: b4  # skip bits 7-4
       - id: is_spatial
         type: b1  # bit 3
       - type: b2  # skip bits 2-1
       - id: static
         type: b1  # bit 0
-      - size: 1
-      - size: 1
-        doc: Some sort of flag, it has value 03 for position properties
-      - size: 2
-      - size: 2
-      - size: 2
-        doc: Always 0000 ?
-      - size: 2
-        doc: 2nd most significant bit always on, perhaps some kind of flag
-      - type: f8
-        doc: Most of the time 0.0001
-      - type: f8
-        doc: Most of the time 1.0, sometimes 1.777
-      - type: f8
-        doc: Always 1.0?
-      - type: f8
-        doc: Always 1.0?
-      - type: f8
-        doc: Always 1.0?
+      - size: 10
+        doc: Unknown bytes including flags
+      - id: unknown_floats
+        type: f8
+        repeat: expr
+        repeat-expr: 5
+        doc: Unknown f8 values (usually 0.0001, 1.0, 1.0, 1.0, 1.0)
       # property_control_type - 4 bytes
-      - size: 1  # skip first byte
+      - size: 1
       - type: b7  # skip bits 7-1
       - id: no_value
         type: b1  # bit 0
-      - size: 1  # skip second byte
+      - size: 1
       - type: b4  # skip bits 7-4
       - id: vector
         type: b1  # bit 3
@@ -818,32 +1164,23 @@ types:
       - type: b1  # skip bit 1
       - id: color
         type: b1  # bit 0
-      - size: 1
-        doc: Seems correlated with the previous byte, 04 for enum properties
-      - size: 7
-        doc: Bunch of 00
+      - size: 8
+        doc: Unknown bytes including type correlated byte
       - id: animated
         type: u1
-      - size: 7
-        doc: Bunch of 00
-      - size: 4
-        doc: Usually 0, probs flags
-      - size: 4
-        doc: Most likely flags, only last byte seems to contain data
-      - type: f8
-        doc: Always 0.0?
-      - type: f8
-        doc: Mostly 0.0, sometimes 0.333
-      - type: f8
-        doc: Always 0.0?
-      - type: f8
-        doc: Mostly 0.0, sometimes 0.333
-      - size: 3  # skip first 3 bytes
+      - size: 15
+        doc: Unknown bytes and flags
+      - id: unknown_floats_2
+        type: f8
+        repeat: expr
+        repeat-expr: 4
+        doc: Unknown f8 values (usually 0.0, sometimes 0.333)
+      - size: 3
       - type: b7  # skip first 7 bits
       - id: expression_disabled
         type: b1  # bit 0
       - size: 4
-        doc: Probs some flags
+        doc: Unknown flags
     instances:
       expression_enabled:
         value: 'not expression_disabled'
@@ -861,17 +1198,13 @@ types:
         type: b1  # bit 0
   utf8_body:
     seq:
-      - id: data
+      - id: contents
         type: str
-        encoding: utf8
+        encoding: UTF-8
         size-eos: true
 
 enums:
-  bits_per_channel: # project bit bits_per_channel
-    0: bpc_8
-    1: bpc_16
-    2: bpc_32
-  item_type: # type of item. See: http://docs.aenhancers.com/items/item/#item-item_type
+  item_type: # type of item. See: https://ae-scripting.docsforadobe.dev/item/item/#itemtypename
     1: folder
     4: composition
     7: footage
@@ -884,22 +1217,6 @@ enums:
     2: camera
     3: text
     4: shape
-  light_type:
-    0: parallel
-    1: spot
-    2: point
-    3: ambient
-  auto_orient_type:
-    0: no_auto_orient
-    1: along_path
-    2: camera_or_point_of_interest
-    3: characters_toward_camera
-  track_matte_type:
-    0: none
-    1: alpha
-    2: alpha_inverted
-    3: luma
-    4: luma_inverted
   label:
     0: none
     1: red
@@ -918,20 +1235,6 @@ enums:
     14: cyan
     15: sandstone
     16: dark_green
-  layer_quality:
-    0: wireframe
-    1: draft
-    2: best
-  frame_blending_type:
-    0: frame_mix
-    1: pixel_motion
-  sampling_quality:
-    0: bilinear
-    1: bicubic
-  keyframe_interpolation_type:
-    1: linear
-    2: bezier
-    3: hold
   property_control_type:
     0: layer
     # 1: integer ?
@@ -949,66 +1252,7 @@ enums:
     # 14: ??
     15: unknown
     18: three_d
-  blending_mode:
-    2: normal
-    3: dissolve
-    4: add
-    5: multiply
-    6: screen
-    7: overlay
-    8: soft_light
-    9: hard_light
-    10: darken
-    11: lighten
-    12: classic_difference
-    13: hue
-    14: saturation
-    15: color
-    16: luminosity
-    17: stencil_alpha
-    18: stencil_luma
-    19: silhouete_alpha
-    20: silhouette_luma
-    21: luminescent_premul
-    22: alpha_add
-    23: classic_color_dodge
-    24: classic_color_burn
-    25: exclusion
-    26: difference
-    27: color_dodge
-    28: color_burn
-    29: linear_dodge
-    30: linear_burn
-    31: linear_light
-    32: vivid_light
-    33: pin_light
-    34: hard_mix
-    35: lighter_color
-    36: darker_color
-    37: subtract
-    38: divide
-  time_display_type:
-    0: timecode
-    1: frames
-  footage_timecode_display_start_type:
-    0: ftcs_start_0
-    1: ftcs_use_source_media
-  frames_count_type:
-    0: fc_start_0
-    1: fc_start_1
-    2: fc_timecode_conversion
-  alpha_mode:
-    0: straight
-    1: premultiplied
-    2: ignore
-    3: no_alpha
-  field_separation_type:
-    0: off
-    1: enabled
-  field_order:
-    0: upper_field_first
-    1: lower_field_first
-  property_value_type:
+  ldat_item_type:
     0:
       id: unknown
       doc: unknown
@@ -1063,26 +1307,13 @@ enums:
       doc: TextDocument object
     14:
       id: lrdr
-      doc: Render queue data
+      doc: Render Queue Item settings
     15:
       id: litm
-      doc: Render Queue items
+      doc: Output Module settings
     16:
       id: gide
       doc: ??
     17:
       id: orientation
       doc: ??
-  # ae_version:  # https://github.com/tinogithub/aftereffects-version-check/blob/main/ae-builds.json
-  #   0x5c06073806b4: v15_0
-  #   0x5d040b0006eb: v16_0
-  #   0x5d040b000e30: v16_0_1
-  #   0x5d050b009637: v16_1_2
-  #   0x5d050b009e05: v16_1_3
-  #   0x5d094b08062b: v17_0
-  #   0x5d0b0b08263b: v17_0_4
-  #   0x5d1b0b110e08: v18_2_1
-  #   0x5d1d0b120626: v18_4
-  #   0x5d1d0b70066f: v22_0
-  #   0x5d2b0b33063b: v22_6
-  #   0x5e030b390e03: v23_2_1

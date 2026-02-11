@@ -12,42 +12,53 @@ if typing.TYPE_CHECKING:
 @dataclass
 class Item(ABC):
     """
-    Abstract base class storing information about folders, compositions, or
-    footages.
+    The `Item` object represents an item that can appear in the Project panel.
 
-    Attributes:
-        comment: The item comment.
-        item_id: The item unique identifier.
-        label: The label color. Colors are represented by their number
-            (0 for None, or 1 to 16 for one of the preset colors in the
-            Labels preferences).
-        name: The name of the item, as shown in the Project panel.
-        parent_folder: The parent folder of this item. None for the root
-            folder.
-        type_name: A user-readable name for the item type ("Folder",
-            "Footage" or "Composition"). These names are application
-            locale-dependent, meaning that they are different depending on
-            the application's UI language.
+    Info:
+        `Item` is the base class for `AVItem` object and for `FolderItem`
+        object, which are in turn the base classes for various other item
+        types, so `Item` attributes and methods are available when working with
+        all of these item types.
+
+    See: https://ae-scripting.docsforadobe.dev/item/item/
     """
 
     comment: str
-    item_id: int
+    """The item comment."""
+
+    id: int
+    """The item unique identifier."""
+
     label: Aep.Label
+    """
+    The label color. Colors are represented by their number (0 for None, or 1
+    to 16 for one of the preset colors in the Labels preferences).
+    """
+
     name: str
+    """The name of the item, as shown in the Project panel."""
+
     parent_folder: FolderItem | None = field(repr=False)
+    """The parent folder of this item. `None` for the root folder."""
+
     type_name: str
+    """
+    A user-readable name for the item type ("Folder", "Footage" or
+    "Composition"). These names are application locale-dependent, meaning that
+    they are different depending on the application's UI language.
+    """
 
     @property
     def is_folder(self) -> bool:
-        """True if the item is a folder."""
+        """`True` if the item is a folder."""
         return self.type_name == "Folder"
 
     @property
     def is_composition(self) -> bool:
-        """True if the item is a composition."""
+        """`True` if the item is a composition."""
         return self.type_name == "Composition"
 
     @property
     def is_footage(self) -> bool:
-        """True if the item is a footage."""
+        """`True` if the item is a footage."""
         return self.type_name == "Footage"

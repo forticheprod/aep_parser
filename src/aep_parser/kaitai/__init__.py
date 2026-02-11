@@ -2,6 +2,7 @@
 
 from .aep_optimized import Aep
 from .utils import (
+    ChunkNotFoundError,
     filter_by_list_type,
     filter_by_type,
     find_by_list_type,
@@ -11,6 +12,7 @@ from .utils import (
 
 __all__ = [
     "Aep",
+    "ChunkNotFoundError",
     "filter_by_list_type",
     "filter_by_type",
     "find_by_list_type",

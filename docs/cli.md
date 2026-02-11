@@ -36,7 +36,7 @@ aep-validate project.aep expected.json --category layers
 | Option | Description |
 |--------|-------------|
 | `--verbose`, `-v` | Show all differences in detail |
-| `--category`, `-c` | Filter results by category (e.g., `layers`, `properties`, `items`) |
+| `--category`, `-c` | Filter results by category: `project`, `composition`, `layers`, `markers`, `folders`, `renderqueue` |
 
 ### Example
 
@@ -49,6 +49,9 @@ aep-validate my_project.aep expected_output.json --verbose
 
 # Only show layer-related differences
 aep-validate my_project.aep expected_output.json --category layers
+
+# Only show render queue differences
+aep-validate my_project.aep expected_output.json --category renderqueue
 ```
 
 ### Output
@@ -57,7 +60,7 @@ The tool reports:
 
 - ✓ Number of matching values
 - ✗ Number of mismatches with details
-- Differences categorized by type (project, items, layers, properties)
+- Differences categorized by type (project, composition, layers, markers, folders, renderqueue)
 
 ---
 
@@ -72,6 +75,7 @@ aep-compare file1.aep file2.aep
 aep-compare file1.aepx file2.aepx
 aep-compare file1.aep file2.aep --json
 aep-compare file1.aep file2.aep --filter ldta
+aep-compare file1.aep file2.aep --format aepx
 ```
 
 ### Arguments
@@ -85,8 +89,9 @@ aep-compare file1.aep file2.aep --filter ldta
 
 | Option | Description |
 |--------|-------------|
+| `--format` | File format: `auto` (default), `aep`, or `aepx`. Auto-detects from extension |
 | `--json` | Output differences in JSON format |
-| `--filter` | Filter differences by chunk type (e.g., `ldta`, `cdta`) |
+| `--filter` | Filter differences by chunk type pattern (case-insensitive, e.g., `ldta`, `LIST:Layr`) |
 
 ### Example
 
@@ -102,6 +107,9 @@ aep-compare original.aep modified.aep --json > diff.json
 
 # Only show differences in layer data (ldta) chunks
 aep-compare original.aep modified.aep --filter ldta
+
+# Filter by LIST chunk type
+aep-compare original.aep modified.aep --filter "LIST:Layr"
 ```
 
 ### Output
@@ -158,16 +166,30 @@ aep-visualize project.aep --no-properties
 ASCII tree representation in the terminal:
 
 ```
-Project: my_project.aep
-├── Comp 1 (1920x1080, 30fps)
-│   ├── Layer: Background
-│   │   ├── Transform
-│   │   │   ├── Position [100, 200]
-│   │   │   └── Scale [100, 100]
-│   │   └── Effects
-│   └── Layer: Text Layer
-└── Footage: image.png
+📦 my_project.aep {'ae_version': '25.2x26', 'bits_per_channel': 'BPC_8', 'frame_rate': 30.0}
+├── 🎬 Comp 1 {'size': '1920x1080', 'duration': '10.00s', 'frame_rate': 30.0, 'layers_count': 2}
+│   ├── 📄 Background {'type': 'SOLID'}
+│   │   └── 🔄 Transform {'properties': 5}
+│   └── 📄 Text Layer {'type': 'TEXT'}
+├── 🎞️ image.png {'asset_type': 'image', 'size': '1920x1080'}
+└── 🎯 Render Queue {'items': 1}
+    └── 📋 Item 1 {'output_modules': 1, 'comp': 'Comp 1'}
+        └── 💾 Output Module {'file': 'output.mov', 'template': 'Lossless'}
 ```
+
+The visualization includes:
+
+- **📦 Project**: Root project with version and settings
+- **📁 Folder**: Folder items containing other items
+- **🎬 Composition**: Compositions with layers
+- **🎞️ Footage**: Footage items (images, video, solids)
+- **📄 Layer**: Layers within compositions
+- **🔄 Transform**: Transform property groups
+- **📂 PropertyGroup**: Property groups (effects, text properties)
+- **⚙️ Property**: Individual properties
+- **🎯 RenderQueue**: Render queue (if items present)
+- **📋 RenderQueueItem**: Individual render queue items
+- **💾 OutputModule**: Output module settings
 
 #### DOT (Graphviz)
 Generate DOT format for rendering with Graphviz:

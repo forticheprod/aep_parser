@@ -48,16 +48,19 @@ from .enums import (
 )
 from .items.av_item import AVItem
 from .items.composition import CompItem
-from .items.folder import Folder
+from .items.folder import FolderItem
 from .items.footage import FootageItem
 from .items.item import Item
 from .layers.av_layer import AVLayer
 from .layers.layer import Layer
 from .project import Project
 from .properties.keyframe import Keyframe
-from .properties.marker import Marker
+from .properties.marker import MarkerValue
 from .properties.property import Property
 from .properties.property_group import PropertyGroup
+from .renderqueue.output_module import OutputModule
+from .renderqueue.render_queue import RenderQueue
+from .renderqueue.render_queue_item import RenderQueueItem
 
 __all__ = [
     "AlphaMode",
@@ -75,7 +78,7 @@ __all__ = [
     "FillMethodType",
     "FillOutputDepthType",
     "FillRangeType",
-    "Folder",
+    "FolderItem",
     "FootageItem",
     "FootageTimecodeDisplayStartType",
     "FrameBlendingType",
@@ -93,10 +96,11 @@ __all__ = [
     "LightType",
     "LogType",
     "LoopMode",
-    "Marker",
+    "MarkerValue",
     "MaskFeatherFalloff",
     "MaskMode",
     "MaskMotionBlur",
+    "OutputModule",
     "ParagraphJustification",
     "PlayMode",
     "PostRenderAction",
@@ -110,6 +114,8 @@ __all__ = [
     "PulldownMethod",
     "PulldownPhase",
     "PurgeTarget",
+    "RenderQueue",
+    "RenderQueueItem",
     "ResolveType",
     "RQItemStatus",
     "TimeDisplayType",

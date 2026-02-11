@@ -13,16 +13,28 @@ A Python library for parsing Adobe After Effects project files (.aep). The binar
 ### Key Directories
 - **`src/aep_parser/kaitai/`** - Binary parsing layer
   - `aep.ksy` - Kaitai schema defining RIFX chunk structure (auto-generates `aep.py`)
+  - `aep_optimized.py` - Performance optimizations via monkey-patching
   - `utils.py` - Chunk filtering helpers (`find_by_type`, `filter_by_list_type`)
 - **`src/aep_parser/parsers/`** - Transform raw chunks into models
   - Entry point: `project.py::parse_project()` 
+  - `mappings.py` - Binary value → ExtendScript enum mappings
+  - `match_names.py` - Effect/property match name lookups
+  - `render_queue.py` - Render queue and output module parsing
   - Pattern: Each parser receives chunks + context, returns a model instance
 - **`src/aep_parser/models/`** - Typed dataclasses mirroring AE's object model
-  - `items/` - Project items (CompItem, FootageItem, Folder)
-  - `layers/` - Layer types (AVLayer, Layer base class)
-  - `properties/` - Effects and animation properties (Property, PropertyGroup, Keyframe, Marker)
+  - `items/` - Project items (CompItem, FootageItem, FolderItem)
+  - `layers/` - Layer types (AVLayer, CameraLayer, LightLayer, TextLayer, ShapeLayer)
+  - `properties/` - Effects and animation properties (Property, PropertyGroup, Keyframe, MarkerValue)
   - `sources/` - Footage sources (FileSource, SolidSource, PlaceholderSource)
+  - `renderqueue/` - Render queue models (RenderQueueItem, RenderSettings, OutputModule)
+- **`src/aep_parser/cli/`** - Command-line tools
+  - `visualize.py` - Tree visualization of parsed projects
+  - `validate.py` - Validate parsed output against ExtendScript JSON
+  - `compare.py` - Compare two parsed projects
 - **`src/aep_parser/cos/`** - COS (PDF) format parser for embedded data in text properties (from python-lottie)
+- **`scripts/`** - Development and analysis scripts
+  - `jsx/` - ExtendScript files for exporting AE project data as JSON
+  - Python scripts for binary format analysis and reverse engineering
 - **`samples/`** - Test .aep files covering specific features
 
 ## Development Commands
@@ -68,9 +80,8 @@ mkdocs serve
 3. Add parser function in `parsers/` following the pattern:
    ```python
    def parse_thing(chunk: Aep.Chunk, context: ...) -> ThingModel:
-       child_chunks = chunk.data.chunks
-       data_chunk = find_by_type(chunks=child_chunks, chunk_type="xxxx")
-       return ThingModel(field=data_chunk.data.field)
+       data_chunk = find_by_type(chunks=chunk.chunks, chunk_type="xxxx")
+       return ThingModel(field=data_chunk.field)
    ```
 4. Add test case in `tests/test_models_*.py` using sample .aep files
 
@@ -106,6 +117,21 @@ fold_chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")
 layer_chunks = filter_by_list_type(chunks=comp_chunks, list_type="Layr")
 ```
 
+### Value Mapping Pattern
+Binary values often differ from ExtendScript API values. Use mapping functions in `parsers/mappings.py` when this is the case:
+```python
+from aep_parser.parsers.mappings import map_blending_mode, map_layer_quality
+
+# Map binary value to enum
+blending_mode = map_blending_mode(raw_value)  # Returns BlendingMode enum
+quality = map_layer_quality(raw_value)        # Returns LayerQuality enum
+```
+
+When adding new mappings:
+1. Add the enum to `models/enums.py` (matching ExtendScript values)
+2. Create `map_<name>()` function in `parsers/mappings.py`
+3. Use `.get(value, default)` for unknown values
+
 ## Testing
 - Tests use sample .aep files from `samples/` directory
 - Each sample file tests a specific AE feature (markers, expressions, compositions, etc.)
@@ -124,6 +150,20 @@ No manual modifications are needed after regeneration. Performance optimizations
 - Python 3.7+ compatibility required (no walrus operator, no match case, use union types via annotations)
 - Model docstrings should reference equivalent After Effects ExtendScript properties from [After Effects Scripting Guide](https://ae-scripting.docsforadobe.dev/).
 
+## CLI Tools
+The package includes command-line tools for development and testing:
+
+```powershell
+# Visualize parsed project as tree
+python -m aep_parser.cli.visualize samples/models/composition/bgColor_custom.aep
+
+# Validate parsed output against ExtendScript JSON export
+python -m aep_parser.cli.validate samples/versions/ae2025/complete.aep samples/versions/ae2025/complete.json
+
+# Compare two parsed projects
+python -m aep_parser.cli.compare project1.aep project2.aep
+```
+
 ## Documentation
 
 ### Overview
@@ -140,14 +180,13 @@ docs/
 ├── api/                  # Auto-generated API reference
 │   ├── index.md          # API overview with parse_project() entry point
 │   ├── project.md        # Project dataclass
-│   ├── items/            # CompItem, FootageItem, Folder
+│   ├── items/            # CompItem, FootageItem, FolderItem
 │   ├── layers/           # AVLayer, TextLayer, ShapeLayer, etc.
-│   ├── properties/       # Property, PropertyGroup, Keyframe, Marker
+│   ├── properties/       # Property, PropertyGroup, Keyframe, MarkerValue
 │   ├── sources/          # FileSource, SolidSource, PlaceholderSource
 │   ├── enums.md          # All enumerations
 │   └── parsers.md        # Internal parsing functions
-└── guides/
-    └── flags_tutorial.md # Binary format debugging guide
+└── contributing.md       # Links to gituhub contributing guide
 ```
 
 ### Building Documentation Locally
@@ -168,21 +207,40 @@ For proper documentation generation, all public classes, methods, and functions 
 ```python
 def parse_thing(chunk: Aep.Chunk, context: Context) -> ThingModel:
     """Parse a Thing from AEP chunk data.
-    
+
     Args:
         chunk: The RIFX chunk containing Thing data.
         context: Parsing context with shared state.
-    
-    Returns:
-        A ThingModel instance with parsed data.
     """
     # implementation
 ```
 
+For dataclass attributes, use **inline docstrings** after each field instead of an `Attributes:` section:
+
+```python
+@dataclass
+class CompItem(AVItem):
+    """Composition item containing layers."""
+
+    bg_color: list[float]
+    """
+    The background color of the composition. The three array values specify
+    the red, green, and blue components of the color.
+    """
+
+    frame_rate: float
+    """The frame rate of the composition."""
+
+    layers: list[Layer]
+    """All the Layer objects for layers in this composition."""
+```
+
 **Key points**:
-- Use Google-style docstrings (the default for mkdocstrings)
+- Use Google-style docstrings for functions (Args, Returns, Raises sections)
+- Use inline docstrings after each dataclass field (mkdocstrings displays them as attribute docs)
 - Include type hints in function signatures (displayed automatically)
 - Reference AE ExtendScript properties in attribute descriptions
+- Keep lines under 80 characters (use multi-line docstrings when needed)
 
 ### Documentation Configuration
 Configuration in `mkdocs.yml` enables:

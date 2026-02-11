@@ -1,0 +1,178 @@
+{
+  "projectName": "base.aep",
+  "bitsPerChannel": 32,
+  "colorManagementSystem": 1,
+  "compensateForSceneReferredProfiles": false,
+  "displayStartFrame": 0,
+  "expressionEngine": "extendscript",
+  "feetFramesFilmType": 2413,
+  "footageTimecodeDisplayStartType": 2212,
+  "framesCountType": 2612,
+  "framesUseFeetFrames": true,
+  "gpuAccelType": 1813,
+  "linearBlending": true,
+  "linearizeWorkingSpace": true,
+  "lutInterpolationMethod": 1,
+  "numItems": 1,
+  "ocioConfigurationFile": "ACES 1.2",
+  "timeDisplayType": 2012,
+  "transparencyGridThumbnails": true,
+  "usedFonts": [
+    
+  ],
+  "workingGamma": 2.4,
+  "workingSpace": "None",
+  "items": [
+    {
+      "activeCamera": null,
+      "bgColor": [
+        0.2,
+        0.4,
+        0.6
+      ],
+      "comment": "",
+      "counters": false,
+      "displayStartFrame": 0,
+      "displayStartTime": 0,
+      "draft3d": false,
+      "dropFrame": false,
+      "duration": 30,
+      "footageMissing": false,
+      "frameBlending": false,
+      "frameDuration": 0.04166666666667,
+      "frameRate": 24,
+      "frameTime": 0,
+      "hasAudio": false,
+      "hasVideo": true,
+      "height": 1080,
+      "hideShyLayers": false,
+      "id": 1,
+      "isMediaReplacementCompatible": true,
+      "label": 15,
+      "motionBlur": false,
+      "motionBlurAdaptiveSampleLimit": 128,
+      "motionBlurSamplesPerFrame": 16,
+      "motionGraphicsTemplateControllerCount": 0,
+      "motionGraphicsTemplateName": "Untitled",
+      "name": "Comp 1",
+      "numLayers": 0,
+      "pixelAspect": 1,
+      "preserveNestedFrameRate": false,
+      "preserveNestedResolution": false,
+      "renderer": "ADBE Advanced 3d",
+      "renderers": [
+        "ADBE Advanced 3d",
+        "ADBE Calder",
+        "ADBE Ernst"
+      ],
+      "resolutionFactor": [
+        1,
+        1
+      ],
+      "shutterAngle": 180,
+      "shutterPhase": 0,
+      "time": 0,
+      "typeName": "Composition",
+      "useProxy": false,
+      "width": 1920,
+      "workAreaDuration": 30,
+      "workAreaStart": 0,
+      "itemType": "CompItem",
+      "markers": [
+        
+      ],
+      "layers": [
+        
+      ]
+    }
+  ],
+  "renderQueue": {
+    "numItems": 1,
+    "items": [
+      {
+        "numOutputModules": 1,
+        "outputModules": [
+          {
+            "file": "C:\\Users\\aurore.delaunay\\Downloads\\Comp 1.mp4",
+            "templates": [
+              "AIFF 48kHz",
+              "Alpha Only",
+              "H.264 - Match Render Settings -  5 Mbps",
+              "H.264 - Match Render Settings - 15 Mbps",
+              "H.264 - Match Render Settings - 40 Mbps",
+              "High Quality",
+              "High Quality with Alpha",
+              "Lossless",
+              "Lossless with Alpha",
+              "Multi-Machine Sequence",
+              "Photoshop",
+              "TIFF Sequence with Alpha",
+              "_HIDDEN X-Factor 16",
+              "_HIDDEN X-Factor 16 Premul",
+              "_HIDDEN X-Factor 32",
+              "_HIDDEN X-Factor 32 Premul",
+              "_HIDDEN X-Factor 8",
+              "_HIDDEN X-Factor 8 Premul"
+            ],
+            "name": "H.264 - Match Render Settings - 15 Mbps",
+            "postRenderAction": 3612,
+            "includeSourceXMP": false,
+            "settings": {
+              "Audio Bit Depth": 2,
+              "Audio Channels": 2,
+              "Audio Sample Rate": 48000,
+              "Channels": 0,
+              "Color": 1,
+              "Crop": false,
+              "Crop Bottom": 0,
+              "Crop Left": 0,
+              "Crop Right": 0,
+              "Crop Top": 0,
+              "Depth": 24,
+              "Format": 3,
+              "Include Project Link": true,
+              "Include Source XMP Metadata": false,
+              "Lock Aspect Ratio": true,
+              "Output Audio": 3,
+              "Post-Render Action": 0,
+              "Resize": false,
+              "Resize Quality": 1,
+              "Starting #": 0,
+              "Use Comp Frame Number": true,
+              "Use Region of Interest": false,
+              "Video Output": true
+            }
+          }
+        ],
+        "status": 3015,
+        "render": true,
+        "startTime": null,
+        "skipFrames": 0,
+        "timeSpanStart": 0,
+        "timeSpanDuration": 30,
+        "compName": "Comp 1",
+        "settings": {
+          "3:2 Pulldown": 0,
+          "Color Depth": -1,
+          "Disk Cache": 0,
+          "Effects": 2,
+          "Field Render": 0,
+          "Frame Blending": 1,
+          "Frame Rate": 0,
+          "Guide Layers": 0,
+          "Motion Blur": 1,
+          "Proxy Use": 0,
+          "Quality": 2,
+          "Skip Existing Files": false,
+          "Solo Switches": 2,
+          "Time Span": 1,
+          "Time Span Duration": 30,
+          "Time Span End": 30,
+          "Time Span Start": 0,
+          "Use comp's frame rate": 24,
+          "Use this frame rate": 24
+        }
+      }
+    ]
+  }
+}

@@ -2,7 +2,7 @@
   "projectName": "lutInterpolationMethod_tetrahedral.aep",
   "bitsPerChannel": 32,
   "colorManagementSystem": 0,
-  "compensateForSceneReferredProfiles": true,
+  "compensateForSceneReferredProfiles": false,
   "displayStartFrame": 0,
   "expressionEngine": "extendscript",
   "feetFramesFilmType": 2413,
@@ -24,5 +24,11 @@
   "workingSpace": "None",
   "items": [
     
-  ]
+  ],
+  "renderQueue": {
+    "numItems": 0,
+    "items": [
+      
+    ]
+  }
 }

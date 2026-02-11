@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, Generator, TextIO
 
 from ..models.items.composition import CompItem
-from ..models.items.folder import Folder
+from ..models.items.folder import FolderItem
 from ..models.items.footage import FootageItem
 from ..models.layers.layer import Layer
 from ..models.project import Project
@@ -44,6 +44,7 @@ def build_project_node(
     """Build the root project node."""
     attrs: dict[str, Any] = {
         "ae_version": project.ae_version,
+        "ae_build_number": project.ae_build_number,
         "bits_per_channel": project.bits_per_channel.name,
         "frame_rate": project.frame_rate,
         "expression_engine": project.expression_engine,
@@ -53,9 +54,14 @@ def build_project_node(
 
     children: list[dict[str, Any]] = []
     root = project.root_folder
-    for item_id in root.folder_items:
-        item = project.project_items[item_id]
+    assert root is not None, "Could not find root folder in project"
+    for item in root:
         children.append(build_item_node(item, project, include_properties))
+
+    # Add render queue if it has items
+    assert project.render_queue is not None, "Project render_queue should not be None"
+    if project.render_queue.items:
+        children.append(build_render_queue_node(project))
 
     return {
         "type": "Project",
@@ -69,7 +75,7 @@ def build_item_node(
     item: Any, project: Project, include_properties: bool = True
 ) -> dict[str, Any]:
     """Build a node for any item type."""
-    if isinstance(item, Folder):
+    if isinstance(item, FolderItem):
         return build_folder_node(item, project, include_properties)
     elif isinstance(item, CompItem):
         return build_comp_node(item, project, include_properties)
@@ -85,12 +91,11 @@ def build_item_node(
 
 
 def build_folder_node(
-    folder: Folder, project: Project, include_properties: bool = True
+    folder: FolderItem, project: Project, include_properties: bool = True
 ) -> dict[str, Any]:
     """Build a folder node with its children."""
     children: list[dict[str, Any]] = []
-    for item_id in folder.folder_items:
-        item = project.project_items[item_id]
+    for item in folder:
         children.append(build_item_node(item, project, include_properties))
 
     return {
@@ -197,7 +202,7 @@ def build_property_group_node(group: PropertyGroup) -> dict[str, Any]:
     if group.is_effect:
         attrs["effect"] = True
 
-    children = [build_property_node(p) for p in group.properties]
+    children = [build_property_or_group_node(p) for p in group.properties]
 
     return {
         "type": "PropertyGroup",
@@ -205,6 +210,13 @@ def build_property_group_node(group: PropertyGroup) -> dict[str, Any]:
         "attrs": attrs,
         "children": children,
     }
+
+
+def build_property_or_group_node(prop: Property | PropertyGroup) -> dict[str, Any]:
+    """Build a property or property group node."""
+    if isinstance(prop, PropertyGroup):
+        return build_property_group_node(prop)
+    return build_property_node(prop)
 
 
 def build_property_node(prop: Property) -> dict[str, Any]:
@@ -228,6 +240,67 @@ def build_property_node(prop: Property) -> dict[str, Any]:
     return {
         "type": "Property",
         "name": prop.name,
+        "attrs": attrs,
+        "children": [],
+    }
+
+
+def build_render_queue_node(project: Project) -> dict[str, Any]:
+    """Build a render queue node with its items."""
+    assert project.render_queue is not None, "Project render_queue should not be None"
+    attrs: dict[str, Any] = {
+        "items": len(project.render_queue.items),
+    }
+
+    children: list[dict[str, Any]] = []
+    for i, item in enumerate(project.render_queue.items):
+        children.append(build_render_queue_item_node(item, i + 1, project))
+
+    return {
+        "type": "RenderQueue",
+        "name": "Render Queue",
+        "attrs": attrs,
+        "children": children,
+    }
+
+
+def build_render_queue_item_node(
+    item: Any, index: int, project: Project
+) -> dict[str, Any]:
+    """Build a render queue item node with output modules."""
+    attrs: dict[str, Any] = {
+        "output_modules": len(item.output_modules),
+    }
+
+    # Try to find the comp name
+    comp = item.comp
+    attrs["comp"] = getattr(comp, "name", None)
+
+    children: list[dict[str, Any]] = []
+    for om in item.output_modules:
+        children.append(build_output_module_node(om))
+
+    return {
+        "type": "RenderQueueItem",
+        "name": f"Item {index}",
+        "attrs": attrs,
+        "children": children,
+    }
+
+
+def build_output_module_node(om: Any) -> dict[str, Any]:
+    """Build an output module node."""
+    attrs: dict[str, Any] = {}
+    if om.file:
+        attrs["file"] = Path(om.file).name
+    if om.templates:
+        attrs["template"] = om.templates
+    if om.file_name_template:
+        attrs["name_template"] = om.file_name_template
+
+    return {
+        "type": "OutputModule",
+        "name": "Output Module",
         "attrs": attrs,
         "children": [],
     }
@@ -265,6 +338,9 @@ def format_text(
         "PropertyGroup": "📂",
         "Property": "⚙️",
         "Transform": "🔄",
+        "RenderQueue": "🎯",
+        "RenderQueueItem": "📋",
+        "OutputModule": "💾",
     }.get(node["type"], "•")
 
     attrs_str = ""

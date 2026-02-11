@@ -32,10 +32,11 @@ AEP Parser transforms binary .aep files into typed Python objects through a thre
 
 **Stage 3: Data Models**
 - `src/aep_parser/models/` - Typed dataclasses mirroring AE's object model
-- `items/` - CompItem, FootageItem, Folder
+- `items/` - CompItem, FootageItem, FolderItem
 - `layers/` - Layer types (AVLayer, TextLayer, ShapeLayer, etc.)
-- `properties/` - Effects and animation (Property, PropertyGroup, Keyframe, Marker)
+- `properties/` - Effects and animation (Property, PropertyGroup, Keyframe, MarkerValue)
 - `sources/` - Footage sources (FileSource, SolidSource, PlaceholderSource)
+- `renderqueue/` - Render queue (RenderQueueItem, RenderSettings, OutputModule)
 
 ### Key Concepts
 
@@ -119,19 +120,17 @@ This JSON serves as "ground truth" for validating the Python parser.
 3. Select the `samples/` folder
 4. Script creates one .aep file per test case
 
-These samples cover all attributes and are used by the test suite.
+These samples cover many attributes and are used by the test suite.
 
 ### Debugging Tips
 
 #### Finding Chunk Types
 
-Use `aep-visualize` to explore the chunk structure:
+Use `aep-visualize` to see the parsed project as a DAG:
 
 ```bash
 aep-visualize samples/models/composition/bgColor_custom.aep --depth 3
 ```
-
-Look for the chunk types containing your target data.
 
 #### Comparing Files
 
@@ -195,17 +194,13 @@ Note the chunk type and byte position.
 If the chunk isn't already parsed, add it to `aep.ksy`:
 
 ```yaml
-# Example: Add a new chunk type
-- id: my_new_chunk
+- id: data
   type:
     switch-on: chunk_type
     cases:
       '"cdta"': chunk_cdta
-      '"ldta"': chunk_ldta
-      '"xxxx"': chunk_xxxx  # <-- Add this
+      '"xxxx"': chunk_xxxx  # Add new chunk type
 ```
-
-For boolean flags, see the [Flags Tutorial](flags_tutorial.md).
 
 #### 3. Regenerate Kaitai Parser
 
@@ -217,23 +212,24 @@ kaitai-struct-compiler --target python \
 
 #### 4. Update the Model
 
-Add the attribute to the appropriate dataclass in `models/`:
+Add the attribute to the appropriate dataclass in `models/`. Use **inline docstrings** after each field:
 
 ```python
 @dataclass
 class CompItem(AVItem):
     """Composition item containing layers."""
-    
+
     # ... existing fields ...
-    
-    shutter_angle: float
-    """Shutter angle in degrees for motion blur.
-    
-    Corresponds to CompItem.shutterAngle in ExtendScript.
+
+    shutter_angle: int
+    """
+    The shutter angle setting for the composition. This corresponds to the
+    Shutter Angle setting in the Advanced tab of the Composition Settings
+    dialog box.
     """
 ```
 
-**Important**: Always add docstrings referencing the [After Effects Scripting Guide](https://ae-scripting.docsforadobe.dev/).
+**Important**: Always add docstrings similar to the [After Effects Scripting Guide](https://ae-scripting.docsforadobe.dev/). Keep docstring lines under 80 characters.
 
 #### 5. Update the Parser
 
@@ -244,15 +240,23 @@ def parse_comp_item(chunk: Aep.Chunk, context: Context) -> CompItem:
     """Parse a composition item."""
     
     # Find the chunk containing your data
-    data_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
+    cdta_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     
     return CompItem(
         # ... other arguments ...
-        shutter_angle=data_chunk.data.shutter_angle,  # <-- Add this
+        shutter_angle=cdta_chunk.shutter_angle,  # <-- Add this
     )
 ```
 
-#### 6. Add Tests
+#### 6. Add Enum Mappings (only if the binary values do not match ExtendScript values)
+
+Binary values often differ from ExtendScript API values:
+
+1. Add the enum to `models/enums.py` (matching ExtendScript values)
+2. Create `map_<name>()` function in `parsers/mappings.py`
+3. Use `.get(value, default)` for unknown values
+
+#### 7. Add Tests
 
 Create a test in the appropriate test file:
 
@@ -265,7 +269,7 @@ def test_comp_shutter_angle():
     assert comp.shutter_angle == 180.0
 ```
 
-#### 7. Create Test Samples
+#### 8. Create Test Samples
 
 Use After Effects to create test samples:
 
@@ -275,19 +279,72 @@ Use After Effects to create test samples:
 
 Or use `generate_model_samples.jsx` to generate samples automatically.
 
+### Adding Boolean Flags (1-bit Attributes)
+
+Boolean flags are stored as individual bits within a byte. To add a new boolean flag:
+
+#### 1. Find the Bit Position
+
+Create two .aep files differing only in the boolean attribute, then compare:
+
+```bash
+aep-compare test_false.aep test_true.aep
+```
+
+Convert byte values to binary to identify the bit:
+
+```
+10 (decimal) = 00001010 (binary)
+14 (decimal) = 00001110 (binary)
+                    ^
+                    bit 2 changed
+```
+
+#### 2. Update Kaitai Schema
+
+Add bit fields to `aep.ksy`:
+
+```yaml
+# Read individual bits (from MSB to LSB: 7→0)
+- id: preserve_nested_resolution
+  type: b1  # bit 7
+- type: b1  # skip bit 6
+- id: motion_blur
+  type: b1  # bit 5
+- type: b5  # skip remaining bits
+```
+
+**Important**: All bits in a byte must be accounted for (sum to 8).
+
+#### 3. Wire to Model
+
+Add the attribute to the model with an inline docstring, then update the parser:
+
+```python
+# In model
+motion_blur: bool
+"""When True, motion blur is enabled for the composition."""
+
+# In parser
+motion_blur=flags_chunk.motion_blur,
+```
+
 ### Adding a New Layer Type
 
-To add support for a new layer type (e.g., a plugin-based layer):
+To add support for a new layer type (e.g., ThreeDModelLayer):
 
 1. **Create the model** in `models/layers/`:
 
 ```python
 @dataclass
-class CustomLayer(Layer):
-    """Custom layer type from a plugin."""
-    
-    plugin_name: str
-    """Name of the plugin."""
+class ThreeDModelLayer(AVLayer):
+    """
+    The ThreeDModelLayer object represents a 3D Model layer within a composition.
+
+    See: https://ae-scripting.docsforadobe.dev/layer/threedmodellayer/
+    """
+
+    pass
 ```
 
 2. **Update the parser** in `parsers/layer.py`:
@@ -299,8 +356,8 @@ def parse_layer(chunk: Aep.Chunk, context: Context) -> Layer:
     # Detect layer type
     layer_type = determine_layer_type(chunk)
     
-    if layer_type == "CustomLayer":
-        return parse_custom_layer(chunk, context)
+    if layer_type == "threeDLayer":
+        return parse_3d_layer(chunk, context)
     # ... other layer types ...
 ```
 
@@ -314,7 +371,7 @@ Properties (effects, keyframes, expressions) are more complex. They may require:
 2. **Expression parsing** for expressions (if not already supported)
 3. **Effect parameter parsing** for effect properties
 
-Reference the python-lottie documentation for COS format details: [python-lottie COS module](https://gitlab.com/mattbas/python-lottie/-/tree/master/lib/lottie/parsers/aep)
+python-lottie documentation for COS format details: [python-lottie COS documentation](https://github.com/hunger-zh/lottie-docs/blob/main/docs/aep.md#list-btdk)
 
 ## Testing
 
@@ -343,21 +400,22 @@ Tests are organized by model type:
 - `test_models_layer.py` - Layer types and attributes
 - `test_models_property.py` - Properties, keyframes, effects
 - `test_models_marker.py` - Markers
+- `test_models_renderqueue.py` - Render queue, settings, output modules
 
 ### Writing Tests
 
-Follow the existing test patterns:
+Follow the existing test patterns and compare twith the JSON values whenever possible:
 
 ```python
 def test_attribute_name():
     """Test parsing <attribute> from <object>."""
     # Parse a sample project
     project = parse_project("samples/models/<type>/<attribute>_<value>.aep")
-    
+
     # Navigate to the target object
     comp = project.items[0]
     layer = comp.layers[0]
-    
+
     # Assert the attribute value
     assert layer.attribute_name == expected_value
 ```
@@ -377,10 +435,10 @@ Use the JSX scripts to generate samples systematically.
 ### Python Conventions
 
 - **Type hints**: All functions must have type hints
-- **Imports**: Use `from __future__ import annotations` for forward references
+- **Imports**: Use `from __future__ import annotations` for forward references and modern type syntax
 - **Naming**: `snake_case` for functions/variables, `PascalCase` for classes
 - **Docstrings**: Google-style docstrings for all public functions and classes
-- **Modern types**: Use `list[int]` instead of `List[int]` (Python 3.9+)
+- **Modern types**: Use `list[int]` instead of `List[int]` (works on Python 3.7+ with annotations import)
 
 ### Linting and Type Checking
 
@@ -420,8 +478,6 @@ Documentation is auto-deployed to GitHub Pages when changes are pushed to `main`
 ### Writing Documentation
 
 - **API docs**: Auto-generated from docstrings using mkdocstrings
-- **Guides**: Markdown files in `docs/guides/`
-- **Examples**: Include code examples in docstrings
 
 Reference the [After Effects Scripting Guide](https://ae-scripting.docsforadobe.dev/) in docstrings:
 
@@ -429,8 +485,7 @@ Reference the [After Effects Scripting Guide](https://ae-scripting.docsforadobe.
 def parse_layer(chunk: Aep.Chunk) -> Layer:
     """Parse a layer from AEP chunk data.
     
-    Corresponds to the Layer object in the After Effects Scripting Guide:
-    https://ae-scripting.docsforadobe.dev/layers/layer.html
+    See: https://ae-scripting.docsforadobe.dev/layers/layer
     """
 ```
 
@@ -458,31 +513,20 @@ def parse_thing(chunk: Aep.Chunk, context: Context) -> ThingModel:
     """Parse a Thing from AEP chunk data."""
     
     # Get child chunks
-    child_chunks = chunk.data.chunks
+    child_chunks = chunk.chunks
     
     # Find specific chunks
     data_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     name_chunk = find_by_type(chunks=child_chunks, chunk_type="tdgp")
     
     # Parse name (common pattern)
-    name = name_chunk.data.name.decode("utf-8") if name_chunk else ""
+    name = name_chunk.name.decode("utf-8") if name_chunk else ""
     
     # Return model instance
     return ThingModel(
         name=name,
-        some_value=data_chunk.data.some_value,
+        some_value=data_chunk.some_value,
     )
-```
-
-### Error Handling
-
-```python
-# Gracefully handle missing chunks
-data_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
-if data_chunk:
-    value = data_chunk.data.value
-else:
-    value = None  # or default value
 ```
 
 ## Getting Help
@@ -491,11 +535,10 @@ else:
 - **Discussions**: [GitHub Discussions](https://github.com/forticheprod/aep_parser/discussions)
 - **After Effects Scripting**: [Official Scripting Guide](https://ae-scripting.docsforadobe.dev/)
 - **Kaitai Struct**: [Documentation](https://doc.kaitai.io/)
-- **python-lottie**: [COS parser reference](https://gitlab.com/mattbas/python-lottie/-/tree/master/lib/lottie/parsers/aep)
+- **python-lottie**: [python-lottie documentation](https://github.com/hunger-zh/lottie-docs/blob/main/docs/aep.md)
 
 ## See Also
 
-- [Flags Tutorial](flags_tutorial.md) - Detailed guide for parsing boolean flags
 - [After Effects Scripting Guide](https://ae-scripting.docsforadobe.dev/) - Official AE scripting reference
 - [Kaitai Struct Documentation](https://doc.kaitai.io/) - Binary format parsing
 - [python-lottie](https://gitlab.com/mattbas/python-lottie) - Reference for COS format used in text properties

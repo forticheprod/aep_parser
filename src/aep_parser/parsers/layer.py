@@ -5,9 +5,9 @@ import typing
 from ..kaitai.utils import (
     find_by_list_type,
     find_by_type,
-    get_enum_value,
     str_contents,
 )
+from ..models.enums import LayerQuality, LayerSamplingQuality, LightType, TrackMatteType
 from ..models.layers.av_layer import AVLayer
 from ..models.layers.camera_layer import CameraLayer
 from ..models.layers.light_layer import LightLayer
@@ -17,10 +17,6 @@ from .mappings import (
     map_auto_orient_type,
     map_blending_mode,
     map_frame_blending_type,
-    map_layer_quality,
-    map_layer_sampling_quality,
-    map_light_type,
-    map_track_matte_type,
 )
 from .property import (
     parse_markers,
@@ -52,26 +48,26 @@ def parse_layer(layer_chunk: Aep.Chunk, composition: CompItem) -> Layer:
     Returns:
         An AVLayer for most layers, or a LightLayer for light layers.
     """
-    child_chunks = layer_chunk.data.chunks
+    child_chunks = layer_chunk.chunks
 
     comment = get_comment(child_chunks)
 
     ldta_chunk = find_by_type(chunks=child_chunks, chunk_type="ldta")
+
     name_chunk = find_by_type(chunks=child_chunks, chunk_type="Utf8")
     name = str_contents(name_chunk)
 
-    ldta_data = ldta_chunk.data
-    layer_type = ldta_data.layer_type
+    layer_type = ldta_chunk.layer_type
     try:
         # ExtendScript stretch is a percentage: 100 = normal, 200 = half speed, -100 = reverse
-        stretch = float(ldta_data.stretch_dividend) / ldta_data.stretch_divisor * 100
+        stretch = float(ldta_chunk.stretch_dividend) / ldta_chunk.stretch_divisor * 100
     except ZeroDivisionError:
-        stretch = None
+        stretch = 0.0
 
     # Calculate absolute in_point and out_point from relative binary values
     # Binary stores in_point/out_point relative to start_time
-    in_point = ldta_data.start_time + ldta_data.in_point
-    out_point = ldta_data.start_time + ldta_data.out_point
+    in_point = ldta_chunk.start_time + ldta_chunk.in_point
+    out_point = ldta_chunk.start_time + ldta_chunk.out_point
 
     # Clamp out_point to composition duration (ExtendScript behavior)
     # Layers cannot extend past the composition's end
@@ -133,31 +129,31 @@ def parse_layer(layer_chunk: Aep.Chunk, composition: CompItem) -> Layer:
     # Base Layer attributes (shared by all layer types)
     layer_attrs = {
         "auto_orient": map_auto_orient_type(
-            auto_orient_along_path=ldta_data.auto_orient_along_path,
-            camera_or_poi_auto_orient=ldta_data.camera_or_poi_auto_orient,
-            three_d_layer=ldta_data.three_d_layer,
-            characters_toward_camera=ldta_data.characters_toward_camera,
+            auto_orient_along_path=ldta_chunk.auto_orient_along_path,
+            camera_or_poi_auto_orient=ldta_chunk.camera_or_poi_auto_orient,
+            three_d_layer=ldta_chunk.three_d_layer,
+            characters_toward_camera=ldta_chunk.characters_toward_camera,
         ),
         "comment": comment,
         "containing_comp": composition,
         "effects": effects,
-        "enabled": ldta_data.enabled,
+        "enabled": ldta_chunk.enabled,
         "frame_in_point": int(round(in_point * composition.frame_rate)),
         "frame_out_point": int(round(out_point * composition.frame_rate)),
-        "frame_start_time": int(round(ldta_data.start_time * composition.frame_rate)),
+        "frame_start_time": int(round(ldta_chunk.start_time * composition.frame_rate)),
+        "id": ldta_chunk.layer_id,
         "in_point": in_point,
-        "label": ldta_data.label,
-        "layer_id": ldta_data.layer_id,
+        "label": ldta_chunk.label,
         "layer_type": layer_type,
-        "locked": ldta_data.locked,
+        "locked": ldta_chunk.locked,
         "markers": markers,
         "name": name,
-        "null_layer": ldta_data.null_layer,
+        "null_layer": ldta_chunk.null_layer,
         "out_point": out_point,
-        "parent_id": ldta_data.parent_id,
-        "shy": ldta_data.shy,
-        "solo": ldta_data.solo,
-        "start_time": ldta_data.start_time,
+        "parent_id": ldta_chunk.parent_id,
+        "shy": ldta_chunk.shy,
+        "solo": ldta_chunk.solo,
+        "start_time": ldta_chunk.start_time,
         "stretch": stretch,
         "text": text,
         "time": 0,
@@ -166,29 +162,29 @@ def parse_layer(layer_chunk: Aep.Chunk, composition: CompItem) -> Layer:
 
     # Additional AVLayer attributes
     av_layer_attrs = {
-        "adjustment_layer": ldta_data.adjustment_layer,
-        "audio_enabled": ldta_data.audio_enabled,
-        "blending_mode": map_blending_mode(get_enum_value(ldta_data.blending_mode)),
-        "collapse_transformation": ldta_data.collapse_transformation,
-        "effects_active": ldta_data.effects_active,
-        "environment_layer": ldta_data.environment_layer,
-        "frame_blending": ldta_data.frame_blending,
+        "adjustment_layer": ldta_chunk.adjustment_layer,
+        "audio_enabled": ldta_chunk.audio_enabled,
+        "blending_mode": map_blending_mode(ldta_chunk.blending_mode),
+        "collapse_transformation": ldta_chunk.collapse_transformation,
+        "effects_active": ldta_chunk.effects_active,
+        "environment_layer": ldta_chunk.environment_layer,
+        "frame_blending": ldta_chunk.frame_blending,
         "frame_blending_type": map_frame_blending_type(
-            get_enum_value(ldta_data.frame_blending_type),
-            ldta_data.frame_blending,
+            ldta_chunk.frame_blending_type,
+            ldta_chunk.frame_blending,
         ),
-        "guide_layer": ldta_data.guide_layer,
-        "motion_blur": ldta_data.motion_blur,
-        "preserve_transparency": bool(ldta_data.preserve_transparency),
-        "quality": map_layer_quality(get_enum_value(ldta_data.quality)),
-        "sampling_quality": map_layer_sampling_quality(
-            get_enum_value(ldta_data.sampling_quality)
+        "guide_layer": ldta_chunk.guide_layer,
+        "motion_blur": ldta_chunk.motion_blur,
+        "preserve_transparency": bool(ldta_chunk.preserve_transparency),
+        "quality": LayerQuality.from_binary(ldta_chunk.quality),
+        "sampling_quality": LayerSamplingQuality.from_binary(
+            ldta_chunk.sampling_quality
         ),
-        "source_id": ldta_data.source_id,
-        "three_d_layer": ldta_data.three_d_layer,
+        "source_id": ldta_chunk.source_id,
+        "three_d_layer": ldta_chunk.three_d_layer,
         "time_remap_enabled": time_remap_enabled,
-        "track_matte_type": map_track_matte_type(
-            get_enum_value(ldta_data.track_matte_type)
+        "track_matte_type": TrackMatteType.from_binary(
+            ldta_chunk.track_matte_type
         ),
     }
 
@@ -197,7 +193,7 @@ def parse_layer(layer_chunk: Aep.Chunk, composition: CompItem) -> Layer:
     if layer_type_name == "light":
         layer: Layer = LightLayer(
             **layer_attrs,
-            light_type=map_light_type(get_enum_value(ldta_data.light_type)),
+            light_type=LightType.from_binary(ldta_chunk.light_type),
         )
     elif layer_type_name == "camera":
         layer = CameraLayer(**layer_attrs)

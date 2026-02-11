@@ -103,8 +103,13 @@ class TestWorkingGamma:
         """Test working gamma of 2.4."""
         load_expected("workingGamma_2.4")  # Verify JSON exists
         project = parse_project(SAMPLES_DIR / "workingGamma_2.4.aep")
-        # TODO: Add assertion when working_gamma is parsed
-        assert isinstance(project, Project)
+        assert project.working_gamma == 2.4
+
+    def test_workingGamma_2_2(self) -> None:
+        """Test working gamma of 2.2."""
+        load_expected("workingGamma_2.2")  # Verify JSON exists
+        project = parse_project(SAMPLES_DIR / "workingGamma_2.2.aep")
+        assert project.working_gamma == 2.2
 
 
 class TestWorkingSpace:
@@ -121,12 +126,17 @@ class TestWorkingSpace:
 class TestLinearBlending:
     """Tests for linearBlending attribute."""
 
+    def test_linearBlending_false(self) -> None:
+        """Test linear blending enabled."""
+        load_expected("linearBlending_false")  # Verify JSON exists
+        project = parse_project(SAMPLES_DIR / "linearBlending_false.aep")
+        assert not project.linear_blending
+
     def test_linearBlending_true(self) -> None:
         """Test linear blending enabled."""
         load_expected("linearBlending_true")  # Verify JSON exists
         project = parse_project(SAMPLES_DIR / "linearBlending_true.aep")
-        # TODO: Add assertion when linear_blending is parsed
-        assert isinstance(project, Project)
+        assert project.linear_blending
 
 
 class TestTransparencyGridThumbnails:
@@ -150,8 +160,7 @@ class TestColorManagement:
             pytest.skip("colorManagementSystem_adobe sample not available")
         load_expected("colorManagementSystem_adobe")  # Verify JSON exists
         project = parse_project(SAMPLES_DIR / "colorManagementSystem_adobe.aep")
-        # TODO: Add assertion when color_management_system is parsed
-        assert isinstance(project, Project)
+        assert project.color_management_system.name == "ADOBE"
 
     def test_colorManagementSystem_ocio(self) -> None:
         """Test OCIO color management system."""
@@ -160,8 +169,7 @@ class TestColorManagement:
             pytest.skip("colorManagementSystem_ocio sample not available")
         load_expected("colorManagementSystem_ocio")  # Verify JSON exists
         project = parse_project(SAMPLES_DIR / "colorManagementSystem_ocio.aep")
-        # TODO: Add assertion when color_management_system is parsed
-        assert isinstance(project, Project)
+        assert project.color_management_system.name == "OCIO"
 
     def test_lutInterpolationMethod_trilinear(self) -> None:
         """Test trilinear LUT interpolation."""
@@ -170,8 +178,7 @@ class TestColorManagement:
             pytest.skip("lutInterpolationMethod_trilinear sample not available")
         load_expected("lutInterpolationMethod_trilinear")  # Verify JSON exists
         project = parse_project(SAMPLES_DIR / "lutInterpolationMethod_trilinear.aep")
-        # TODO: Add assertion when lut_interpolation_method is parsed
-        assert isinstance(project, Project)
+        assert project.lut_interpolation_method == project.lut_interpolation_method.TRILINEAR
 
     def test_lutInterpolationMethod_tetrahedral(self) -> None:
         """Test tetrahedral LUT interpolation."""
@@ -180,5 +187,4 @@ class TestColorManagement:
             pytest.skip("lutInterpolationMethod_tetrahedral sample not available")
         load_expected("lutInterpolationMethod_tetrahedral")  # Verify JSON exists
         project = parse_project(SAMPLES_DIR / "lutInterpolationMethod_tetrahedral.aep")
-        # TODO: Add assertion when lut_interpolation_method is parsed
-        assert isinstance(project, Project)
+        assert project.lut_interpolation_method == project.lut_interpolation_method.TETRAHEDRAL
