@@ -44,49 +44,25 @@ for item in project:
 
 An After Effects project has a hierarchical structure:
 
-```mermaid
-flowchart TD
-    subgraph Project
-        P[Project]
-    end
-    
-    subgraph Items
-        P --> F[FolderItem]
-        P --> C[CompItem]
-        P --> FI[FootageItem]
-        F --> C
-        F --> FI
-        F --> F
-    end
-    
-    subgraph Layers
-        C --> AV[AVLayer]
-        C --> TL[TextLayer]
-        C --> SL[ShapeLayer]
-        C --> CL[CameraLayer]
-        C --> LL[LightLayer]
-    end
-    
-    subgraph Properties
-        AV --> PG[PropertyGroup]
-        TL --> PG
-        SL --> PG
-        PG --> PR[Property]
-        PG --> PG
-        PR --> KF[Keyframe]
-    end
-    
-    subgraph Sources
-        FI --> FS[FileSource]
-        FI --> SS[SolidSource]
-        FI --> PS[PlaceholderSource]
-    end
-    
-    subgraph RenderQueue
-        P --> RQ[RenderQueue]
-        RQ --> RQI[RenderQueueItem]
-        RQI --> OM[OutputModule]
-    end
+```
+Project
+├── FolderItem
+│   ├── CompItem
+│   │   ├── AVLayer ──┐
+│   │   ├── TextLayer ─┤
+│   │   ├── ShapeLayer ┤
+│   │   ├── CameraLayer┤
+│   │   └── LightLayer ┘──▶ PropertyGroup
+│   │                          ├── Property
+│   │                          │   └── Keyframe
+│   │                          └── PropertyGroup (nested)
+│   └── FootageItem
+│       ├── FileSource
+│       ├── SolidSource
+│       └── PlaceholderSource
+└── RenderQueue
+    └── RenderQueueItem
+        └── OutputModule
 ```
 
 ### Data Model
