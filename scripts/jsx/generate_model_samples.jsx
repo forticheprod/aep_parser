@@ -101,6 +101,10 @@ var AEP_EXPORT_AS_LIBRARY = true;
         proj.compensateForSceneReferredProfiles = true;
         saveProject(proj, folder.fsName + "/compensateForSceneReferredProfiles_true.aep");
 
+        proj = createProject();
+        proj.compensateForSceneReferredProfiles = false;
+        saveProject(proj, folder.fsName + "/compensateForSceneReferredProfiles_false.aep");
+
         // displayStartFrame
         proj = createProject();
         proj.displayStartFrame = 1;
@@ -1423,6 +1427,686 @@ var AEP_EXPORT_AS_LIBRARY = true;
     }
 
     // =========================================================================
+    // RenderQueue Model Samples
+    // Covers: RenderQueue, RenderQueueItem, OutputModule
+    // Generates all render_queue *.aep samples
+    // =========================================================================
+
+    /**
+     * Helper to create a basic project with a comp and render queue item.
+     * @param {string} compName - The name for the composition
+     * @param {number} [width=1920] - Composition width
+     * @param {number} [height=1080] - Composition height
+     * @param {number} [duration=30] - Duration in seconds
+     * @param {number} [frameRate=24] - Frame rate
+     * @returns {{proj: Project, comp: CompItem, rqItem: RenderQueueItem, om: OutputModule}}
+     */
+    function createRenderQueueProject(compName, width, height, duration, frameRate) {
+        var proj = createProject();
+        var comp = proj.items.addComp(
+            compName || "Comp 1",
+            width || 1920,
+            height || 1080,
+            1,
+            duration || 30,
+            frameRate || 24
+        );
+        comp.bgColor = [0.2, 0.4, 0.6];  // Set a distinctive background color
+        var rqItem = proj.renderQueue.items.add(comp);
+        var om = rqItem.outputModule(1);
+        return {proj: proj, comp: comp, rqItem: rqItem, om: om};
+    }
+
+    /**
+     * Apply render settings template or custom settings.
+     * @param {RenderQueueItem} rqItem - The render queue item
+     * @param {string} [template] - Template name to apply (optional)
+     * @param {Object} [settings] - Custom settings to apply after template
+     */
+    function applyRenderSettings(rqItem, template, settings) {
+        if (template) {
+            try {
+                rqItem.applyTemplate(template);
+            } catch (e) {
+                $.writeln("  Warning: Could not apply template '" + template + "': " + e.toString());
+            }
+        }
+        if (settings) {
+            try {
+                rqItem.setSettings(settings);
+            } catch (e) {
+                $.writeln("  Warning: Could not apply settings: " + e.toString());
+            }
+        }
+    }
+
+    /**
+     * Apply output module template or custom settings.
+     *
+     * WARNING: There is a bug that causes OutputModule objects to be invalidated
+     * after the output module settings are modified. This function retrieves
+     * the OutputModule fresh after modification and returns it.
+     *
+     * @param {RenderQueueItem} rqItem - The render queue item containing the output module
+     * @param {string} [template] - Template name to apply (optional)
+     * @param {Object} [settings] - Custom settings to apply after template
+     * @param {number} [omIndex=1] - Index of the output module (1-based, default 1)
+     * @returns {OutputModule} - The fresh OutputModule reference after modification
+     */
+    function applyOutputModuleSettings(rqItem, template, settings, omIndex) {
+        omIndex = omIndex || 1;
+        var om = rqItem.outputModule(omIndex);
+        if (template) {
+            try {
+                om.applyTemplate(template);
+                // Re-fetch OutputModule after template application (bug workaround)
+                om = rqItem.outputModule(omIndex);
+            } catch (e) {
+                $.writeln("  Warning: Could not apply OM template '" + template + "': " + e.toString());
+            }
+        }
+        if (settings) {
+            try {
+                om.setSettings(settings);
+                // Re-fetch OutputModule after settings modification (bug workaround)
+                om = rqItem.outputModule(omIndex);
+            } catch (e) {
+                $.writeln("  Warning: Could not apply OM settings: " + e.toString());
+            }
+        }
+        return om;
+    }
+
+    function generateRenderQueueSamples(outputPath) {
+        var folder = ensureFolder(outputPath + "/renderqueue");
+        var p, downloadFolder;
+
+        // Get user's Downloads folder for output paths
+        try {
+            downloadFolder = Folder.myDocuments.parent.fsName + "/Downloads";
+        } catch (e) {
+            downloadFolder = folder.fsName;
+        }
+
+        // -----------------------------------------------------------------
+        // base.aep - Base render settings (Best quality, Full resolution)
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/Comp 1.mp4");
+        saveProject(p.proj, folder.fsName + "/base.aep");
+
+        // -----------------------------------------------------------------
+        // current_settings.aep - Use current comp settings
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Current Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/current_settings.aep");
+
+        // -----------------------------------------------------------------
+        // custom.aep - Custom render settings
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom.aep");
+
+        // -----------------------------------------------------------------
+        // Color Depth samples
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Color Depth": 0});  // 8 bits
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/color_depth_8.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Color Depth": 1});  // 16 bits
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/color_depth_16.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Color Depth": 2});  // 32 bits
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/color_depth_32.aep");
+
+        // -----------------------------------------------------------------
+        // Quality samples
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Quality": -1});  // Current
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_quality_current.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Quality": 1});  // Draft
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_quality_draft.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Quality": 0});  // Wireframe
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_quality_wireframe.aep");
+
+        // -----------------------------------------------------------------
+        // Resolution samples
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Resolution": {x: 0, y: 0}});  // Current
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_resolution_current.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Resolution": {x: 2, y: 2}});  // Half
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_resolution_half.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Resolution": {x: 3, y: 3}});  // Third
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_resolution_third.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Resolution": {x: 4, y: 4}});  // Quarter
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_resolution_quarter.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Resolution": {x: 7, y: 3}});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_resolution_custom_7_horizontal_3_vertical.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Resolution": {x: 7, y: 4}});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_resolution_custom_7_horizontal_4_vertical.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Resolution": {x: 8, y: 3}});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_resolution_custom_8_horizontal_3_vertical.aep");
+
+        // -----------------------------------------------------------------
+        // Effects samples
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Effects": 0});  // All Off
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_effects_all_off.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Effects": 1});  // All On
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_effects_all_on.aep");
+
+        // -----------------------------------------------------------------
+        // Proxy Use samples
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Proxy Use": 2});  // Current Settings
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_proxy_use_current.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Proxy Use": 1});  // Use All Proxies
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_proxy_use_use_all_proxies.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Proxy Use": 3});  // Use Comp Proxies Only
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_proxy_use_use_comp_proxies_only.aep");
+
+        // -----------------------------------------------------------------
+        // Solo Switches samples
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Solo Switches": 0});  // All Off
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_solo_switches_all_off.aep");
+
+        // -----------------------------------------------------------------
+        // Disk Cache sample
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Disk Cache": 2});  // Current Settings
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/custom_disk_cache_current.aep");
+
+        // -----------------------------------------------------------------
+        // Motion Blur samples
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Motion Blur": 2});  // Current Settings
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/motion_blur_current.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Motion Blur": 0});  // Off for All Layers
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/motion_blur_off_for_all_layers.aep");
+
+        // -----------------------------------------------------------------
+        // Frame Blending samples
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Frame Blending": 2});  // Current Settings
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/frame_blending_current.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Frame Blending": 0});  // Off for All Layers
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/frame_blending_off_for_all_layers.aep");
+
+        // -----------------------------------------------------------------
+        // Field Render samples
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Field Render": 2});  // Lower Field First
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/field_render_lower_field_first.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Field Render": 1});  // Upper Field First
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/field_render_upper_field_first.aep");
+
+        // Field render with pulldown options (Upper Field First with 3:2 pulldown)
+        // Pulldown values: 1=WSSWW, 2=SSWWW, 3=SWWWS, 4=WWWSS, 5=WWSSW
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Field Render": 1, "3:2 Pulldown": 2});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/field_render_upper_field_first_pulldown_sswww.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Field Render": 1, "3:2 Pulldown": 3});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/field_render_upper_field_first_pulldown_swwws.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Field Render": 1, "3:2 Pulldown": 1});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/field_render_upper_field_first_pulldown_wssww.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Field Render": 1, "3:2 Pulldown": 5});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/field_render_upper_field_first_pulldown_wwssw.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Field Render": 1, "3:2 Pulldown": 4});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/field_render_upper_field_first_pulldown_wwwss.aep");
+
+        // -----------------------------------------------------------------
+        // Guide Layers samples
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Guide Layers": 2});  // Current Settings
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/guide_layers_current.aep");
+
+        // -----------------------------------------------------------------
+        // Time Span samples
+        // -----------------------------------------------------------------
+        // Length of Comp (Time Span = 0)
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Time Span": 0, "Frame Rate": 1, "Use this frame rate": 30});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/time_span_length_of_comp.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {
+            "Time Span Start": 0,
+            "Time Span Duration": 30
+        });
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/time_span_custom_start_00_duration_30s.aep");
+
+        // Custom time span: start=0, duration=24s 13f (24.541667s at 24fps)
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {
+            "Time Span Start": 0,
+            "Time Span Duration": 24 + 13/24  // 24s 13f
+        });
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/time_span_custom_start_00_duration_24s13f.aep");
+
+        // Custom time span: start=1s 23f, duration=24s 13f
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {
+            "Time Span Start": 1 + 23/24,  // 1s 23f
+            "Time Span Duration": 24 + 13/24  // 24s 13f
+        });
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/time_span_custom_start_01s_23f_duration_24s13f.aep");
+
+        // -----------------------------------------------------------------
+        // Frame Rate samples
+        // Note: "Frame Rate" is the boolean flag (0=comp rate, 1=custom rate)
+        // "Use this frame rate" is the actual fps value when custom is enabled
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Frame Rate": 1, "Use this frame rate": 24});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/use_this_frame_rate_24.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Frame Rate": 1, "Use this frame rate": 30});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/use_this_frame_rate_30.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Frame Rate": 1, "Use this frame rate": 29.97});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/use_this_frame_rate_29_97.aep");
+
+        // -----------------------------------------------------------------
+        // Template-based samples (Draft, DV, Multi-Machine, Log)
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Draft Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/draft_settings.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "DV Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/dv_settings.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Multi-Machine Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "Multi-Machine Sequence");
+        p.om.file = new File(downloadFolder + "/[compName]/[compName]_[#####].psd");
+        saveProject(p.proj, folder.fsName + "/multi_machine_settings.aep");
+
+        // Log settings samples
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        try {
+            p.rqItem.logType = LogType.PLUS_SETTINGS;
+        } catch (e) {}
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/log_plus_settings.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        try {
+            p.rqItem.logType = LogType.PLUS_PER_FRAME_INFO;
+        } catch (e) {}
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/log_plus_per_frame_info.aep");
+
+        // -----------------------------------------------------------------
+        // Skip Frames samples
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.rqItem.skipFrames = 3;
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/skip_frames_3.aep");
+
+        // -----------------------------------------------------------------
+        // Output Module samples - Audio settings
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Output Audio": false});
+        p.om.file = new File(downloadFolder + "/[compName].avi");
+        saveProject(p.proj, folder.fsName + "/output_module_audio_output_off.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Output Audio": true});
+        p.om.file = new File(downloadFolder + "/[compName].avi");
+        saveProject(p.proj, folder.fsName + "/output_module_audio_output_on.aep");
+
+        // Audio bit depth samples
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Output Audio": true, "Audio Bit Depth": 1});  // 8-bit
+        p.om.file = new File(downloadFolder + "/[compName].avi");
+        saveProject(p.proj, folder.fsName + "/output_module_audio_8bit.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Output Audio": true, "Audio Bit Depth": 4});  // 32-bit
+        p.om.file = new File(downloadFolder + "/[compName].avi");
+        saveProject(p.proj, folder.fsName + "/output_module_audio_32bit.aep");
+
+        // Audio channels sample
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Output Audio": true, "Audio Channels": 1});  // Mono
+        p.om.file = new File(downloadFolder + "/[compName].avi");
+        saveProject(p.proj, folder.fsName + "/output_module_audio_mono.aep");
+
+        // Audio sample rate samples
+        var sampleRates = [16000, 22050, 24000, 32000, 44100];
+        for (var i = 0; i < sampleRates.length; i++) {
+            p = createRenderQueueProject("Comp 1");
+            applyRenderSettings(p.rqItem, "Best Settings");
+            p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Output Audio": true, "Sample Rate": sampleRates[i]});
+            p.om.file = new File(downloadFolder + "/[compName].avi");
+            saveProject(p.proj, folder.fsName + "/output_module_audio_" + sampleRates[i] + "hz.aep");
+        }
+
+        // -----------------------------------------------------------------
+        // Output Module samples - Video settings
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Channels": 2});  // Alpha only
+        p.om.file = new File(downloadFolder + "/[compName].avi");
+        saveProject(p.proj, folder.fsName + "/output_module_channels_alpha.aep");
+
+        // Color: Straight (Unmatted)
+        // NOTE: The "Color" setting cannot be changed via setSettings() in ExtendScript.
+        // AE silently ignores the setting. This sample will have Color=1 (Premultiplied).
+        // To get Color=0, the sample must be manually created in After Effects UI.
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "TIFF Sequence with Alpha", {"Color": 0});  // Straight (Unmatted) - DOES NOT WORK
+        p.om.file = new File(downloadFolder + "/[compName]/[compName]_[#####].tif");
+        saveProject(p.proj, folder.fsName + "/output_module_color_straight_unmatted.aep");
+
+        // Preserve RGB sample (requires alpha channel)
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "Lossless with Alpha");
+        p.om.file = new File(downloadFolder + "/[compName].avi");
+        saveProject(p.proj, folder.fsName + "/output_module_preserve_rgb.aep");
+
+        // Custom H.264 sample
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/output_module_custom_h264.aep");
+
+        // -----------------------------------------------------------------
+        // Output Module samples - Crop settings
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {
+            "Crop": true,
+            "Crop Top": 10,
+            "Crop Left": 10,
+            "Crop Bottom": 10,
+            "Crop Right": 10
+        });
+        p.om.file = new File(downloadFolder + "/[compName].avi");
+        saveProject(p.proj, folder.fsName + "/output_module_crop_checked.aep");
+
+        // Crop using Region of Interest
+        p = createRenderQueueProject("Comp 1");
+        p.comp.regionOfInterest = [100, 100, 800, 600];  // Set ROI
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Crop": true});
+        p.om.file = new File(downloadFolder + "/[compName].avi");
+        saveProject(p.proj, folder.fsName + "/output_module_crop_use_roi_checked.aep");
+
+        // -----------------------------------------------------------------
+        // Output Module samples - Resize settings
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {
+            "Stretch": true,
+            "Stretch Width": 1280,
+            "Stretch Height": 720
+        });
+        p.om.file = new File(downloadFolder + "/[compName].avi");
+        saveProject(p.proj, folder.fsName + "/output_module_resize_checked.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {
+            "Stretch": true,
+            "Stretch Width": 1280,
+            "Stretch Height": 800  // Different aspect ratio
+        });
+        p.om.file = new File(downloadFolder + "/[compName].avi");
+        saveProject(p.proj, folder.fsName + "/output_module_resize_lock_aspect_ratio_unchecked.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {
+            "Stretch": true,
+            "Stretch Width": 640,
+            "Stretch Height": 480,
+            "Stretch Quality": 0  // Low
+        });
+        p.om.file = new File(downloadFolder + "/[compName].avi");
+        saveProject(p.proj, folder.fsName + "/output_module_resize_quality_low.aep");
+
+        // -----------------------------------------------------------------
+        // Output Module samples - Other settings
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        try { p.om.includeSourceXMP = true; } catch (e) {}
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/output_module_include_source_xmp_data_on.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/output_module_include_project_link_off.aep");
+
+        // -----------------------------------------------------------------
+        // Output path pattern samples
+        // -----------------------------------------------------------------
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/output_to_comp_and_frame_range.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName]_[outputModuleName].mp4");
+        saveProject(p.proj, folder.fsName + "/output_to_comp_and_output_module_name.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName]/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/output_to_comp_folder_and_name.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName]_[width]x[height].mp4");
+        saveProject(p.proj, folder.fsName + "/output_to_comp_name_and_dimensions.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName]_[pixelAspect].mp4");
+        saveProject(p.proj, folder.fsName + "/output_to_comp_name_and_aspect_ratio.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName]_[dateYear]-[dateMonth]-[dateDay]_[timeHours]-[timeMins]-[timeSecs].mp4");
+        saveProject(p.proj, folder.fsName + "/output_to_comp_name_and_date_time.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[projectName]_[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/output_to_project_and_comp_name.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File("[projectFolder]/[compName].mp4");
+        saveProject(p.proj, folder.fsName + "/output_to_render_next_to_project_file.aep");
+
+        // All fields combined
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings");
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[projectFolder]\__[projectName]__[compName]__[renderSettingsName]__[outputModuleName]__[width]__[height]__[frameRate]__[aspectRatio]__[startFrame]__[endFrame]__[durationFrames]__[#####]__[startTimecode]__[endTimecode]__[durationTimecode]__[channels]__[projectColorDepth]__[outputColorDepth]__[compressor]__[fieldOrder]__[pulldownPhase]__[dateYear]__[dateMonth]__[dateDay]__[timeHour]__[timeMins]__[timeSecs]__[timeZone].[fileExtension]");
+        saveProject(p.proj, folder.fsName + "/output_to_custom_all_fields.aep");
+
+        $.writeln("Generated renderqueue samples in: " + folder.fsName);
+    }
+
+    // =========================================================================
     // Main Execution
     // =========================================================================
 
@@ -1461,6 +2145,9 @@ var AEP_EXPORT_AS_LIBRARY = true;
 
             $.writeln("--- Property samples ---");
             generatePropertySamples(OUTPUT_FOLDER);
+
+            $.writeln("--- RenderQueue samples ---");
+            generateRenderQueueSamples(OUTPUT_FOLDER);
         } catch(e) {
             $.writeln("Error: " + e.toString());
             alert("Error generating samples:\n" + e.toString());

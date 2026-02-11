@@ -12,8 +12,8 @@ from .layer import parse_layer
 
 if typing.TYPE_CHECKING:
     from ..kaitai import Aep
-    from ..models.items.folder import Folder
-    from ..models.properties.marker import Marker
+    from ..models.items.folder import FolderItem
+    from ..models.properties.marker import MarkerValue
 
 
 def parse_composition(
@@ -21,11 +21,12 @@ def parse_composition(
     item_id: int,
     item_name: str,
     label: Aep.Label,
-    parent_folder: Folder | None,
+    parent_folder: FolderItem,
     comment: str,
 ) -> CompItem:
     """
     Parse a composition item.
+
     Args:
         child_chunks: child chunks of the composition LIST chunk.
         item_id: The unique item ID.
@@ -37,48 +38,47 @@ def parse_composition(
         comment: The composition comment.
     """
     cdta_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
-    cdta_data = cdta_chunk.data
 
     # Normalize bg_color from 0-255 to 0-1 range to match ExtendScript output
-    bg_color = [c / 255 for c in cdta_data.bg_color]
+    bg_color = [c / 255 for c in cdta_chunk.bg_color]
 
     composition = CompItem(
         comment=comment,
-        item_id=item_id,
+        id=item_id,
         label=label,
         name=item_name,
         type_name="Composition",
         parent_folder=parent_folder,
-        duration=cdta_data.duration,
+        duration=cdta_chunk.duration,
         frame_duration=int(
-            cdta_data.frame_duration
+            cdta_chunk.frame_duration
         ),  # in JSX API, this value is 1 / frame_rate (the duration of a frame). Here, duration * frame_rate
-        frame_rate=cdta_data.frame_rate,
-        height=cdta_data.height,
-        pixel_aspect=cdta_data.pixel_aspect,
-        width=cdta_data.width,
+        frame_rate=cdta_chunk.frame_rate,
+        height=cdta_chunk.height,
+        pixel_aspect=cdta_chunk.pixel_aspect,
+        width=cdta_chunk.width,
         bg_color=bg_color,
-        frame_blending=cdta_data.frame_blending,
-        hide_shy_layers=cdta_data.hide_shy_layers,
+        frame_blending=cdta_chunk.frame_blending,
+        hide_shy_layers=cdta_chunk.hide_shy_layers,
         layers=[],
         markers=[],
-        motion_blur=cdta_data.motion_blur,
-        motion_blur_adaptive_sample_limit=cdta_data.motion_blur_adaptive_sample_limit,
-        motion_blur_samples_per_frame=cdta_data.motion_blur_samples_per_frame,
-        preserve_nested_frame_rate=cdta_data.preserve_nested_frame_rate,
-        preserve_nested_resolution=cdta_data.preserve_nested_resolution,
-        shutter_angle=cdta_data.shutter_angle,
-        shutter_phase=cdta_data.shutter_phase,
-        resolution_factor=cdta_data.resolution_factor,
-        time_scale=cdta_data.time_scale,
-        in_point=cdta_data.in_point,
-        frame_in_point=int(cdta_data.frame_in_point),
-        out_point=cdta_data.out_point,
-        frame_out_point=int(cdta_data.frame_out_point),
-        frame_time=int(cdta_data.frame_time),
-        time=cdta_data.time,
-        display_start_time=cdta_data.display_start_time,
-        display_start_frame=int(cdta_data.display_start_frame),
+        motion_blur=cdta_chunk.motion_blur,
+        motion_blur_adaptive_sample_limit=cdta_chunk.motion_blur_adaptive_sample_limit,
+        motion_blur_samples_per_frame=cdta_chunk.motion_blur_samples_per_frame,
+        preserve_nested_frame_rate=cdta_chunk.preserve_nested_frame_rate,
+        preserve_nested_resolution=cdta_chunk.preserve_nested_resolution,
+        shutter_angle=cdta_chunk.shutter_angle,
+        shutter_phase=cdta_chunk.shutter_phase,
+        resolution_factor=cdta_chunk.resolution_factor,
+        time_scale=cdta_chunk.time_scale,
+        in_point=cdta_chunk.in_point,
+        frame_in_point=int(cdta_chunk.frame_in_point),
+        out_point=cdta_chunk.out_point,
+        frame_out_point=int(cdta_chunk.frame_out_point),
+        frame_time=int(cdta_chunk.frame_time),
+        time=cdta_chunk.time,
+        display_start_time=cdta_chunk.display_start_time,
+        display_start_frame=int(cdta_chunk.display_start_frame),
     )
 
     composition.markers = _get_markers(
@@ -100,9 +100,10 @@ def parse_composition(
 
 def _get_markers(
     child_chunks: list[Aep.Chunk], composition: CompItem
-) -> list[Marker]:
+) -> list[MarkerValue]:
     """
     Get the composition markers.
+
     Args:
         child_chunks: child chunks of the composition LIST chunk.
         composition: The parent composition.

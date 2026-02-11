@@ -8,9 +8,15 @@ from .footage import FootageSource
 @dataclass
 class PlaceholderSource(FootageSource):
     """
-    Placeholder source.
+    The `PlaceholderSource` object describes the footage source of a
+    placeholder.
 
-    Corresponds to After Effects PlaceholderSource object.
+    Info:
+        `PlaceholderSource` is a subclass of `FootageSource` object. All
+        methods and attributes of `FootageSource` are available when working
+        with `PlaceholderSource`. `PlaceholderSource` does not define any
+        additional methods or attributes.
+
     See: https://ae-scripting.docsforadobe.dev/sources/placeholdersource/
     """
 

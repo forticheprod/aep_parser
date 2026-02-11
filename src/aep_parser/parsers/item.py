@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import typing
+from typing import TYPE_CHECKING
 
 from ..kaitai import Aep
 from ..kaitai.utils import (
@@ -8,7 +8,7 @@ from ..kaitai.utils import (
     find_by_list_type,
     find_by_type,
 )
-from ..models.items.folder import Folder
+from ..models.items.folder import FolderItem
 from .composition import parse_composition
 from .footage import parse_footage
 from .utils import (
@@ -16,15 +16,15 @@ from .utils import (
     get_name,
 )
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from ..models.items.composition import CompItem
     from ..models.items.footage import FootageItem
     from ..models.project import Project
 
 
 def parse_item(
-    item_chunk: Aep.Chunk, project: Project, parent_folder: Folder | None
-) -> CompItem | Folder | FootageItem:
+    item_chunk: Aep.Chunk, project: Project, parent_folder: FolderItem
+) -> CompItem | FolderItem | FootageItem:
     """
     Parse an item (composition, footage or folder).
 
@@ -33,18 +33,18 @@ def parse_item(
         project: The project.
         parent_folder: The parent folder.
     """
-    child_chunks = item_chunk.data.chunks
+    child_chunks = item_chunk.chunks
     comment = get_comment(child_chunks)
 
     item_name = get_name(child_chunks)
 
     idta_chunk = find_by_type(chunks=child_chunks, chunk_type="idta")
-    idta_data = idta_chunk.data
 
-    item_id = idta_data.item_id
-    item_type = idta_data.item_type
-    label = idta_data.label
+    item_id = idta_chunk.id
+    item_type = idta_chunk.item_type
+    label = idta_chunk.label
 
+    item: CompItem | FolderItem | FootageItem
     if item_type == Aep.ItemType.folder:
         item = parse_folder(
             is_root=False,
@@ -77,7 +77,7 @@ def parse_item(
             comment=comment,
         )
 
-    project.project_items[item_id] = item
+    project.items[item_id] = item
 
     return item
 
@@ -89,14 +89,11 @@ def parse_folder(
     item_id: int,
     item_name: str,
     label: Aep.Label,
-    parent_folder: Folder | None,
+    parent_folder: FolderItem | None,
     comment: str,
-) -> Folder:
+) -> FolderItem:
     """
     Parse a folder item.
-
-    This function cannot be moved to its own file as it calls `parse_item`,
-    which can call `parse_folder`.
 
     Args:
         is_root: Whether the folder is the root folder (ID 0).
@@ -110,14 +107,13 @@ def parse_folder(
         parent_folder: The folder's parent folder.
         comment: The folder comment.
     """
-    folder = Folder(
+    folder = FolderItem(
         comment=comment,
-        item_id=item_id,
+        id=item_id,
         label=label,
         name=item_name,
         type_name="Folder",
         parent_folder=parent_folder,
-        folder_items=[],
     )
     # Get folder contents
     if is_root:
@@ -125,12 +121,12 @@ def parse_folder(
     else:
         sfdr_chunk = find_by_list_type(chunks=child_chunks, list_type="Sfdr")
         child_item_chunks = filter_by_list_type(
-            chunks=sfdr_chunk.data.chunks, list_type="Item"
+            chunks=sfdr_chunk.chunks, list_type="Item"
         )
     for child_item_chunk in child_item_chunks:
         child_item = parse_item(
             item_chunk=child_item_chunk, project=project, parent_folder=folder
         )
-        folder.folder_items.append(child_item.item_id)
+        folder.items.append(child_item)
 
     return folder

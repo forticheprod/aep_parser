@@ -19,56 +19,72 @@ if typing.TYPE_CHECKING:
 @dataclass
 class AVLayer(Layer):
     """
-    An AVLayer object represents an audiovisual layer within a composition.
+    The `AVLayer` object provides an interface to those layers that contain
+    `AVItem` objects (composition layers, footage layers, solid layers, text
+    layers and sound layers).
 
-    Attributes:
-        adjustment_layer: When true, the layer is an adjustment layer.
-        audio_enabled: When true, the layer's audio is enabled. This value
-            corresponds to the audio toggle switch in the Timeline panel.
-        blending_mode: The blending mode of the layer. See Blending modes.
-        collapse_transformation: True if collapse transformation is on for
-            this layer.
-        effects_active: True if the layer's effects are active, as
-            indicated by the <f> icon next to it in the user interface.
-        environment_layer: True if this is an environment layer in a
-            Ray-traced 3D composition. Setting this attribute to true
-            automatically makes the layer 3D (three_d_layer becomes true).
-        frame_blending: True if frame blending is enabled for this layer.
-        frame_blending_type: The type of frame blending to perform when frame
-            blending is enabled for the layer.
-        guide_layer: True if the layer is a guide layer.
-        motion_blur: True if motion blur is enabled for the layer.
-        preserve_transparency: True if preserve transparency is enabled for
-            the layer.
-        quality: The layer's draft quality setting.
-        sampling_quality: The layer's sampling method.
-        source: The source AVItem for this layer. Set after parsing when the
-            full project structure is available.
-        source_id: The ID of the source item for this layer. None for a text
-            layer.
-        three_d_layer: True if this layer is a 3D layer.
-        time_remap_enabled: True if time remapping is enabled for this layer.
-        track_matte_type: Specifies the way the track matte is applied.
+    Info:
+        `AVLayer` is a subclass of `Layer` object. All methods and attributes
+        of `Layer` are available when working with `AVLayer`.
+
+    Info:
+        `AVLayer` is a base class for `TextLayer` object, so `AVLayer`
+        attributes and methods are available when working with `TextLayer`
+        objects.
+
+    See: https://ae-scripting.docsforadobe.dev/layer/avlayer/
     """
 
-    # Required fields - always provided by parser
     blending_mode: BlendingMode
+    """The blending mode of the layer."""
+
     frame_blending_type: FrameBlendingType
+    """The type of frame blending to perform when frame blending is enabled for the layer."""
+
     quality: LayerQuality
+    """The layer's draft quality setting."""
+
     sampling_quality: LayerSamplingQuality
+    """The layer's sampling method."""
+
     track_matte_type: TrackMatteType
+    """Specifies the way the track matte is applied."""
+
     adjustment_layer: bool
+    """When `True`, the layer is an adjustment layer."""
+
     audio_enabled: bool
+    """When `True`, the layer's audio is enabled. This value corresponds to the audio toggle switch in the Timeline panel."""
+
     collapse_transformation: bool
+    """`True` if collapse transformation is on for this layer."""
+
     effects_active: bool
+    """`True` if the layer's effects are active, as indicated by the <f> icon next to it in the user interface."""
+
     environment_layer: bool
+    """`True` if this is an environment layer in a Ray-traced 3D composition."""
+
     frame_blending: bool
+    """`True` if frame blending is enabled for this layer."""
+
     guide_layer: bool
+    """`True` if the layer is a guide layer."""
+
     motion_blur: bool
+    """`True` if motion blur is enabled for the layer."""
+
     preserve_transparency: bool
+    """`True` if preserve transparency is enabled for the layer."""
+
     three_d_layer: bool
+    """`True` if this layer is a 3D layer."""
+
     time_remap_enabled: bool
+    """`True` if time remapping is enabled for this layer."""
+
     source_id: int | None  # None for text layers (no source item)
+    """The ID of the source item for this layer. `None` for a text layer."""
 
     # Set after parsing - reference to source item (not serialized)
     _source: Item | None = field(default=None, init=False, repr=False)
@@ -79,7 +95,7 @@ class AVLayer(Layer):
         return self._source
 
     @source.setter
-    def source(self, value: Item | None) -> None:
+    def source(self, value: Item) -> None:
         self._source = value
         # Also set name from source if layer has no explicit name
         if value is not None and not self.name:

@@ -1,4 +1,4 @@
-"""Tests for Marker model parsing using samples from models/marker/.
+"""Tests for MarkerValue model parsing using samples from models/marker/.
 
 These tests verify that aep_parser produces the same values as the JSON
 reference files exported from After Effects.

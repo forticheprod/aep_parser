@@ -15,13 +15,7 @@ from ..models.enums import (
     FieldSeparationType,
     FootageTimecodeDisplayStartType,
     FrameBlendingType,
-    FramesCountType,
-    KeyframeInterpolationType,
-    LayerQuality,
-    LayerSamplingQuality,
-    LightType,
-    TimeDisplayType,
-    TrackMatteType,
+    GpuAccelType,
 )
 
 
@@ -125,6 +119,26 @@ def map_footage_timecode_display_start_type(
     return mapping.get(ftcs_raw, FootageTimecodeDisplayStartType.FTCS_START_0)
 
 
+def map_gpu_accel_type(gpu_accel_type_raw: int) -> GpuAccelType:
+    """Map binary gpu_accel_type value to ExtendScript GpuAccelType enum.
+
+    The raw values in the Rhed chunk follow a pattern based on bit flags.
+    Known mappings from observed samples:
+    - 19 (0x13) → CUDA (1813)
+    - 31 (0x1F) → SOFTWARE (1816)
+
+    The pattern appears to be: raw = 16 + (2^(index+1) - 1) for simple encoding.
+    """
+    mapping = {
+        17: GpuAccelType.OPENCL,   # 0x11 - index 0
+        19: GpuAccelType.CUDA,     # 0x13 - index 1
+        23: GpuAccelType.METAL,    # 0x17 - index 2
+        27: GpuAccelType.VULKAN,   # 0x1B - index 3
+        31: GpuAccelType.SOFTWARE, # 0x1F - index 4
+    }
+    return mapping.get(gpu_accel_type_raw, GpuAccelType.SOFTWARE)
+
+
 def map_frame_blending_type(
     frame_blending_type_raw: int, frame_blending_enabled: bool
 ) -> FrameBlendingType:
@@ -140,9 +154,6 @@ def map_frame_blending_type(
     Args:
         frame_blending_type_raw: The raw 1-bit value from the binary.
         frame_blending_enabled: Whether frame blending is enabled on the layer.
-
-    Returns:
-        The appropriate FrameBlendingType enum value.
     """
     if not frame_blending_enabled:
         return FrameBlendingType.NO_FRAME_BLEND
@@ -152,68 +163,6 @@ def map_frame_blending_type(
         1: FrameBlendingType.PIXEL_MOTION,
     }
     return mapping.get(frame_blending_type_raw, FrameBlendingType.FRAME_MIX)
-
-
-def map_frames_count_type(frames_count_type_raw: int) -> FramesCountType:
-    """Map binary value to ExtendScript FramesCountType enum."""
-    mapping = {
-        0: FramesCountType.FC_START_0,
-        1: FramesCountType.FC_START_1,
-        2: FramesCountType.FC_TIMECODE_CONVERSION,
-    }
-    return mapping.get(frames_count_type_raw, FramesCountType.FC_START_0)
-
-
-def map_keyframe_interpolation_type(
-    keyframe_interpolation_type_raw: int,
-) -> KeyframeInterpolationType:
-    """Map binary keyframe_interpolation_type value to ExtendScript enum."""
-    mapping = {
-        1: KeyframeInterpolationType.LINEAR,
-        2: KeyframeInterpolationType.BEZIER,
-        3: KeyframeInterpolationType.HOLD,
-    }
-    return mapping.get(keyframe_interpolation_type_raw, KeyframeInterpolationType.LINEAR)
-
-
-def map_layer_quality(layer_quality_raw: int) -> LayerQuality:
-    """Map binary layer_quality value to ExtendScript LayerQuality enum."""
-    mapping = {
-        0: LayerQuality.WIREFRAME,
-        1: LayerQuality.DRAFT,
-        2: LayerQuality.BEST,
-    }
-    return mapping.get(layer_quality_raw, LayerQuality.BEST)
-
-
-def map_layer_sampling_quality(sampling_quality_raw: int) -> LayerSamplingQuality:
-    """Map binary sampling_quality value to ExtendScript LayerSamplingQuality enum."""
-    mapping = {
-        0: LayerSamplingQuality.BILINEAR,
-        1: LayerSamplingQuality.BICUBIC,
-    }
-    return mapping.get(sampling_quality_raw, LayerSamplingQuality.BILINEAR)
-
-
-def map_time_display_type(time_display_type_raw: int) -> TimeDisplayType:
-    """Map binary value to ExtendScript TimeDisplayType enum."""
-    mapping = {
-        0: TimeDisplayType.TIMECODE,
-        1: TimeDisplayType.FRAMES,
-    }
-    return mapping.get(time_display_type_raw, TimeDisplayType.TIMECODE)
-
-
-def map_track_matte_type(track_matte_type_raw: int) -> TrackMatteType:
-    """Map binary track_matte_type value to ExtendScript TrackMatteType enum."""
-    mapping = {
-        0: TrackMatteType.NO_TRACK_MATTE,
-        1: TrackMatteType.ALPHA,
-        2: TrackMatteType.ALPHA_INVERTED,
-        3: TrackMatteType.LUMA,
-        4: TrackMatteType.LUMA_INVERTED,
-    }
-    return mapping.get(track_matte_type_raw, TrackMatteType.NO_TRACK_MATTE)
 
 
 def map_auto_orient_type(
@@ -237,9 +186,6 @@ def map_auto_orient_type(
         camera_or_poi_auto_orient: The camera_or_poi_auto_orient bit from ldta.
         three_d_layer: Whether the layer is a 3D layer.
         characters_toward_camera: The 2-bit characters_toward_camera value from ldta.
-
-    Returns:
-        The derived AutoOrientType enum value.
     """
     if auto_orient_along_path:
         return AutoOrientType.ALONG_PATH
@@ -249,14 +195,3 @@ def map_auto_orient_type(
         return AutoOrientType.CHARACTERS_TOWARD_CAMERA
     else:
         return AutoOrientType.NO_AUTO_ORIENT
-
-
-def map_light_type(light_type_raw: int) -> LightType:
-    """Map binary light_type value to ExtendScript LightType enum."""
-    mapping = {
-        0: LightType.PARALLEL,
-        1: LightType.SPOT,
-        2: LightType.POINT,
-        3: LightType.AMBIENT,
-    }
-    return mapping.get(light_type_raw, LightType.PARALLEL)

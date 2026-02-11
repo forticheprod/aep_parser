@@ -1,7 +1,6 @@
 """After Effects enumerations.
 
 These enums match the values used in After Effects ExtendScript.
-See: https://ae-scripting.docsforadobe.dev/
 """
 
 from __future__ import annotations
@@ -108,6 +107,20 @@ class ChannelType(IntEnum):
     CHANNEL_ALPHA_BOUNDARY = 7822
 
 
+class ColorManagementSystem(IntEnum):
+    """Color management system for the project."""
+
+    ADOBE = 0
+    OCIO = 1
+
+
+class LutInterpolationMethod(IntEnum):
+    """LUT interpolation method for the project."""
+
+    TRILINEAR = 0
+    TETRAHEDRAL = 1
+
+
 class CloseOptions(IntEnum):
     """Options for closing a project.
 
@@ -140,6 +153,12 @@ class FeetFramesFilmType(IntEnum):
 
     MM16 = 2412
     MM35 = 2413
+
+    @classmethod
+    def from_binary(cls, value: int) -> FeetFramesFilmType:
+        """Convert binary value (0-1) to FeetFramesFilmType."""
+        # Binary 0 = MM35 (2413), Binary 1 = MM16 (2412)
+        return cls(2413 - value)
 
 
 class FieldSeparationType(IntEnum):
@@ -183,6 +202,14 @@ class FramesCountType(IntEnum):
     FC_START_0 = 2612
     FC_START_1 = 2613
     FC_TIMECODE_CONVERSION = 2614
+
+    @classmethod
+    def from_binary(cls, value: int) -> FramesCountType:
+        """Convert binary value (0-2) to FramesCountType."""
+        try:
+            return cls(value + 2612)
+        except ValueError:
+            return cls.FC_START_0
 
 
 class GetSettingsFormat(IntEnum):
@@ -233,6 +260,14 @@ class KeyframeInterpolationType(IntEnum):
     BEZIER = 6613
     HOLD = 6614
 
+    @classmethod
+    def from_binary(cls, value: int) -> KeyframeInterpolationType:
+        """Convert binary value (1-3) to KeyframeInterpolationType."""
+        try:
+            return cls(value + 6611)
+        except ValueError:
+            return cls.LINEAR
+
 
 class Language(IntEnum):
     """Application language.
@@ -255,28 +290,44 @@ class Language(IntEnum):
 class LayerQuality(IntEnum):
     """Render quality for a layer.
 
-    See: https://ae-scripting.docsforadobe.dev/layer/layer/#layerquality
+    See: https://ae-scripting.docsforadobe.dev/layer/avlayer/#avlayerquality
     """
 
     WIREFRAME = 4612
     DRAFT = 4613
     BEST = 4614
 
+    @classmethod
+    def from_binary(cls, value: int) -> LayerQuality:
+        """Convert binary value (0-2) to LayerQuality."""
+        try:
+            return cls(value + 4612)
+        except ValueError:
+            return cls.BEST
+
 
 class LayerSamplingQuality(IntEnum):
     """Sampling quality for a layer.
 
-    See: https://ae-scripting.docsforadobe.dev/layer/layer/#layersamplingquality
+    See: https://ae-scripting.docsforadobe.dev/layer/avlayer/#avlayersamplingquality
     """
 
     BILINEAR = 4812
     BICUBIC = 4813
 
+    @classmethod
+    def from_binary(cls, value: int) -> LayerSamplingQuality:
+        """Convert binary value (0-1) to LayerSamplingQuality."""
+        try:
+            return cls(value + 4812)
+        except ValueError:
+            return cls.BILINEAR
+
 
 class LightType(IntEnum):
     """Type of light layer.
 
-    See: https://ae-scripting.docsforadobe.dev/layer/layer/#layerlighttype
+    See: https://ae-scripting.docsforadobe.dev/layer/lightlayer/#lightlayerlighttype
     """
 
     PARALLEL = 4412
@@ -284,16 +335,32 @@ class LightType(IntEnum):
     POINT = 4414
     AMBIENT = 4415
 
+    @classmethod
+    def from_binary(cls, value: int) -> LightType:
+        """Convert binary value (0-3) to LightType."""
+        try:
+            return cls(value + 4412)
+        except ValueError:
+            return cls.PARALLEL
+
 
 class LogType(IntEnum):
     """Logging level for rendering.
 
-    See: https://ae-scripting.docsforadobe.dev/renderqueue/renderqueue/#renderqueue-render
+    See: https://ae-scripting.docsforadobe.dev/renderqueue/renderqueueitem/#renderqueueitemlogtype
     """
 
     ERRORS_ONLY = 3212
     ERRORS_AND_SETTINGS = 3213
     ERRORS_AND_PER_FRAME_INFO = 3214
+
+    @classmethod
+    def from_binary(cls, value: int) -> LogType:
+        """Convert binary value (0-2) to LogType."""
+        try:
+            return cls(value + 3212)
+        except ValueError:
+            return cls.ERRORS_ONLY
 
 
 class LoopMode(IntEnum):
@@ -308,7 +375,7 @@ class LoopMode(IntEnum):
 class MaskFeatherFalloff(IntEnum):
     """Feather falloff type for masks.
 
-    See: https://ae-scripting.docsforadobe.dev/other/maskpropertygroup/#maskpropertygroupmaskfeatherfalloff
+    See: https://ae-scripting.docsforadobe.dev/property/maskpropertygroup/#maskpropertygroupmaskfeatherfalloff
     """
 
     FFO_SMOOTH = 7212
@@ -318,7 +385,7 @@ class MaskFeatherFalloff(IntEnum):
 class MaskMode(IntEnum):
     """Blending mode for masks.
 
-    See: https://ae-scripting.docsforadobe.dev/other/maskpropertygroup/#maskpropertygroupmaskmode
+    See: https://ae-scripting.docsforadobe.dev/property/maskpropertygroup/#maskpropertygroupmaskmode
     """
 
     NONE = 6812
@@ -333,7 +400,7 @@ class MaskMode(IntEnum):
 class MaskMotionBlur(IntEnum):
     """Motion blur setting for masks.
 
-    See: https://ae-scripting.docsforadobe.dev/other/maskpropertygroup/#maskpropertygroupmaskmotionblur
+    See: https://ae-scripting.docsforadobe.dev/property/maskpropertygroup/#maskpropertygroupmaskmotionblur
     """
 
     SAME_AS_LAYER = 7012
@@ -344,7 +411,7 @@ class MaskMotionBlur(IntEnum):
 class ParagraphJustification(IntEnum):
     """Paragraph justification for text layers.
 
-    See: https://ae-scripting.docsforadobe.dev/text/paragraphrange/#paragraphrangejustification
+    See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentjustification
     """
 
     MULTIPLE_JUSTIFICATIONS = 7412
@@ -370,7 +437,7 @@ class PlayMode(IntEnum):
 class PostRenderAction(IntEnum):
     """Action after rendering completes.
 
-    See: https://ae-scripting.docsforadobe.dev/renderqueue/renderqueueitem/#renderqueueitempostrenderaction
+    See: https://ae-scripting.docsforadobe.dev/renderqueue/outputmodule/#outputmodulepostrenderaction
     """
 
     NONE = 3612
@@ -378,11 +445,19 @@ class PostRenderAction(IntEnum):
     IMPORT_AND_REPLACE_USAGE = 3614
     SET_PROXY = 3615
 
+    @classmethod
+    def from_binary(cls, value: int) -> PostRenderAction:
+        """Convert binary value (0-3) to PostRenderAction."""
+        try:
+            return cls(value + 3612)
+        except ValueError:
+            return cls.NONE
+
 
 class PREFType(IntEnum):
     """Preference file types.
 
-    See: https://ae-scripting.docsforadobe.dev/general/preferences/#preferencesgetpreferenceasstring
+    See: https://ae-scripting.docsforadobe.dev/other/preferences/#preferences-object
     """
 
     PREF_Type_MACHINE_SPECIFIC = 8812
@@ -429,7 +504,7 @@ class PropertyValueType(IntEnum):
 class PulldownMethod(IntEnum):
     """Pulldown method for footage.
 
-    See: https://ae-scripting.docsforadobe.dev/sources/footagesource/#footagesourceremovepulldown
+    See: https://ae-scripting.docsforadobe.dev/sources/footagesource/#footagesourceguesspulldown
     """
 
     PULLDOWN_3_2 = 6012
@@ -493,6 +568,15 @@ class RQItemStatus(IntEnum):
     ERR_STOPPED = 3018
     DONE = 3019
 
+    @classmethod
+    def from_binary(cls, value: int) -> RQItemStatus:
+        """Convert binary value to RQItemStatus."""
+        try:
+            return cls(value + 3013)
+        except ValueError:
+            # Default to UNQUEUED for unknown values
+            return cls.UNQUEUED
+
 
 class TimeDisplayType(IntEnum):
     """How time is displayed in the project.
@@ -502,6 +586,14 @@ class TimeDisplayType(IntEnum):
 
     TIMECODE = 2012
     FRAMES = 2013
+
+    @classmethod
+    def from_binary(cls, value: int) -> TimeDisplayType:
+        """Convert binary value (0-1) to TimeDisplayType."""
+        try:
+            return cls(value + 2012)
+        except ValueError:
+            return cls.TIMECODE
 
 
 class ToolType(IntEnum):
@@ -562,6 +654,14 @@ class TrackMatteType(IntEnum):
     ALPHA_INVERTED = 5014
     LUMA = 5015
     LUMA_INVERTED = 5016
+
+    @classmethod
+    def from_binary(cls, value: int) -> TrackMatteType:
+        """Convert binary value (0-4) to TrackMatteType."""
+        try:
+            return cls(value + 5012)
+        except ValueError:
+            return cls.NO_TRACK_MATTE
 
 
 class ViewerType(IntEnum):
@@ -632,3 +732,312 @@ class ProjectThread(IntEnum):
     MainThread = 2812
     RQThread = 2813
     WorkQueueThread = 2814
+
+
+# =============================================================================
+# Render Queue Enums
+# =============================================================================
+
+
+class RenderQuality(IntEnum):
+    """Quality setting for rendering.
+
+    Used in RenderQueueItem Settings > Quality
+
+    Not documented in AE scripting reference.
+    """
+
+    CURRENT_SETTINGS = -1
+    WIREFRAME = 0
+    DRAFT = 1
+    BEST = 2
+
+    @classmethod
+    def from_binary(cls, value: int) -> int:
+        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+
+
+class FieldRender(IntEnum):
+    """Field rendering option.
+
+    Used in RenderQueueItem Settings > Field Render
+
+    Not documented in AE scripting reference.
+    """
+
+    OFF = 0
+    UPPER_FIELD_FIRST = 1
+    LOWER_FIELD_FIRST = 2
+
+
+class PulldownSetting(IntEnum):
+    """3:2 Pulldown phase for field rendering.
+
+    Used in RenderQueueItem Settings > 3:2 Pulldown
+
+    Not documented in AE scripting reference.
+    """
+
+    OFF = 0
+    WSSWW = 1
+    SSWWW = 2
+    SWWWS = 3
+    WWWSS = 4
+    WWSSW = 5
+
+
+class MotionBlurSetting(IntEnum):
+    """Motion blur render setting.
+
+    Used in RenderQueueItem Settings > Motion Blur
+
+    Not documented in AE scripting reference.
+    """
+
+    OFF_FOR_ALL_LAYERS = 0
+    ON_FOR_CHECKED_LAYERS = 1
+    CURRENT_SETTINGS = 2
+
+    @classmethod
+    def from_binary(cls, value: int) -> int:
+        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+
+
+class FrameBlendingSetting(IntEnum):
+    """Frame blending render setting.
+
+    Used in RenderQueueItem Settings > Frame Blending
+
+    Not documented in AE scripting reference.
+    """
+
+    OFF_FOR_ALL_LAYERS = 0
+    ON_FOR_CHECKED_LAYERS = 1
+    CURRENT_SETTINGS = 2
+
+    @classmethod
+    def from_binary(cls, value: int) -> int:
+        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+
+
+class EffectsSetting(IntEnum):
+    """Effects render setting.
+
+    Used in RenderQueueItem Settings > Effects
+
+    Not documented in AE scripting reference.
+    """
+
+    ALL_OFF = 0
+    ALL_ON = 1
+    CURRENT_SETTINGS = 2
+
+    @classmethod
+    def from_binary(cls, value: int) -> int:
+        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+
+
+class ProxyUseSetting(IntEnum):
+    """Proxy usage render setting.
+
+    Used in RenderQueueItem Settings > Proxy Use
+
+    Not documented in AE scripting reference.
+    """
+
+    USE_NO_PROXIES = 0
+    USE_ALL_PROXIES = 1
+    CURRENT_SETTINGS = 2
+    USE_COMP_PROXIES_ONLY = 3
+
+    @classmethod
+    def from_binary(cls, value: int) -> int:
+        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+
+
+class SoloSwitchesSetting(IntEnum):
+    """Solo switches render setting.
+
+    Used in RenderQueueItem Settings > Solo Switches
+
+    Not documented in AE scripting reference.
+    """
+
+    ALL_OFF = 0
+    CURRENT_SETTINGS = 2
+
+    @classmethod
+    def from_binary(cls, value: int) -> int:
+        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+
+
+class GuideLayers(IntEnum):
+    """Guide layers render setting.
+
+    Used in RenderQueueItem Settings > Guide Layers
+
+    Not documented in AE scripting reference.
+    """
+
+    ALL_OFF = 0
+    CURRENT_SETTINGS = 2
+
+    @classmethod
+    def from_binary(cls, value: int) -> int:
+        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+
+
+class DiskCacheSetting(IntEnum):
+    """Disk cache render setting.
+
+    Used in RenderQueueItem Settings > Disk Cache
+
+    Not documented in AE scripting reference.
+    """
+
+    READ_ONLY = 0
+    CURRENT_SETTINGS = 2
+
+    @classmethod
+    def from_binary(cls, value: int) -> int:
+        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+
+
+class ColorDepthSetting(IntEnum):
+    """Color depth render setting.
+
+    Used in RenderQueueItem Settings > Color Depth
+
+    Not documented in AE scripting reference.
+    """
+
+    CURRENT_SETTINGS = -1
+    EIGHT_BITS_PER_CHANNEL = 0
+    SIXTEEN_BITS_PER_CHANNEL = 1
+    THIRTY_TWO_BITS_PER_CHANNEL = 2
+
+    @classmethod
+    def from_binary(cls, value: int) -> int:
+        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+
+
+class TimeSpanSource(IntEnum):
+    """Time span source setting.
+
+    Used in RenderQueueItem Settings > Time Span
+
+    Not documented in AE scripting reference.
+    """
+
+    WORK_AREA_ONLY = 0
+    LENGTH_OF_COMP = 1
+    CUSTOM = 2
+
+    @classmethod
+    def from_binary(cls, value: int) -> int:
+        """Convert binary value to ExtendScript value (0xFFFF → CUSTOM)."""
+        return cls.CUSTOM if value == 0xFFFF else value
+
+
+# =============================================================================
+# Output Module Enums
+# =============================================================================
+
+
+class OutputChannels(IntEnum):
+    """Output channels setting.
+
+    Used in OutputModule Settings > Channels
+
+    Not documented in AE scripting reference.
+    """
+
+    RGB = 0
+    RGBA = 1
+    ALPHA = 2
+
+
+class OutputColorDepth(IntEnum):
+    """Output color depth in bits per channel.
+
+    Used in OutputModule Settings > Depth
+
+    Not documented in AE scripting reference.
+    """
+
+    MILLIONS_OF_COLORS = 0  # 8 bpc
+    TRILLIONS_OF_COLORS = 1  # 16 bpc
+    FLOATING_POINT = 2  # 32 bpc
+
+
+class OutputColorMode(IntEnum):
+    """Output color mode (premultiplied vs straight).
+
+    Used in OutputModule Settings > Color
+
+    Not documented in AE scripting reference.
+    """
+
+    STRAIGHT_UNMATTED = 0
+    PREMULTIPLIED = 1
+
+
+class AudioBitDepth(IntEnum):
+    """Audio bit depth.
+
+    Used in OutputModule Settings > Audio > Format
+
+    Not documented in AE scripting reference.
+    """
+
+    EIGHT_BIT = 1
+    SIXTEEN_BIT = 2
+    TWENTY_FOUR_BIT = 3
+    THIRTY_TWO_BIT = 4
+
+    @classmethod
+    def from_binary(cls, value: int) -> AudioBitDepth:
+        """Convert binary value to AudioBitDepth (defaults to SIXTEEN_BIT)."""
+        if value in cls._value2member_map_:
+            return cls(value)
+        return cls.SIXTEEN_BIT
+
+
+class AudioChannels(IntEnum):
+    """Audio channels.
+
+    Used in OutputModule Settings > Audio > Channels
+
+    Not documented in AE scripting reference.
+    """
+
+    MONO = 1
+    STEREO = 2
+
+    @classmethod
+    def from_binary(cls, value: int) -> AudioChannels:
+        """Convert binary value to AudioChannels (0 or unknown defaults to STEREO)."""
+        if value == 1:
+            return cls.MONO
+        return cls.STEREO
+
+
+class ResizeQuality(IntEnum):
+    """Resize quality setting.
+
+    Used in OutputModule Settings > Stretch > Quality
+
+    Not documented in AE scripting reference.
+    """
+
+    LOW = 0
+    HIGH = 1

@@ -1,31 +1,27 @@
 from __future__ import annotations
 
 import typing
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .item import Item
 
 
 @dataclass
-class Folder(Item):
+class FolderItem(Item):
     """
-    Folder item.
+    The `FolderItem` object corresponds to a folder in your Project panel. It
+    can contain various types of items (footage, compositions, solids) as well
+    as other folders.
 
-    Attributes:
-        folder_items: The IDs of items in this folder.
+    See: https://ae-scripting.docsforadobe.dev/item/folderitem/
     """
 
-    folder_items: list[int]
+    items: list[Item] = field(default_factory=list)
+    """
+    The items in this folder. Contains only the top-level items in the folder.
+    """
 
-    def __iter__(self) -> typing.Iterator[int]:
-        """Return an iterator over the folder item IDs."""
-        return iter(self.folder_items)
+    def __iter__(self) -> typing.Iterator[Item]:
+        """Return an iterator over the folder items."""
+        return iter(self.items)
 
-    def item(self, index: int) -> int:
-        """
-        Get a folder item ID by index.
-
-        Args:
-            index: The index of the item to return.
-        """
-        return self.folder_items[index]

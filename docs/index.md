@@ -33,6 +33,7 @@ for item in project:
 ## Features
 
 - **Full Project Parsing**: Parse complete After Effects projects including compositions, footage, layers, and effects
+- **Render Queue**: Access render queue items, render settings, and output module configurations
 - **Type Safety**: Fully typed Python dataclasses for all AE objects
 - **Comprehensive**: Support for layers, properties, effects, keyframes, markers, and more
 - **Python 3.7+**: Compatible with Python 3.7 and above
@@ -43,35 +44,70 @@ for item in project:
 
 An After Effects project has a hierarchical structure:
 
-- **Project**: The root container with project-level settings
-- **Items**: CompItems (compositions), FootageItems, and Folders
-- **Layers**: Different layer types (AV, Text, Shape, Camera, Light)
-- **Properties**: Layer properties with keyframes and expressions
-- **Sources**: Footage sources (files, solids, placeholders)
+```mermaid
+flowchart TD
+    subgraph Project
+        P[Project]
+    end
+    
+    subgraph Items
+        P --> F[FolderItem]
+        P --> C[CompItem]
+        P --> FI[FootageItem]
+        F --> C
+        F --> FI
+        F --> F
+    end
+    
+    subgraph Layers
+        C --> AV[AVLayer]
+        C --> TL[TextLayer]
+        C --> SL[ShapeLayer]
+        C --> CL[CameraLayer]
+        C --> LL[LightLayer]
+    end
+    
+    subgraph Properties
+        AV --> PG[PropertyGroup]
+        TL --> PG
+        SL --> PG
+        PG --> PR[Property]
+        PG --> PG
+        PR --> KF[Keyframe]
+    end
+    
+    subgraph Sources
+        FI --> FS[FileSource]
+        FI --> SS[SolidSource]
+        FI --> PS[PlaceholderSource]
+    end
+    
+    subgraph RenderQueue
+        P --> RQ[RenderQueue]
+        RQ --> RQI[RenderQueueItem]
+        RQI --> OM[OutputModule]
+    end
+```
 
 ### Data Model
 
 The library provides dataclasses that mirror After Effects' object model:
 
 - `Project`: Root project object
-- `CompItem`, `FootageItem`, `Folder`: Project items
+- `CompItem`, `FootageItem`, `FolderItem`: Project items
 - `AVLayer`, `TextLayer`, `ShapeLayer`, etc.: Layer types
 - `Property`, `PropertyGroup`: Layer properties
-- `Keyframe`, `Marker`: Animation data
+- `Keyframe`, `MarkerValue`: Animation data
 - `FileSource`, `SolidSource`, `PlaceholderSource`: Footage sources
+- `RenderQueue`, `RenderQueueItem`, `RenderSettings`, `OutputModule`: Render queue
 
 ## API Reference
 
 Browse the [API Reference](api/index.md) for detailed documentation of all classes and methods.
 
-## Guides
-
-- **[Contributing Guide](guides/contributing.md)**: Learn how to contribute to the project, understand the codebase, debug issues, and add new features
-- **[Flags Tutorial](guides/flags_tutorial.md)**: Step-by-step guide for parsing boolean flags (1-bit attributes) from AEP files
-
 ## Contributing
 
-Contributions are welcome! See the [Contributing Guide](guides/contributing.md) to get started, or visit the [GitHub repository](https://github.com/forticheprod/aep_parser) for more information.
+Contributions are welcome! See the [Contributing Guide](contributing.md) to get started, or visit the [GitHub repository](https://github.com/forticheprod/aep_parser) for more information.
 
 ## License
 

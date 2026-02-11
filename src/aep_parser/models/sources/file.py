@@ -9,20 +9,24 @@ from .footage import FootageSource
 @dataclass
 class FileSource(FootageSource):
     """
-    File source.
+    The `FileSource` object describes footage that comes from a file.
 
-    Corresponds to After Effects FileSource object.
+    Info:
+        `FileSource` is a subclass of `FootageSource` object. All methods and
+        attributes of `FootageSource` are available when working with
+        `FileSource`.
+
     See: https://ae-scripting.docsforadobe.dev/sources/filesource/
-
-    Attributes:
-        file: The full file path.
-        file_names: The filenames if the footage is an image sequence.
-        target_is_folder: True if the file is a folder, else False.
     """
 
     file: str
+    """The full file path."""
+
     file_names: list[str]
+    """The filenames if the footage is an image sequence."""
+
     target_is_folder: bool
+    """`True` if the file is a folder, else `False`."""
 
     @property
     def missing_footage_path(self) -> str:

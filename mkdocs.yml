@@ -33,9 +33,7 @@ theme:
         name: Switch to system preference
   
   features:
-    - navigation.tabs
     - navigation.sections
-    - navigation.expand
     - navigation.top
     - search.suggest
     - search.highlight
@@ -46,27 +44,46 @@ theme:
   icon:
     repo: fontawesome/brands/github
 
+extra_css:
+  - stylesheets/extra.css
+
 plugins:
   - search
   - mkdocstrings:
       handlers:
         python:
+          paths: [src]
+          # Load object inventories to enable cross-references to other projects.
+          inventories:
+          - https://docs.python.org/3/objects.inv
           options:
+            docstring_section_style: list
             docstring_style: google
-            docstring_section_style: table
-            show_source: true
-            show_root_heading: true
-            show_root_full_path: false
-            show_symbol_type_heading: true
-            show_symbol_type_toc: true
-            members_order: source
             group_by_category: true
-            show_if_no_docstring: false
-            inherited_members: false
+            heading_level: 2
+            inherited_members: true
+            members_order: alphabetical
             merge_init_into_class: true
+            modernize_annotations: true
+            parameter_headings: true
             separate_signature: true
+            show_category_heading: true
+            show_docstring_attributes: false
+            show_docstring_parameters: true
+            show_if_no_docstring: true
+            show_labels: false               # "property", "dataclass" labels next to the name
+            show_root_full_path: false
+            show_root_heading: true
+            show_root_toc_entry: false
             show_signature_annotations: true
+            show_signature: true             # class signature line
+            show_source: false
+            show_symbol_type_heading: true   # "Attributes", "Methods" headings
+            show_symbol_type_toc: true       # TOC type labels
             signature_crossrefs: true
+            # summary: true
+            filters:
+              - "!^_"  # Exclude private/dunder members
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -75,39 +92,47 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.superfences
   - pymdownx.details
+  - pymdownx.magiclink  # Auto-converts URLs to clickable links
   - admonition
   - toc:
       permalink: true
 
 nav:
   - Home: index.md
+  - Contributing: contributing.md
   - CLI Tools: cli.md
   - API Reference:
     - Overview: api/index.md
     - Parsers: api/parsers.md
     - Project: api/project.md
     - Items:
-      - Base Item: api/items/item.md
+      - Item: api/items/item.md
+      - AV Item: api/items/av_item.md
       - Composition: api/items/composition.md
       - Footage: api/items/footage.md
       - Folder: api/items/folder.md
     - Layers:
-      - Base Layer: api/layers/layer.md
+      - Layer: api/layers/layer.md
       - AV Layer: api/layers/av_layer.md
       - Text Layer: api/layers/text_layer.md
       - Shape Layer: api/layers/shape_layer.md
       - Camera Layer: api/layers/camera_layer.md
       - Light Layer: api/layers/light_layer.md
     - Properties:
+      - Property Base: api/properties/property_base.md
       - Property: api/properties/property.md
       - Property Group: api/properties/property_group.md
       - Keyframe: api/properties/keyframe.md
       - Marker: api/properties/marker.md
     - Sources:
+      - Footage Source: api/sources/footage_source.md
       - File Source: api/sources/file_source.md
       - Solid Source: api/sources/solid_source.md
       - Placeholder Source: api/sources/placeholder_source.md
+    - Render Queue:
+      - RenderQueue: api/renderqueue/render_queue.md
+      - Render Queue Item: api/renderqueue/render_queue_item.md
+      - Render Settings: api/renderqueue/render_settings.md
+      - Output Module: api/renderqueue/output_module.md
+      - Output Module Settings: api/renderqueue/output_module_settings.md
     - Enums: api/enums.md
-  - Guides:
-    - Contributing: guides/contributing.md
-    - Flags Tutorial: guides/flags_tutorial.md

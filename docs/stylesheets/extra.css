@@ -1,0 +1,33 @@
+/* Bigger "Attributes", "Functions", "Methods" section headings (h3) */
+h3[id$="-attributes"],
+h3[id$="-functions"],
+h3[id$="-methods"],
+h3[id$="-classes"],
+h3[id$="-properties"] {
+  font-size: 1.6em !important;
+  margin-top: 2em !important;
+  margin-bottom: 1em !important;
+  border-bottom: 2px solid var(--md-default-fg-color--lighter);
+  padding-bottom: 0.4em;
+}
+
+/* Bigger attribute and method names (h4 headings) */
+h4.doc-heading {
+  font-size: 1.2em !important;
+}
+
+/* More space/separation after each attribute/method block */
+.doc-object.doc-attribute,
+.doc-object.doc-function,
+.doc-object.doc-method {
+  margin-bottom: 2.5em !important;
+  padding-bottom: 1.5em !important;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+}
+
+/* Remove border from last item in each section */
+.doc-object.doc-attribute:last-child,
+.doc-object.doc-function:last-child,
+.doc-object.doc-method:last-child {
+  border-bottom: none;
+}

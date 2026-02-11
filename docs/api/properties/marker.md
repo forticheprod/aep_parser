@@ -1,7 +1,1 @@
-# Marker
-
-::: aep_parser.models.properties.marker.Marker
-    options:
-      show_root_heading: true
-      show_source: true
-      members_order: source
+::: aep_parser.models.properties.marker.MarkerValue

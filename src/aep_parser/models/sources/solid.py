@@ -8,16 +8,18 @@ from .footage import FootageSource
 @dataclass
 class SolidSource(FootageSource):
     """
-    Solid source.
+    The `SolidSource` object represents a solid-color footage source.
 
-    Corresponds to After Effects SolidSource object.
+    Info:
+        `SolidSource` is a subclass of `FootageSource` object. All methods and
+        attributes of `FootageSource` are
+        available when working with `SolidSource`.
+
     See: https://ae-scripting.docsforadobe.dev/sources/solidsource/
-
-    Attributes:
-        color: The solid color (RGBA).
     """
 
     color: list[float]
+    """The solid color (RGBA)."""
 
     @property
     def is_solid(self) -> bool:
