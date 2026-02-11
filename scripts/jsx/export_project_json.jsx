@@ -76,6 +76,23 @@ var AepExport = AepExport || {};
     // =========================================================================
 
     /**
+     * Export all settings from a getSettings() result object.
+     * Keeps original After Effects key names (e.g., "Video Output", "Frame Rate").
+     */
+    function exportSettingsObject(settingsObj) {
+        var result = {};
+        for (var key in settingsObj) {
+            if (settingsObj.hasOwnProperty(key)) {
+                var value = settingsObj[key];
+                if (isSimpleValue(value)) {
+                    result[key] = value;
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
      * Check if a value is a simple exportable type.
      */
     function isSimpleValue(value) {
@@ -527,7 +544,113 @@ var AepExport = AepExport || {};
             result.items.push(exportItem(project.item(i)));
         }
 
+        // Export render queue
+        result.renderQueue = exportRenderQueue(project.renderQueue);
+
         return result;
+    }
+
+    /**
+     * Export the render queue.
+     */
+    function exportRenderQueue(renderQueue) {
+        var result = {
+            numItems: renderQueue.numItems,
+            items: []
+        };
+
+        for (var i = 1; i <= renderQueue.numItems; i++) {
+            result.items.push(exportRenderQueueItem(renderQueue.item(i)));
+        }
+
+        return result;
+    }
+
+    /**
+     * Export a single render queue item.
+     */
+    function exportRenderQueueItem(rqItem) {
+        var result = {
+            numOutputModules: rqItem.numOutputModules,
+            outputModules: []
+        };
+
+        // Get basic attributes
+        try { result.status = rqItem.status; } catch (e) {}
+        try { result.render = rqItem.render; } catch (e) {}
+        try { result.startTime = rqItem.startTime; } catch (e) {}
+        try { result.endTime = rqItem.endTime; } catch (e) {}
+        try { result.skipFrames = rqItem.skipFrames; } catch (e) {}
+        try { result.timeSpanStart = rqItem.timeSpanStart; } catch (e) {}
+        try { result.timeSpanDuration = rqItem.timeSpanDuration; } catch (e) {}
+
+        // Get comp reference
+        try {
+            if (rqItem.comp) {
+                result.compName = rqItem.comp.name;
+            }
+        } catch (e) {}
+
+        // Export render settings
+        try {
+            result.settings = exportRenderSettings(rqItem);
+        } catch (e) {}
+
+        // Export output modules
+        for (var i = 1; i <= rqItem.numOutputModules; i++) {
+            result.outputModules.push(exportOutputModule(rqItem.outputModule(i)));
+        }
+
+        return result;
+    }
+
+    /**
+     * Export render settings from a RenderQueueItem.
+     * Uses getSettings() to retrieve all render settings.
+     */
+    function exportRenderSettings(rqItem) {
+        var numSettings = rqItem.getSettings(GetSettingsFormat.NUMBER);
+        return exportSettingsObject(numSettings);
+    }
+
+    /**
+     * Export a single output module.
+     */
+    function exportOutputModule(om) {
+        var result = {};
+
+        // Get file path
+        try {
+            if (om.file) {
+                result.file = om.file.fsName;
+            }
+        } catch (e) {}
+
+        // Get templates
+        try {
+            result.templates = om.templates;
+        } catch (e) {}
+
+        // Get other attributes
+        try { result.name = om.name; } catch (e) {}
+        try { result.postRenderAction = om.postRenderAction; } catch (e) {}
+        try { result.includeSourceXMP = om.includeSourceXMP; } catch (e) {}
+
+        // Export output module settings
+        try {
+            result.settings = exportOutputModuleSettings(om);
+        } catch (e) {}
+
+        return result;
+    }
+
+    /**
+     * Export output module settings from an OutputModule.
+     * Uses getSettings() to retrieve all output module settings.
+     */
+    function exportOutputModuleSettings(om) {
+        var numSettings = om.getSettings(GetSettingsFormat.NUMBER);
+        return exportSettingsObject(numSettings);
     }
 
     // =========================================================================

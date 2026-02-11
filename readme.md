@@ -18,7 +18,7 @@
 ## About The Project
 
 
-This as a .aep (After Effects Project) parser in Python. After Effects files (.aep) are mostly binary files, encoded in RIFX format. This parser uses [Kaitai Struct](https://kaitai.io/) to parse .aep files and return a Project object containing items, layers, effects and properties.
+This as a .aep (After Effects Project) parser in Python. After Effects files (.aep) are mostly binary files, encoded in RIFX format. This parser uses [Kaitai Struct](https://kaitai.io/) to parse .aep files and return a Project object containing items, layers, effects and properties. The API is as close as possible to the [ExtendScript API](https://ae-scripting.docsforadobe.dev/), with a few nice additions like iterators instead of collection items.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -42,8 +42,32 @@ pip install aep-parser
 ```python
 from aep_parser import parse_project
 
-aep_file_path = "samples/models/composition/bgColor_custom.aep"
-project = parse_project(aep_file_path)
+# Parse an After Effects project
+project = parse_project("path/to/project.aep")
+
+# Access every item
+for item in project:
+    print(f"{item.name} ({type(item).__name__})")
+
+# Get a composition by name and its layers
+comp = project.composition("Comp 1")
+for layer in comp.layers:
+    print(f"  Layer: {layer.name}, in={layer.in_point}s, out={layer.out_point}s")
+    
+    # Access layer's source (for AVLayer)
+    if hasattr(layer, "source") and layer.source:
+        print(f"    Source: {layer.source.name}")
+        # Get file path if source is footage with a file
+        if hasattr(layer.source, "file"):
+            print(f"    File: {layer.source.file}")
+
+# Access render queue
+for rq_item in project.render_queue.items:
+    print(f"Render: {rq_item.comp_name}")
+    for om in rq_item.output_modules:
+        # Settings are a dict with ExtendScript keys
+        video_on = om.settings.get("Video Output", False)
+        print(f"  Output: {om.name}, video={video_on}")
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -54,7 +78,7 @@ project = parse_project(aep_file_path)
 <!-- ROADMAP -->
 ## Roadmap
 
-See the [open issues](https://github.com/forticheprod/aep_parser/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/forticheprod/aep_parser/issues) for a full list of proposed features and known issues.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -64,15 +88,7 @@ See the [open issues](https://github.com/forticheprod/aep_parser/issues) for a f
 <!-- CONTRIBUTING -->
 ## Contributing
 
-Any contributions you make are **greatly appreciated**.
-
-If you have a suggestion that would make this better, please fork the repo and create a merge request. You can also simply open an issue with the tag "enhancement".
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+See the full [Contributing Guide](https://github.com/forticheprod/aep_parser/blob/main/CONTRIBUTING.md) on GitHub.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -94,8 +110,6 @@ Distributed under the MIT License.
 
 Aurore Delaunay - del-github@blurme.net
 
-Project Link: [https://github.com/forticheprod/aep_parser](https://github.com/forticheprod/aep_parser)
-
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
@@ -104,9 +118,10 @@ Project Link: [https://github.com/forticheprod/aep_parser](https://github.com/fo
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-* [aftereffects-aep-parser](https://github.com/boltframe/aftereffects-aep-parser)
+* [aftereffects-aep-parser in Go](https://github.com/boltframe/aftereffects-aep-parser)
 * [Kaitai Struct](https://kaitai.io)
-* [Lottie](https://github.com/hunger-zh/lottie-docs/blob/main/docs/aep.md)
+* [The invaluable Lottie Docs](https://github.com/hunger-zh/lottie-docs/blob/main/docs/aep.md)
 * [After Effects Scripting Guide](https://ae-scripting.docsforadobe.dev/)
+* [AE version parsing](https://github.com/tinogithub/aftereffects-version-check)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

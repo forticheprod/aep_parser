@@ -1,0 +1,34 @@
+{
+  "projectName": "framesUseFeetFrames_false.aep",
+  "bitsPerChannel": 32,
+  "colorManagementSystem": 0,
+  "compensateForSceneReferredProfiles": false,
+  "displayStartFrame": 0,
+  "expressionEngine": "extendscript",
+  "feetFramesFilmType": 2413,
+  "footageTimecodeDisplayStartType": 2212,
+  "framesCountType": 2612,
+  "framesUseFeetFrames": false,
+  "gpuAccelType": 1813,
+  "linearBlending": false,
+  "linearizeWorkingSpace": false,
+  "lutInterpolationMethod": 1,
+  "numItems": 0,
+  "ocioConfigurationFile": "",
+  "timeDisplayType": 2013,
+  "transparencyGridThumbnails": true,
+  "usedFonts": [
+    
+  ],
+  "workingGamma": 2.4,
+  "workingSpace": "None",
+  "items": [
+    
+  ],
+  "renderQueue": {
+    "numItems": 0,
+    "items": [
+      
+    ]
+  }
+}

@@ -2,7 +2,7 @@
   "projectName": "displayStartFrame_1.aep",
   "bitsPerChannel": 32,
   "colorManagementSystem": 0,
-  "compensateForSceneReferredProfiles": true,
+  "compensateForSceneReferredProfiles": false,
   "displayStartFrame": 1,
   "expressionEngine": "extendscript",
   "feetFramesFilmType": 2413,
@@ -10,8 +10,8 @@
   "framesCountType": 2613,
   "framesUseFeetFrames": true,
   "gpuAccelType": 1813,
-  "linearBlending": true,
-  "linearizeWorkingSpace": true,
+  "linearBlending": false,
+  "linearizeWorkingSpace": false,
   "lutInterpolationMethod": 1,
   "numItems": 0,
   "ocioConfigurationFile": "ACES 1.2",
@@ -24,5 +24,11 @@
   "workingSpace": "None",
   "items": [
     
-  ]
+  ],
+  "renderQueue": {
+    "numItems": 0,
+    "items": [
+      
+    ]
+  }
 }

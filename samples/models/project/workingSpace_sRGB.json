@@ -2,7 +2,7 @@
   "projectName": "workingSpace_sRGB.aep",
   "bitsPerChannel": 32,
   "colorManagementSystem": 0,
-  "compensateForSceneReferredProfiles": true,
+  "compensateForSceneReferredProfiles": false,
   "displayStartFrame": 0,
   "expressionEngine": "extendscript",
   "feetFramesFilmType": 2413,
@@ -11,10 +11,10 @@
   "framesUseFeetFrames": true,
   "gpuAccelType": 1813,
   "linearBlending": true,
-  "linearizeWorkingSpace": true,
+  "linearizeWorkingSpace": false,
   "lutInterpolationMethod": 1,
   "numItems": 0,
-  "ocioConfigurationFile": "ACES 1.2",
+  "ocioConfigurationFile": "",
   "timeDisplayType": 2012,
   "transparencyGridThumbnails": true,
   "usedFonts": [
@@ -24,5 +24,11 @@
   "workingSpace": "sRGB IEC61966-2.1",
   "items": [
     
-  ]
+  ],
+  "renderQueue": {
+    "numItems": 0,
+    "items": [
+      
+    ]
+  }
 }

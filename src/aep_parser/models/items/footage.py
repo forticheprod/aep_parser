@@ -14,24 +14,32 @@ if typing.TYPE_CHECKING:
 @dataclass
 class FootageItem(AVItem):
     """
-    Footage item.
+    The `FootageItem` object represents a footage item imported into a project,
+    which appears in the Project panel.
 
-    Attributes:
-        main_source: The footage source.
-        asset_type: The footage type (placeholder, solid, file).
-        end_frame: The footage end frame.
-        start_frame: The footage start frame.
+    Info:
+        `FootageItem` is a subclass of `AVItem` object, which is a subclass of
+        `Item` object. All methods and attributes of `AVItem` and `Item` are
+        available when working with `FootageItem`.
+
+    See: https://ae-scripting.docsforadobe.dev/item/footageitem/
     """
 
     main_source: FileSource | SolidSource | PlaceholderSource
+    """The footage source."""
+
     asset_type: str
+    """The footage type (placeholder, solid, file)."""
+
     end_frame: int
+    """The footage end frame."""
+
     start_frame: int
+    """The footage start frame."""
 
     @property
     def file(self) -> str | None:
-        """The footage file path if its source is a FileSource, else None."""
-        try:
-            return self.main_source.file
-        except AttributeError:
-            return None
+        """The footage file path if its source is a `FileSource`, else `None`."""
+        if hasattr(self.main_source, "file"):
+            return str(self.main_source.file)
+        return None

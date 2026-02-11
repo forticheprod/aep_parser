@@ -143,4 +143,6 @@ class TestFolderNesting:
         folder = get_first_folder(project)
         assert folder is not None
         assert folder_json["numItems"] == 3
-        assert len(folder.folder_items) == folder_json["numItems"]
+        assert len(folder.items) == folder_json["numItems"]
+        # Items are now actual Item objects, not IDs
+        assert all(hasattr(item, "id") for item in folder.items)

@@ -2,7 +2,7 @@
   "projectName": "resolutionFactor_quarter.aep",
   "bitsPerChannel": 32,
   "colorManagementSystem": 1,
-  "compensateForSceneReferredProfiles": true,
+  "compensateForSceneReferredProfiles": false,
   "displayStartFrame": 0,
   "expressionEngine": "extendscript",
   "feetFramesFilmType": 2413,
@@ -85,5 +85,11 @@
         
       ]
     }
-  ]
+  ],
+  "renderQueue": {
+    "numItems": 0,
+    "items": [
+      
+    ]
+  }
 }

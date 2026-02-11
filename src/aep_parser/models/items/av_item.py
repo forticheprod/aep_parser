@@ -8,36 +8,52 @@ from .item import Item
 @dataclass
 class AVItem(Item):
     """
-    Abstract base class storing information about compositions or footages.
+    The `AVItem` object provides access to attributes and methods of
+    audio/visual files imported into After Effects.
 
-    Attributes:
-        duration: The duration of the item in seconds. Still footages have
-            a duration of 0.
-        frame_duration: The duration of the item in frames. Still footages
-            have a duration of 0.
-        frame_rate: The frame rate of the item in frames-per-second.
-        height: The height of the item in pixels.
-        pixel_aspect: The pixel aspect ratio of the item (1.0 is square).
-        width: The width of the item in pixels.
+    Info:
+        `AVItem` is a subclass of `Item`. All methods and attributes of `Item`
+        are available when working with `AVItem`.
+
+    Info:
+        `AVItem` is the base class for both `CompItem` and `FootageItem`, so
+        `AVItem` attributes and methods are also available when working with
+        `CompItem` and `FootageItem` objects. See `CompItem` object and
+        `FootageItem` object.
+
+    See: https://ae-scripting.docsforadobe.dev/item/avitem/
     """
 
     duration: float
+    """The duration of the item in seconds. Still footages have a duration of 0."""
+
     frame_duration: int
+    """The duration of the item in frames. Still footages have a duration of 0."""
+
     frame_rate: float
+    """The frame rate of the item in frames-per-second."""
+
     height: int
+    """The height of the item in pixels."""
+
     pixel_aspect: float
+    """The pixel aspect ratio of the item (1.0 is square)."""
+
     width: int
+    """The width of the item in pixels."""
 
     @property
     def footage_missing(self) -> bool:
         """
-        When true, the AVItem is a placeholder, or represents footage with a
+        When `True`, the AVItem is a placeholder, or represents footage with a
         source file that cannot be found. In this case, the path of the
-        missing source file is in the missingFootagePath attribute of the
-        footage item's source-file object. See FootageItem.main_source and
-        FileSource.missing_footage_path.
+        missing source file is in the `missing_footage_path` attribute of the
+        footage item's source-file object. See `FootageItem.main_source` and
+        `FileSource.missing_footage_path`.
         """
-        try:
-            return bool(self.main_source.missing_footage_path)
-        except AttributeError:
+        if not hasattr(self, "main_source"):
             return False
+        source = self.main_source
+        if hasattr(source, "missing_footage_path"):
+            return bool(source.missing_footage_path)
+        return False

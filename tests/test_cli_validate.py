@@ -307,7 +307,7 @@ class TestCompareLayer:
         }
         parsed = {
             "name": "Layer 1",
-            "layer_id": 1,
+            "id": 1,
             "enabled": True,
             "in_point": 0.0,
             "out_point": 10.0,

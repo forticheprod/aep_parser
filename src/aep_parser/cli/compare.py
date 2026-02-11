@@ -11,8 +11,7 @@ Usage:
     aep-compare file1.aepx file2.aepx
     aep-compare file1.aep file2.aep
     aep-compare file1.aep file2.aep --json
-    aep-compare file1.aep file2.aep --filter ldta
-"""
+    aep-compare file1.aep file2.aep --filter ldta    aep-compare file1.aep file2.aep --format aepx"""
 
 from __future__ import annotations
 
@@ -218,8 +217,8 @@ def _get_chunk_identifier(chunk: Any) -> str:
     chunk_type = str(chunk.chunk_type)
 
     # For LIST chunks, include the list_type
-    if chunk_type == "LIST" and hasattr(chunk.data, "list_type"):
-        return f"LIST:{chunk.data.list_type}"
+    if chunk_type == "LIST" and hasattr(chunk, "list_type"):
+        return f"LIST:{chunk.list_type}"
 
     return chunk_type
 
@@ -263,12 +262,12 @@ def _extract_chunks_recursive(
         # Recurse into LIST chunks
         if (
             chunk.chunk_type == "LIST"
-            and hasattr(chunk.data, "chunks")
-            and chunk.data.chunks
+            and hasattr(chunk, "chunks")
+            and chunk.chunks
         ):
             child_counters: dict[str, int] = {}
             _extract_chunks_recursive(
-                chunk.data.chunks, current_path, result, child_counters
+                chunk.chunks, current_path, result, child_counters
             )
 
 
