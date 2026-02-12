@@ -85,9 +85,12 @@ def _optimized_chunk_read(self: Aep.Chunk) -> None:
     except KeyError:
         chunk_class = _FALLBACK_CLASS
     self.data = chunk_class(_io__raw_data, self, self._root)
+    self.data._read()
 
     if (self.len_data % 2) != 0:
         self.padding = self._io.read_bytes(1)
+
+    self._dirty = False
 
 
 def _chunk_getattr(self: Aep.Chunk, name: str) -> object:

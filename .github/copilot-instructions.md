@@ -140,7 +140,7 @@ When adding new mappings:
 ## Regenerating Kaitai Parser
 When modifying `aep.ksy`, regenerate the Python parser:
 ```powershell
-kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_parser/kaitai/aep.ksy
+kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_parser/kaitai/aep.ksy --read-write --no-auto-read
 ```
 No manual modifications are needed after regeneration. Performance optimizations (dict-based chunk type lookup) are applied automatically via the `aep_optimized.py` wrapper module.
 
