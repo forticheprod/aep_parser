@@ -38,6 +38,7 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
     """
     file_path = os.fspath(aep_file_path)
     with Aep.from_file(file_path) as aep:
+        aep._read()
         root_chunks = aep.data.chunks
 
         root_folder_chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")

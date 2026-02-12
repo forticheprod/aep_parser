@@ -88,6 +88,7 @@ types:
       - id: gpu_accel_type
         type: u1
         doc: GPU acceleration type (raw binary value, needs mapping)
+      - size-eos: true
   dwga_body:
     doc: |
       Working gamma setting. Indicates the gamma value used for color management.
@@ -267,6 +268,7 @@ types:
       - id: label
         type: u1
         enum: label
+      - size-eos: true
   ldat_body:
     seq:
       - id: items
@@ -327,9 +329,7 @@ types:
       - id: audio_channels
         type: u1
         doc: Audio channels (1=mono, 2=stereo)
-      - id: remaining
-        size-eos: true
-        doc: Remaining bytes to end of chunk
+      - size-eos: true
     instances:
       video_output:
         value: width > 0 or height > 0
@@ -814,6 +814,7 @@ types:
       - size: 3
       - id: item_type_raw
         type: u1
+      - size-eos: true
     instances:
       item_type:
         value: >-
@@ -916,6 +917,9 @@ types:
         encoding: windows-1250
         size: 256
         if: asset_type == "Soli"
+      - id: solid_remaining
+        size-eos: true
+        if: asset_type == "Soli"
       - size: 4
         if: asset_type_int == 2
       - id: placeholder_name
@@ -923,6 +927,9 @@ types:
         encoding: windows-1250
         size-eos: true
         if: asset_type_int == 2
+      - id: file_remaining
+        size-eos: true
+        if: asset_type != "Soli" and asset_type_int != 2
     instances:
       red:
         value: 'color[1]'
@@ -1029,6 +1036,7 @@ types:
         if: >-
           property_control_type == property_control_type::scalar
           or property_control_type == property_control_type::slider
+      - size-eos: true
     instances:
       last_value_x:
         value: 'last_value_x_raw * (property_control_type == property_control_type::two_d ? 1/128 : 512)'
@@ -1118,6 +1126,7 @@ types:
         type: u4
       - id: end_frame
         type: u4
+      - size-eos: true
     instances:
       duration:
         value: 'duration_dividend.as<f4> / duration_divisor.as<f4>'

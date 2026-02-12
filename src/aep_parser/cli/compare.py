@@ -207,6 +207,7 @@ def parse_aep_chunks(file_path: Path) -> dict[str, bytes]:
     Returns a dict mapping chunk paths to their raw binary data.
     """
     aep = Aep.from_file(str(file_path))
+    aep._read()
     result: dict[str, bytes] = {}
     _extract_chunks_recursive(aep.data.chunks, "", result)
     return result

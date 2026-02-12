@@ -159,6 +159,7 @@ def parse_ldat_items(
             item = Aep.OutputModuleSettingsLdatBody(stream)
         else:
             item = Aep.LdatItem(item_type=item_type, _io=stream)
+        item._read()
         items.append(item)
 
     return items

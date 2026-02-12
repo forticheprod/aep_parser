@@ -205,9 +205,7 @@ If the chunk isn't already parsed, add it to `aep.ksy`:
 #### 3. Regenerate Kaitai Parser
 
 ```bash
-kaitai-struct-compiler --target python \
-  --outdir src/aep_parser/kaitai \
-  src/aep_parser/kaitai/aep.ksy
+kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_parser/kaitai/aep.ksy --read-write --no-auto-read
 ```
 
 #### 4. Update the Model
