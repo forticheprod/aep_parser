@@ -63,7 +63,7 @@ ruff format src/
 mkdocs build --strict
 
 # Serve documentation locally (with live reload)
-mkdocs serve
+mkdocs serve --strict
 ```
 
 ## Code Conventions
@@ -206,7 +206,7 @@ pip install -e ".[docs]"
 mkdocs build --strict
 
 # Serve with live reload at http://127.0.0.1:8000
-mkdocs serve
+mkdocs serve --strict
 ```
 
 ### Docstring Requirements
@@ -284,7 +284,7 @@ Configuration in `mkdocs.yml` enables:
          show_source: true
    ```
 3. Add page to navigation in `mkdocs.yml` under `nav:` section
-4. Build and verify: `mkdocs serve`
+4. Build and verify: `mkdocs serve --strict`
 
 ### Automatic Deployment
 The `.github/workflows/docs.yml` workflow:
