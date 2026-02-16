@@ -1,6 +1,6 @@
 [project]
 name = "aep_parser"
-version = "0.1.2"
+dynamic = ["version"]
 description = "A .aep (After Effects Project) parser"
 readme = "readme.md"
 license = {text = "MIT"}
@@ -45,7 +45,7 @@ docs = [
 [project.urls]
 Repository = "https://github.com/forticheprod/aep_parser"
 Documentation = "https://forticheprod.github.io/aep_parser/"
-Changelog = "https://github.com/forticheprod/aep_parser/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/forticheprod/aep_parser/releases"
 
 [project.scripts]
 aep-visualize = "aep_parser.cli.visualize:main"
@@ -53,8 +53,10 @@ aep-compare = "aep_parser.cli.compare:main"
 aep-validate = "aep_parser.cli.validate:main"
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
 
 [tool.setuptools.packages.find]
 where = ["src"]
