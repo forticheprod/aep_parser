@@ -136,11 +136,6 @@ var AEP_EXPORT_AS_LIBRARY = true;
         proj.framesUseFeetFrames = true;
         saveProject(proj, folder.fsName + "/framesUseFeetFrames_true.aep");
 
-        // gpuAccelType (CC 2015.3+)
-        proj = createProject();
-        proj.gpuAccelType = GpuAccelType.CUDA;
-        saveProject(proj, folder.fsName + "/gpuAccelType_cuda.aep");
-
         // linearBlending
         proj = createProject();
         proj.bitsPerChannel = 32;
@@ -202,7 +197,6 @@ var AEP_EXPORT_AS_LIBRARY = true;
 
         // lutInterpolationMethod = 1 (Tetrahedral - requires GPU acceleration)
         proj = createProject();
-        proj.gpuAccelType = GpuAccelType.OPENCL; // Enable GPU for tetrahedral
         proj.lutInterpolationMethod = 1;
         saveProject(proj, folder.fsName + "/lutInterpolationMethod_tetrahedral.aep");
 
@@ -566,6 +560,89 @@ var AEP_EXPORT_AS_LIBRARY = true;
         layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 100, 100, 1);
         layer.stretch = -100;
         saveProject(proj, folder.fsName + "/stretch_minus100.aep");
+
+        // --- TIMING EDGE CASES (precomp source clamping) ---
+        // These test _clamp_layer_times() behaviour with precomp sources
+        // that have a finite duration, activating the outPoint clamp.
+
+        // outPoint clamped by precomp source duration
+        // Precomp duration = 5s, main comp = 30s.
+        // Layer outPoint defaults to main comp duration (30s) but AE clamps
+        // it to start_time + source.duration = 0 + 5 = 5.
+        proj = createProject();
+        comp = proj.items.addComp("MainComp", 100, 100, 1, 30, 24);
+        var precomp = proj.items.addComp("Precomp5s", 100, 100, 1, 5, 24);
+        layer = comp.layers.add(precomp);
+        saveProject(proj, folder.fsName + "/outPoint_clamp_precomp.aep");
+
+        // outPoint clamped with stretch on precomp
+        // Precomp duration = 5s, stretch = 200%.
+        // Effective duration = 5 * (200/100) = 10s. Layer outPoint should
+        // clamp to start_time + 10 = 10.
+        proj = createProject();
+        comp = proj.items.addComp("MainComp", 100, 100, 1, 30, 24);
+        precomp = proj.items.addComp("Precomp5s", 100, 100, 1, 5, 24);
+        layer = comp.layers.add(precomp);
+        layer.stretch = 200;
+        saveProject(proj, folder.fsName + "/outPoint_clamp_stretch_200.aep");
+
+        // outPoint clamped with large stretch (400%)
+        // Precomp duration = 5s, stretch = 400%.
+        // Effective duration = 5 * 4 = 20s. OutPoint clamps to 20.
+        proj = createProject();
+        comp = proj.items.addComp("MainComp", 100, 100, 1, 30, 24);
+        precomp = proj.items.addComp("Precomp5s", 100, 100, 1, 5, 24);
+        layer = comp.layers.add(precomp);
+        layer.stretch = 400;
+        saveProject(proj, folder.fsName + "/outPoint_clamp_stretch_400.aep");
+
+        // collapseTransformation precomp: NO outPoint clamp
+        // Precomp duration = 5s, but collapse_transformation = true means
+        // AE treats it as unlimited duration.
+        // Must explicitly set outPoint=30 after enabling the flag, because
+        // the default outPoint when adding a precomp layer is source.duration.
+        proj = createProject();
+        comp = proj.items.addComp("MainComp", 100, 100, 1, 30, 24);
+        precomp = proj.items.addComp("Precomp5s", 100, 100, 1, 5, 24);
+        layer = comp.layers.add(precomp);
+        if (layer.canSetCollapseTransformation) {
+            layer.collapseTransformation = true;
+        }
+        layer.outPoint = 30;
+        saveProject(proj, folder.fsName + "/outPoint_no_clamp_collapse.aep");
+
+        // timeRemapEnabled precomp: NO outPoint clamp
+        // Precomp duration = 5s, but time_remap_enabled = true means
+        // AE does not clamp outPoint.
+        // Must explicitly set outPoint=30 after enabling time remap, because
+        // the default outPoint when adding a precomp layer is source.duration.
+        proj = createProject();
+        comp = proj.items.addComp("MainComp", 100, 100, 1, 30, 24);
+        precomp = proj.items.addComp("Precomp5s", 100, 100, 1, 5, 24);
+        layer = comp.layers.add(precomp);
+        layer.timeRemapEnabled = true;
+        layer.outPoint = 30;
+        saveProject(proj, folder.fsName + "/outPoint_no_clamp_timeRemap.aep");
+
+        // Negative stretch precomp: NO outPoint clamp
+        // Precomp duration = 5s, stretch = -100%.
+        // Negative stretch skips clamping entirely.
+        proj = createProject();
+        comp = proj.items.addComp("MainComp", 100, 100, 1, 30, 24);
+        precomp = proj.items.addComp("Precomp5s", 100, 100, 1, 5, 24);
+        layer = comp.layers.add(precomp);
+        layer.stretch = -100;
+        saveProject(proj, folder.fsName + "/outPoint_no_clamp_negative_stretch.aep");
+
+        // Precomp with startTime offset and outPoint clamp
+        // Precomp duration = 5s, startTime = 3s.
+        // OutPoint clamps to startTime + duration = 3 + 5 = 8.
+        proj = createProject();
+        comp = proj.items.addComp("MainComp", 100, 100, 1, 30, 24);
+        precomp = proj.items.addComp("Precomp5s", 100, 100, 1, 5, 24);
+        layer = comp.layers.add(precomp);
+        layer.startTime = 3;
+        saveProject(proj, folder.fsName + "/outPoint_clamp_with_startTime.aep");
 
         // --- AVLAYER_ATTRS ---
 

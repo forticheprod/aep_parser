@@ -34,7 +34,6 @@
       "counters": false,
       "displayStartFrame": 0,
       "displayStartTime": 0,
-      "draft3d": false,
       "dropFrame": false,
       "duration": 30,
       "footageMissing": false,
@@ -93,7 +92,7 @@
         "numOutputModules": 1,
         "outputModules": [
           {
-            "file": "C:\\Program Files\\Adobe\\Adobe After Effects 2025\\Support Files\\[projectFolder]\\Comp 1.mp4",
+            "file": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\scripts\\jsx\\[projectFolder]\\Comp 1.mp4",
             "templates": [
               "AIFF 48kHz",
               "Alpha Only",

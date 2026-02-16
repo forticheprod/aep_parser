@@ -18,13 +18,13 @@ if typing.TYPE_CHECKING:
         FeetFramesFilmType,
         FootageTimecodeDisplayStartType,
         FramesCountType,
-        GpuAccelType,
         LutInterpolationMethod,
         TimeDisplayType,
     )
     from .items.item import Item
     from .layers.layer import Layer
     from .renderqueue.render_queue import RenderQueue
+    from .viewer.viewer import Viewer
 
 
 @dataclass
@@ -106,9 +106,6 @@ class Project:
     frames_use_feet_frames: bool
     """When True, the Frames field in the UI is displayed as feet+frames."""
 
-    gpu_accel_type: GpuAccelType
-    """The GPU acceleration type for video rendering."""
-
     linear_blending: bool
     """
     When True, linear blending is used for the project. When False, the
@@ -138,8 +135,24 @@ class Project:
     in the Project Settings dialog box.
     """
 
+    transparency_grid_thumbnails: bool
+    """
+    When `True`, thumbnail views use the transparency checkerboard pattern.
+    """
+
     xmp_packet: ET.Element
     """The XMP packet for the project, containing metadata."""
+
+    active_item: Item | None = None
+    """
+    The item that is currently active and is to be acted upon, or `None` if no
+    item is currently selected or if multiple items are selected.
+    """
+
+    active_viewer: Viewer | None = None
+    """
+    The currently focused Viewer panel, or `None` if no viewer is active.
+    """
 
     display_start_frame: int = field(init=False)
     """The start frame number for the project display."""
@@ -190,13 +203,6 @@ class Project:
             ]
         return self._compositions
 
-    def composition(self, name: str) -> CompItem:
-        """Get a composition by name."""
-        for comp in self.compositions:
-            if comp.name == name:
-                return comp
-        raise ValueError(f"Composition with name '{name}' not found")
-
     @property
     def folders(self) -> list[FolderItem]:
         """All the folders in the project."""
@@ -208,13 +214,6 @@ class Project:
             ]
         return self._folders
 
-    def folder(self, name: str) -> FolderItem:
-        """Get a folder by name."""
-        for folder in self.folders:
-            if folder.name == name:
-                return folder
-        raise ValueError(f"FolderItem with name '{name}' not found")
-
     @property
     def footages(self) -> list[FootageItem]:
         """All the footages in the project."""
@@ -225,10 +224,3 @@ class Project:
                 if item.is_footage
             ]
         return self._footages
-
-    def footage(self, name: str) -> FootageItem:
-        """Get a footage by name."""
-        for footage in self.footages:
-            if footage.name == name:
-                return footage
-        raise ValueError(f"Footage with name '{name}' not found")

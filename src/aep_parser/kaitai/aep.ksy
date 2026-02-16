@@ -56,6 +56,7 @@ types:
             '"alas"': utf8_body # File footage data in json format as a string, contains file path
             '"NmHd"': nmhd_body # Marker data
             '"cdta"': cdta_body # Composition data
+            '"cdrp"': cdrp_body # Composition drop frame
             '"pjef"': utf8_body # Effect names
             '"cmta"': utf8_body # Comment data
             '"fdta"': fdta_body # Folder data
@@ -65,8 +66,14 @@ types:
             '"Roou"': roou_body # Output module settings
             '"Rout"': rout_body # Render queue item flags
             '"acer"': acer_body # Compensate for Scene-Referred Profiles setting
-            '"Rhed"': rhed_body # Render/GPU preferences
             '"dwga"': dwga_body # Working gamma setting
+            '"fips"': fips_body # Folder item panel settings (viewer state)
+            '"fcid"': fcid_body # Active composition item ID
+            '"foac"': foac_body # Viewer outer tab active flag
+            '"fiac"': fiac_body # Viewer inner tab active flag
+            '"fitt"': fitt_body # Viewer inner tab type label
+            '"fivi"': fivi_body # Viewer inner active view index
+            '"fivc"': fivc_body # Viewer inner view count
             _: ascii_body
       - id: padding
         size: 1
@@ -79,15 +86,6 @@ types:
       - id: compensate_for_scene_referred_profiles
         type: u1
         doc: Whether to compensate for scene-referred profiles (0=false, 1=true)
-  rhed_body:
-    doc: |
-      Render preferences header. Contains GPU acceleration settings.
-    seq:
-      - size: 13
-        doc: Unknown bytes 0-12
-      - id: gpu_accel_type
-        type: u1
-        doc: GPU acceleration type (raw binary value, needs mapping)
   dwga_body:
     doc: |
       Working gamma setting. Indicates the gamma value used for color management.
@@ -107,6 +105,173 @@ types:
         type: f8
         repeat: expr
         repeat-expr: '_parent.len_data / 8'
+  cdrp_body:
+    doc: |
+      Composition drop frame setting.
+      When true, the composition uses drop-frame timecode.
+    seq:
+      - id: drop_frame
+        type: u1
+        doc: Whether the composition uses drop-frame timecode (0=false, 1=true)
+  fips_body:
+    doc: |
+      Folder item panel settings. Stores viewer panel state including
+      Draft 3D mode, view options (channels, exposure, zoom, etc.), and
+      toggle flags (guides, rulers, grid, etc.). There are typically 4
+      fips chunks per viewer group, one for each AE composition viewer
+      panel. Total size is 96 bytes.
+    seq:
+      # Bytes 0-6: unknown
+      - size: 7
+        doc: Unknown bytes 0-6
+      # Byte 7: channel display mode
+      - id: channels
+        type: u1
+        doc: |
+          Channel display mode. 0=RGB, 1=Red, 2=Green, 3=Blue,
+          4=Alpha, 8=RGB Straight.
+      # Bytes 8-10: unknown
+      - size: 3
+        doc: Unknown bytes 8-10
+      # Byte 11: proportional_grid and title_action_safe flags
+      - type: b6  # skip bits 7-2
+      - id: proportional_grid
+        type: b1  # bit 1 (value 0x02)
+        doc: Whether the proportional grid overlay is displayed
+      - id: title_action_safe
+        type: b1  # bit 0 (value 0x01)
+        doc: Whether title/action safe guides are displayed
+      # Byte 12: draft_3d flag
+      - type: b5  # skip bits 7-3
+      - id: draft_3d
+        type: b1  # bit 2 (value 0x04)
+        doc: Whether Draft 3D mode is enabled for this viewer panel
+      - type: b2  # skip bits 1-0
+      # Byte 13: fast_preview_adaptive flag
+      - type: b7  # skip bits 7-1
+      - id: fast_preview_adaptive
+        type: b1  # bit 0 (value 0x01)
+        doc: Whether adaptive resolution fast preview is enabled
+      # Byte 14: roi, rulers, fast_preview_wireframe flags
+      - id: region_of_interest
+        type: b1  # bit 7 (value 0x80)
+        doc: Whether the region of interest selection is active
+      - id: rulers
+        type: b1  # bit 6 (value 0x40)
+        doc: Whether rulers are displayed
+      - type: b1  # skip bit 5
+      - id: fast_preview_wireframe
+        type: b1  # bit 4 (value 0x10)
+        doc: Whether wireframe fast preview mode is enabled
+      - type: b4  # skip bits 3-0
+      # Byte 15: transparency_grid, mask_and_shape_path flags
+      - id: transparency_grid
+        type: b1  # bit 7 (value 0x80)
+        doc: Whether the transparency checkerboard is displayed
+      - type: b2  # skip bits 6-5
+      - id: mask_and_shape_path
+        type: b1  # bit 4 (value 0x10)
+        doc: Whether mask and shape paths are visible
+      - type: b4  # skip bits 3-0
+      # Bytes 16-22: unknown
+      - size: 7
+        doc: Unknown bytes 16-22
+      # Byte 23: grid and guides flags
+      - type: b4  # skip bits 7-4
+      - id: grid
+        type: b1  # bit 3 (value 0x08)
+        doc: Whether the grid overlay is displayed
+      - type: b2  # skip bits 2-1
+      - id: guides_visibility
+        type: b1  # bit 0 (value 0x01)
+        doc: Whether guides are visible
+      # Bytes 24-68: viewport data and unknown
+      - size: 45
+        doc: Unknown bytes 24-68 (includes viewport coordinates)
+      # Byte 69: zoom type
+      - id: zoom_type
+        type: u1
+        doc: |
+          Zoom mode. 0=custom manual zoom, 1=fit, 2=fit up to 100%%.
+      # Bytes 70-71: unknown
+      - size: 2
+        doc: Unknown bytes 70-71
+      # Bytes 72-79: zoom level (float64 big-endian)
+      - id: zoom
+        type: f8be
+        doc: |
+          Zoom factor where 1.0 = 100%%. E.g. 0.25 = 25%%,
+          16.0 = 1600%%.
+      # Bytes 80-83: exposure (float32 big-endian)
+      - id: exposure
+        type: f4be
+        doc: |
+          Exposure value in stops. 0.0 = no adjustment.
+          Range is -40.0 to 40.0.
+      # Byte 84: unknown
+      - size: 1
+        doc: Unknown byte 84
+      # Byte 85: use_display_color_management flag
+      - type: b7  # skip bits 7-1
+      - id: use_display_color_management
+        type: b1  # bit 0 (value 0x01)
+        doc: Whether display color management is enabled
+      # Byte 86: auto_resolution flag
+      - type: b7  # skip bits 7-1
+      - id: auto_resolution
+        type: b1  # bit 0 (value 0x01)
+        doc: Whether auto resolution is enabled for the viewer
+      # Bytes 87-95: remaining unknown bytes
+      - size-eos: true
+  foac_body:
+    doc: |
+      Viewer outer tab active flag. When non-zero, the outer panel
+      (e.g. Timeline) is focused.
+    seq:
+      - id: active
+        type: u1
+        doc: Whether the outer tab is active (0=false, 1=true)
+  fiac_body:
+    doc: |
+      Viewer inner tab active flag. When non-zero, the inner tab
+      (e.g. Composition, Layer, Footage) is focused.
+    seq:
+      - id: active
+        type: u1
+        doc: Whether the inner tab is active (0=false, 1=true)
+  fitt_body:
+    doc: |
+      Viewer inner tab type label. An ASCII string identifying the
+      viewer type (e.g. "AE Composition", "AE Layer", "AE Footage").
+    seq:
+      - id: label
+        type: str
+        encoding: ASCII
+        size-eos: true
+        doc: The inner tab type label
+  fivi_body:
+    doc: |
+      Viewer inner active view index. The zero-based index of the
+      currently active view within the inner tab.
+    seq:
+      - id: active_view_index
+        type: u4
+        doc: Zero-based index of the active view
+  fivc_body:
+    doc: |
+      Viewer inner view count. The number of views in the inner tab.
+    seq:
+      - id: view_count
+        type: u2
+        doc: Number of views in the inner tab
+  fcid_body:
+    doc: |
+      Active composition item ID. Stores the item ID of the currently
+      active (most recently focused) composition in the project.
+    seq:
+      - id: active_item_id
+        type: u4
+        doc: The item ID of the active composition
   cdta_body:
     seq:
       - id: resolution_factor
@@ -118,7 +283,7 @@ types:
         type: u2
       - size: 14
       - id: time_raw
-        type: u2
+        type: s2
       - size: 6
       - id: in_point_raw
         type: u2
@@ -162,7 +327,10 @@ types:
         type: u2
       - size: 4
       - id: display_start_time_dividend
-        type: u4
+        type: s4
+        doc: |
+          Signed 32-bit dividend for display start time. Negative values
+          represent compositions whose timeline starts before frame 0.
       - id: display_start_time_divisor
         type: u4
       - size: 2
@@ -178,27 +346,27 @@ types:
         type: s4
     instances:
       display_start_time:
-        value: 'display_start_time_dividend.as<f4> / display_start_time_divisor.as<f4>'
+        value: 'display_start_time_dividend * 1.0 / display_start_time_divisor'
       frame_rate:
-        value: 'frame_rate_integer + (frame_rate_fractional.as<f4> / 65536.0)'
+        value: 'frame_rate_integer + (frame_rate_fractional * 1.0 / 65536)'
       display_start_frame:
         value: 'display_start_time * frame_rate'
       duration:
-        value: 'duration_dividend.as<f4> / duration_divisor.as<f4>'
+        value: 'duration_dividend * 1.0 / duration_divisor'
       frame_duration:
         value: 'duration * frame_rate'
       pixel_aspect:
-        value: 'pixel_ratio_width.as<f4> / pixel_ratio_height.as<f4>'
+        value: 'pixel_ratio_width * 1.0 / pixel_ratio_height'
       frame_time:
-        value: 'time_raw / time_scale'
+        value: 'time_raw * 1.0 / time_scale'
       time:
         value: 'frame_time / frame_rate'
       frame_in_point:
-        value: 'display_start_frame + in_point_raw / time_scale'
+        value: 'display_start_frame + in_point_raw * 1.0 / time_scale'
       in_point:
         value: 'frame_in_point / frame_rate'
       frame_out_point:
-        value: 'display_start_frame + (out_point_raw == 0xffff ? frame_duration : (out_point_raw / time_scale))'
+        value: 'display_start_frame + (out_point_raw == 0xffff ? frame_duration : (out_point_raw * 1.0 / time_scale))'
       out_point:
         value: 'frame_out_point / frame_rate'
   child_utf8_body:
@@ -562,7 +730,11 @@ types:
     seq:
       - size: 1
       - id: time_raw
-        type: u2
+        type: s2
+        doc: |
+          Keyframe time in time-scale units. Signed 16-bit; negative values
+          occur for keyframes positioned before the layer's start (e.g.
+          composition markers).
       - size: 2
       - id: keyframe_interpolation_type
         type: u1
@@ -687,9 +859,9 @@ types:
         type: u4
       - id: quality
         type: u2
-      - size: 4
+      - size: 2
       - id: stretch_dividend
-        type: s2
+        type: s4
       - id: start_time_dividend
         type: s4
         doc: Signed to allow negative start times
@@ -772,9 +944,8 @@ types:
       - size: 3
       - id: track_matte_type
         type: u1
-      - size: 2
       - id: stretch_divisor
-        type: u2
+        type: u4
       - size: 19
       - id: layer_type
         type: u1
@@ -791,11 +962,11 @@ types:
       #   doc: only for AE >= 23
     instances:
       start_time:
-        value: 'start_time_dividend.as<f4> / start_time_divisor.as<f4>'
+        value: 'start_time_dividend * 1.0 / start_time_divisor'
       in_point:
-        value: 'in_point_dividend.as<f4> / in_point_divisor.as<f4>'
+        value: 'in_point_dividend * 1.0 / in_point_divisor'
       out_point:
-        value: 'out_point_dividend.as<f4> / out_point_divisor.as<f4>'
+        value: 'out_point_dividend * 1.0 / out_point_divisor'
   lhd3_body:
     doc: |
       Header for item/keyframe lists. AE reuses this structure for:
@@ -862,12 +1033,12 @@ types:
   nnhd_body:
     seq:
       - size: 8
-      - id: time_display_type
-        type: b7
-        doc: Time display type (0=TIMECODE, 1=FRAMES)
       - id: feet_frames_film_type
         type: b1
         doc: Feet+Frames film type (0=MM35, 1=MM16)
+      - id: time_display_type
+        type: b7
+        doc: Time display type (0=TIMECODE, 1=FRAMES)
       - id: footage_timecode_display_start_type
         type: u1
       - size: 1
@@ -884,8 +1055,11 @@ types:
       - size: 3
       - id: bits_per_channel
         type: u1
-      - size: 6
-        doc: Unknown bytes 25-30
+      - id: transparency_grid_thumbnails
+        type: u1
+        doc: Whether transparency grid is shown in thumbnails (0=false, 1=true)
+      - size: 5
+        doc: Unknown bytes 26-30
       - type: b2
         doc: Unknown bits 7-6
       - id: linearize_working_space
@@ -1031,12 +1205,12 @@ types:
           or property_control_type == property_control_type::slider
     instances:
       last_value_x:
-        value: 'last_value_x_raw * (property_control_type == property_control_type::two_d ? 1/128 : 512)'
+        value: 'last_value_x_raw * (property_control_type == property_control_type::two_d ? 1.0/128 : 512)'
         if: >-
           property_control_type == property_control_type::two_d
           or property_control_type == property_control_type::three_d
       last_value_y:
-        value: 'last_value_y_raw * (property_control_type == property_control_type::two_d ? 1/128 : 512)'
+        value: 'last_value_y_raw * (property_control_type == property_control_type::two_d ? 1.0/128 : 512)'
         if: >-
           property_control_type == property_control_type::two_d
           or property_control_type == property_control_type::three_d
@@ -1120,13 +1294,13 @@ types:
         type: u4
     instances:
       duration:
-        value: 'duration_dividend.as<f4> / duration_divisor.as<f4>'
+        value: 'duration_dividend * 1.0 / duration_divisor'
       frame_rate:
-        value: 'frame_rate_base + (frame_rate_fractional.as<f4> / (1 << 16))'
+        value: 'frame_rate_base + (frame_rate_fractional * 1.0 / 65536)'
       frame_duration:
         value: 'duration * frame_rate'
       pixel_aspect:
-        value: 'pixel_ratio_width.as<f4> / pixel_ratio_height.as<f4>'
+        value: 'pixel_ratio_width * 1.0 / pixel_ratio_height'
       has_alpha:
         value: alpha_mode_raw != 3
         doc: True if footage has an alpha channel (3 means no_alpha)

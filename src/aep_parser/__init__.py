@@ -27,7 +27,6 @@ from .models.enums import (
     FrameBlendingType,
     FramesCountType,
     GetSettingsFormat,
-    GpuAccelType,
     ImportAsType,
     KeyframeInterpolationType,
     Language,
@@ -57,6 +56,7 @@ from .models.enums import (
     ViewerType,
 )
 from .models.project import Project
+from .models.viewer import View, Viewer, ViewOptions
 from .parsers.project import parse_project
 
 try:
@@ -82,7 +82,6 @@ __all__ = [
     "FrameBlendingType",
     "FramesCountType",
     "GetSettingsFormat",
-    "GpuAccelType",
     "ImportAsType",
     "KeyframeInterpolationType",
     "Language",
@@ -111,5 +110,8 @@ __all__ = [
     "TimeDisplayType",
     "ToolType",
     "TrackMatteType",
+    "View",
+    "Viewer",
     "ViewerType",
+    "ViewOptions",
 ]

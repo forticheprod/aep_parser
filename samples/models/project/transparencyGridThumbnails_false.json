@@ -1,5 +1,5 @@
 {
-  "projectName": "gpuAccelType_mercury_software_only.aep",
+  "projectName": "transparencyGridThumbnails_false.aep",
   "bitsPerChannel": 32,
   "colorManagementSystem": 0,
   "compensateForSceneReferredProfiles": false,
@@ -8,20 +8,20 @@
   "feetFramesFilmType": 2413,
   "footageTimecodeDisplayStartType": 2212,
   "framesCountType": 2612,
-  "framesUseFeetFrames": true,
-  "gpuAccelType": 1816,
-  "linearBlending": false,
+  "framesUseFeetFrames": false,
+  "gpuAccelType": 1813,
+  "linearBlending": true,
   "linearizeWorkingSpace": false,
-  "lutInterpolationMethod": 0,
+  "lutInterpolationMethod": 1,
   "numItems": 0,
-  "ocioConfigurationFile": "",
+  "ocioConfigurationFile": "ACES 1.2",
   "timeDisplayType": 2012,
-  "transparencyGridThumbnails": true,
+  "transparencyGridThumbnails": false,
   "usedFonts": [
     
   ],
   "workingGamma": 2.4,
-  "workingSpace": "None",
+  "workingSpace": "sRGB IEC61966-2.1",
   "items": [
     
   ],

@@ -34,7 +34,6 @@
       "counters": false,
       "displayStartFrame": 0,
       "displayStartTime": 0,
-      "draft3d": false,
       "dropFrame": false,
       "duration": 30,
       "footageMissing": false,
@@ -77,6 +76,12 @@
       "width": 1920,
       "workAreaDuration": 30,
       "workAreaStart": 0,
+      "regionOfInterest": [
+        100,
+        100,
+        800,
+        600
+      ],
       "itemType": "CompItem",
       "markers": [
         

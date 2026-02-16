@@ -210,6 +210,16 @@ kaitai-struct-compiler --target python \
   src/aep_parser/kaitai/aep.ksy
 ```
 
+> **⚠️ Integer division pitfall:** In Kaitai Struct, `/` between two integers
+> compiles to Python's `//` (floor division). To get true (float) division,
+> multiply one operand by `1.0`:
+> ```yaml
+> # Wrong — truncates to integer (e.g. 3 / 4 = 0)
+> value: 'pixel_ratio_width / pixel_ratio_height'
+> # Correct — produces float (e.g. 3 * 1.0 / 4 = 0.75)
+> value: 'pixel_ratio_width * 1.0 / pixel_ratio_height'
+> ```
+
 #### 4. Update the Model
 
 Add the attribute to the appropriate dataclass in `models/`. Use **inline docstrings** after each field:

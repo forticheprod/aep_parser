@@ -11,10 +11,10 @@
   "framesUseFeetFrames": true,
   "gpuAccelType": 1813,
   "linearBlending": true,
-  "linearizeWorkingSpace": false,
+  "linearizeWorkingSpace": true,
   "lutInterpolationMethod": 1,
   "numItems": 0,
-  "ocioConfigurationFile": "",
+  "ocioConfigurationFile": "ACES 1.2",
   "timeDisplayType": 2012,
   "transparencyGridThumbnails": true,
   "usedFonts": [
