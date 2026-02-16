@@ -115,6 +115,7 @@ fold_chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")
 
 # Filter multiple chunks
 layer_chunks = filter_by_list_type(chunks=comp_chunks, list_type="Layr")
+ldta_chunks = filter_by_type(chunks=comp_chunks, chunk_type="ldta")
 ```
 
 ### Value Mapping Pattern
@@ -144,9 +145,12 @@ kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_pa
 ```
 No manual modifications are needed after regeneration. Performance optimizations (dict-based chunk type lookup) are applied automatically via the `aep_optimized.py` wrapper module.
 
+**Integer division pitfall:** Kaitai Struct's `/` on two integers compiles to Python's `//` (floor division). Always multiply one operand by `1.0` to get true division (e.g. `value: 'dividend * 1.0 / divisor'`).
+
 ## Important Notes
 - `kaitai/aep.py` is **auto-generated** - edit `aep.ksy` and regenerate (see above)
 - `kaitai/aep_optimized.py` applies performance optimizations via monkey-patching
+- Run python code through a temporary file, not using `python.exe -c`, to avoid issues with large code blocks, quotes, comments, ...
 - Python 3.7+ compatibility required (no walrus operator, no match case, use union types via annotations)
 - Model docstrings should reference equivalent After Effects ExtendScript properties from [After Effects Scripting Guide](https://ae-scripting.docsforadobe.dev/).
 

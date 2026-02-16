@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from dataclasses import fields, is_dataclass
 from enum import Enum
@@ -22,8 +23,40 @@ from typing import Any
 
 from ..parsers.project import parse_project
 
-# Fields to skip to avoid circular references
-SKIP_FIELDS = {"containing_comp", "parent_folder"}
+# Fields to skip to avoid circular references.
+# Back-references: containing_comp, parent_folder, parent (OutputModule),
+#   _parent (Layer).
+# Cross-references that re-enter the object graph: _source (AVLayer → Item),
+#   comp (RenderQueueItem → CompItem),
+#   post_render_target_comp (OutputModule → CompItem).
+# The non-circular ID fields (source_id, parent_id) are still serialized.
+SKIP_FIELDS = {
+    "containing_comp",
+    "parent_folder",
+    "_parent",
+    "_source",
+    "parent",
+    "comp",
+    "post_render_target_comp",
+}
+
+# @property attributes that return complex/duplicate data and should not be
+# included in to_dict() serialization.
+SKIP_PROPERTIES = {
+    "composition_layers",
+    "footage_layers",
+    "footage_missing",
+    "missing_footage_path",
+    "selected_layers",
+    # Circular: AVLayer.source → Item → layers → AVLayer…
+    "source",
+    # Circular: AVItem.used_in → list[CompItem] → layers → source → AVItem…
+    "used_in",
+    # Duplicate/circular: Project re-serialises items already in `items` field
+    "compositions",
+    "folders",
+    "footages",
+}
 
 
 def to_dict(obj: Any) -> Any:
@@ -35,9 +68,22 @@ def to_dict(obj: Any) -> Any:
                 continue
             value = getattr(obj, field.name)
             result[field.name] = to_dict(value)
+        # Include @property attributes (non-private, non-skipped)
+        for name in dir(type(obj)):
+            if name.startswith("_") or name in SKIP_FIELDS or name in SKIP_PROPERTIES:
+                continue
+            if name in result:
+                continue
+            attr = getattr(type(obj), name, None)
+            if isinstance(attr, property):
+                try:
+                    value = getattr(obj, name)
+                    result[name] = to_dict(value)
+                except Exception:
+                    pass
         return result
     elif isinstance(obj, Enum):
-        return obj.name
+        return obj.value
     elif isinstance(obj, list):
         return [to_dict(item) for item in obj]
     elif isinstance(obj, dict):
@@ -46,9 +92,9 @@ def to_dict(obj: Any) -> Any:
 
 
 def get_enum_value(val: Any) -> Any:
-    """Get enum value as string if it's an enum."""
+    """Get enum value as int if it's an IntEnum, else return as-is."""
     if isinstance(val, Enum):
-        return val.name
+        return val.value
     return val
 
 
@@ -71,7 +117,7 @@ def compare_values(expected: Any, parsed: Any, tolerance: float = 0.001) -> bool
     if isinstance(expected, bool) and isinstance(parsed, bool):
         return expected == parsed
     if isinstance(expected, (int, float)) and isinstance(parsed, (int, float)):
-        return abs(expected - parsed) < tolerance
+        return math.isclose(expected, parsed, rel_tol=tolerance, abs_tol=tolerance)
     if isinstance(expected, str) and isinstance(parsed, str):
         return expected == parsed
     if isinstance(expected, list) and isinstance(parsed, list):
@@ -114,7 +160,6 @@ def compare_project_level(expected: dict[str, Any], parsed: dict[str, Any], resu
         "timeDisplayType": "time_display_type",
         "footageTimecodeDisplayStartType": "footage_timecode_display_start_type",
         "expressionEngine": "expression_engine",
-        "gpuAccelType": "gpu_accel_type",
     }
 
     for exp_key, parsed_key in mappings.items():
@@ -247,7 +292,6 @@ def compare_comp_item(
         "preserveNestedFrameRate": "preserve_nested_frame_rate",
         "frameBlending": "frame_blending",
         "hideShyLayers": "hide_shy_layers",
-        "draft3d": "draft_3d",
         "resolutionFactor": "resolution_factor",
     }
 

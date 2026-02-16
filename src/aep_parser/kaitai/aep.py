@@ -158,6 +158,24 @@ class Aep(KaitaiStruct):
 
 
 
+    class CdrpBody(KaitaiStruct):
+        """Composition drop frame setting.
+        When true, the composition uses drop-frame timecode.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.CdrpBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.drop_frame = self._io.read_u1()
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class CdtaBody(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             super(Aep.CdtaBody, self).__init__(_io)
@@ -173,7 +191,7 @@ class Aep(KaitaiStruct):
             self._unnamed1 = self._io.read_bytes(1)
             self.time_scale = self._io.read_u2be()
             self._unnamed3 = self._io.read_bytes(14)
-            self.time_raw = self._io.read_u2be()
+            self.time_raw = self._io.read_s2be()
             self._unnamed5 = self._io.read_bytes(6)
             self.in_point_raw = self._io.read_u2be()
             self._unnamed7 = self._io.read_bytes(6)
@@ -201,7 +219,7 @@ class Aep(KaitaiStruct):
             self.frame_rate_integer = self._io.read_u2be()
             self.frame_rate_fractional = self._io.read_u2be()
             self._unnamed28 = self._io.read_bytes(4)
-            self.display_start_time_dividend = self._io.read_u4be()
+            self.display_start_time_dividend = self._io.read_s4be()
             self.display_start_time_divisor = self._io.read_u4be()
             self._unnamed31 = self._io.read_bytes(2)
             self.shutter_angle = self._io.read_u2be()
@@ -234,7 +252,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_display_start_time'):
                 return self._m_display_start_time
 
-            self._m_display_start_time = self.display_start_time_dividend / self.display_start_time_divisor
+            self._m_display_start_time = (self.display_start_time_dividend * 1.0) / self.display_start_time_divisor
             return getattr(self, '_m_display_start_time', None)
 
         @property
@@ -242,7 +260,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_duration'):
                 return self._m_duration
 
-            self._m_duration = self.duration_dividend / self.duration_divisor
+            self._m_duration = (self.duration_dividend * 1.0) / self.duration_divisor
             return getattr(self, '_m_duration', None)
 
         @property
@@ -258,7 +276,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_frame_in_point'):
                 return self._m_frame_in_point
 
-            self._m_frame_in_point = self.display_start_frame + self.in_point_raw // self.time_scale
+            self._m_frame_in_point = self.display_start_frame + (self.in_point_raw * 1.0) / self.time_scale
             return getattr(self, '_m_frame_in_point', None)
 
         @property
@@ -266,7 +284,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_frame_out_point'):
                 return self._m_frame_out_point
 
-            self._m_frame_out_point = self.display_start_frame + (self.frame_duration if self.out_point_raw == 65535 else self.out_point_raw // self.time_scale)
+            self._m_frame_out_point = self.display_start_frame + (self.frame_duration if self.out_point_raw == 65535 else (self.out_point_raw * 1.0) / self.time_scale)
             return getattr(self, '_m_frame_out_point', None)
 
         @property
@@ -274,7 +292,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_frame_rate'):
                 return self._m_frame_rate
 
-            self._m_frame_rate = self.frame_rate_integer + self.frame_rate_fractional / 65536.0
+            self._m_frame_rate = self.frame_rate_integer + (self.frame_rate_fractional * 1.0) / 65536
             return getattr(self, '_m_frame_rate', None)
 
         @property
@@ -282,7 +300,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_frame_time'):
                 return self._m_frame_time
 
-            self._m_frame_time = self.time_raw // self.time_scale
+            self._m_frame_time = (self.time_raw * 1.0) / self.time_scale
             return getattr(self, '_m_frame_time', None)
 
         @property
@@ -306,7 +324,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_pixel_aspect'):
                 return self._m_pixel_aspect
 
-            self._m_pixel_aspect = self.pixel_ratio_width / self.pixel_ratio_height
+            self._m_pixel_aspect = (self.pixel_ratio_width * 1.0) / self.pixel_ratio_height
             return getattr(self, '_m_pixel_aspect', None)
 
         @property
@@ -360,11 +378,6 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.ChildUtf8Body(_io__raw_data, self, self._root)
-            elif _on == u"Rhed":
-                pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.RhedBody(_io__raw_data, self, self._root)
             elif _on == u"Roou":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -395,6 +408,11 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.CdatBody(_io__raw_data, self, self._root)
+            elif _on == u"cdrp":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.CdrpBody(_io__raw_data, self, self._root)
             elif _on == u"cdta":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -410,16 +428,51 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.DwgaBody(_io__raw_data, self, self._root)
+            elif _on == u"fcid":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.FcidBody(_io__raw_data, self, self._root)
             elif _on == u"fdta":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.FdtaBody(_io__raw_data, self, self._root)
+            elif _on == u"fiac":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.FiacBody(_io__raw_data, self, self._root)
+            elif _on == u"fips":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.FipsBody(_io__raw_data, self, self._root)
+            elif _on == u"fitt":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.FittBody(_io__raw_data, self, self._root)
+            elif _on == u"fivc":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.FivcBody(_io__raw_data, self, self._root)
+            elif _on == u"fivi":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.FiviBody(_io__raw_data, self, self._root)
             elif _on == u"fnam":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.ChildUtf8Body(_io__raw_data, self, self._root)
+            elif _on == u"foac":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.FoacBody(_io__raw_data, self, self._root)
             elif _on == u"head":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -518,9 +571,6 @@ class Aep(KaitaiStruct):
             elif _on == u"RCom":
                 pass
                 self.data._fetch_instances()
-            elif _on == u"Rhed":
-                pass
-                self.data._fetch_instances()
             elif _on == u"Roou":
                 pass
                 self.data._fetch_instances()
@@ -539,6 +589,9 @@ class Aep(KaitaiStruct):
             elif _on == u"cdat":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"cdrp":
+                pass
+                self.data._fetch_instances()
             elif _on == u"cdta":
                 pass
                 self.data._fetch_instances()
@@ -548,10 +601,31 @@ class Aep(KaitaiStruct):
             elif _on == u"dwga":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"fcid":
+                pass
+                self.data._fetch_instances()
             elif _on == u"fdta":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"fiac":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"fips":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"fitt":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"fivc":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"fivi":
+                pass
+                self.data._fetch_instances()
             elif _on == u"fnam":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"foac":
                 pass
                 self.data._fetch_instances()
             elif _on == u"head":
@@ -649,6 +723,24 @@ class Aep(KaitaiStruct):
             pass
 
 
+    class FcidBody(KaitaiStruct):
+        """Active composition item ID. Stores the item ID of the currently
+        active (most recently focused) composition in the project.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.FcidBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.active_item_id = self._io.read_u4be()
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class FdtaBody(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             super(Aep.FdtaBody, self).__init__(_io)
@@ -658,6 +750,151 @@ class Aep(KaitaiStruct):
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(1)
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class FiacBody(KaitaiStruct):
+        """Viewer inner tab active flag. When non-zero, the inner tab
+        (e.g. Composition, Layer, Footage) is focused.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.FiacBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.active = self._io.read_u1()
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class FipsBody(KaitaiStruct):
+        """Folder item panel settings. Stores viewer panel state including
+        Draft 3D mode, view options (channels, exposure, zoom, etc.), and
+        toggle flags (guides, rulers, grid, etc.). There are typically 4
+        fips chunks per viewer group, one for each AE composition viewer
+        panel. Total size is 96 bytes.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.FipsBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self._unnamed0 = self._io.read_bytes(7)
+            self.channels = self._io.read_u1()
+            self._unnamed2 = self._io.read_bytes(3)
+            self._unnamed3 = self._io.read_bits_int_be(6)
+            self.proportional_grid = self._io.read_bits_int_be(1) != 0
+            self.title_action_safe = self._io.read_bits_int_be(1) != 0
+            self._unnamed6 = self._io.read_bits_int_be(5)
+            self.draft_3d = self._io.read_bits_int_be(1) != 0
+            self._unnamed8 = self._io.read_bits_int_be(2)
+            self._unnamed9 = self._io.read_bits_int_be(7)
+            self.fast_preview_adaptive = self._io.read_bits_int_be(1) != 0
+            self.region_of_interest = self._io.read_bits_int_be(1) != 0
+            self.rulers = self._io.read_bits_int_be(1) != 0
+            self._unnamed13 = self._io.read_bits_int_be(1) != 0
+            self.fast_preview_wireframe = self._io.read_bits_int_be(1) != 0
+            self._unnamed15 = self._io.read_bits_int_be(4)
+            self.transparency_grid = self._io.read_bits_int_be(1) != 0
+            self._unnamed17 = self._io.read_bits_int_be(2)
+            self.mask_and_shape_path = self._io.read_bits_int_be(1) != 0
+            self._unnamed19 = self._io.read_bits_int_be(4)
+            self._unnamed20 = self._io.read_bytes(7)
+            self._unnamed21 = self._io.read_bits_int_be(4)
+            self.grid = self._io.read_bits_int_be(1) != 0
+            self._unnamed23 = self._io.read_bits_int_be(2)
+            self.guides_visibility = self._io.read_bits_int_be(1) != 0
+            self._unnamed25 = self._io.read_bytes(45)
+            self.zoom_type = self._io.read_u1()
+            self._unnamed27 = self._io.read_bytes(2)
+            self.zoom = self._io.read_f8be()
+            self.exposure = self._io.read_f4be()
+            self._unnamed30 = self._io.read_bytes(1)
+            self._unnamed31 = self._io.read_bits_int_be(7)
+            self.use_display_color_management = self._io.read_bits_int_be(1) != 0
+            self._unnamed33 = self._io.read_bits_int_be(7)
+            self.auto_resolution = self._io.read_bits_int_be(1) != 0
+            self._unnamed35 = self._io.read_bytes_full()
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class FittBody(KaitaiStruct):
+        """Viewer inner tab type label. An ASCII string identifying the
+        viewer type (e.g. "AE Composition", "AE Layer", "AE Footage").
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.FittBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.label = (self._io.read_bytes_full()).decode(u"ASCII")
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class FivcBody(KaitaiStruct):
+        """Viewer inner view count. The number of views in the inner tab.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.FivcBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.view_count = self._io.read_u2be()
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class FiviBody(KaitaiStruct):
+        """Viewer inner active view index. The zero-based index of the
+        currently active view within the inner tab.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.FiviBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.active_view_index = self._io.read_u4be()
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class FoacBody(KaitaiStruct):
+        """Viewer outer tab active flag. When non-zero, the outer panel
+        (e.g. Timeline) is focused.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.FoacBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.active = self._io.read_u1()
 
 
         def _fetch_instances(self):
@@ -918,7 +1155,7 @@ class Aep(KaitaiStruct):
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(1)
-            self.time_raw = self._io.read_u2be()
+            self.time_raw = self._io.read_s2be()
             self._unnamed2 = self._io.read_bytes(2)
             self.keyframe_interpolation_type = self._io.read_u1()
             self.label = KaitaiStream.resolve_enum(Aep.Label, self._io.read_u1())
@@ -1023,8 +1260,8 @@ class Aep(KaitaiStruct):
         def _read(self):
             self.layer_id = self._io.read_u4be()
             self.quality = self._io.read_u2be()
-            self._unnamed2 = self._io.read_bytes(4)
-            self.stretch_dividend = self._io.read_s2be()
+            self._unnamed2 = self._io.read_bytes(2)
+            self.stretch_dividend = self._io.read_s4be()
             self.start_time_dividend = self._io.read_s4be()
             self.start_time_divisor = self._io.read_u4be()
             self.in_point_dividend = self._io.read_s4be()
@@ -1066,14 +1303,13 @@ class Aep(KaitaiStruct):
             self.preserve_transparency = self._io.read_u1()
             self._unnamed43 = self._io.read_bytes(3)
             self.track_matte_type = self._io.read_u1()
-            self._unnamed45 = self._io.read_bytes(2)
-            self.stretch_divisor = self._io.read_u2be()
-            self._unnamed47 = self._io.read_bytes(19)
+            self.stretch_divisor = self._io.read_u4be()
+            self._unnamed46 = self._io.read_bytes(19)
             self.layer_type = KaitaiStream.resolve_enum(Aep.LayerType, self._io.read_u1())
             self.parent_id = self._io.read_u4be()
-            self._unnamed50 = self._io.read_bytes(3)
+            self._unnamed49 = self._io.read_bytes(3)
             self.light_type = self._io.read_u1()
-            self._unnamed52 = self._io.read_bytes(20)
+            self._unnamed51 = self._io.read_bytes(20)
 
 
         def _fetch_instances(self):
@@ -1084,7 +1320,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_in_point'):
                 return self._m_in_point
 
-            self._m_in_point = self.in_point_dividend / self.in_point_divisor
+            self._m_in_point = (self.in_point_dividend * 1.0) / self.in_point_divisor
             return getattr(self, '_m_in_point', None)
 
         @property
@@ -1092,7 +1328,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_out_point'):
                 return self._m_out_point
 
-            self._m_out_point = self.out_point_dividend / self.out_point_divisor
+            self._m_out_point = (self.out_point_dividend * 1.0) / self.out_point_divisor
             return getattr(self, '_m_out_point', None)
 
         @property
@@ -1100,7 +1336,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_start_time'):
                 return self._m_start_time
 
-            self._m_start_time = self.start_time_dividend / self.start_time_divisor
+            self._m_start_time = (self.start_time_dividend * 1.0) / self.start_time_divisor
             return getattr(self, '_m_start_time', None)
 
 
@@ -1207,8 +1443,8 @@ class Aep(KaitaiStruct):
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(8)
-            self.time_display_type = self._io.read_bits_int_be(7)
             self.feet_frames_film_type = self._io.read_bits_int_be(1) != 0
+            self.time_display_type = self._io.read_bits_int_be(7)
             self.footage_timecode_display_start_type = self._io.read_u1()
             self._unnamed4 = self._io.read_bytes(1)
             self._unnamed5 = self._io.read_bits_int_be(7)
@@ -1219,11 +1455,12 @@ class Aep(KaitaiStruct):
             self.frames_count_type = self._io.read_u1()
             self._unnamed11 = self._io.read_bytes(3)
             self.bits_per_channel = self._io.read_u1()
-            self._unnamed13 = self._io.read_bytes(6)
-            self._unnamed14 = self._io.read_bits_int_be(2)
+            self.transparency_grid_thumbnails = self._io.read_u1()
+            self._unnamed14 = self._io.read_bytes(5)
+            self._unnamed15 = self._io.read_bits_int_be(2)
             self.linearize_working_space = self._io.read_bits_int_be(1) != 0
-            self._unnamed16 = self._io.read_bits_int_be(5)
-            self._unnamed17 = self._io.read_bytes(8)
+            self._unnamed17 = self._io.read_bits_int_be(5)
+            self._unnamed18 = self._io.read_bytes(8)
 
 
         def _fetch_instances(self):
@@ -1569,7 +1806,7 @@ class Aep(KaitaiStruct):
 
             if  ((self.property_control_type == Aep.PropertyControlType.two_d) or (self.property_control_type == Aep.PropertyControlType.three_d)) :
                 pass
-                self._m_last_value_x = self.last_value_x_raw * (1 // 128 if self.property_control_type == Aep.PropertyControlType.two_d else 512)
+                self._m_last_value_x = self.last_value_x_raw * (1.0 / 128 if self.property_control_type == Aep.PropertyControlType.two_d else 512)
 
             return getattr(self, '_m_last_value_x', None)
 
@@ -1580,7 +1817,7 @@ class Aep(KaitaiStruct):
 
             if  ((self.property_control_type == Aep.PropertyControlType.two_d) or (self.property_control_type == Aep.PropertyControlType.three_d)) :
                 pass
-                self._m_last_value_y = self.last_value_y_raw * (1 // 128 if self.property_control_type == Aep.PropertyControlType.two_d else 512)
+                self._m_last_value_y = self.last_value_y_raw * (1.0 / 128 if self.property_control_type == Aep.PropertyControlType.two_d else 512)
 
             return getattr(self, '_m_last_value_y', None)
 
@@ -1689,24 +1926,6 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_time_span_start', None)
 
 
-    class RhedBody(KaitaiStruct):
-        """Render preferences header. Contains GPU acceleration settings.
-        """
-        def __init__(self, _io, _parent=None, _root=None):
-            super(Aep.RhedBody, self).__init__(_io)
-            self._parent = _parent
-            self._root = _root
-            self._read()
-
-        def _read(self):
-            self._unnamed0 = self._io.read_bytes(13)
-            self.gpu_accel_type = self._io.read_u1()
-
-
-        def _fetch_instances(self):
-            pass
-
-
     class RoouBody(KaitaiStruct):
         """Output module settings (154 bytes)."""
         def __init__(self, _io, _parent=None, _root=None):
@@ -1744,11 +1963,11 @@ class Aep(KaitaiStruct):
 
         @property
         def output_audio(self):
-            if hasattr(self, '_m_audio_output'):
-                return self._m_audio_output
+            if hasattr(self, '_m_output_audio'):
+                return self._m_output_audio
 
-            self._m_audio_output = self.audio_disabled_hi != 255
-            return getattr(self, '_m_audio_output', None)
+            self._m_output_audio = self.audio_disabled_hi != 255
+            return getattr(self, '_m_output_audio', None)
 
         @property
         def video_output(self):
@@ -1858,7 +2077,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_duration'):
                 return self._m_duration
 
-            self._m_duration = self.duration_dividend / self.duration_divisor
+            self._m_duration = (self.duration_dividend * 1.0) / self.duration_divisor
             return getattr(self, '_m_duration', None)
 
         @property
@@ -1874,7 +2093,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_frame_rate'):
                 return self._m_frame_rate
 
-            self._m_frame_rate = self.frame_rate_base + self.frame_rate_fractional / (1 << 16)
+            self._m_frame_rate = self.frame_rate_base + (self.frame_rate_fractional * 1.0) / 65536
             return getattr(self, '_m_frame_rate', None)
 
         @property
@@ -1891,7 +2110,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_pixel_aspect'):
                 return self._m_pixel_aspect
 
-            self._m_pixel_aspect = self.pixel_ratio_width / self.pixel_ratio_height
+            self._m_pixel_aspect = (self.pixel_ratio_width * 1.0) / self.pixel_ratio_height
             return getattr(self, '_m_pixel_aspect', None)
 
 

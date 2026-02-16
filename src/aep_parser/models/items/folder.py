@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from .item import Item
 
 
-@dataclass
+@dataclass(eq=False)
 class FolderItem(Item):
     """
     The `FolderItem` object corresponds to a folder in your Project panel. It

@@ -106,6 +106,14 @@ class ChannelType(IntEnum):
     CHANNEL_ALPHA_OVERLAY = 7821
     CHANNEL_ALPHA_BOUNDARY = 7822
 
+    @classmethod
+    def from_binary(cls, value: int) -> ChannelType:
+        """Convert binary value (0-10) to ChannelType."""
+        try:
+            return cls(value + 7812)
+        except ValueError:
+            return cls.CHANNEL_RGB
+
 
 class ColorManagementSystem(IntEnum):
     """Color management system for the project."""

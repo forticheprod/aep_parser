@@ -12,7 +12,7 @@ if typing.TYPE_CHECKING:
     from ..properties.marker import MarkerValue
 
 
-@dataclass
+@dataclass(eq=False)
 class CompItem(AVItem):
     """
     The `CompItem` object represents a composition, and allows you to
@@ -34,6 +34,18 @@ class CompItem(AVItem):
 
     display_start_frame: int
     """The frame value of the beginning of the composition."""
+
+    draft_3d: bool
+    """
+    When `True`, Draft 3D mode is enabled for the composition. This
+    improves preview speed by disabling certain 3D rendering features.
+    """
+
+    drop_frame: bool
+    """
+    When `True`, timecode is displayed in drop-frame format. Only applicable
+    when `frameRate` is 29.97 or 59.94.
+    """
 
     display_start_time: float
     """

@@ -103,17 +103,27 @@ class AVLayer(Layer):
 
     @property
     def width(self) -> int:
-        """The width of the layer in pixels (from source item)."""
+        """The width of the layer in pixels.
+
+        Returns the source item's width if available, otherwise falls back
+        to the containing composition's width (matches ExtendScript behavior
+        for source-less layers like text and shape layers).
+        """
         if self._source is not None:
             return getattr(self._source, "width", 0)
-        return 0
+        return self.containing_comp.width
 
     @property
     def height(self) -> int:
-        """The height of the layer in pixels (from source item)."""
+        """The height of the layer in pixels.
+
+        Returns the source item's height if available, otherwise falls back
+        to the containing composition's height (matches ExtendScript behavior
+        for source-less layers like text and shape layers).
+        """
         if self._source is not None:
             return getattr(self._source, "height", 0)
-        return 0
+        return self.containing_comp.height
 
     @property
     def is_name_from_source(self) -> bool:

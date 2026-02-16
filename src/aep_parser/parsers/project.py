@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import xml.etree.ElementTree as ET
@@ -24,9 +25,9 @@ from .item import parse_folder
 from .mappings import (
     map_bits_per_channel,
     map_footage_timecode_display_start_type,
-    map_gpu_accel_type,
 )
 from .render_queue import parse_render_queue
+from .views import parse_viewers
 
 
 def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
@@ -45,8 +46,6 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
         head_chunk = find_by_type(chunks=root_chunks, chunk_type="head")
         acer_chunk = find_by_type(chunks=root_chunks, chunk_type="acer")
         dwga_chunk = find_by_type(chunks=root_chunks, chunk_type="dwga")
-        lrdr_chunk = find_by_list_type(chunks=root_chunks, list_type="LRdr")
-        rhed_chunk = find_by_type(chunks=lrdr_chunk.chunks, chunk_type="Rhed")
         xmp_packet = ET.fromstring(aep.xmp_packet)
 
         # Parse version from binary header
@@ -91,7 +90,6 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
                 nnhd_chunk.frames_count_type
             ),
             frames_use_feet_frames=bool(nnhd_chunk.frames_use_feet_frames),
-            gpu_accel_type=map_gpu_accel_type(rhed_chunk.gpu_accel_type),
             linear_blending=any(c.chunk_type == "lnrb" for c in root_chunks),
             linearize_working_space=bool(nnhd_chunk.linearize_working_space),
             working_gamma=2.4 if dwga_chunk.working_gamma_selector else 2.2,
@@ -100,6 +98,9 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
             render_queue=None,
             time_display_type=TimeDisplayType.from_binary(
                 nnhd_chunk.time_display_type
+            ),
+            transparency_grid_thumbnails=bool(
+                nnhd_chunk.transparency_grid_thumbnails
             ),
             xmp_packet=xmp_packet,
         )
@@ -117,22 +118,105 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
         project.items[0] = root_folder
         project.root_folder = root_folder
 
-        # Link layers to their source items and parent layers
-        for composition in project.compositions:
-            # Build layer lookup by id for this composition
-            layers_by_id = {layer.id: layer for layer in composition.layers}
-            for layer in composition.layers:
-                if layer.layer_type == Aep.LayerType.footage and hasattr(layer, "source_id"):
-                    source = project.items.get(layer.source_id)
-                    if hasattr(layer, "source"):
-                        layer.source = source
-                if layer.parent_id is not None:
-                    layer.parent = layers_by_id.get(layer.parent_id)
+        _link_layers(project)
 
         # Parse render_queue after items to link comp references in render queue items
         project.render_queue = parse_render_queue(root_chunks, project)
 
+        # Parse viewer panels from Fold-level chunks
+        viewers = parse_viewers(root_folder_chunk)
+        active_viewers = [v for v in viewers if v.active]
+        project.active_viewer = active_viewers[0] if active_viewers else None
+
+        # Set active_item from fcid chunk
+        with contextlib.suppress(ChunkNotFoundError):
+            fcid_chunk = find_by_type(chunks=root_chunks, chunk_type="fcid")
+            project.active_item = project.items[fcid_chunk.active_item_id]
+
         return project
+
+
+def _link_layers(project: Project) -> None:
+    # Link layers to their source items and parent layers
+    for composition in project.compositions:
+        # Build layer lookup by id for this composition
+        layers_by_id = {layer.id: layer for layer in composition.layers}
+        for layer in composition.layers:
+            if layer.layer_type == Aep.LayerType.footage and hasattr(layer, "source_id"):
+                if hasattr(layer, "source"):
+                    source = project.items.get(layer.source_id)
+                    layer.source = source
+                    _clamp_layer_times(layer, source, composition)
+                    if source is not None and hasattr(source, "_used_in"):
+                        source._used_in.add(composition)
+            if layer.parent_id is not None:
+                layer.parent = layers_by_id.get(layer.parent_id)
+
+
+def _clamp_layer_times(
+    layer: Aep.Chunk,
+    source: object,
+    composition: object,
+) -> None:
+    """Clamp layer in/outPoint to source duration.
+
+    After Effects clamps timing values when queried via ExtendScript:
+
+    * ``outPoint`` is clamped to
+      ``start_time + source.duration * abs(stretch / 100)`` for non-still
+      footage layers where ``time_remap_enabled`` is ``False``.
+    * ``inPoint`` is clamped to ``start_time`` when it falls before the
+      layer's start time (positive stretch only).
+
+    These clamps do **not** apply when ``time_remap_enabled`` is ``True``,
+    since time-remapped layers have arbitrary time mapping.
+
+    Note: ``collapse_transformation`` (continuously rasterise) does **not**
+    prevent clamping — AE still clamps ``outPoint`` to the source duration.
+
+    Args:
+        layer: The layer whose timing may need clamping.
+        source: The source item for the layer.
+        composition: The parent composition (for frame rate).
+    """
+    if source is None:
+        return
+
+    # Skip still images (duration=0, no meaningful clamp)
+    is_still = False
+    if hasattr(source, "main_source"):
+        is_still = source.main_source.is_still
+    if is_still:
+        return
+
+    # Skip layers with time_remap_enabled (time remap has arbitrary mapping)
+    # Note: collapse_transformation does NOT skip clamping — AE still clamps
+    if getattr(layer, "time_remap_enabled", False):
+        return
+
+    source_duration = getattr(source, "duration", 0)
+    if source_duration <= 0:
+        return
+
+    stretch = getattr(layer, "stretch", 100.0)
+
+    # Skip negative stretch (reverse playback) - different clamp rules
+    if stretch < 0:
+        return
+
+    frame_rate = getattr(composition, "frame_rate", 24.0)
+    stretch_factor = abs(stretch / 100.0) if stretch != 0 else 1.0
+
+    # Clamp inPoint: cannot be before start_time
+    if layer.in_point < layer.start_time:
+        layer.in_point = layer.start_time
+        layer.frame_in_point = int(round(layer.start_time * frame_rate))
+
+    # Clamp outPoint: cannot exceed start_time + source.duration * stretch
+    max_out = layer.start_time + source_duration * stretch_factor
+    if layer.out_point > max_out:
+        layer.out_point = max_out
+        layer.frame_out_point = int(round(max_out * frame_rate))
 
 
 def _get_expression_engine(root_chunks: list[Aep.Chunk]) -> str:

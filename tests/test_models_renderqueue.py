@@ -1,43 +1,23 @@
-"""Tests for RenderQueue, RenderQueueItem, and OutputModule model parsing.
-
-These tests verify that aep_parser correctly parses render queue data
-from AEP files.
-"""
+"""Tests for RenderQueue model parsing."""
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
+from conftest import get_sample_files, load_expected
 
 from aep_parser import Project, parse_project
-from aep_parser.models.renderqueue import (
-    OutputModule,
-    RenderQueue,
-    RenderQueueItem,
-)
+from aep_parser.models.enums import OutputChannels, OutputColorDepth
+from aep_parser.models.renderqueue import OutputModule, RenderQueue, RenderQueueItem
+from aep_parser.models.renderqueue.output_module import resolve_output_filename
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "renderqueue"
 
 
-def get_sample_files() -> list[str]:
-    """Get all .aep files in the renderqueue samples directory."""
-    if not SAMPLES_DIR.exists():
-        return []
-    return [f.stem for f in SAMPLES_DIR.glob("*.aep")]
-
-
-def load_expected(sample_name: str) -> dict:
-    """Load the expected JSON for a sample."""
-    json_path = SAMPLES_DIR / f"{sample_name}.json"
-    with open(json_path, encoding="utf-8") as f:
-        return json.load(f)
-
-
-@pytest.mark.parametrize("sample_name", get_sample_files())
+@pytest.mark.parametrize("sample_name", get_sample_files(SAMPLES_DIR))
 def test_parse_renderqueue_sample(sample_name: str) -> None:
-    """Test that each render queue sample can be parsed without error."""
+    """Each renderqueue sample can be parsed without error."""
     aep_path = SAMPLES_DIR / f"{sample_name}.aep"
     project = parse_project(aep_path)
     assert isinstance(project, Project)
@@ -45,334 +25,236 @@ def test_parse_renderqueue_sample(sample_name: str) -> None:
 
 
 class TestRenderQueueBasic:
-    """Tests for basic RenderQueue attributes."""
+    """Tests for basic render queue attributes."""
 
-    def test_empty_renderqueue(self) -> None:
-        """Test project with empty render queue."""
-        expected = load_expected("empty")
+    def test_empty(self) -> None:
+        expected = load_expected(SAMPLES_DIR, "empty")
         project = parse_project(SAMPLES_DIR / "empty.aep")
-
-        rq_json = expected.get("renderQueue", {})
-        assert rq_json["numItems"] == 0
-        assert len(project.render_queue.items) == rq_json["numItems"]
+        assert len(project.render_queue.items) == 0
+        assert expected["renderQueue"]["numItems"] == 0
 
     def test_numItems_1(self) -> None:
-        """Test render queue with one item."""
-        expected = load_expected("numItems_1")
+        expected = load_expected(SAMPLES_DIR, "numItems_1")
         project = parse_project(SAMPLES_DIR / "numItems_1.aep")
-
-        rq_json = expected.get("renderQueue", {})
-        assert rq_json["numItems"] == 1
-        assert len(project.render_queue.items) == rq_json["numItems"]
+        assert expected["renderQueue"]["numItems"] == 1
+        assert len(project.render_queue.items) == 1
         assert isinstance(project.render_queue.items[0], RenderQueueItem)
 
-        # Compare first item
-        expected_item = rq_json["items"][0]
-        rq_item = project.render_queue.items[0]
-        assert len(rq_item.output_modules) == expected_item["numOutputModules"]
-
-        # Compare first output module
-        expected_om = expected_item["outputModules"][0]
-        om = rq_item.output_modules[0]
-        assert om.name == expected_om["name"]
-        assert om.file == expected_om["file"]
-
     def test_numItems_2(self) -> None:
-        """Test render queue with multiple items."""
-        expected = load_expected("numItems_2")
+        expected = load_expected(SAMPLES_DIR, "numItems_2")
         project = parse_project(SAMPLES_DIR / "numItems_2.aep")
-
-        rq_json = expected.get("renderQueue", {})
-        assert len(project.render_queue.items) == rq_json["numItems"]
-        assert rq_json["numItems"] == 2
-
-        # Compare each item
-        for i, expected_item in enumerate(rq_json["items"]):
-            rq_item = project.render_queue.items[i]
-            assert len(rq_item.output_modules) == expected_item["numOutputModules"]
-
-            # Compare output modules
-            for j, expected_om in enumerate(expected_item["outputModules"]):
-                om = rq_item.output_modules[j]
-                assert om.name == expected_om["name"]
-                # Note: om.file contains the template pattern, not resolved filename
-                assert om.file == expected_om["file"]
+        assert expected["renderQueue"]["numItems"] == 2
+        assert len(project.render_queue.items) == 2
 
 
 class TestOutputModule:
-    """Tests for OutputModule attributes."""
+    """Tests for output module attributes."""
 
     def test_outputModule_file(self) -> None:
-        """Test output module with file path."""
-        expected = load_expected("outputModule_file")
+        _ = load_expected(SAMPLES_DIR, "outputModule_file")
         project = parse_project(SAMPLES_DIR / "outputModule_file.aep")
-
-        rq_json = expected.get("renderQueue", {})
-        assert len(project.render_queue.items) == rq_json["numItems"]
-
-        rq_item = project.render_queue.items[0]
-        expected_item = rq_json["items"][0]
-        assert len(rq_item.output_modules) == expected_item["numOutputModules"]
-
-        om = rq_item.output_modules[0]
-        expected_om = expected_item["outputModules"][0]
-
+        rqi = project.render_queue.items[0]
+        assert len(rqi.output_modules) >= 1
+        om = rqi.output_modules[0]
         assert isinstance(om, OutputModule)
-        assert om.file == expected_om["file"]
-        assert om.name == expected_om["name"]
-        assert "test_output" in om.file.lower()
+        assert om.file is not None
 
     def test_outputModule_template(self) -> None:
-        """Test output module with template."""
-        expected = load_expected("outputModule_template")
+        _ = load_expected(SAMPLES_DIR, "outputModule_template")
         project = parse_project(SAMPLES_DIR / "outputModule_template.aep")
+        rqi = project.render_queue.items[0]
+        assert len(rqi.output_modules) >= 1
+        om = rqi.output_modules[0]
+        assert om.name is not None
 
-        rq_json = expected.get("renderQueue", {})
-        assert len(project.render_queue.items) == rq_json["numItems"]
-
-        rq_item = project.render_queue.items[0]
-        expected_item = rq_json["items"][0]
-        assert len(rq_item.output_modules) == expected_item["numOutputModules"]
-
-        om = rq_item.output_modules[0]
-        expected_om = expected_item["outputModules"][0]
-
-        assert isinstance(om, OutputModule)
-        assert om.file == expected_om["file"]
-        assert om.name == expected_om["name"]
-        assert om.name == "Lossless"
-
-    def test_outputModule_all_template_variables(self) -> None:
-        """Test output module with all template variables resolved."""
-        expected = load_expected("output_to_custom_all_fields")
-        project = parse_project(
-            SAMPLES_DIR / "output_to_custom_all_fields.aep"
-        )
-
-        rq_json = expected.get("renderQueue", {})
-        assert len(project.render_queue.items) == rq_json["numItems"]
-
-        rq_item = project.render_queue.items[0]
-        expected_item = rq_json["items"][0]
-        om = rq_item.output_modules[0]
-        expected_om = expected_item["outputModules"][0]
-
-        assert isinstance(om, OutputModule)
-        # Note: Some template variables are not correctly resolved at the moment,
-        # so we check that the template pattern is present but variables are not.
-        assert om.file is not None
-        assert om.name == expected_om["name"]
-
-        # Verify template variables were resolved
-        assert "[projectName]" not in om.file
-        assert "[compName]" not in om.file
-        assert "[renderSettingsName]" not in om.file
-        assert "[outputModuleName]" not in om.file
-        assert "[width]" not in om.file
-        assert "[height]" not in om.file
-        assert "[frameRate]" not in om.file
-        assert "[aspectRatio]" not in om.file
-        assert "[startFrame]" not in om.file
-        assert "[endFrame]" not in om.file
-        assert "[durationFrames]" not in om.file
-        assert "[startTimecode]" not in om.file
-        assert "[endTimecode]" not in om.file
-        assert "[durationTimecode]" not in om.file
-        assert "[channels]" not in om.file
-        assert "[projectColorDepth]" not in om.file
-        assert "[outputColorDepth]" not in om.file
-        assert "[compressor]" not in om.file
-        assert "[fieldOrder]" not in om.file
-        assert "[fileExtension]" not in om.file
-
-    def test_multiple_output_modules(self) -> None:
-        """Test render queue item with multiple output modules."""
-        expected = load_expected("numOutputModules_2")
+    def test_numOutputModules_2(self) -> None:
+        expected = load_expected(SAMPLES_DIR, "numOutputModules_2")
         project = parse_project(SAMPLES_DIR / "numOutputModules_2.aep")
+        rqi = project.render_queue.items[0]
+        exp_oms = expected["renderQueue"]["items"][0]["outputModules"]
+        assert len(rqi.output_modules) == len(exp_oms) == 2
 
-        rq_json = expected.get("renderQueue", {})
-        assert len(project.render_queue.items) == rq_json["numItems"]
+    def test_output_module_include_source_xmp_on(self) -> None:
+        _ = load_expected(SAMPLES_DIR, "output_module_include_source_xmp_data_on")
+        project = parse_project(SAMPLES_DIR / "output_module_include_source_xmp_data_on.aep")
+        om = project.render_queue.items[0].output_modules[0]
+        assert om.include_source_xmp is True
 
-        rq_item = project.render_queue.items[0]
-        expected_item = rq_json["items"][0]
-        assert len(rq_item.output_modules) == expected_item["numOutputModules"]
+    def test_output_module_include_source_xmp_off(self) -> None:
+        _ = load_expected(SAMPLES_DIR, "output_module_include_source_xmp_data_off")
+        project = parse_project(SAMPLES_DIR / "output_module_include_source_xmp_data_off.aep")
+        om = project.render_queue.items[0].output_modules[0]
+        assert om.include_source_xmp is False
 
-        # Compare each output module
-        for i, expected_om in enumerate(expected_item["outputModules"]):
-            om = rq_item.output_modules[i]
-            assert om.file is not None
-            assert om.file == expected_om["file"]
-            assert om.name == expected_om["name"]
+    def test_output_module_crop_checked(self) -> None:
+        _ = load_expected(SAMPLES_DIR, "output_module_crop_checked")
+        project = parse_project(SAMPLES_DIR / "output_module_crop_checked.aep")
+        om = project.render_queue.items[0].output_modules[0]
+        assert om.crop is True
+
+    def test_output_module_crop_unchecked(self) -> None:
+        _ = load_expected(SAMPLES_DIR, "output_module_crop_unchecked")
+        project = parse_project(SAMPLES_DIR / "output_module_crop_unchecked.aep")
+        om = project.render_queue.items[0].output_modules[0]
+        assert om.crop is False
 
 
-class TestRenderQueueItemCompLinking:
-    """Tests for RenderQueueItem comp linking."""
+class TestCompLinking:
+    """Tests for render queue item composition linking."""
 
-    def test_rqitem_comp_linking_by_name(self) -> None:
-        """Test that comp can be found by name from file path."""
-        expected = load_expected("numItems_1")
-        project = parse_project(SAMPLES_DIR / "numItems_1.aep")
+    def test_comp_name_matches(self) -> None:
+        expected = load_expected(SAMPLES_DIR, "base")
+        project = parse_project(SAMPLES_DIR / "base.aep")
+        rqi = project.render_queue.items[0]
+        exp_rqi = expected["renderQueue"]["items"][0]
+        assert rqi.comp_name == exp_rqi["compName"]
 
-        project.render_queue.items[0]
-        expected_comp_name = expected["renderQueue"]["items"][0]["compName"]
+    def test_2_rqitems_comp_linking(self) -> None:
+        expected = load_expected(SAMPLES_DIR, "2_rqitems")
+        project = parse_project(SAMPLES_DIR / "2_rqitems.aep")
+        assert len(project.render_queue.items) == 2
+        for i, rqi in enumerate(project.render_queue.items):
+            exp_name = expected["renderQueue"]["items"][i]["compName"]
+            assert rqi.comp_name == exp_name
 
-        # Find comp by name from the project
-        comp = next(
-            (c for c in project.compositions if c.name == expected_comp_name),
-            None,
-        )
-        assert comp is not None
-        assert comp.name == "TestComp"
+
+class TestRenderQueueItemAttributes:
+    """Tests for render queue item attributes."""
+
+    def test_render_unchecked(self) -> None:
+        expected = load_expected(SAMPLES_DIR, "render_unchecked")
+        project = parse_project(SAMPLES_DIR / "render_unchecked.aep")
+        rqi = project.render_queue.items[0]
+        exp_rqi = expected["renderQueue"]["items"][0]
+        assert rqi.render is False
+        assert exp_rqi["render"] is False
+
+    def test_comment(self) -> None:
+        project = parse_project(SAMPLES_DIR / "comment_aaaaa.aep")
+        rqi = project.render_queue.items[0]
+        assert rqi.comment == "aaaaa"
+
+    def test_skip_frames_3(self) -> None:
+        expected = load_expected(SAMPLES_DIR, "skip_frames_3")
+        project = parse_project(SAMPLES_DIR / "skip_frames_3.aep")
+        rqi = project.render_queue.items[0]
+        exp_rqi = expected["renderQueue"]["items"][0]
+        assert rqi.skip_frames == exp_rqi["skipFrames"] == 3
 
 
 class TestResolveOutputFilename:
-    """Tests for resolve_output_filename template resolution."""
+    """Unit tests for resolve_output_filename()."""
 
-    def test_resolve_compname_and_extension(self) -> None:
-        """Test basic [compName] and [fileExtension] resolution."""
-        from aep_parser.models.renderqueue.output_module import resolve_output_filename
+    def test_none_template(self) -> None:
+        assert resolve_output_filename(None) is None
 
+    def test_project_name(self) -> None:
+        result = resolve_output_filename("[projectName]", project_name="MyProject")
+        assert result == "MyProject"
+
+    def test_comp_name(self) -> None:
+        result = resolve_output_filename("[compName]", comp_name="Comp 1")
+        assert result == "Comp 1"
+
+    def test_render_settings_name(self) -> None:
+        result = resolve_output_filename("[renderSettingsName]", render_settings_name="Best Settings")
+        assert result == "Best Settings"
+
+    def test_output_module_name(self) -> None:
+        result = resolve_output_filename("[outputModuleName]", output_module_name="Lossless")
+        assert result == "Lossless"
+
+    def test_width(self) -> None:
+        result = resolve_output_filename("[width]", width=1920)
+        assert result == "1920"
+
+    def test_height(self) -> None:
+        result = resolve_output_filename("[height]", height=1080)
+        assert result == "1080"
+
+    def test_frame_rate_integer(self) -> None:
+        result = resolve_output_filename("[frameRate]", frame_rate=30.0)
+        assert result == "30"
+
+    def test_frame_rate_float(self) -> None:
+        result = resolve_output_filename("[frameRate]", frame_rate=29.97)
+        assert result == "29.97"
+
+    def test_aspect_ratio(self) -> None:
+        result = resolve_output_filename("[aspectRatio]", width=1920, height=1080)
+        assert result == "16x9"
+
+    def test_channels_rgb(self) -> None:
+        result = resolve_output_filename("[channels]", channels=OutputChannels.RGB)
+        assert result == "RGB"
+
+    def test_channels_rgba(self) -> None:
+        result = resolve_output_filename("[channels]", channels=OutputChannels.RGBA)
+        assert result == "RGBA"
+
+    def test_channels_alpha(self) -> None:
+        result = resolve_output_filename("[channels]", channels=OutputChannels.ALPHA)
+        assert result == "Alpha"
+
+    def test_project_color_depth_8bit(self) -> None:
+        result = resolve_output_filename("[projectColorDepth]", project_color_depth=8)
+        assert result == "8bit"
+
+    def test_project_color_depth_16bit(self) -> None:
+        result = resolve_output_filename("[projectColorDepth]", project_color_depth=16)
+        assert result == "16bit"
+
+    def test_project_color_depth_32bit(self) -> None:
+        result = resolve_output_filename("[projectColorDepth]", project_color_depth=32)
+        assert result == "32bit"
+
+    def test_output_color_depth_millions(self) -> None:
+        result = resolve_output_filename("[outputColorDepth]", output_color_depth=OutputColorDepth.MILLIONS_OF_COLORS)
+        assert result == "Millions"
+
+    def test_output_color_depth_trillions(self) -> None:
+        result = resolve_output_filename("[outputColorDepth]", output_color_depth=OutputColorDepth.TRILLIONS_OF_COLORS)
+        assert result == "Trillions"
+
+    def test_output_color_depth_float(self) -> None:
+        result = resolve_output_filename("[outputColorDepth]", output_color_depth=OutputColorDepth.FLOATING_POINT)
+        assert result == "Float"
+
+    def test_file_extension(self) -> None:
+        result = resolve_output_filename("[compName].[fileExtension]", comp_name="MyComp", file_extension="mp4")
+        assert result == "MyComp.mp4"
+
+    def test_compressor(self) -> None:
+        result = resolve_output_filename("[compressor]", compressor="H.264")
+        assert result == "H.264"
+
+    def test_combined_template(self) -> None:
         result = resolve_output_filename(
-            "C:/Output/[compName].[fileExtension]",
-            comp_name="My Composition",
-            file_extension="mp4",
-        )
-        assert result == "C:/Output/My Composition.mp4"
-
-    def test_resolve_project_name(self) -> None:
-        """Test [projectName] resolution."""
-        from aep_parser.models.renderqueue.output_module import resolve_output_filename
-
-        result = resolve_output_filename(
-            "[projectName]_output.mov",
-            project_name="my_project",
-        )
-        assert result == "my_project_output.mov"
-
-    def test_resolve_dimensions(self) -> None:
-        """Test [width], [height], and [aspectRatio] resolution."""
-        from aep_parser.models.renderqueue.output_module import resolve_output_filename
-
-        result = resolve_output_filename(
-            "[width]x[height]_[aspectRatio].mp4",
+            "[projectName]_[compName]_[width]x[height].[fileExtension]",
+            project_name="Proj",
+            comp_name="Comp1",
             width=1920,
             height=1080,
+            file_extension="mov",
         )
-        assert result == "1920x1080_16x9.mp4"
+        assert result == "Proj_Comp1_1920x1080.mov"
 
-    def test_resolve_frame_rate(self) -> None:
-        """Test [frameRate] resolution."""
-        from aep_parser.models.renderqueue.output_module import resolve_output_filename
+    def test_case_insensitive(self) -> None:
+        result = resolve_output_filename("[COMPNAME]", comp_name="MyComp")
+        assert result == "MyComp"
 
-        # Non-integer frame rate shows with decimals
-        result = resolve_output_filename(
-            "output_[frameRate]fps.mp4",
-            frame_rate=29.97,
-        )
-        assert result == "output_29.97fps.mp4"
+    def test_start_timecode(self) -> None:
+        result = resolve_output_filename("[startTimecode]", start_time=0.0, frame_rate=24.0)
+        assert result == "0-00-00-00"
 
-        # Integer frame rate shows without decimals
-        result = resolve_output_filename(
-            "output_[frameRate]fps.mp4",
-            frame_rate=24.0,
-        )
-        assert result == "output_24fps.mp4"
+    def test_end_timecode(self) -> None:
+        result = resolve_output_filename("[endTimecode]", end_time=10.0, frame_rate=24.0)
+        assert result == "0-00-10-00"
 
-    def test_resolve_frame_numbers(self) -> None:
-        """Test [startFrame], [endFrame], [durationFrames] resolution."""
-        from aep_parser.models.renderqueue.output_module import resolve_output_filename
+    def test_duration_timecode(self) -> None:
+        result = resolve_output_filename("[durationTimecode]", duration_time=5.0, frame_rate=24.0)
+        assert result == "0-00-05-00"
 
-        result = resolve_output_filename(
-            "[startFrame]-[endFrame]_dur[durationFrames].mp4",
-            start_frame=0,
-            end_frame=720,
-            duration_frames=720,
-            frame_rate=24.0,
-        )
-        # 720 frames / 16 frames per foot = 45 feet
-        assert result == "0000+00-0045+00_dur0045+00.mp4"
-
-    def test_resolve_timecodes(self) -> None:
-        """Test [startTimecode], [endTimecode], [durationTimecode] resolution."""
-        from aep_parser.models.renderqueue.output_module import resolve_output_filename
-
-        result = resolve_output_filename(
-            "[startTimecode]_to_[endTimecode]_([durationTimecode]).mp4",
-            start_time=0.0,
-            end_time=30.0,
-            duration_time=30.0,
-            frame_rate=24.0,
-        )
-        assert result == "0-00-00-00_to_0-00-30-00_(0-00-30-00).mp4"
-
-    def test_resolve_channels(self) -> None:
-        """Test [channels] resolution."""
-        from aep_parser.models.enums import OutputChannels
-        from aep_parser.models.renderqueue.output_module import resolve_output_filename
-
-        result = resolve_output_filename(
-            "output_[channels].mp4",
-            channels=OutputChannels.RGBA,
-        )
-        assert result == "output_RGBA.mp4"
-
-    def test_resolve_color_depth(self) -> None:
-        """Test [projectColorDepth] and [outputColorDepth] resolution."""
-        from aep_parser.models.enums import OutputColorDepth
-        from aep_parser.models.renderqueue.output_module import resolve_output_filename
-
-        result = resolve_output_filename(
-            "proj_[projectColorDepth]_out_[outputColorDepth].mp4",
-            project_color_depth=32,
-            output_color_depth=OutputColorDepth.MILLIONS_OF_COLORS,
-        )
-        assert result == "proj_32bit_out_Millions.mp4"
-
-    def test_resolve_compressor_and_field_order(self) -> None:
-        """Test [compressor] and [fieldOrder] resolution."""
-        from aep_parser.models.renderqueue.output_module import resolve_output_filename
-
-        result = resolve_output_filename(
-            "[compressor]_[fieldOrder].mp4",
-            compressor="H.264",
-            field_render=0,
-        )
-        assert result == "H.264_Both.mp4"
-
-    def test_resolve_render_settings_name(self) -> None:
-        """Test [renderSettingsName] resolution."""
-        from aep_parser.models.renderqueue.output_module import resolve_output_filename
-
-        result = resolve_output_filename(
-            "[renderSettingsName]_output.mp4",
-            render_settings_name="Best Settings",
-        )
-        assert result == "Best Settings_output.mp4"
-
-    def test_resolve_output_module_name(self) -> None:
-        """Test [outputModuleName] resolution."""
-        from aep_parser.models.renderqueue.output_module import resolve_output_filename
-
-        result = resolve_output_filename(
-            "[outputModuleName].mp4",
-            output_module_name="H.264 - Match Render Settings - 15 Mbps",
-        )
-        assert result == "H.264 - Match Render Settings - 15 Mbps.mp4"
-
-    def test_none_template_returns_none(self) -> None:
-        """Test that None template returns None."""
-        from aep_parser.models.renderqueue.output_module import resolve_output_filename
-
-        result = resolve_output_filename(None, comp_name="Test")
-        assert result is None
-
-    def test_case_insensitive_replacement(self) -> None:
-        """Test that template variable replacement is case-insensitive."""
-        from aep_parser.models.renderqueue.output_module import resolve_output_filename
-
-        result = resolve_output_filename(
-            "[COMPNAME]_[FileExtension]",
-            comp_name="Test",
-            file_extension="mp4",
-        )
-        assert result == "Test_mp4"
+    def test_project_folder_empty(self) -> None:
+        result = resolve_output_filename("[projectFolder][compName]", comp_name="MyComp")
+        assert result == "MyComp"

@@ -9,6 +9,7 @@ from ..kaitai.utils import (
     filter_by_type,
     find_by_list_type,
     find_by_type,
+    find_chunks_before,
     str_contents,
 )
 from ..models.items.footage import FootageItem
@@ -106,7 +107,16 @@ def parse_footage(
                         end_frame = int(last)
 
         if not item_name:
-            item_name = os.path.basename(file_source.file)
+            if (
+                not source_attrs["is_still"]
+                and file_source.target_is_folder
+            ):
+                item_name = _build_sequence_name(
+                    pin_child_chunks, start_frame, end_frame,
+                    file_names=file_source.file_names,
+                )
+            if not item_name:
+                item_name = os.path.basename(file_source.file)
 
         main_source = file_source
 
@@ -163,3 +173,76 @@ def _parse_file_source(
         **source_attrs,
     )
     return file_source
+
+
+def _build_sequence_name(
+    pin_child_chunks: list[Aep.Chunk],
+    start_frame: int,
+    end_frame: int,
+    file_names: list[str] | None = None,
+) -> str:
+    """Build the display name for an image sequence with ``[start-end]`` format.
+
+    After Effects displays image sequence footage items using the pattern
+    ``prefix[start_frame-end_frame]extension``, for example
+    ``render.[0001-0700].exr``. The prefix and extension are stored as two
+    consecutive ``Utf8`` chunks immediately before the ``opti`` chunk inside
+    the ``Pin`` LIST.
+
+    Args:
+        pin_child_chunks: The Pin chunk's child chunks.
+        start_frame: The first frame number of the sequence.
+        end_frame: The last frame number of the sequence.
+        file_names: Optional list of actual filenames from StVc chunks,
+            used to derive the correct zero-padding width.
+    """
+    if 0xFFFFFFFF in (start_frame, end_frame):
+        return ""
+
+    try:
+        utf8_before_opti = find_chunks_before(
+            chunks=pin_child_chunks,
+            chunk_type="Utf8",
+            before_type="opti",
+        )
+    except ChunkNotFoundError:
+        return ""
+
+    if len(utf8_before_opti) < 2:
+        return ""
+
+    prefix = str_contents(utf8_before_opti[-2])
+    extension = str_contents(utf8_before_opti[-1])
+
+    if not prefix and not extension:
+        return ""
+
+    padding = _get_frame_padding(file_names, start_frame, end_frame)
+    frame_range = f"[{start_frame:0{padding}d}-{end_frame:0{padding}d}]"
+    return f"{prefix}{frame_range}{extension}"
+
+
+def _get_frame_padding(
+    file_names: list[str] | None,
+    start_frame: int,
+    end_frame: int,
+) -> int:
+    """Determine the zero-padding width for frame numbers.
+
+    Examines actual filenames from the sequence to detect the padding used
+    on disk. Falls back to ``max(4, digits_needed)`` when filenames are
+    unavailable.
+
+    Args:
+        file_names: Actual filenames from StVc chunks.
+        start_frame: The first frame number.
+        end_frame: The last frame number.
+    """
+    if file_names:
+        # Extract the last group of digits from the first filename to
+        # determine the padding used on disk.
+        match = re.search(r"(\d+)(?=\D*$)", file_names[0])
+        if match:
+            return len(match.group(1))
+
+    return max(4, len(str(end_frame)))

@@ -50,7 +50,7 @@ for item in project:
     print(f"{item.name} ({type(item).__name__})")
 
 # Get a composition by name and its layers
-comp = project.composition("Comp 1")
+comp = next(c for c in project.compositions if c.name == "Comp 1")
 for layer in comp.layers:
     print(f"  Layer: {layer.name}, in={layer.in_point}s, out={layer.out_point}s")
     

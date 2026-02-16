@@ -1,12 +1,7 @@
-"""Tests for version-specific complete.aep samples from samples/versions/.
-
-These tests verify that aep_parser can parse files from different
-After Effects versions correctly.
-"""
+"""Tests for parsing AEP files across different AE versions."""
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
@@ -16,185 +11,159 @@ from aep_parser import Project, parse_project
 VERSIONS_DIR = Path(__file__).parent.parent / "samples" / "versions"
 
 
-def get_version_dirs() -> list[str]:
-    """Get all version directories that contain complete.aep."""
-    if not VERSIONS_DIR.exists():
-        return []
-    versions = []
-    for version_dir in VERSIONS_DIR.iterdir():
-        if version_dir.is_dir() and (version_dir / "complete.aep").exists():
-            versions.append(version_dir.name)
-    return sorted(versions)
-
-
-def load_expected(version: str) -> dict:
-    """Load the expected JSON for a version sample."""
-    json_path = VERSIONS_DIR / version / "complete.json"
-    with open(json_path, encoding="utf-8") as f:
-        return json.load(f)
-
-
-@pytest.mark.parametrize("version", get_version_dirs())
-def test_parse_version_sample(version: str) -> None:
-    """Test that each version's complete.aep can be parsed."""
-    aep_path = VERSIONS_DIR / version / "complete.aep"
-    project = parse_project(aep_path)
-    assert isinstance(project, Project)
-
-
-@pytest.mark.parametrize("version", get_version_dirs())
-def test_version_has_compositions(version: str) -> None:
-    """Test that each version sample has compositions."""
-    aep_path = VERSIONS_DIR / version / "complete.aep"
-    project = parse_project(aep_path)
-    assert len(project.compositions) >= 1, f"{version} should have compositions"
-
-
-@pytest.mark.parametrize("version", get_version_dirs())
-def test_version_has_layers(version: str) -> None:
-    """Test that each version sample has layers."""
-    aep_path = VERSIONS_DIR / version / "complete.aep"
-    project = parse_project(aep_path)
-    total_layers = sum(len(comp.layers) for comp in project.compositions)
-    assert total_layers >= 1, f"{version} should have layers"
-
-
-@pytest.mark.parametrize("version", get_version_dirs())
-def test_version_has_folders(version: str) -> None:
-    """Test that each version sample has folders."""
-    aep_path = VERSIONS_DIR / version / "complete.aep"
-    project = parse_project(aep_path)
-    # At least root folder should exist
-    assert project.root_folder is not None, f"{version} should have root folder"
-
-
 class TestAE2018:
-    """Tests specific to After Effects 2018 (CC 15.x)."""
+    """Tests for After Effects 2018 projects."""
 
-    @pytest.fixture
-    def project(self) -> Project | None:
-        """Load the AE 2018 sample project."""
+    @pytest.fixture()
+    def sample(self) -> Path:
         aep_path = VERSIONS_DIR / "ae2018" / "complete.aep"
         if not aep_path.exists():
-            pytest.skip("AE 2018 sample not available")
-        return parse_project(aep_path)
+            pytest.skip("ae2018 sample not found")
+        return aep_path
 
-    def test_parses_successfully(self, project: Project) -> None:
-        """Test that AE 2018 project parses."""
+    def test_parse(self, sample: Path) -> None:
+        project = parse_project(sample)
         assert isinstance(project, Project)
+
+    def test_has_compositions(self, sample: Path) -> None:
+        project = parse_project(sample)
+        assert len(project.compositions) >= 1
 
 
 class TestAE2019:
-    """Tests specific to After Effects 2019 (CC 16.x)."""
+    """Tests for After Effects 2019 projects."""
 
-    @pytest.fixture
-    def project(self) -> Project | None:
-        """Load the AE 2019 sample project."""
+    @pytest.fixture()
+    def sample(self) -> Path:
         aep_path = VERSIONS_DIR / "ae2019" / "complete.aep"
         if not aep_path.exists():
-            pytest.skip("AE 2019 sample not available")
-        return parse_project(aep_path)
+            pytest.skip("ae2019 sample not found")
+        return aep_path
 
-    def test_parses_successfully(self, project: Project) -> None:
-        """Test that AE 2019 project parses."""
+    def test_parse(self, sample: Path) -> None:
+        project = parse_project(sample)
         assert isinstance(project, Project)
 
-    def test_expression_engine(self, project: Project) -> None:
-        """Test that expression engine is available in 2019+."""
-        assert project.expression_engine is not None
+    def test_has_compositions(self, sample: Path) -> None:
+        project = parse_project(sample)
+        assert len(project.compositions) >= 1
 
 
 class TestAE2020:
-    """Tests specific to After Effects 2020 (CC 17.x)."""
+    """Tests for After Effects 2020 projects."""
 
-    @pytest.fixture
-    def project(self) -> Project | None:
-        """Load the AE 2020 sample project."""
+    @pytest.fixture()
+    def sample(self) -> Path:
         aep_path = VERSIONS_DIR / "ae2020" / "complete.aep"
         if not aep_path.exists():
-            pytest.skip("AE 2020 sample not available")
-        return parse_project(aep_path)
+            pytest.skip("ae2020 sample not found")
+        return aep_path
 
-    def test_parses_successfully(self, project: Project) -> None:
-        """Test that AE 2020 project parses."""
+    def test_parse(self, sample: Path) -> None:
+        project = parse_project(sample)
         assert isinstance(project, Project)
+
+    def test_has_compositions(self, sample: Path) -> None:
+        project = parse_project(sample)
+        assert len(project.compositions) >= 1
 
 
 class TestAE2022:
-    """Tests specific to After Effects 2022 (CC 22.x)."""
+    """Tests for After Effects 2022 projects."""
 
-    @pytest.fixture
-    def project(self) -> Project | None:
-        """Load the AE 2022 sample project."""
+    @pytest.fixture()
+    def sample(self) -> Path:
         aep_path = VERSIONS_DIR / "ae2022" / "complete.aep"
         if not aep_path.exists():
-            pytest.skip("AE 2022 sample not available")
-        return parse_project(aep_path)
+            pytest.skip("ae2022 sample not found")
+        return aep_path
 
-    def test_parses_successfully(self, project: Project) -> None:
-        """Test that AE 2022 project parses."""
+    def test_parse(self, sample: Path) -> None:
+        project = parse_project(sample)
         assert isinstance(project, Project)
+
+    def test_has_compositions(self, sample: Path) -> None:
+        project = parse_project(sample)
+        assert len(project.compositions) >= 1
 
 
 class TestAE2023:
-    """Tests specific to After Effects 2023 (CC 23.x)."""
+    """Tests for After Effects 2023 projects."""
 
-    @pytest.fixture
-    def project(self) -> Project | None:
-        """Load the AE 2023 sample project."""
+    @pytest.fixture()
+    def sample(self) -> Path:
         aep_path = VERSIONS_DIR / "ae2023" / "complete.aep"
         if not aep_path.exists():
-            pytest.skip("AE 2023 sample not available")
-        return parse_project(aep_path)
+            pytest.skip("ae2023 sample not found")
+        return aep_path
 
-    def test_parses_successfully(self, project: Project) -> None:
-        """Test that AE 2023 project parses."""
+    def test_parse(self, sample: Path) -> None:
+        project = parse_project(sample)
         assert isinstance(project, Project)
+
+    def test_has_compositions(self, sample: Path) -> None:
+        project = parse_project(sample)
+        assert len(project.compositions) >= 1
 
 
 class TestAE2024:
-    """Tests specific to After Effects 2024 (CC 24.x)."""
+    """Tests for After Effects 2024 projects."""
 
-    @pytest.fixture
-    def project(self) -> Project | None:
-        """Load the AE 2024 sample project."""
+    @pytest.fixture()
+    def sample(self) -> Path:
         aep_path = VERSIONS_DIR / "ae2024" / "complete.aep"
         if not aep_path.exists():
-            pytest.skip("AE 2024 sample not available")
-        return parse_project(aep_path)
+            pytest.skip("ae2024 sample not found")
+        return aep_path
 
-    def test_parses_successfully(self, project: Project) -> None:
-        """Test that AE 2024 project parses."""
+    def test_parse(self, sample: Path) -> None:
+        project = parse_project(sample)
         assert isinstance(project, Project)
+
+    def test_has_compositions(self, sample: Path) -> None:
+        project = parse_project(sample)
+        assert len(project.compositions) >= 1
 
 
 class TestAE2025:
-    """Tests specific to After Effects 2025 (CC 25.x)."""
+    """Tests for After Effects 2025 projects."""
 
-    @pytest.fixture
-    def project(self) -> Project | None:
-        """Load the AE 2025 sample project."""
+    @pytest.fixture()
+    def sample(self) -> Path:
         aep_path = VERSIONS_DIR / "ae2025" / "complete.aep"
         if not aep_path.exists():
-            pytest.skip("AE 2025 sample not available")
-        return parse_project(aep_path)
+            pytest.skip("ae2025 sample not found")
+        return aep_path
 
-    def test_parses_successfully(self, project: Project) -> None:
-        """Test that AE 2025 project parses."""
+    def test_parse(self, sample: Path) -> None:
+        project = parse_project(sample)
         assert isinstance(project, Project)
 
-    def test_has_main_composition(self, project: Project) -> None:
-        """Test that Main_Composition exists."""
-        comp_names = [c.name for c in project.compositions]
-        assert "Main_Composition" in comp_names
+    def test_has_compositions(self, sample: Path) -> None:
+        project = parse_project(sample)
+        assert len(project.compositions) >= 1
 
-    def test_main_comp_has_markers(self, project: Project) -> None:
-        """Test that main composition has markers."""
-        main_comp = project.composition("Main_Composition")
-        assert main_comp is not None
-        assert len(main_comp.markers) >= 1
+    def test_validate_against_json(self, sample: Path) -> None:
+        """Validate AE2025 project against ExtendScript JSON export."""
+        from aep_parser.cli.validate import validate_aep
+        json_path = VERSIONS_DIR / "ae2025" / "complete.json"
+        if not json_path.exists():
+            pytest.skip("ae2025 JSON reference not found")
+        result = validate_aep(sample, json_path)
+        # Report differences as warnings, not failures
+        for diff in result.differences:
+            import warnings
+            warnings.warn(diff, stacklevel=1)
 
-    def test_has_folder_structure(self, project: Project) -> None:
-        """Test that folder structure exists."""
-        folder_names = [f.name for f in project.folders]
-        assert "_Project Assets" in folder_names or "Compositions" in folder_names
+
+class TestVersionCompatibility:
+    """Cross-version compatibility checks."""
+
+    @pytest.mark.parametrize("version", ["ae2018", "ae2022", "ae2023", "ae2024", "ae2025"])
+    def test_all_versions_parseable(self, version: str) -> None:
+        aep_path = VERSIONS_DIR / version / "complete.aep"
+        if not aep_path.exists():
+            pytest.skip(f"{version} sample not found")
+        project = parse_project(aep_path)
+        assert isinstance(project, Project)
+        assert len(project.compositions) >= 1

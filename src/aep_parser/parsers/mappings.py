@@ -12,10 +12,11 @@ from ..models.enums import (
     AutoOrientType,
     BitsPerChannel,
     BlendingMode,
+    FastPreviewType,
     FieldSeparationType,
     FootageTimecodeDisplayStartType,
     FrameBlendingType,
-    GpuAccelType,
+    ViewerType,
 )
 
 
@@ -119,26 +120,6 @@ def map_footage_timecode_display_start_type(
     return mapping.get(ftcs_raw, FootageTimecodeDisplayStartType.FTCS_START_0)
 
 
-def map_gpu_accel_type(gpu_accel_type_raw: int) -> GpuAccelType:
-    """Map binary gpu_accel_type value to ExtendScript GpuAccelType enum.
-
-    The raw values in the Rhed chunk follow a pattern based on bit flags.
-    Known mappings from observed samples:
-    - 19 (0x13) → CUDA (1813)
-    - 31 (0x1F) → SOFTWARE (1816)
-
-    The pattern appears to be: raw = 16 + (2^(index+1) - 1) for simple encoding.
-    """
-    mapping = {
-        17: GpuAccelType.OPENCL,   # 0x11 - index 0
-        19: GpuAccelType.CUDA,     # 0x13 - index 1
-        23: GpuAccelType.METAL,    # 0x17 - index 2
-        27: GpuAccelType.VULKAN,   # 0x1B - index 3
-        31: GpuAccelType.SOFTWARE, # 0x1F - index 4
-    }
-    return mapping.get(gpu_accel_type_raw, GpuAccelType.SOFTWARE)
-
-
 def map_frame_blending_type(
     frame_blending_type_raw: int, frame_blending_enabled: bool
 ) -> FrameBlendingType:
@@ -195,3 +176,42 @@ def map_auto_orient_type(
         return AutoOrientType.CHARACTERS_TOWARD_CAMERA
     else:
         return AutoOrientType.NO_AUTO_ORIENT
+
+
+def map_fast_preview_type(
+    adaptive: bool,
+    wireframe: bool,
+) -> FastPreviewType:
+    """Derive the FastPreviewType from individual fips bit flags.
+
+    Args:
+        adaptive: Whether the adaptive resolution bit is set.
+        wireframe: Whether the wireframe bit is set.
+    """
+    if wireframe:
+        return FastPreviewType.FP_WIREFRAME
+    if adaptive:
+        return FastPreviewType.FP_ADAPTIVE_RESOLUTION
+    return FastPreviewType.FP_OFF
+
+
+def map_viewer_type_from_string(label: str) -> ViewerType | None:
+    """Map a viewer panel type label string to a ViewerType enum.
+
+    The `fitt` chunk stores the inner tab type as an ASCII string
+    (e.g. `"AE Composition"`). This function converts that string
+    to the corresponding :class:`ViewerType` value.
+
+    Args:
+        label: The panel type label from the `fitt` chunk.
+
+    Returns:
+        The matching :class:`ViewerType`, or `None` if the label is
+        not recognised.
+    """
+    mapping = {
+        "AE Composition": ViewerType.VIEWER_COMPOSITION,
+        "AE Layer": ViewerType.VIEWER_LAYER,
+        "AE Footage": ViewerType.VIEWER_FOOTAGE,
+    }
+    return mapping.get(label, ViewerType.VIEWER_COMPOSITION)

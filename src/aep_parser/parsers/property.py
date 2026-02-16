@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import Any
 
 from ..kaitai import Aep
@@ -464,7 +465,7 @@ def _parse_effect_parameter_def(parameter_chunks: list[Aep.Chunk]) -> dict[str, 
         result["last_value"] = [pard_chunk.last_value_x, pard_chunk.last_value_y]
 
     # Check for display name override or enum options
-    try:
+    with suppress(ChunkNotFoundError):
         pdnm_chunk = find_by_type(chunks=parameter_chunks, chunk_type="pdnm")
         utf8_chunk = pdnm_chunk.chunk
         pdnm_data = str_contents(utf8_chunk)
@@ -472,8 +473,6 @@ def _parse_effect_parameter_def(parameter_chunks: list[Aep.Chunk]) -> dict[str, 
             result["property_parameters"] = pdnm_data.split("|")
         elif pdnm_data:
             result["name"] = pdnm_data
-    except ChunkNotFoundError:
-        pass
 
     return result
 

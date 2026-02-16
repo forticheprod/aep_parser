@@ -11,7 +11,7 @@ if typing.TYPE_CHECKING:
     from ..sources.solid import SolidSource
 
 
-@dataclass
+@dataclass(eq=False)
 class FootageItem(AVItem):
     """
     The `FootageItem` object represents a footage item imported into a project,

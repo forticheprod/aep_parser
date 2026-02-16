@@ -8,8 +8,6 @@ from __future__ import annotations
 import io
 from pathlib import Path
 
-import pytest
-
 from aep_parser.cli.visualize import (
     build_project_node,
     format_dot,
@@ -25,8 +23,6 @@ SAMPLES_DIR = Path(__file__).parent.parent / "samples"
 def get_sample_project():
     """Get a sample project for testing."""
     aep_path = SAMPLES_DIR / "versions" / "ae2025" / "complete.aep"
-    if not aep_path.exists():
-        pytest.skip("ae2025 sample not available")
     return parse_project(aep_path)
 
 

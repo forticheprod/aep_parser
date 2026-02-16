@@ -17,7 +17,6 @@ from .enums import (
     FrameBlendingType,
     FramesCountType,
     GetSettingsFormat,
-    GpuAccelType,
     ImportAsType,
     KeyframeInterpolationType,
     Language,
@@ -61,6 +60,7 @@ from .properties.property_group import PropertyGroup
 from .renderqueue.output_module import OutputModule
 from .renderqueue.render_queue import RenderQueue
 from .renderqueue.render_queue_item import RenderQueueItem
+from .viewer import View, Viewer, ViewOptions
 
 __all__ = [
     "AlphaMode",
@@ -84,7 +84,6 @@ __all__ = [
     "FrameBlendingType",
     "FramesCountType",
     "GetSettingsFormat",
-    "GpuAccelType",
     "ImportAsType",
     "Item",
     "Keyframe",
@@ -121,5 +120,8 @@ __all__ = [
     "TimeDisplayType",
     "ToolType",
     "TrackMatteType",
+    "View",
+    "Viewer",
     "ViewerType",
+    "ViewOptions",
 ]

@@ -5,8 +5,10 @@ from typing import TYPE_CHECKING, Any, cast
 
 from ..kaitai import Aep
 from ..kaitai.utils import (
+    filter_by_type,
     find_by_list_type,
     find_by_type,
+    split_on_type,
     str_contents,
 )
 from ..models.enums import (
@@ -157,16 +159,7 @@ def parse_render_queue_item(
     lom_child_chunks = lom_chunk.chunks
 
     # Group chunks by Roou - each Roou starts a new output module
-    om_groups: list[list[Aep.Chunk]] = []
-    current_group: list[Aep.Chunk] = []
-
-    for chunk in lom_child_chunks:
-        if chunk.chunk_type == "Roou" and current_group:
-            om_groups.append(current_group)
-            current_group = []
-        current_group.append(chunk)
-    if current_group:
-        om_groups.append(current_group)
+    om_groups = split_on_type(lom_child_chunks, "Roou")
 
     render_queue_item = RenderQueueItem(
         comment=comment,
@@ -277,7 +270,7 @@ def parse_output_module(
     include_source_xmp = om_ldat_data.include_source_xmp
     post_render_action = PostRenderAction.from_binary(om_ldat_data.post_render_action)
     post_render_target_comp_id = om_ldat_data.post_render_target_comp_id or None
-    if post_render_target_comp_id is None:
+    if post_render_action in (PostRenderAction.NONE, PostRenderAction.IMPORT) or post_render_target_comp_id is None:
         post_render_target_comp = render_queue_item.comp
     else:
         post_render_target_comp = cast(CompItem, project.items[post_render_target_comp_id])
@@ -299,7 +292,7 @@ def parse_output_module(
     is_folder = alas_data.get("target_is_folder", False)
 
     # Get Utf8 chunks for template/format name and file name
-    utf8_chunks = [c for c in chunks if c.chunk_type == "Utf8"]
+    utf8_chunks = filter_by_type(chunks, "Utf8")
 
     # Utf8[0] = ??
     # Utf8[1] = template/format name
