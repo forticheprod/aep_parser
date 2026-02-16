@@ -1,0 +1,10 @@
+{
+  "categories": [],
+  "template": "#{{UNCATEGORIZED}}",
+  "commit_template": "- #{{TITLE}}",
+  "empty_template": "",
+  "sort": {
+    "order": "ASC",
+    "on_property": "mergedAt"
+  }
+}
