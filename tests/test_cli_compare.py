@@ -7,8 +7,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from aep_parser.cli.compare import (
     ByteDifference,
     ChunkDifference,
@@ -81,8 +79,6 @@ class TestCompareAepFiles:
     def test_identical_files_no_differences(self) -> None:
         """Test that comparing a file with itself produces no differences."""
         aep_path = SAMPLES_DIR / "versions" / "ae2025" / "complete.aep"
-        if not aep_path.exists():
-            pytest.skip("ae2025 sample not available")
 
         differences, only_in_file1, only_in_file2 = compare_aep_files(
             aep_path, aep_path
@@ -95,8 +91,6 @@ class TestCompareAepFiles:
         """Test that different files produce differences."""
         file1 = SAMPLES_DIR / "models" / "layer" / "enabled_false.aep"
         file2 = SAMPLES_DIR / "models" / "layer" / "locked_true.aep"
-        if not file1.exists() or not file2.exists():
-            pytest.skip("Required sample files not available")
 
         differences, only_in_file1, only_in_file2 = compare_aep_files(file1, file2)
         # Files are different, so we expect some differences

@@ -1,5 +1,5 @@
 {
-  "projectName": "complete.aep",
+  "projectName": "Untitled",
   "bitsPerChannel": 16,
   "colorManagementSystem": 0,
   "compensateForSceneReferredProfiles": true,
@@ -60,7 +60,6 @@
       "counters": false,
       "displayStartFrame": 0,
       "displayStartTime": 0,
-      "draft3d": false,
       "dropFrame": false,
       "duration": 60,
       "footageMissing": false,
@@ -88,7 +87,7 @@
       "renderer": "ADBE Advanced 3d",
       "renderers": [
         "ADBE Advanced 3d",
-        "ADBE Standard 3d",
+        "ADBE Calder",
         "ADBE Ernst"
       ],
       "resolutionFactor": [
@@ -1118,7 +1117,7 @@
                   "matchName": "ADBE Glo2-0012",
                   "propertyIndex": 12,
                   "propertyType": "Property",
-                  "isModified": false,
+                  "isModified": true,
                   "propertyValueType": 6418,
                   "canSetExpression": true,
                   "expression": "",
@@ -1136,7 +1135,7 @@
                   "matchName": "ADBE Glo2-0013",
                   "propertyIndex": 13,
                   "propertyType": "Property",
-                  "isModified": false,
+                  "isModified": true,
                   "propertyValueType": 6418,
                   "canSetExpression": true,
                   "expression": "",
@@ -5052,6 +5051,7 @@
           "isModified": true,
           "isNameSet": true,
           "label": 6,
+          "lightSource": null,
           "lightType": 4415,
           "locked": false,
           "matchName": "ADBE Light Layer",
@@ -5099,10 +5099,7 @@
                 "propertyType": "Property",
                 "isModified": true,
                 "propertyValueType": 6413,
-                "canSetExpression": true,
-                "expression": "",
-                "expressionEnabled": false,
-                "expressionError": "",
+                "canSetExpression": false,
                 "value": [
                   0,
                   0,
@@ -5174,7 +5171,10 @@
                 "propertyType": "Property",
                 "isModified": false,
                 "propertyValueType": 6417,
-                "canSetExpression": false,
+                "canSetExpression": true,
+                "expression": "",
+                "expressionEnabled": false,
+                "expressionError": "",
                 "value": 0
               },
               {
@@ -5184,7 +5184,10 @@
                 "propertyType": "Property",
                 "isModified": false,
                 "propertyValueType": 6417,
-                "canSetExpression": false,
+                "canSetExpression": true,
+                "expression": "",
+                "expressionEnabled": false,
+                "expressionError": "",
                 "value": 0
               },
               {
@@ -5238,6 +5241,7 @@
           "isModified": true,
           "isNameSet": true,
           "label": 7,
+          "lightSource": null,
           "lightType": 4413,
           "locked": false,
           "matchName": "ADBE Light Layer",
@@ -5439,6 +5443,7 @@
           "isModified": true,
           "isNameSet": true,
           "label": 8,
+          "lightSource": null,
           "lightType": 4414,
           "locked": false,
           "matchName": "ADBE Light Layer",
@@ -9332,7 +9337,6 @@
       "counters": false,
       "displayStartFrame": 0,
       "displayStartTime": 0,
-      "draft3d": false,
       "dropFrame": false,
       "duration": 60,
       "footageMissing": false,
@@ -9360,7 +9364,7 @@
       "renderer": "ADBE Advanced 3d",
       "renderers": [
         "ADBE Advanced 3d",
-        "ADBE Standard 3d",
+        "ADBE Calder",
         "ADBE Ernst"
       ],
       "resolutionFactor": [
@@ -9619,7 +9623,6 @@
       "counters": false,
       "displayStartFrame": 0,
       "displayStartTime": 0,
-      "draft3d": false,
       "dropFrame": false,
       "duration": 60,
       "footageMissing": false,
@@ -9647,7 +9650,7 @@
       "renderer": "ADBE Advanced 3d",
       "renderers": [
         "ADBE Advanced 3d",
-        "ADBE Standard 3d",
+        "ADBE Calder",
         "ADBE Ernst"
       ],
       "resolutionFactor": [
@@ -9906,7 +9909,6 @@
       "counters": false,
       "displayStartFrame": 0,
       "displayStartTime": 0,
-      "draft3d": false,
       "dropFrame": false,
       "duration": 60,
       "footageMissing": false,
@@ -9934,7 +9936,7 @@
       "renderer": "ADBE Advanced 3d",
       "renderers": [
         "ADBE Advanced 3d",
-        "ADBE Standard 3d",
+        "ADBE Calder",
         "ADBE Ernst"
       ],
       "resolutionFactor": [
@@ -10207,7 +10209,6 @@
       "counters": false,
       "displayStartFrame": 0,
       "displayStartTime": 0,
-      "draft3d": false,
       "dropFrame": false,
       "duration": 10,
       "footageMissing": false,
@@ -10235,7 +10236,7 @@
       "renderer": "ADBE Advanced 3d",
       "renderers": [
         "ADBE Advanced 3d",
-        "ADBE Standard 3d",
+        "ADBE Calder",
         "ADBE Ernst"
       ],
       "resolutionFactor": [

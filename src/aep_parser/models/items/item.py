@@ -9,7 +9,7 @@ if typing.TYPE_CHECKING:
     from .folder import FolderItem
 
 
-@dataclass
+@dataclass(eq=False)
 class Item(ABC):
     """
     The `Item` object represents an item that can appear in the Project panel.
@@ -62,3 +62,11 @@ class Item(ABC):
     def is_footage(self) -> bool:
         """`True` if the item is a footage."""
         return self.type_name == "Footage"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Item):
+            return NotImplemented
+        return self.id == other.id
+
+    def __hash__(self) -> int:
+        return hash(self.id)

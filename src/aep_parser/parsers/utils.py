@@ -108,8 +108,11 @@ def parse_alas_data(parent_chunks: list[Aep.Chunk]) -> dict[str, Any]:
         Dictionary with alas data (fullpath, target_is_folder, etc.),
         or empty dict if not found or invalid.
     """
-    als2_chunk = find_by_list_type(chunks=parent_chunks, list_type="Als2")
-    alas_chunk = find_by_type(chunks=als2_chunk.chunks, chunk_type="alas")
+    try:
+        als2_chunk = find_by_list_type(chunks=parent_chunks, list_type="Als2")
+        alas_chunk = find_by_type(chunks=als2_chunk.chunks, chunk_type="alas")
+    except ChunkNotFoundError:
+        return {}
     alas_text = str_contents(alas_chunk)
     if not alas_text:
         return {}

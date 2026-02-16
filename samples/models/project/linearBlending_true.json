@@ -11,7 +11,7 @@
   "framesUseFeetFrames": true,
   "gpuAccelType": 1813,
   "linearBlending": true,
-  "linearizeWorkingSpace": false,
+  "linearizeWorkingSpace": true,
   "lutInterpolationMethod": 1,
   "numItems": 0,
   "ocioConfigurationFile": "ACES 1.2",

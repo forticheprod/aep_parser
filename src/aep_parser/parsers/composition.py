@@ -3,6 +3,7 @@ from __future__ import annotations
 import typing
 
 from ..kaitai.utils import (
+    ChunkNotFoundError,
     filter_by_list_type,
     find_by_list_type,
     find_by_type,
@@ -38,6 +39,11 @@ def parse_composition(
         comment: The composition comment.
     """
     cdta_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
+    try:
+        cdrp_chunk = find_by_type(chunks=child_chunks, chunk_type="cdrp")
+        drop_frame = bool(cdrp_chunk.drop_frame)
+    except ChunkNotFoundError:
+        drop_frame = False
 
     # Normalize bg_color from 0-255 to 0-1 range to match ExtendScript output
     bg_color = [c / 255 for c in cdta_chunk.bg_color]
@@ -49,6 +55,7 @@ def parse_composition(
         name=item_name,
         type_name="Composition",
         parent_folder=parent_folder,
+        draft_3d=False,  # Set later from fips chunk in parse_project
         duration=cdta_chunk.duration,
         frame_duration=int(
             cdta_chunk.frame_duration
@@ -79,6 +86,7 @@ def parse_composition(
         time=cdta_chunk.time,
         display_start_time=cdta_chunk.display_start_time,
         display_start_frame=int(cdta_chunk.display_start_frame),
+        drop_frame=drop_frame,
     )
 
     composition.markers = _get_markers(
@@ -104,6 +112,11 @@ def _get_markers(
     """
     Get the composition markers.
 
+    Marker keyframe times in the binary format are stored relative to the
+    hidden marker layer's (SecL) own start time. They must be offset by the
+    layer's start_time to obtain composition time, which is what ExtendScript
+    reports via ``marker.time``.
+
     Args:
         child_chunks: child chunks of the composition LIST chunk.
         composition: The parent composition.
@@ -113,4 +126,11 @@ def _get_markers(
         layer_chunk=markers_layer_chunk,
         composition=composition,
     )
+
+    # Adjust marker frame_time from layer-relative to comp-relative time.
+    # Binary keyframe times are relative to the SecL layer's own timeline,
+    # but ExtendScript reports marker times in composition time.
+    for marker in markers_layer.markers:
+        marker.frame_time += markers_layer.frame_start_time
+
     return markers_layer.markers

@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import typing
+from dataclasses import dataclass, field
 
 from .item import Item
 
+if typing.TYPE_CHECKING:
+    from .composition import CompItem
 
-@dataclass
+
+@dataclass(eq=False)
 class AVItem(Item):
     """
     The `AVItem` object provides access to attributes and methods of
@@ -41,6 +45,13 @@ class AVItem(Item):
 
     width: int
     """The width of the item in pixels."""
+
+    _used_in: set[CompItem] = field(default_factory=set, init=False, repr=False)
+
+    @property
+    def used_in(self) -> list[CompItem]:
+        """All the compositions that use this AVItem."""
+        return list(self._used_in)
 
     @property
     def footage_missing(self) -> bool:

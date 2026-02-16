@@ -66,12 +66,10 @@ def parse_layer(layer_chunk: Aep.Chunk, composition: CompItem) -> Layer:
 
     # Calculate absolute in_point and out_point from relative binary values
     # Binary stores in_point/out_point relative to start_time
-    in_point = ldta_chunk.start_time + ldta_chunk.in_point
-    out_point = ldta_chunk.start_time + ldta_chunk.out_point
-
-    # Clamp out_point to composition duration (ExtendScript behavior)
-    # Layers cannot extend past the composition's end
-    out_point = min(out_point, composition.duration)
+    # When stretch != 100%, AE scales the relative offsets by stretch factor
+    stretch_factor = stretch / 100.0 if stretch != 0.0 else 1.0
+    in_point = ldta_chunk.start_time + ldta_chunk.in_point * stretch_factor
+    out_point = ldta_chunk.start_time + ldta_chunk.out_point * stretch_factor
 
     # Parse property groups early to compute time_remap_enabled
     root_tdgp_chunk = find_by_list_type(chunks=child_chunks, list_type="tdgp")
