@@ -481,7 +481,7 @@ pip install -e ".[docs]"
 mkdocs build --strict
 
 # Serve with live reload
-mkdocs serve
+mkdocs serve --strict
 ```
 
 Documentation is auto-deployed to GitHub Pages when changes are pushed to `main`.
