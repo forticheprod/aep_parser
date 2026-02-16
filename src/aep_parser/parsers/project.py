@@ -52,7 +52,7 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
         return parse_app(aep, project).project
 
 
-def _parse_project(aep: Aep, file_path: str | os.PathLike[str]) -> Project:
+def _parse_project(aep: Aep, file_path: str) -> Project:
     """Parse an After Effects (.aep) project file into a Project.
 
     Args:
