@@ -10,7 +10,7 @@ if typing.TYPE_CHECKING:
 @dataclass
 class ViewOptions:
     """
-    The `ViewOptions` object represents the options for a given `View` object.
+    The `ViewOptions` object represents the options for a given [View][] object.
 
     See: https://ae-scripting.docsforadobe.dev/other/viewoptions/
     """

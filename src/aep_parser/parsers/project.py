@@ -21,119 +21,115 @@ from ..models.enums import (
     TimeDisplayType,
 )
 from ..models.project import Project
+from ..utils import deprecated
+from .app import parse_app
 from .item import parse_folder
 from .mappings import (
     map_bits_per_channel,
     map_footage_timecode_display_start_type,
 )
 from .render_queue import parse_render_queue
-from .views import parse_viewers
 
 
+@deprecated(
+    "Use aep_parser.parse() instead, which returns an App object. "
+    "Access the project via app.project."
+)
 def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
-    """
-    Parse an After Effects (.aep) project file.
+    """Parse an After Effects (.aep) project file.
+
+    Warning: Deprecated
+        Use [aep_parser.parse][] instead which returns an
+        [App][aep_parser.models.app.App] instance.  Access the project
+        via ``app.project``.
 
     Args:
         aep_file_path: path to the project file
     """
     file_path = os.fspath(aep_file_path)
     with Aep.from_file(file_path) as aep:
-        root_chunks = aep.data.chunks
+        project = _parse_project(aep, file_path)
+        return parse_app(aep, project).project
 
-        root_folder_chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")
-        nnhd_chunk = find_by_type(chunks=root_chunks, chunk_type="nnhd")
-        head_chunk = find_by_type(chunks=root_chunks, chunk_type="head")
-        acer_chunk = find_by_type(chunks=root_chunks, chunk_type="acer")
-        dwga_chunk = find_by_type(chunks=root_chunks, chunk_type="dwga")
-        xmp_packet = ET.fromstring(aep.xmp_packet)
 
-        # Parse version from binary header
-        # Format: {major}.{minor}x{build}
-        ae_version = (
-            f"{head_chunk.ae_version_major}."
-            f"{head_chunk.ae_version_minor}x"
-            f"{head_chunk.ae_build_number}"
-        )
-        ae_build_number = head_chunk.ae_build_number
+def _parse_project(aep: Aep, file_path: str | os.PathLike[str]) -> Project:
+    """Parse an After Effects (.aep) project file into a Project.
 
-        # Parse color profile settings from JSON in CPPl section
-        color_profile = _get_color_profile_settings(root_chunks)
+    Args:
+        aep: The parsed Kaitai RIFX structure.
+        file_path: Path to the ``.aep`` file (stored on the Project).
+    """
+    root_chunks = aep.data.chunks
 
-        project = Project(
-            ae_version=ae_version,
-            ae_build_number=ae_build_number,
-            bits_per_channel=map_bits_per_channel(
-                nnhd_chunk.bits_per_channel
-            ),
-            color_management_system=ColorManagementSystem(
-                int(color_profile["colorManagementSystem"])
-            ),
-            compensate_for_scene_referred_profiles=bool(
-                acer_chunk.compensate_for_scene_referred_profiles
-            ),
-            effect_names=_get_effect_names(root_chunks),
-            expression_engine=_get_expression_engine(root_chunks),  # CC 2019+
-            feet_frames_film_type=FeetFramesFilmType.from_binary(
-                nnhd_chunk.feet_frames_film_type
-            ),
-            lut_interpolation_method=LutInterpolationMethod(
-                int(color_profile["lutInterpolationMethod"])
-            ),
-            ocio_configuration_file=str(color_profile["ocioConfigurationFile"]),
-            file=file_path,
-            footage_timecode_display_start_type=map_footage_timecode_display_start_type(
-                nnhd_chunk.footage_timecode_display_start_type
-            ),
-            frame_rate=nnhd_chunk.frame_rate,
-            frames_count_type=FramesCountType.from_binary(
-                nnhd_chunk.frames_count_type
-            ),
-            frames_use_feet_frames=bool(nnhd_chunk.frames_use_feet_frames),
-            linear_blending=any(c.chunk_type == "lnrb" for c in root_chunks),
-            linearize_working_space=bool(nnhd_chunk.linearize_working_space),
-            working_gamma=2.4 if dwga_chunk.working_gamma_selector else 2.2,
-            working_space=_get_working_space(root_chunks),
-            items={},
-            render_queue=None,
-            time_display_type=TimeDisplayType.from_binary(
-                nnhd_chunk.time_display_type
-            ),
-            transparency_grid_thumbnails=bool(
-                nnhd_chunk.transparency_grid_thumbnails
-            ),
-            xmp_packet=xmp_packet,
-        )
+    root_folder_chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")
+    nnhd_chunk = find_by_type(chunks=root_chunks, chunk_type="nnhd")
+    acer_chunk = find_by_type(chunks=root_chunks, chunk_type="acer")
+    dwga_chunk = find_by_type(chunks=root_chunks, chunk_type="dwga")
+    xmp_packet = ET.fromstring(aep.xmp_packet)
 
-        root_folder = parse_folder(
-            is_root=True,
-            child_chunks=root_folder_chunk.chunks,
-            project=project,
-            item_id=0,
-            item_name="root",
-            label=Aep.Label(0),
-            parent_folder=None,
-            comment="",
-        )
-        project.items[0] = root_folder
-        project.root_folder = root_folder
+    # Parse color profile settings from JSON in CPPl section
+    color_profile = _get_color_profile_settings(root_chunks)
 
-        _link_layers(project)
+    project = Project(
+        bits_per_channel=map_bits_per_channel(nnhd_chunk.bits_per_channel),
+        color_management_system=ColorManagementSystem(
+            int(color_profile["colorManagementSystem"])
+        ),
+        compensate_for_scene_referred_profiles=bool(
+            acer_chunk.compensate_for_scene_referred_profiles
+        ),
+        effect_names=_get_effect_names(root_chunks),
+        expression_engine=_get_expression_engine(root_chunks),  # CC 2019+
+        feet_frames_film_type=FeetFramesFilmType.from_binary(
+            nnhd_chunk.feet_frames_film_type
+        ),
+        lut_interpolation_method=LutInterpolationMethod(
+            int(color_profile["lutInterpolationMethod"])
+        ),
+        ocio_configuration_file=str(color_profile["ocioConfigurationFile"]),
+        file=file_path,
+        footage_timecode_display_start_type=map_footage_timecode_display_start_type(
+            nnhd_chunk.footage_timecode_display_start_type
+        ),
+        frame_rate=nnhd_chunk.frame_rate,
+        frames_count_type=FramesCountType.from_binary(nnhd_chunk.frames_count_type),
+        frames_use_feet_frames=bool(nnhd_chunk.frames_use_feet_frames),
+        linear_blending=any(c.chunk_type == "lnrb" for c in root_chunks),
+        linearize_working_space=bool(nnhd_chunk.linearize_working_space),
+        working_gamma=2.4 if dwga_chunk.working_gamma_selector else 2.2,
+        working_space=_get_working_space(root_chunks),
+        items={},
+        render_queue=None,
+        time_display_type=TimeDisplayType.from_binary(nnhd_chunk.time_display_type),
+        transparency_grid_thumbnails=bool(nnhd_chunk.transparency_grid_thumbnails),
+        xmp_packet=xmp_packet,
+    )
 
-        # Parse render_queue after items to link comp references in render queue items
-        project.render_queue = parse_render_queue(root_chunks, project)
+    root_folder = parse_folder(
+        is_root=True,
+        child_chunks=root_folder_chunk.chunks,
+        project=project,
+        item_id=0,
+        item_name="root",
+        label=Aep.Label(0),
+        parent_folder=None,
+        comment="",
+    )
+    project.items[0] = root_folder
+    project.root_folder = root_folder
 
-        # Parse viewer panels from Fold-level chunks
-        viewers = parse_viewers(root_folder_chunk)
-        active_viewers = [v for v in viewers if v.active]
-        project.active_viewer = active_viewers[0] if active_viewers else None
+    _link_layers(project)
 
-        # Set active_item from fcid chunk
-        with contextlib.suppress(ChunkNotFoundError):
-            fcid_chunk = find_by_type(chunks=root_chunks, chunk_type="fcid")
-            project.active_item = project.items[fcid_chunk.active_item_id]
+    # Parse render_queue after items to link comp references in render queue items
+    project.render_queue = parse_render_queue(root_chunks, project)
 
-        return project
+    # Set active_item from fcid chunk
+    with contextlib.suppress(ChunkNotFoundError):
+        fcid_chunk = find_by_type(chunks=root_chunks, chunk_type="fcid")
+        project.active_item = project.items[fcid_chunk.active_item_id]
+
+    return project
+
 
 
 def _link_layers(project: Project) -> None:
@@ -142,7 +138,9 @@ def _link_layers(project: Project) -> None:
         # Build layer lookup by id for this composition
         layers_by_id = {layer.id: layer for layer in composition.layers}
         for layer in composition.layers:
-            if layer.layer_type == Aep.LayerType.footage and hasattr(layer, "source_id"):
+            if layer.layer_type == Aep.LayerType.footage and hasattr(
+                layer, "source_id"
+            ):
                 if hasattr(layer, "source"):
                     source = project.items.get(layer.source_id)
                     layer.source = source
@@ -227,7 +225,9 @@ def _get_expression_engine(root_chunks: list[Aep.Chunk]) -> str:
         root_chunks (Aep.Chunk): list of root chunks of the project
     """
     try:
-        expression_engine_chunk = find_by_list_type(chunks=root_chunks, list_type="ExEn")
+        expression_engine_chunk = find_by_list_type(
+            chunks=root_chunks, list_type="ExEn"
+        )
         utf8_chunk = find_by_type(
             chunks=expression_engine_chunk.chunks, chunk_type="Utf8"
         )

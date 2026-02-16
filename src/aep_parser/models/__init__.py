@@ -1,5 +1,6 @@
 """Data models for After Effects project structure."""
 
+from .app import App
 from .enums import (
     AlphaMode,
     AutoOrientType,
@@ -64,6 +65,7 @@ from .viewer import View, Viewer, ViewOptions
 
 __all__ = [
     "AlphaMode",
+    "App",
     "AutoOrientType",
     "AVItem",
     "AVLayer",

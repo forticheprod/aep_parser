@@ -448,6 +448,7 @@ Use the JSX scripts to generate samples systematically.
 - **Imports**: Use `from __future__ import annotations` for forward references and modern type syntax
 - **Naming**: `snake_case` for functions/variables, `PascalCase` for classes
 - **Docstrings**: Google-style docstrings for all public functions and classes
+- **Cross-references**: Use mkdocstrings syntax `[ClassName][]` or `[text][fully.qualified.path]` to link to other classes in docstrings. Do **not** use Sphinx-style `:class:` / `:func:` notation.
 - **Modern types**: Use `list[int]` instead of `List[int]` (works on Python 3.7+ with annotations import)
 
 ### Linting and Type Checking
@@ -497,6 +498,21 @@ def parse_layer(chunk: Aep.Chunk) -> Layer:
     
     See: https://ae-scripting.docsforadobe.dev/layers/layer
     """
+```
+
+### Cross-Referencing in Docstrings
+
+Use mkdocstrings [scoped cross-references](https://mkdocstrings.github.io/python/usage/configuration/docstrings/#scoped_crossrefs) to link to other classes, functions, or attributes. Do **not** use Sphinx-style `:class:`, `:func:`, or `:meth:` notation — mkdocs does not interpret it.
+
+```python
+# Short form — resolved via scoped cross-references (sibling/parent lookup)
+"""The [CompItem][] that contains this layer."""
+
+# Explicit path — for cross-module or ambiguous references
+"""See [FileSource.missing_footage_path][aep_parser.models.sources.file.FileSource.missing_footage_path]."""
+
+# ✗ Don't use Sphinx-style notation
+"""Returns a :class:`CompItem` instance."""  # Wrong
 ```
 
 ## Common Patterns

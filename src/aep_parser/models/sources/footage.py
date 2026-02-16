@@ -32,8 +32,8 @@ class FootageSource(ABC):
     """
     How the fields are to be separated in non-still footage. It is an error
     to set this attribute if `is_still` is `True`. It is an error to set this
-    value to `FieldSeparationType.OFF` if `remove_pulldown` is not
-    `PulldownPhase.OFF`.
+    value to [FieldSeparationType.OFF][aep_parser.models.enums.FieldSeparationType]
+    if `remove_pulldown` is not [PulldownPhase.OFF][aep_parser.models.enums.PulldownPhase].
     """
 
     has_alpha: bool
@@ -52,9 +52,9 @@ class FootageSource(ABC):
 
     invert_alpha: bool
     """
-    When `True`, an alpha channel in a footage clip or proxy should be
-    inverted. This attribute is valid only if an alpha is present. If
-    `has_alpha` is `False`, or if `alpha_mode` is `AlphaMode.IGNORE`, this
+    When `True`, an alpha channel in a footage clip or proxy should be inverted. This
+    attribute is valid only if an alpha is present. If `has_alpha` is `False`, or if
+    `alpha_mode` is [AlphaMode.IGNORE][aep_parser.models.enums.AlphaMode], this
     attribute is ignored.
     """
 
@@ -75,8 +75,8 @@ class FootageSource(ABC):
 
     premul_color: list[float]
     """
-    The color to be premultiplied. This attribute is valid only if the
-    `alpha_mode` is `AlphaMode.PREMULTIPLIED`.
+    The color to be premultiplied. This attribute is valid only if the `alpha_mode` is
+    [AlphaMode.PREMULTIPLIED][aep_parser.models.enums.AlphaMode].
     """
 
     @property

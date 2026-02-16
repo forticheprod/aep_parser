@@ -4,6 +4,14 @@ This module contains the internal parsing functions that convert binary chunk da
 
 ## Main Parser
 
+::: aep_parser.parse
+    options:
+      heading_level: 3
+
+::: aep_parser.parsers.app.parse_app
+    options:
+      heading_level: 3
+
 ::: aep_parser.parsers.project.parse_project
     options:
       heading_level: 3
@@ -43,6 +51,12 @@ This module contains the internal parsing functions that convert binary chunk da
       heading_level: 3
 
 ::: aep_parser.parsers.property.parse_markers
+    options:
+      heading_level: 3
+
+## Viewer Parser
+
+::: aep_parser.parsers.views.parse_viewers
     options:
       heading_level: 3
 

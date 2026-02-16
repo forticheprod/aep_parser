@@ -40,9 +40,7 @@ def _parse_view_options(fips_chunk: Aep.Chunk) -> ViewOptions:
         region_of_interest=bool(fips_chunk.region_of_interest),
         rulers=bool(fips_chunk.rulers),
         title_action_safe=bool(fips_chunk.title_action_safe),
-        use_display_color_management=bool(
-            fips_chunk.use_display_color_management
-        ),
+        use_display_color_management=bool(fips_chunk.use_display_color_management),
         zoom=float(fips_chunk.zoom),
     )
 
@@ -58,14 +56,14 @@ def parse_viewers(
     may contain ``fips`` chunks that hold the per-view options.
 
     The ``fitt`` chunk contains the inner tab type label (e.g.
-    ``"AE Composition"``) which maps to :class:`ViewerType`. The ``foac``
-    chunk indicates whether the outer panel is active.
+    ``"AE Composition"``) which maps to [ViewerType][aep_parser.models.enums.ViewerType].
+    The ``foac`` chunk indicates whether the outer panel is active.
 
     Args:
         root_folder_chunk: The ``LIST:Fold`` chunk.
 
     Returns:
-        A list of parsed :class:`Viewer` objects.
+        A list of parsed [Viewer][aep_parser.models.viewer.viewer.Viewer] objects.
     """
     blocks = group_chunks(root_folder_chunk.chunks, "fvdv", "fifl")
     viewers = [_build_viewer(block) for block in blocks]
@@ -79,8 +77,8 @@ def _build_viewer(block: list[Aep.Chunk]) -> Viewer | None:
         block: The sequence of chunks from ``fvdv`` to ``fifl``.
 
     Returns:
-        A :class:`Viewer` instance, or ``None`` if the block does not
-        contain a recognised viewer type.
+        A [Viewer][aep_parser.models.viewer.viewer.Viewer] instance, or ``None`` if the
+        block does not contain a recognised viewer type.
     """
     try:
         fitt = find_by_type(block, "fitt")
@@ -110,7 +108,7 @@ def _build_viewer(block: list[Aep.Chunk]) -> Viewer | None:
     fips_chunks = filter_by_type(block, "fips")
 
     if fivc is not None:
-        fips_chunks = fips_chunks[:fivc.view_count]
+        fips_chunks = fips_chunks[: fivc.view_count]
 
     views = [View(options=_parse_view_options(fips)) for fips in fips_chunks]
 

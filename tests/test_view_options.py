@@ -13,11 +13,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from conftest import parse_app
+
 from aep_parser import (
     ChannelType,
     FastPreviewType,
     ViewerType,
-    parse_project,
 )
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "view"
@@ -25,11 +26,11 @@ SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "view"
 
 def _get_active_view_options(aep_path: Path):  # type: ignore[no-untyped-def]
     """Parse a project and return the ViewOptions of the active viewer's active view."""
-    project = parse_project(aep_path)
-    assert project.active_viewer is not None, "No active viewer found"
-    assert project.active_viewer.type == ViewerType.VIEWER_COMPOSITION
-    idx = project.active_viewer.active_view_index
-    return project.active_viewer.views[idx].options
+    app = parse_app(aep_path)
+    assert app.active_viewer is not None, "No active viewer found"
+    assert app.active_viewer.type == ViewerType.VIEWER_COMPOSITION
+    idx = app.active_viewer.active_view_index
+    return app.active_viewer.views[idx].options
 
 
 class TestViewOptionsChannels:

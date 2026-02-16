@@ -11,9 +11,8 @@ class SolidSource(FootageSource):
     The `SolidSource` object represents a solid-color footage source.
 
     Info:
-        `SolidSource` is a subclass of `FootageSource` object. All methods and
-        attributes of `FootageSource` are
-        available when working with `SolidSource`.
+        `SolidSource` is a subclass of [FootageSource][] object. All methods and
+        attributes of [FootageSource][] are available when working with `SolidSource`.
 
     See: https://ae-scripting.docsforadobe.dev/sources/solidsource/
     """

@@ -46,7 +46,7 @@ def parse_layer(layer_chunk: Aep.Chunk, composition: CompItem) -> Layer:
         composition: The composition.
 
     Returns:
-        An AVLayer for most layers, or a LightLayer for light layers.
+        An [AVLayer][] for most layers, or a [LightLayer][] for light layers.
     """
     child_chunks = layer_chunk.chunks
 
@@ -181,9 +181,7 @@ def parse_layer(layer_chunk: Aep.Chunk, composition: CompItem) -> Layer:
         "source_id": ldta_chunk.source_id,
         "three_d_layer": ldta_chunk.three_d_layer,
         "time_remap_enabled": time_remap_enabled,
-        "track_matte_type": TrackMatteType.from_binary(
-            ldta_chunk.track_matte_type
-        ),
+        "track_matte_type": TrackMatteType.from_binary(ldta_chunk.track_matte_type),
     }
 
     # Create the appropriate layer type

@@ -20,16 +20,16 @@ if typing.TYPE_CHECKING:
 class AVLayer(Layer):
     """
     The `AVLayer` object provides an interface to those layers that contain
-    `AVItem` objects (composition layers, footage layers, solid layers, text
+    [AVItem][] objects (composition layers, footage layers, solid layers, text
     layers and sound layers).
 
     Info:
-        `AVLayer` is a subclass of `Layer` object. All methods and attributes
-        of `Layer` are available when working with `AVLayer`.
+        `AVLayer` is a subclass of [Layer][] object. All methods and attributes
+        of [Layer][] are available when working with `AVLayer`.
 
     Info:
-        `AVLayer` is a base class for `TextLayer` object, so `AVLayer`
-        attributes and methods are available when working with `TextLayer`
+        `AVLayer` is a base class for [TextLayer][] object, so `AVLayer`
+        attributes and methods are available when working with [TextLayer][]
         objects.
 
     See: https://ae-scripting.docsforadobe.dev/layer/avlayer/

@@ -19,9 +19,9 @@ class CompItem(AVItem):
     manipulate and get information about it.
 
     Info:
-        `Item` is the base class for `AVItem` object and for `FolderItem`
+        [Item][] is the base class for [AVItem][] object and for [FolderItem][]
         object, which are in turn the base classes for various other item
-        types, so `Item` attributes and methods are available when working with
+        types, so [Item][] attributes and methods are available when working with
         all of these item types.
 
     See: https://ae-scripting.docsforadobe.dev/item/compitem/"""
@@ -69,7 +69,7 @@ class CompItem(AVItem):
     """
 
     layers: list[Layer]
-    """All the `Layer` objects for layers in this composition."""
+    """All the [Layer][] objects for layers in this composition."""
 
     markers: list[MarkerValue]
     """All the composition's markers."""
@@ -157,9 +157,7 @@ class CompItem(AVItem):
     _composition_layers: list[AVLayer] | None = field(
         default=None, init=False, repr=False
     )
-    _footage_layers: list[AVLayer] | None = field(
-        default=None, init=False, repr=False
-    )
+    _footage_layers: list[AVLayer] | None = field(default=None, init=False, repr=False)
 
     @property
     def work_area_start(self) -> float:
@@ -212,15 +210,19 @@ class CompItem(AVItem):
             return self.layers[index]
         elif other_layer and rel_index:
             return self.layers[self.layers.index(other_layer) + rel_index]
-        raise ValueError("Must specify one of name, index, or other_layer and rel_index")
+        raise ValueError(
+            "Must specify one of name, index, or other_layer and rel_index"
+        )
 
     @property
     def composition_layers(self) -> list[AVLayer]:
         """A list of the composition layers whose source are compositions."""
         if self._composition_layers is None:
             self._composition_layers = [
-                cast(AVLayer, layer) for layer in self.layers
-                if hasattr(layer, "source") and layer.source is not None
+                cast(AVLayer, layer)
+                for layer in self.layers
+                if hasattr(layer, "source")
+                and layer.source is not None
                 and layer.source.is_composition
             ]
         return self._composition_layers
@@ -230,8 +232,10 @@ class CompItem(AVItem):
         """A list of the composition layers whose source are footages."""
         if self._footage_layers is None:
             self._footage_layers = [
-                cast(AVLayer, layer) for layer in self.layers
-                if hasattr(layer, "source") and layer.source is not None
+                cast(AVLayer, layer)
+                for layer in self.layers
+                if hasattr(layer, "source")
+                and layer.source is not None
                 and layer.source.is_footage
             ]
         return self._footage_layers

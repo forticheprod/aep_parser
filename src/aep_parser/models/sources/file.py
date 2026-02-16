@@ -20,9 +20,8 @@ class FileSource(FootageSource):
     The `FileSource` object describes footage that comes from a file.
 
     Info:
-        `FileSource` is a subclass of `FootageSource` object. All methods and
-        attributes of `FootageSource` are available when working with
-        `FileSource`.
+        `FileSource` is a subclass of [FootageSource][] object. All methods and
+        attributes of [FootageSource][] are available when working with `FileSource`.
 
     See: https://ae-scripting.docsforadobe.dev/sources/filesource/
     """

@@ -29,8 +29,8 @@ _TEMPLATE_EXTENSIONS: dict[str, str] = {
 
 _FIELD_ORDER_NAMES: dict[int, str] = {
     0: "Both",  # Off/Progressive - renders both fields
-    1: "UFF",   # Upper field first
-    2: "LFF",   # Lower field first
+    1: "UFF",  # Upper field first
+    2: "LFF",  # Lower field first
 }
 
 _PULLDOWN_PHASE_NAMES: dict[int, str] = {
@@ -238,9 +238,7 @@ def resolve_output_filename(
             frame_rate_str = str(int(frame_rate))
         else:
             frame_rate_str = str(frame_rate)
-        result = re.sub(
-            r"\[frameRate\]", frame_rate_str, result, flags=re.IGNORECASE
-        )
+        result = re.sub(r"\[frameRate\]", frame_rate_str, result, flags=re.IGNORECASE)
 
     # Aspect ratio (computed from width and height)
     if width is not None and height is not None:
@@ -329,7 +327,9 @@ def resolve_output_filename(
     # Pulldown phase (3:2 pulldown pattern)
     if pulldown_phase is not None:
         pulldown_name = _PULLDOWN_PHASE_NAMES.get(pulldown_phase, "Off")
-        result = re.sub(r"\[pulldownPhase\]", pulldown_name, result, flags=re.IGNORECASE)
+        result = re.sub(
+            r"\[pulldownPhase\]", pulldown_name, result, flags=re.IGNORECASE
+        )
 
     # Project folder - resolves to empty string (AE removes this in resolved paths)
     result = re.sub(r"\[projectFolder\]", "", result, flags=re.IGNORECASE)
@@ -346,7 +346,7 @@ def resolve_output_filename(
 @dataclass
 class OutputModule:
     """
-    An `OutputModule` object of a `RenderQueueItem` generates a single file or
+    An `OutputModule` object of a [RenderQueueItem][] generates a single file or
     sequence via a render operation, and contains attributes and methods
     relating to the file to be rendered.
 
@@ -383,7 +383,7 @@ class OutputModule:
 
     post_render_target_comp: CompItem = field(repr=False)
     """
-    The `CompItem` to use for post-render actions that require a comp. Only
+    The [CompItem][] to use for post-render actions that require a comp. Only
     used when `post_render_action` is `IMPORT_AND_REPLACE` or `SET_PROXY`.
     """
 
@@ -477,9 +477,8 @@ class OutputModule:
             # Use round() for duration frames to match AE behavior
             duration_frames = round(duration_time * effective_frame_rate)
             # Starting frame combines display_start_time and time_span_start
-            starting_number = (
-                int(comp.display_start_time * effective_frame_rate)
-                + int(time_span_start * effective_frame_rate)
+            starting_number = int(comp.display_start_time * effective_frame_rate) + int(
+                time_span_start * effective_frame_rate
             )
 
         # Frame numbers use computed starting number

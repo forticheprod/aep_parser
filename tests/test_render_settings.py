@@ -5,8 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
-from aep_parser import parse_project
+from conftest import parse_project
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "renderqueue"
 
