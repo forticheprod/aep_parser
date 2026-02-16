@@ -21,7 +21,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from ..parsers.project import parse_project
+from aep_parser import parse
 
 # Fields to skip to avoid circular references.
 # Back-references: containing_comp, parent_folder, parent (OutputModule),
@@ -135,7 +135,9 @@ class ValidationResult:
         self.warnings: list[str] = []
         self.categories: dict[str, int] = {}
 
-    def add_diff(self, path: str, expected: Any, parsed: Any, category: str = "other") -> None:
+    def add_diff(
+        self, path: str, expected: Any, parsed: Any, category: str = "other"
+    ) -> None:
         """Add a difference."""
         self.differences.append(f"{path}: expected {expected!r}, got {parsed!r}")
         self.categories[category] = self.categories.get(category, 0) + 1
@@ -148,7 +150,9 @@ class ValidationResult:
         return len(self.differences)
 
 
-def compare_project_level(expected: dict[str, Any], parsed: dict[str, Any], result: ValidationResult) -> None:
+def compare_project_level(
+    expected: dict[str, Any], parsed: dict[str, Any], result: ValidationResult
+) -> None:
     """Compare project-level properties."""
     mappings = {
         "bitsPerChannel": "bits_per_channel",
@@ -308,22 +312,30 @@ def compare_comp_item(
     exp_layers = expected_item.get("layers", [])
     parsed_layers = parsed_comp.get("layers", [])
     if len(exp_layers) != len(parsed_layers):
-        result.add_diff(f"{path}.numLayers", len(exp_layers), len(parsed_layers), "composition")
+        result.add_diff(
+            f"{path}.numLayers", len(exp_layers), len(parsed_layers), "composition"
+        )
 
     # Compare each layer
     comp_duration = expected_item.get("duration", 60.0)
     for i, (exp_layer, parsed_layer) in enumerate(zip(exp_layers, parsed_layers)):
-        compare_layer(exp_layer, parsed_layer, f"{path}.layers[{i}]", comp_duration, result)
+        compare_layer(
+            exp_layer, parsed_layer, f"{path}.layers[{i}]", comp_duration, result
+        )
 
     # Compare markers
     exp_markers = expected_item.get("markers", [])
     parsed_markers = parsed_comp.get("markers", [])
     if len(exp_markers) != len(parsed_markers):
-        result.add_diff(f"{path}.numMarkers", len(exp_markers), len(parsed_markers), "markers")
+        result.add_diff(
+            f"{path}.numMarkers", len(exp_markers), len(parsed_markers), "markers"
+        )
 
     frame_rate = expected_item.get("frameRate", 24.0)
     for i, (exp_marker, parsed_marker) in enumerate(zip(exp_markers, parsed_markers)):
-        compare_marker(exp_marker, parsed_marker, f"{path}.markers[{i}]", frame_rate, result)
+        compare_marker(
+            exp_marker, parsed_marker, f"{path}.markers[{i}]", frame_rate, result
+        )
 
 
 def compare_folder_hierarchy(
@@ -344,7 +356,9 @@ def compare_folder_hierarchy(
 
     for folder_id, exp_folder in expected_folders.items():
         if folder_id not in parsed_folders:
-            result.add_diff(f"Folder[{exp_folder['name']}]", "exists", "missing", "folders")
+            result.add_diff(
+                f"Folder[{exp_folder['name']}]", "exists", "missing", "folders"
+            )
         else:
             parsed_folder = parsed_folders[folder_id]
             if exp_folder["name"] != parsed_folder.get("name"):
@@ -456,7 +470,9 @@ def compare_render_queue(
             "renderqueue",
         )
         if verbose:
-            print(f"  Item count mismatch: expected {len(expected_items)}, got {len(parsed_items)}")
+            print(
+                f"  Item count mismatch: expected {len(expected_items)}, got {len(parsed_items)}"
+            )
 
     # Compare each render queue item
     for i, exp_item in enumerate(expected_items):
@@ -490,7 +506,9 @@ def compare_render_queue(
 
         for j, exp_om in enumerate(exp_oms):
             if j >= len(parsed_oms):
-                result.add_diff(f"{path}.outputModule[{j}]", "exists", "missing", "renderqueue")
+                result.add_diff(
+                    f"{path}.outputModule[{j}]", "exists", "missing", "renderqueue"
+                )
                 continue
 
             parsed_om = parsed_oms[j]
@@ -529,7 +547,8 @@ def validate_aep(
     # Parse AEP
     if verbose:
         print(f"Parsing: {aep_path.name}")
-    project = parse_project(aep_path)
+    app = parse(aep_path)
+    project = app.project
     parsed = to_dict(project)
 
     # Load expected JSON
@@ -586,7 +605,9 @@ def validate_aep(
     return result
 
 
-def print_results(result: ValidationResult, verbose: bool = False, category_filter: str | None = None) -> None:
+def print_results(
+    result: ValidationResult, verbose: bool = False, category_filter: str | None = None
+) -> None:
     """Print validation results."""
     print("\n" + "=" * 60)
 
@@ -597,7 +618,9 @@ def print_results(result: ValidationResult, verbose: bool = False, category_filt
     filtered_diffs = result.differences
     if category_filter:
         # Filter by category prefix
-        filtered_diffs = [d for d in result.differences if category_filter.lower() in d.lower()]
+        filtered_diffs = [
+            d for d in result.differences if category_filter.lower() in d.lower()
+        ]
 
     print(f"TOTAL DIFFERENCES FOUND: {len(result.differences)}")
 
@@ -623,10 +646,20 @@ def main(args: list[str] | None = None) -> int:
     )
     parser.add_argument("aep_file", type=Path, help="Path to .aep file")
     parser.add_argument("json_file", type=Path, help="Path to expected JSON file")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Print detailed progress")
     parser.add_argument(
-        "-c", "--category",
-        choices=["project", "composition", "layers", "markers", "folders", "renderqueue"],
+        "-v", "--verbose", action="store_true", help="Print detailed progress"
+    )
+    parser.add_argument(
+        "-c",
+        "--category",
+        choices=[
+            "project",
+            "composition",
+            "layers",
+            "markers",
+            "folders",
+            "renderqueue",
+        ],
         help="Filter differences by category",
     )
 
@@ -650,7 +683,9 @@ def main(args: list[str] | None = None) -> int:
         category_filter=parsed_args.category,
     )
 
-    print_results(result, verbose=parsed_args.verbose, category_filter=parsed_args.category)
+    print_results(
+        result, verbose=parsed_args.verbose, category_filter=parsed_args.category
+    )
 
     return 0 if not result.differences else 1
 

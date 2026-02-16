@@ -21,8 +21,8 @@ class Property(PropertyBase):
     layer.
 
     Info:
-        `Property` is a subclass of `PropertyBase`. All methods and attributes
-        of `PropertyBase` are available when working with `Property`.
+        `Property` is a subclass of [PropertyBase][]. All methods and attributes
+        of [PropertyBase][] are available when working with `Property`.
 
     See: https://ae-scripting.docsforadobe.dev/property/property/
     """

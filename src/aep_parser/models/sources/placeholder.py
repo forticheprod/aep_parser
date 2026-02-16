@@ -12,8 +12,8 @@ class PlaceholderSource(FootageSource):
     placeholder.
 
     Info:
-        `PlaceholderSource` is a subclass of `FootageSource` object. All
-        methods and attributes of `FootageSource` are available when working
+        `PlaceholderSource` is a subclass of [FootageSource][] object. All
+        methods and attributes of [FootageSource][] are available when working
         with `PlaceholderSource`. `PlaceholderSource` does not define any
         additional methods or attributes.
 

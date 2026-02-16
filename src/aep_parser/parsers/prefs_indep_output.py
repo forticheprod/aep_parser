@@ -219,8 +219,10 @@ def _parse_prefs_file(file: TextIO) -> Settings:
                 )
 
     # Build output module templates from collected data
-    all_ids = set(template_names.keys()) | set(template_base_paths.keys()) | set(
-        template_file_patterns.keys()
+    all_ids = (
+        set(template_names.keys())
+        | set(template_base_paths.keys())
+        | set(template_file_patterns.keys())
     )
     for template_id in sorted(all_ids):
         name = template_names.get(template_id, "")
@@ -376,21 +378,21 @@ def _decode_embedded_xml(value: str) -> str:
         The decoded XML string, or empty string if not found.
     """
     # Look for XML start marker
-    xml_match = re.search(r'<\?xml', value)
+    xml_match = re.search(r"<\?xml", value)
     if not xml_match:
         return ""
 
     # Extract everything from <?xml to </PremiereData>
     xml_start = xml_match.start()
-    xml_end_match = re.search(r'</PremiereData>', value[xml_start:])
+    xml_end_match = re.search(r"</PremiereData>", value[xml_start:])
     if not xml_end_match:
         return ""
 
-    raw_xml = value[xml_start:xml_start + xml_end_match.end()]
+    raw_xml = value[xml_start : xml_start + xml_end_match.end()]
 
     # First, remove empty string artifacts from line continuation
     # These appear as "" in the middle of the value
-    decoded = raw_xml.replace('""', '')
+    decoded = raw_xml.replace('""', "")
 
     # Decode hex escapes - the format uses quoted hex values
     # "22" represents a quote character (ASCII 0x22)
@@ -403,7 +405,7 @@ def _decode_embedded_xml(value: str) -> str:
         # Count 09 pairs after 0A
         # Format: "0A" or "0A09" or "0A0909" etc.
         tabs = (len(full) - 4) // 2  # -4 for quotes and "0A", /2 for each "09"
-        return '\n' + '\t' * tabs
+        return "\n" + "\t" * tabs
 
     decoded = re.sub(r'"0A(09)*"', decode_newline_tabs, decoded)
 
@@ -425,12 +427,12 @@ def _parse_exporter_params(xml_content: str) -> dict[str, ExporterParam]:
     # Pattern for: <ParamIdentifier>NAME</ParamIdentifier>
     # <ParamType>N</ParamType> <ParamValue>VALUE</ParamValue>
     param_pattern = re.compile(
-        r'<ExporterParam[^>]*>.*?'
-        r'<ParamIdentifier>([^<]+)</ParamIdentifier>.*?'
-        r'<ParamType>(\d+)</ParamType>.*?'
-        r'<ParamValue>([^<]*)</ParamValue>.*?'
-        r'</ExporterParam>',
-        re.DOTALL
+        r"<ExporterParam[^>]*>.*?"
+        r"<ParamIdentifier>([^<]+)</ParamIdentifier>.*?"
+        r"<ParamType>(\d+)</ParamType>.*?"
+        r"<ParamValue>([^<]*)</ParamValue>.*?"
+        r"</ExporterParam>",
+        re.DOTALL,
     )
 
     for match in param_pattern.finditer(xml_content):

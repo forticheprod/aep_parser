@@ -372,8 +372,7 @@ class LogType(IntEnum):
 
 
 class LoopMode(IntEnum):
-    """Loop mode for preview playback.
-    """
+    """Loop mode for preview playback."""
 
     LOOP = 8412
     PLAY_ONCE = 8413

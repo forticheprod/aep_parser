@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from aep_parser import parse_project
+from conftest import parse_project
+
 from aep_parser.cli.validate import (
     ValidationResult,
     compare_layer,

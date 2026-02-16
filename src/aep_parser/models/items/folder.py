@@ -24,4 +24,3 @@ class FolderItem(Item):
     def __iter__(self) -> typing.Iterator[Item]:
         """Return an iterator over the folder items."""
         return iter(self.items)
-

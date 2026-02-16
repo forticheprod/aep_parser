@@ -38,7 +38,7 @@ def _build_chunk_type_mapping() -> tuple[dict[str, type], type]:
     # This pattern is specific to Chunk._read() method structure to avoid matching other switch-on blocks
     pattern = re.compile(
         r'(?:if|elif) _on == u?"([^"]+)":\s*\n\s*pass\n\s*self\._raw_data = [^\n]+\n\s*_io__raw_data = [^\n]+\n\s*self\.data = Aep\.(\w+)\(',
-        re.MULTILINE
+        re.MULTILINE,
     )
 
     mapping: dict[str, type] = {}
@@ -52,13 +52,15 @@ def _build_chunk_type_mapping() -> tuple[dict[str, type], type]:
     # Extract fallback class from else clause
     # Pattern: else:\n                pass\n                self._raw_data = ...\n                ...self.data = Aep.ClassName(
     else_pattern = re.compile(
-        r'else:\s*\n\s*pass\n\s*self\._raw_data = [^\n]+\n\s*_io__raw_data = [^\n]+\n\s*self\.data = Aep\.(\w+)\(',
-        re.MULTILINE
+        r"else:\s*\n\s*pass\n\s*self\._raw_data = [^\n]+\n\s*_io__raw_data = [^\n]+\n\s*self\.data = Aep\.(\w+)\(",
+        re.MULTILINE,
     )
     else_match = else_pattern.search(source)
     assert else_match, "Fallback class not found in aep.py"
     fallback_name = else_match.group(1)
-    assert hasattr(Aep, fallback_name), f"Fallback class {fallback_name} not found in Aep"
+    assert hasattr(Aep, fallback_name), (
+        f"Fallback class {fallback_name} not found in Aep"
+    )
     fallback_class = getattr(Aep, fallback_name)
 
     return mapping, fallback_class
@@ -107,9 +109,7 @@ def _chunk_getattr(self: Aep.Chunk, name: str) -> object:
     if data is not None and hasattr(data, name):
         return getattr(data, name)
 
-    raise AttributeError(
-        f"'{type(self).__name__}' object has no attribute '{name}'"
-    )
+    raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
 
 def apply_optimizations() -> None:
