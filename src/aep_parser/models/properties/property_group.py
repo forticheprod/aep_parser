@@ -13,16 +13,16 @@ if typing.TYPE_CHECKING:
 class PropertyGroup(PropertyBase):
     """
     The `PropertyGroup` object represents a group of properties. It can contain
-    `Property` objects and other `PropertyGroup` objects. Property groups can
-    be nested to provide a parent-child hierarchy, with a `Layer` object at the
-    top (root) down to a single `Property` object, such as the mask feather of
-    the third mask. To traverse the group hierarchy, use `PropertyBase` methods
+    [Property][] objects and other `PropertyGroup` objects. Property groups can
+    be nested to provide a parent-child hierarchy, with a [Layer][] object at the
+    top (root) down to a single [Property][] object, such as the mask feather of
+    the third mask. To traverse the group hierarchy, use [PropertyBase][] methods
     and attributes; see `PropertyBase.propertyGroup()`. For examples of how to
-    access properties and property groups, see `PropertyBase` object.
+    access properties and property groups, see [PropertyBase][] object.
 
     Info:
-        `PropertyGroup` is a subclass of `PropertyBase`. All methods and
-        attributes of `PropertyBase` are available when working with
+        `PropertyGroup` is a subclass of [PropertyBase][]. All methods and
+        attributes of [PropertyBase][] are available when working with
         `PropertyGroup`.
 
     Info:

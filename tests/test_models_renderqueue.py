@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from conftest import get_sample_files, load_expected
+from conftest import get_sample_files, load_expected, parse_project
 
-from aep_parser import Project, parse_project
+from aep_parser import Project
 from aep_parser.models.enums import OutputChannels, OutputColorDepth
 from aep_parser.models.renderqueue import OutputModule, RenderQueue, RenderQueueItem
 from aep_parser.models.renderqueue.output_module import resolve_output_filename

@@ -40,10 +40,14 @@ pip install aep-parser
 ## Usage
 
 ```python
-from aep_parser import parse_project
+import aep_parser
 
 # Parse an After Effects project
-project = parse_project("path/to/project.aep")
+app = aep_parser.parse("path/to/project.aep")
+project = app.project
+
+# Access application-level info
+print(f"AE Version: {app.version}")
 
 # Access every item
 for item in project:
@@ -53,7 +57,7 @@ for item in project:
 comp = next(c for c in project.compositions if c.name == "Comp 1")
 for layer in comp.layers:
     print(f"  Layer: {layer.name}, in={layer.in_point}s, out={layer.out_point}s")
-    
+
     # Access layer's source (for AVLayer)
     if hasattr(layer, "source") and layer.source:
         print(f"    Source: {layer.source.name}")

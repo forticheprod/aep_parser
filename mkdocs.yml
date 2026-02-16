@@ -81,6 +81,8 @@ plugins:
             show_symbol_type_heading: true   # "Attributes", "Methods" headings
             show_symbol_type_toc: true       # TOC type labels
             signature_crossrefs: true
+            relative_crossrefs: true
+            scoped_crossrefs: true
             # summary: true
             filters:
               - "!^_"  # Exclude private/dunder members
@@ -108,6 +110,7 @@ nav:
   - API Reference:
     - Overview: api/index.md
     - Parsers: api/parsers.md
+    - App: api/app.md
     - Project: api/project.md
     - Items:
       - Item: api/items/item.md

@@ -16,14 +16,14 @@ class AVItem(Item):
     audio/visual files imported into After Effects.
 
     Info:
-        `AVItem` is a subclass of `Item`. All methods and attributes of `Item`
+        `AVItem` is a subclass of [Item][]. All methods and attributes of [Item][]
         are available when working with `AVItem`.
 
     Info:
-        `AVItem` is the base class for both `CompItem` and `FootageItem`, so
+        `AVItem` is the base class for both [CompItem][] and [FootageItem][], so
         `AVItem` attributes and methods are also available when working with
-        `CompItem` and `FootageItem` objects. See `CompItem` object and
-        `FootageItem` object.
+        [CompItem][] and [FootageItem][] objects. See [CompItem][] object and
+        [FootageItem][] object.
 
     See: https://ae-scripting.docsforadobe.dev/item/avitem/
     """
@@ -59,8 +59,9 @@ class AVItem(Item):
         When `True`, the AVItem is a placeholder, or represents footage with a
         source file that cannot be found. In this case, the path of the
         missing source file is in the `missing_footage_path` attribute of the
-        footage item's source-file object. See `FootageItem.main_source` and
-        `FileSource.missing_footage_path`.
+        footage item's source-file object.
+        See [FootageItem.main_source][aep_parser.models.items.footage.FootageItem.main_source] and
+        [FileSource.missing_footage_path][aep_parser.models.sources.file.FileSource.missing_footage_path].
         """
         if not hasattr(self, "main_source"):
             return False

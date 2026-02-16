@@ -83,9 +83,7 @@ def parse_property_group(
                 time_scale=time_scale,
             )
         else:
-            raise NotImplementedError(
-                f"Cannot parse {first_chunk.list_type} property"
-            )
+            raise NotImplementedError(f"Cannot parse {first_chunk.list_type} property")
         properties.append(sub_prop)
 
     prop_group = PropertyGroup(
@@ -206,7 +204,9 @@ def parse_property(
     dimensions_separated = tdsb_chunk.dimensions_separated
 
     # Get nice name
-    name = _get_user_defined_name(tdbs_chunk) or MATCH_NAME_TO_NICE_NAME.get(match_name, match_name)
+    name = _get_user_defined_name(tdbs_chunk) or MATCH_NAME_TO_NICE_NAME.get(
+        match_name, match_name
+    )
 
     # Get property type info from tdb4 chunk
     tdb4_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdb4")
@@ -239,9 +239,7 @@ def parse_property(
         elif dimensions == 2:
             property_control_type = Aep.PropertyControlType.two_d
             property_value_type = (
-                Aep.LdatItemType.two_d_spatial
-                if is_spatial
-                else Aep.LdatItemType.two_d
+                Aep.LdatItemType.two_d_spatial if is_spatial else Aep.LdatItemType.two_d
             )
         elif dimensions == 3:
             property_control_type = Aep.PropertyControlType.three_d
@@ -363,9 +361,7 @@ def parse_effect(
     part_chunk = find_by_list_type(chunks=sspc_child_chunks, list_type="parT")
 
     chunks_by_parameter = get_chunks_by_match_name(part_chunk)
-    for index, (match_name, parameter_chunks) in enumerate(
-        chunks_by_parameter.items()
-    ):
+    for index, (match_name, parameter_chunks) in enumerate(chunks_by_parameter.items()):
         # Skip first, it describes parent
         if index == 0:
             continue
@@ -521,7 +517,9 @@ def parse_markers(
     return markers
 
 
-def parse_marker(nmrd_chunk: Aep.Chunk, frame_rate: float, frame_time: int) -> MarkerValue:
+def parse_marker(
+    nmrd_chunk: Aep.Chunk, frame_rate: float, frame_time: int
+) -> MarkerValue:
     """
     Parse a marker.
 

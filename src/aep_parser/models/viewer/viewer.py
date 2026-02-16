@@ -24,7 +24,7 @@ class Viewer:
 
     active_view_index: int
     """
-    The index of the current active `View` object, in the `Viewer.views` array.
+    The index of the current active [View][] object, in the `Viewer.views` array.
     """
 
     type: ViewerType
@@ -33,4 +33,4 @@ class Viewer:
     """
 
     views: list[View]
-    """All of the `View` objects associated with this viewer."""
+    """All of the [View][] objects associated with this viewer."""

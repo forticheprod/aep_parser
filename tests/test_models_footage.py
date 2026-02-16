@@ -11,9 +11,10 @@ from conftest import (
     get_footage_from_json,
     get_sample_files,
     load_expected,
+    parse_project,
 )
 
-from aep_parser import AlphaMode, FieldSeparationType, Project, parse_project
+from aep_parser import AlphaMode, FieldSeparationType, Project
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "footage"
 

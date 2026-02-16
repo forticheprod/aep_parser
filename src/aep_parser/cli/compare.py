@@ -35,7 +35,9 @@ class ByteDifference:
     offset: int
     byte1: int
     byte2: int
-    bit_position: int | None = None  # 7 to 0 from left to right, None if multiple bits differ
+    bit_position: int | None = (
+        None  # 7 to 0 from left to right, None if multiple bits differ
+    )
 
     def __post_init__(self) -> None:
         """Calculate bit position if only one bit differs."""
@@ -149,12 +151,18 @@ def compare_binary_data(
     if len(data1) > min_len:
         for i in range(min_len, len(data1)):
             yield ByteDifference(
-                path=path, offset=i, byte1=data1[i], byte2=-1  # -1 indicates missing
+                path=path,
+                offset=i,
+                byte1=data1[i],
+                byte2=-1,  # -1 indicates missing
             )
     elif len(data2) > min_len:
         for i in range(min_len, len(data2)):
             yield ByteDifference(
-                path=path, offset=i, byte1=-1, byte2=data2[i]  # -1 indicates missing
+                path=path,
+                offset=i,
+                byte1=-1,
+                byte2=data2[i],  # -1 indicates missing
             )
 
 
@@ -260,11 +268,7 @@ def _extract_chunks_recursive(
             pass
 
         # Recurse into LIST chunks
-        if (
-            chunk.chunk_type == "LIST"
-            and hasattr(chunk, "chunks")
-            and chunk.chunks
-        ):
+        if chunk.chunk_type == "LIST" and hasattr(chunk, "chunks") and chunk.chunks:
             child_counters: dict[str, int] = {}
             _extract_chunks_recursive(
                 chunk.chunks, current_path, result, child_counters
@@ -534,9 +538,7 @@ Output shows for each different byte:
         )
         print(json.dumps(output, indent=2))
     else:
-        print_results(
-            args.file1, args.file2, differences, only_in_file1, only_in_file2
-        )
+        print_results(args.file1, args.file2, differences, only_in_file1, only_in_file2)
 
     return 0 if not differences and not only_in_file1 and not only_in_file2 else 1
 

@@ -18,8 +18,8 @@ class FootageItem(AVItem):
     which appears in the Project panel.
 
     Info:
-        `FootageItem` is a subclass of `AVItem` object, which is a subclass of
-        `Item` object. All methods and attributes of `AVItem` and `Item` are
+        `FootageItem` is a subclass of [AVItem][] object, which is a subclass of
+        [Item][] object. All methods and attributes of [AVItem][] and [Item][] are
         available when working with `FootageItem`.
 
     See: https://ae-scripting.docsforadobe.dev/item/footageitem/
@@ -39,7 +39,7 @@ class FootageItem(AVItem):
 
     @property
     def file(self) -> str | None:
-        """The footage file path if its source is a `FileSource`, else `None`."""
+        """The footage file path if its source is a [FileSource][], else `None`."""
         if hasattr(self.main_source, "file"):
             return str(self.main_source.file)
         return None

@@ -24,7 +24,6 @@ if typing.TYPE_CHECKING:
     from .items.item import Item
     from .layers.layer import Layer
     from .renderqueue.render_queue import RenderQueue
-    from .viewer.viewer import Viewer
 
 
 @dataclass
@@ -37,15 +36,6 @@ class Project:
 
     See: https://ae-scripting.docsforadobe.dev/general/project/
     """
-
-    ae_version: str
-    """
-    The version of After Effects that created the project, formatted as
-    "{major}.{minor}x{build}" (e.g., "25.2x26").
-    """
-
-    ae_build_number: int
-    """The build number of After Effects that created the project."""
 
     bits_per_channel: BitsPerChannel
     """The color depth of the current project, either 8, 16, or 32 bits."""
@@ -149,11 +139,6 @@ class Project:
     item is currently selected or if multiple items are selected.
     """
 
-    active_viewer: Viewer | None = None
-    """
-    The currently focused Viewer panel, or `None` if no viewer is active.
-    """
-
     display_start_frame: int = field(init=False)
     """The start frame number for the project display."""
 
@@ -186,9 +171,7 @@ class Project:
         """Get a layer by its unique ID."""
         if self._layers_by_uid is None:
             self._layers_by_uid = {
-                layer.id: layer
-                for comp in self.compositions
-                for layer in comp.layers
+                layer.id: layer for comp in self.compositions for layer in comp.layers
             }
         return self._layers_by_uid[layer_id]
 
@@ -208,9 +191,7 @@ class Project:
         """All the folders in the project."""
         if self._folders is None:
             self._folders = [
-                cast(FolderItem, item)
-                for item in self.items.values()
-                if item.is_folder
+                cast(FolderItem, item) for item in self.items.values() if item.is_folder
             ]
         return self._folders
 

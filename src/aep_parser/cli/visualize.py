@@ -24,6 +24,9 @@ import sys
 from pathlib import Path
 from typing import Any, Generator, TextIO
 
+from aep_parser import parse
+
+from ..models.app import App
 from ..models.items.composition import CompItem
 from ..models.items.folder import FolderItem
 from ..models.items.footage import FootageItem
@@ -31,20 +34,18 @@ from ..models.layers.layer import Layer
 from ..models.project import Project
 from ..models.properties.property import Property
 from ..models.properties.property_group import PropertyGroup
-from ..parsers.project import parse_project
 
 # =============================================================================
 # Node builders - Convert model objects to a uniform dict structure
 # =============================================================================
 
 
-def build_project_node(
-    project: Project, include_properties: bool = True
-) -> dict[str, Any]:
+def build_project_node(app: App, include_properties: bool = True) -> dict[str, Any]:
     """Build the root project node."""
+    project = app.project
     attrs: dict[str, Any] = {
-        "ae_version": project.ae_version,
-        "ae_build_number": project.ae_build_number,
+        "version": app.version,
+        "build_number": app.build_number,
         "bits_per_channel": project.bits_per_channel.name,
         "frame_rate": project.frame_rate,
         "expression_engine": project.expression_engine,
@@ -423,13 +424,7 @@ def format_dot(
 
         if attrs_lines:
             label = (
-                "{{"
-                + n["type"]
-                + "|"
-                + name
-                + "|"
-                + "\\l".join(attrs_lines)
-                + "\\l}}"
+                "{{" + n["type"] + "|" + name + "|" + "\\l".join(attrs_lines) + "\\l}}"
             )
         else:
             label = "{{" + n["type"] + "|" + name + "}}"
@@ -522,7 +517,9 @@ def format_json(
 
         result = dict(n)
         if result.get("children"):
-            result["children"] = [filter_depth(c, depth + 1) for c in result["children"]]
+            result["children"] = [
+                filter_depth(c, depth + 1) for c in result["children"]
+            ]
         return result
 
     filtered = filter_depth(node)
@@ -585,11 +582,11 @@ Examples:
         print(f"Error: File not found: {aep_path}", file=sys.stderr)
         sys.exit(1)
 
-    project = parse_project(aep_path)
+    app = parse(aep_path)
 
     # Build the node tree
     include_properties = not args.no_properties
-    root_node = build_project_node(project, include_properties)
+    root_node = build_project_node(app, include_properties)
 
     # Output using context manager
     output_path = Path(args.output) if args.output else None

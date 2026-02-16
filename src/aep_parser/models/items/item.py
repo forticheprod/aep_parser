@@ -15,7 +15,7 @@ class Item(ABC):
     The `Item` object represents an item that can appear in the Project panel.
 
     Info:
-        `Item` is the base class for `AVItem` object and for `FolderItem`
+        `Item` is the base class for [AVItem][] object and for [FolderItem][]
         object, which are in turn the base classes for various other item
         types, so `Item` attributes and methods are available when working with
         all of these item types.

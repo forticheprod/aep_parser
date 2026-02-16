@@ -19,13 +19,13 @@ class Layer(ABC):
     The `Layer` object provides access to layers within compositions.
 
     Warning:
-        In the ExtendScript API, `Layer` is a subclass of `PropertyGroup`,
-        which is a subclass of `PropertyBase`. It is not the case here, as it
+        In the ExtendScript API, `Layer` is a subclass of [PropertyGroup][],
+        which is a subclass of [PropertyBase][]. It is not the case here, as it
         made no sense conceptually.
 
     Info:
-        `Layer` is the base class for `CameraLayer` object, `LightLayer`
-        object and `AVLayer` object, so `Layer` attributes and methods are
+        `Layer` is the base class for [CameraLayer][] object, [LightLayer][]
+        object and [AVLayer][] object, so `Layer` attributes and methods are
         available when working with all layer types.
 
     See: https://ae-scripting.docsforadobe.dev/layer/layer/

@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from conftest import get_first_layer, get_sample_files, load_expected
+from conftest import get_first_layer, get_sample_files, load_expected, parse_project
 
-from aep_parser import Project, parse_project
+from aep_parser import Project
 from aep_parser.models.enums import KeyframeInterpolationType
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "property"

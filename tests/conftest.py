@@ -3,11 +3,27 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
-from aep_parser import Project
+from aep_parser import App, Project
+from aep_parser import parse as _parse_aep
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples"
+
+
+def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
+    """Parse an AEP file and return the Project object.
+
+    Convenience wrapper around :func:`aep_parser.parse` for tests that only
+    need the ``Project``.
+    """
+    return _parse_aep(aep_file_path).project
+
+
+def parse_app(aep_file_path: str | os.PathLike[str]) -> App:
+    """Parse an AEP file and return the App object."""
+    return _parse_aep(aep_file_path)
 
 
 def load_expected(samples_dir: Path, sample_name: str) -> dict:

@@ -4,7 +4,7 @@ Welcome to the AEP Parser API reference. This section provides detailed document
 
 ## Main Entry Point
 
-The primary function you'll use is [`parse_project()`](parsers.md#main-parser).
+The primary function you'll use is [`parse()`](parsers.md#main-parser).
 
 ## Core Modules
 
@@ -12,9 +12,13 @@ The primary function you'll use is [`parse_project()`](parsers.md#main-parser).
 
 Internal parsing functions for converting binary data to Python objects.
 
+### [App](app.md)
+
+The top-level `App` dataclass representing the After Effects application.
+
 ### [Project](project.md)
 
-The main `Project` dataclass containing all project information.
+The `Project` dataclass containing all project information.
 
 ### Items
 
@@ -72,10 +76,11 @@ Enumerations for various After Effects settings and modes.
 ## Quick Example
 
 ```python
-from aep_parser import parse_project
+import aep_parser
 
 # Parse a project
-project = parse_project("myproject.aep")
+app = aep_parser.parse("myproject.aep")
+project = app.project
 
 # Access compositions
 for item in project:

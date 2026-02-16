@@ -58,9 +58,7 @@ def parse_footage(
     # Common source attributes from sspc
     source_attrs = {
         "has_alpha": sspc_chunk.has_alpha,
-        "alpha_mode": map_alpha_mode(
-            sspc_chunk.alpha_mode_raw, sspc_chunk.has_alpha
-        ),
+        "alpha_mode": map_alpha_mode(sspc_chunk.alpha_mode_raw, sspc_chunk.has_alpha),
         "invert_alpha": sspc_chunk.invert_alpha,
         "field_separation_type": map_field_separation_type(
             sspc_chunk.field_separation_type_raw,
@@ -107,12 +105,11 @@ def parse_footage(
                         end_frame = int(last)
 
         if not item_name:
-            if (
-                not source_attrs["is_still"]
-                and file_source.target_is_folder
-            ):
+            if not source_attrs["is_still"] and file_source.target_is_folder:
                 item_name = _build_sequence_name(
-                    pin_child_chunks, start_frame, end_frame,
+                    pin_child_chunks,
+                    start_frame,
+                    end_frame,
                     file_names=file_source.file_names,
                 )
             if not item_name:

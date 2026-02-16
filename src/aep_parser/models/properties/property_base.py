@@ -6,11 +6,11 @@ from dataclasses import dataclass
 
 @dataclass
 class PropertyBase(ABC):
-    """Abstract base class for both `Property` and `PropertyGroup`.
+    """Abstract base class for both [Property][] and [PropertyGroup][].
 
     Info:
-        `PropertyBase` is the base class for both `Property` and
-        `PropertyGroup`, so `PropertyBase` attributes and methods are available
+        `PropertyBase` is the base class for both [Property][] and
+        [PropertyGroup][], so `PropertyBase` attributes and methods are available
         when working with properties and property groups.
 
     See: https://ae-scripting.docsforadobe.dev/property/propertybase/

@@ -173,7 +173,9 @@ def parse_render_queue_item(
 
     output_modules = []
     for om_index, group in enumerate(om_groups):
-        output_module = parse_output_module(group, om_ldat_items[om_index], project, render_queue_item)
+        output_module = parse_output_module(
+            group, om_ldat_items[om_index], project, render_queue_item
+        )
         # Set project-level data for template resolution
         output_module._project_name = Path(project.file).stem if project.file else None
         output_module._project_color_depth = int(project.bits_per_channel)
@@ -270,10 +272,15 @@ def parse_output_module(
     include_source_xmp = om_ldat_data.include_source_xmp
     post_render_action = PostRenderAction.from_binary(om_ldat_data.post_render_action)
     post_render_target_comp_id = om_ldat_data.post_render_target_comp_id or None
-    if post_render_action in (PostRenderAction.NONE, PostRenderAction.IMPORT) or post_render_target_comp_id is None:
+    if (
+        post_render_action in (PostRenderAction.NONE, PostRenderAction.IMPORT)
+        or post_render_target_comp_id is None
+    ):
         post_render_target_comp = render_queue_item.comp
     else:
-        post_render_target_comp = cast(CompItem, project.items[post_render_target_comp_id])
+        post_render_target_comp = cast(
+            CompItem, project.items[post_render_target_comp_id]
+        )
 
     # Parse output module settings from Roou chunk
     roou_chunk = find_by_type(chunks=chunks, chunk_type="Roou")

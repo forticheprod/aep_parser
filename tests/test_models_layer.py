@@ -11,9 +11,10 @@ from conftest import (
     get_layer_from_json,
     get_sample_files,
     load_expected,
+    parse_project,
 )
 
-from aep_parser import Project, parse_project
+from aep_parser import Project
 from aep_parser.models.enums import (
     AutoOrientType,
     BlendingMode,

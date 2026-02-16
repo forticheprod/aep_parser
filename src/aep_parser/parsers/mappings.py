@@ -200,13 +200,13 @@ def map_viewer_type_from_string(label: str) -> ViewerType | None:
 
     The `fitt` chunk stores the inner tab type as an ASCII string
     (e.g. `"AE Composition"`). This function converts that string
-    to the corresponding :class:`ViewerType` value.
+    to the corresponding [ViewerType][aep_parser.models.enums.ViewerType] value.
 
     Args:
         label: The panel type label from the `fitt` chunk.
 
     Returns:
-        The matching :class:`ViewerType`, or `None` if the label is
+        The matching [ViewerType][aep_parser.models.enums.ViewerType], or `None` if the label is
         not recognised.
     """
     mapping = {

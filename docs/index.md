@@ -15,13 +15,16 @@ pip install aep-parser
 ## Quick Start
 
 ```python
-from aep_parser import parse_project
+import aep_parser
 
 # Parse an After Effects project file
-project = parse_project("path/to/your/project.aep")
+app = aep_parser.parse("path/to/your/project.aep")
+project = app.project
+
+# Access application-level information
+print(f"AE Version: {app.version}")
 
 # Access project information
-print(f"AE Version: {project.ae_version}")
 print(f"Frame Rate: {project.frame_rate}")
 print(f"Bits per Channel: {project.bits_per_channel}")
 
@@ -45,30 +48,36 @@ for item in project:
 An After Effects project has a hierarchical structure:
 
 ```
-Project
-├── FolderItem
-│   ├── CompItem
-│   │   ├── AVLayer ───┐
-│   │   ├── TextLayer ─┤
-│   │   ├── ShapeLayer ┤
-│   │   ├── CameraLayer┤
-│   │   └── LightLayer ┘──▶ PropertyGroup
-│   │                       ├── Property
-│   │                       │   └── Keyframe
-│   │                       └── PropertyGroup (nested)
-│   └── FootageItem
-│       ├── FileSource
-│       ├── SolidSource
-│       └── PlaceholderSource
-└── RenderQueue
-    └── RenderQueueItem
-        └── OutputModule
+App
+├── Viewer
+│   └── View
+│       └── ViewOptions
+└── Project
+    ├── FolderItem
+    │   ├── CompItem
+    │   │   ├── AVLayer ───┐
+    │   │   ├── TextLayer ─┤
+    │   │   ├── ShapeLayer ┤
+    │   │   ├── CameraLayer┤
+    │   │   └── LightLayer ┘──▶ PropertyGroup
+    │   │                       ├── Property
+    │   │                       │   └── Keyframe
+    │   │                       └── PropertyGroup (nested)
+    │   └── FootageItem
+    │       ├── FileSource
+    │       ├── SolidSource
+    │       └── PlaceholderSource
+    └── RenderQueue
+        └── RenderQueueItem
+            └── OutputModule
 ```
 
 ### Data Model
 
 The library provides dataclasses that mirror After Effects' object model:
 
+- `App`: Application-level object (version, build number, active viewer)
+- `Viewer`, `View`, `ViewOptions`: Viewer panels and view settings
 - `Project`: Root project object
 - `CompItem`, `FootageItem`, `FolderItem`: Project items
 - `AVLayer`, `TextLayer`, `ShapeLayer`, etc.: Layer types

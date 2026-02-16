@@ -1,7 +1,7 @@
 # AEP Parser - AI Coding Agent Instructions
 
 ## Project Overview
-A Python library for parsing Adobe After Effects project files (.aep). The binary RIFX format is decoded using [Kaitai Struct](https://kaitai.io/), then transformed into typed Python dataclasses representing the AE object model (Project → Items → Layers → Properties).
+A Python library for parsing Adobe After Effects project files (.aep). The binary RIFX format is decoded using [Kaitai Struct](https://kaitai.io/), then transformed into typed Python dataclasses representing the AE object model (App → Project → Items → Layers → Properties).
 
 ## Architecture
 
@@ -15,13 +15,16 @@ A Python library for parsing Adobe After Effects project files (.aep). The binar
   - `aep.ksy` - Kaitai schema defining RIFX chunk structure (auto-generates `aep.py`)
   - `aep_optimized.py` - Performance optimizations via monkey-patching
   - `utils.py` - Chunk filtering helpers (`find_by_type`, `filter_by_list_type`)
+- **`src/aep_parser/__init__.py`** - Public API entry point: `parse()`
 - **`src/aep_parser/parsers/`** - Transform raw chunks into models
-  - Entry point: `project.py::parse_project()` 
+  - `app.py` - App-level parsing (version, viewers)
+  - `project.py` - Internal project parsing (`_parse_project()`) and deprecated `parse_project()` wrapper
   - `mappings.py` - Binary value → ExtendScript enum mappings
   - `match_names.py` - Effect/property match name lookups
   - `render_queue.py` - Render queue and output module parsing
   - Pattern: Each parser receives chunks + context, returns a model instance
 - **`src/aep_parser/models/`** - Typed dataclasses mirroring AE's object model
+  - `app.py` - Application-level model (App)
   - `items/` - Project items (CompItem, FootageItem, FolderItem)
   - `layers/` - Layer types (AVLayer, CameraLayer, LightLayer, TextLayer, ShapeLayer)
   - `properties/` - Effects and animation properties (Property, PropertyGroup, Keyframe, MarkerValue)
@@ -182,7 +185,8 @@ The project uses **MkDocs with Material theme** to auto-generate API documentati
 docs/
 ├── index.md              # Overview, installation, quick start
 ├── api/                  # Auto-generated API reference
-│   ├── index.md          # API overview with parse_project() entry point
+│   ├── index.md          # API overview with parse() entry point
+│   ├── app.md            # App dataclass
 │   ├── project.md        # Project dataclass
 │   ├── items/            # CompItem, FootageItem, FolderItem
 │   ├── layers/           # AVLayer, TextLayer, ShapeLayer, etc.
@@ -245,6 +249,21 @@ class CompItem(AVItem):
 - Include type hints in function signatures (displayed automatically)
 - Reference AE ExtendScript properties in attribute descriptions
 - Keep lines under 80 characters (use multi-line docstrings when needed)
+- Use mkdocstrings cross-reference syntax to link to other classes; do **not** use Sphinx `:class:` / `:func:` notation (mkdocs does not interpret it)
+
+### Cross-Referencing in Docstrings
+Use [scoped cross-references](https://mkdocstrings.github.io/python/usage/configuration/docstrings/#scoped_crossrefs) (`scoped_crossrefs` and `relative_crossrefs` are enabled in `mkdocs.yml`):
+
+```python
+# Short form — resolved via scoped cross-references
+"""The [CompItem][] that contains this layer."""
+
+# Explicit path — for cross-module or ambiguous references
+"""See [FileSource][aep_parser.models.sources.file.FileSource]."""
+
+# ✗ Don't use Sphinx-style notation
+"""Returns a :class:`CompItem` instance."""  # Wrong — mkdocs won't render it
+```
 
 ### Documentation Configuration
 Configuration in `mkdocs.yml` enables:

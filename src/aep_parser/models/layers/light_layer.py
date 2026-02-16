@@ -15,8 +15,8 @@ class LightLayer(Layer):
     The `LightLayer` object represents a light layer within a composition.
 
     Info:
-        `LightLayer` is a subclass of `Layer` object. All methods and
-        attributes of `Layer` are available when working with `LightLayer`.
+        `LightLayer` is a subclass of [Layer][] object. All methods and
+        attributes of [Layer][] are available when working with `LightLayer`.
 
     See: https://ae-scripting.docsforadobe.dev/layer/lightlayer/
     """

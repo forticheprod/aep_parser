@@ -8,6 +8,8 @@ from __future__ import annotations
 import io
 from pathlib import Path
 
+from conftest import parse_app
+
 from aep_parser.cli.visualize import (
     build_project_node,
     format_dot,
@@ -15,15 +17,14 @@ from aep_parser.cli.visualize import (
     format_mermaid,
     format_text,
 )
-from aep_parser.parsers.project import parse_project
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples"
 
 
-def get_sample_project():
-    """Get a sample project for testing."""
+def get_sample_app():
+    """Get a sample app for testing."""
     aep_path = SAMPLES_DIR / "versions" / "ae2025" / "complete.aep"
-    return parse_project(aep_path)
+    return parse_app(aep_path)
 
 
 class TestBuildProjectNode:
@@ -31,21 +32,21 @@ class TestBuildProjectNode:
 
     def test_builds_project_structure(self) -> None:
         """Test that project node is built with correct structure."""
-        project = get_sample_project()
+        app = get_sample_app()
         # Use include_properties=False to avoid PropertyGroup/Property type mismatch
-        node = build_project_node(project, include_properties=False)
+        node = build_project_node(app, include_properties=False)
 
         assert node["type"] == "Project"
         assert "name" in node
         assert "attrs" in node
         assert "children" in node
-        assert "ae_version" in node["attrs"]
+        assert "version" in node["attrs"]
         assert "frame_rate" in node["attrs"]
 
     def test_project_node_without_properties(self) -> None:
         """Test building project node without layer properties."""
-        project = get_sample_project()
-        node = build_project_node(project, include_properties=False)
+        app = get_sample_app()
+        node = build_project_node(app, include_properties=False)
 
         assert node["type"] == "Project"
         # Check that no property nodes exist in the tree
@@ -61,8 +62,8 @@ class TestBuildProjectNode:
 
     def test_project_node_has_items(self) -> None:
         """Test that project node includes folder and composition items."""
-        project = get_sample_project()
-        node = build_project_node(project, include_properties=False)
+        app = get_sample_app()
+        node = build_project_node(app, include_properties=False)
 
         # Should have at least some children (folders, compositions, footage)
         assert len(node["children"]) > 0
@@ -73,8 +74,8 @@ class TestFormatText:
 
     def test_text_output_not_empty(self) -> None:
         """Test that text output produces content."""
-        project = get_sample_project()
-        node = build_project_node(project, include_properties=False)
+        app = get_sample_app()
+        node = build_project_node(app, include_properties=False)
 
         output = io.StringIO()
         format_text(node, output)
@@ -85,8 +86,8 @@ class TestFormatText:
 
     def test_text_output_with_depth_limit(self) -> None:
         """Test that depth limit reduces output."""
-        project = get_sample_project()
-        node = build_project_node(project, include_properties=False)
+        app = get_sample_app()
+        node = build_project_node(app, include_properties=False)
 
         output_full = io.StringIO()
         format_text(node, output_full, max_depth=None)
@@ -105,8 +106,8 @@ class TestFormatJson:
         """Test that JSON output is valid JSON."""
         import json
 
-        project = get_sample_project()
-        node = build_project_node(project, include_properties=False)
+        app = get_sample_app()
+        node = build_project_node(app, include_properties=False)
 
         output = io.StringIO()
         format_json(node, output)
@@ -121,8 +122,8 @@ class TestFormatJson:
         """Test that JSON respects depth limit."""
         import json
 
-        project = get_sample_project()
-        node = build_project_node(project, include_properties=False)
+        app = get_sample_app()
+        node = build_project_node(app, include_properties=False)
 
         output = io.StringIO()
         format_json(node, output, max_depth=1)
@@ -142,8 +143,8 @@ class TestFormatDot:
 
     def test_dot_output_valid_structure(self) -> None:
         """Test that DOT output has valid Graphviz structure."""
-        project = get_sample_project()
-        node = build_project_node(project, include_properties=False)
+        app = get_sample_app()
+        node = build_project_node(app, include_properties=False)
 
         output = io.StringIO()
         format_dot(node, output)
@@ -159,8 +160,8 @@ class TestFormatMermaid:
 
     def test_mermaid_output_valid_structure(self) -> None:
         """Test that Mermaid output has valid flowchart structure."""
-        project = get_sample_project()
-        node = build_project_node(project, include_properties=False)
+        app = get_sample_app()
+        node = build_project_node(app, include_properties=False)
 
         output = io.StringIO()
         format_mermaid(node, output)
