@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -21,6 +22,7 @@ from ..models.enums import (
     GuideLayers,
     LogType,
     MotionBlurSetting,
+    OutputChannels,
     OutputColorMode,
     PostRenderAction,
     ProxyUseSetting,
@@ -33,10 +35,13 @@ from ..models.items.composition import CompItem
 from ..models.renderqueue.output_module import OutputModule
 from ..models.renderqueue.render_queue import RenderQueue
 from ..models.renderqueue.render_queue_item import RenderQueueItem
+from .mappings import map_output_format
 from .utils import parse_alas_data, parse_ldat_items
 
 if TYPE_CHECKING:
     from ..models.project import Project
+
+AEP_EPOCH = datetime(1904, 1, 1)  # Mac HFS+ epoch Jan 1, 1904
 
 
 def parse_render_queue(root_chunks: list[Aep.Chunk], project: Project) -> RenderQueue:
@@ -156,6 +161,21 @@ def parse_render_queue_item(
 
     settings = _parse_render_settings(ldat_body, comp)
 
+    # Extract attributes that were previously in settings
+    elapsed_seconds: int | None = (
+        ldat_body.elapsed_seconds if ldat_body.elapsed_seconds else None
+    )
+    log_type_val = LogType.from_binary(ldat_body.log_type)
+    queue_item_notify = bool(ldat_body.queue_item_notify)
+    template_name = ldat_body.template_name.rstrip("\x00")
+    time_span_start_frames = ldat_body.time_span_start_frames
+    time_span_duration_frames = ldat_body.time_span_duration_frames
+
+    # Parse start_time from Mac HFS+ epoch
+    start_time_val: datetime | None = None
+    if ldat_body.start_time:
+        start_time_val = AEP_EPOCH + timedelta(seconds=ldat_body.start_time)
+
     lom_child_chunks = lom_chunk.chunks
 
     # Group chunks by Roou - each Roou starts a new output module
@@ -164,11 +184,18 @@ def parse_render_queue_item(
     render_queue_item = RenderQueueItem(
         comment=comment,
         comp=comp,
+        elapsed_seconds=elapsed_seconds,
+        log_type=log_type_val,
+        name=template_name,
         output_modules=[],
+        queue_item_notify=queue_item_notify,
         render=render_enabled,
         settings=settings,
         skip_frames=0,  # to be calculated after parsing output module settings
+        start_time=start_time_val,
         status=RQItemStatus.from_binary(ldat_body.status),
+        time_span_duration_frames=time_span_duration_frames,
+        time_span_start_frames=time_span_start_frames,
     )
 
     output_modules = []
@@ -184,7 +211,7 @@ def parse_render_queue_item(
     # Calculate skip_frames from frame rate ratio
     # skip_frames = (comp_frame_rate / output_frame_rate) - 1
     # e.g., 24 fps comp with 6 fps output = skip_frames of 3 (render every 4th frame)
-    output_frame_rate = output_modules[0].settings.get("Frame Rate", 0)
+    output_frame_rate = output_modules[0].frame_rate
     if output_frame_rate and output_frame_rate > 0:
         render_queue_item.skip_frames = round(comp.frame_rate / output_frame_rate) - 1
 
@@ -212,27 +239,18 @@ def _parse_render_settings(
         "Color Depth": ColorDepthSetting.from_binary(ldat_body.color_depth),
         "Disk Cache": DiskCacheSetting.from_binary(ldat_body.disk_cache),
         "Effects": EffectsSetting.from_binary(ldat_body.effects),
-        "Elapsed Seconds": ldat_body.elapsed_seconds,
         "Field Render": ldat_body.field_render,
         "Frame Blending": FrameBlendingSetting.from_binary(ldat_body.frame_blending),
         "Frame Rate": bool(ldat_body.use_this_frame_rate),
         "Guide Layers": GuideLayers.from_binary(ldat_body.guide_layers),
-        "Log Type": LogType.from_binary(ldat_body.log_type),
         "Motion Blur": MotionBlurSetting.from_binary(ldat_body.motion_blur),
         "Proxy Use": ProxyUseSetting.from_binary(ldat_body.proxy_use),
         "Quality": RenderQuality.from_binary(ldat_body.quality),
-        "Queue Item Notify": ldat_body.queue_item_notify,
         "Resolution": [ldat_body.resolution_x, ldat_body.resolution_y],
         "Skip Existing Files": bool(ldat_body.skip_existing_files),
         "Solo Switches": SoloSwitchesSetting.from_binary(ldat_body.solo_switches),
-        "Start Time:": ldat_body.start_time,
-        "Template Name": ldat_body.template_name.rstrip("\x00"),
-        "Time Span Duration Frames": ldat_body.time_span_duration_frames,
         "Time Span Duration": ldat_body.time_span_duration,
-        "Time Span End Frames": ldat_body.time_span_start_frames
-        + ldat_body.time_span_duration_frames,
         "Time Span End": ldat_body.time_span_start + ldat_body.time_span_duration,
-        "Time Span Start Frames": ldat_body.time_span_start_frames,
         "Time Span Start": ldat_body.time_span_start,
         "Time Span": TimeSpanSource.from_binary(ldat_body.time_span_source),
         "Use comp's frame rate": comp.frame_rate,
@@ -266,9 +284,8 @@ def parse_output_module(
     Returns:
         OutputModule with parsed attributes.
     """
-    # Parse crop, include_source_xmp, post_render_action, and post_render_target_comp_id
+    # Parse include_source_xmp, post_render_action, and post_render_target_comp_id
     # from per-output-module ldat
-    crop = om_ldat_data.crop
     include_source_xmp = om_ldat_data.include_source_xmp
     post_render_action = PostRenderAction.from_binary(om_ldat_data.post_render_action)
     post_render_target_comp_id = om_ldat_data.post_render_target_comp_id or None
@@ -287,11 +304,31 @@ def parse_output_module(
 
     settings = _parse_output_module_settings(roou_chunk)
 
-    # Add crop values to settings from ldat
+    # Extract attributes from settings that are now top-level on OutputModule
+    video_codec = settings.pop("Video Codec", None)
+    width = settings.pop("Width", 0)
+    height = settings.pop("Height", 0)
+    frame_rate = settings.pop("Frame Rate", 0.0)
+
+    # Add crop to settings from ldat
+    settings["Crop"] = om_ldat_data.crop
     settings["Crop Top"] = om_ldat_data.crop_top
     settings["Crop Left"] = om_ldat_data.crop_left
     settings["Crop Bottom"] = om_ldat_data.crop_bottom
     settings["Crop Right"] = om_ldat_data.crop_right
+    settings["Channels"] = OutputChannels(om_ldat_data.channels)
+    settings["Include Project Link"] = bool(om_ldat_data.include_project_link)
+    settings["Include Source XMP Metadata"] = include_source_xmp
+    settings["Lock Aspect Ratio"] = bool(om_ldat_data.lock_aspect_ratio)
+    settings["Post-Render Action"] = post_render_action
+    settings["Resize"] = bool(om_ldat_data.resize)
+    settings["Resize Quality"] = om_ldat_data.resize_quality
+    settings["Use Comp Frame Number"] = bool(
+        om_ldat_data.use_comp_frame_number
+    )
+    settings["Use Region of Interest"] = bool(
+        om_ldat_data.use_region_of_interest
+    )
 
     # Get output file from LIST Als2 > alas
     alas_data = parse_alas_data(chunks)
@@ -330,8 +367,9 @@ def parse_output_module(
             file_template = folder_path
 
     return OutputModule(
-        crop=crop,
         file_template=file_template,
+        frame_rate=frame_rate,
+        height=height,
         include_source_xmp=include_source_xmp,
         name=template_name,
         parent=render_queue_item,
@@ -339,6 +377,8 @@ def parse_output_module(
         post_render_target_comp=post_render_target_comp,
         settings=settings,
         templates=[],  # Not available in binary format
+        width=width,
+        _video_codec=video_codec,
     )
 
 
@@ -369,5 +409,9 @@ def _parse_output_module_settings(roou_chunk: Aep.Chunk) -> dict[str, Any]:
         "Color": color,
         "Audio Bit Depth": audio_bit_depth,
         "Audio Channels": audio_channels,
+        "Audio Sample Rate": int(roou_chunk.audio_sample_rate),
+        "Format": map_output_format(roou_chunk.format_id),
         "Frame Rate": roou_chunk.frame_rate,
+        "Depth": roou_chunk.depth,
+        "Starting #": roou_chunk.starting_number,
     }

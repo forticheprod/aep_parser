@@ -40,6 +40,12 @@ class Project:
     bits_per_channel: BitsPerChannel
     """The color depth of the current project, either 8, 16, or 32 bits."""
 
+    revision: int
+    """
+    The current revision of the project. Every user action increases the
+    revision number by one. A new project starts at revision 1.
+    """
+
     color_management_system: ColorManagementSystem
     """
     The color management system used by the project (Adobe or OCIO). Available

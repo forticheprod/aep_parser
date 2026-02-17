@@ -1296,7 +1296,7 @@ class Aep(KaitaiStruct):
             self._unnamed35 = self._io.read_bytes(17)
             self.label = KaitaiStream.resolve_enum(Aep.Label, self._io.read_u1())
             self._unnamed37 = self._io.read_bytes(2)
-            self.layer_name = (self._io.read_bytes(32)).decode(u"windows-1250")
+            self.layer_name = (self._io.read_bytes(32)).decode(u"windows-1252")
             self._unnamed39 = self._io.read_bytes(3)
             self.blending_mode = self._io.read_u1()
             self._unnamed41 = self._io.read_bytes(3)
@@ -1381,7 +1381,7 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self.list_type = (self._io.read_bytes(4)).decode(u"windows-1250")
+            self.list_type = (self._io.read_bytes(4)).decode(u"windows-1252")
             if self.list_type != u"btdk":
                 pass
                 self.chunks = []
@@ -1490,7 +1490,7 @@ class Aep(KaitaiStruct):
 
             if self.asset_type == u"Soli":
                 pass
-                self.solid_name = (KaitaiStream.bytes_terminate(self._io.read_bytes(256), 0, False)).decode(u"windows-1250")
+                self.solid_name = (KaitaiStream.bytes_terminate(self._io.read_bytes(256), 0, False)).decode(u"windows-1252")
 
             if self.asset_type_int == 2:
                 pass
@@ -1498,7 +1498,91 @@ class Aep(KaitaiStruct):
 
             if self.asset_type_int == 2:
                 pass
-                self.placeholder_name = (KaitaiStream.bytes_terminate(self._io.read_bytes_full(), 0, False)).decode(u"windows-1250")
+                self.placeholder_name = (KaitaiStream.bytes_terminate(self._io.read_bytes_full(), 0, False)).decode(u"windows-1252")
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._unnamed7 = self._io.read_bytes(10)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self.psd_layer_index = self._io.read_u2be()
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._unnamed9 = self._io.read_bytes(4)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._unnamed10 = self._io.read_bytes(4)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._unnamed11 = self._io.read_bytes(4)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self.psd_channels = self._io.read_u1()
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._unnamed13 = self._io.read_bytes(1)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self.psd_canvas_height = self._io.read_u2le()
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._unnamed15 = self._io.read_bytes(2)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self.psd_canvas_width = self._io.read_u2le()
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._unnamed17 = self._io.read_bytes(2)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self.psd_bit_depth = self._io.read_u1()
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._unnamed19 = self._io.read_bytes(7)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self.psd_layer_count = self._io.read_u1()
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._unnamed21 = self._io.read_bytes(29)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self.psd_layer_top = self._io.read_s4le()
+
+            if self.asset_type == u"8BPS":
+                pass
+                self.psd_layer_left = self._io.read_s4le()
+
+            if self.asset_type == u"8BPS":
+                pass
+                self.psd_layer_bottom = self._io.read_s4le()
+
+            if self.asset_type == u"8BPS":
+                pass
+                self.psd_layer_right = self._io.read_s4le()
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._unnamed26 = self._io.read_bytes(250)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self.psd_group_name = (KaitaiStream.bytes_terminate(self._io.read_bytes_full(), 0, False)).decode(u"UTF-8")
 
 
 
@@ -1520,6 +1604,69 @@ class Aep(KaitaiStruct):
                 pass
 
             if self.asset_type_int == 2:
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
                 pass
 
 
@@ -1583,17 +1730,29 @@ class Aep(KaitaiStruct):
             self._unnamed0 = self._io.read_bytes(7)
             self._unnamed1 = self._io.read_bits_int_be(1) != 0
             self.include_source_xmp = self._io.read_bits_int_be(1) != 0
-            self._unnamed3 = self._io.read_bits_int_be(6)
+            self._unnamed3 = self._io.read_bits_int_be(1) != 0
+            self.use_region_of_interest = self._io.read_bits_int_be(1) != 0
+            self.use_comp_frame_number = self._io.read_bits_int_be(1) != 0
+            self._unnamed6 = self._io.read_bits_int_be(3)
             self.post_render_target_comp_id = self._io.read_u4be()
-            self._unnamed5 = self._io.read_bytes(4)
-            self._unnamed6 = self._io.read_bytes(15)
-            self._unnamed7 = self._io.read_bits_int_be(7)
+            self._unnamed8 = self._io.read_bytes(4)
+            self._unnamed9 = self._io.read_bytes(3)
+            self.channels = self._io.read_u1()
+            self._unnamed11 = self._io.read_bytes(3)
+            self.resize_quality = self._io.read_u1()
+            self._unnamed13 = self._io.read_bytes(3)
+            self.resize = self._io.read_u1()
+            self._unnamed15 = self._io.read_bytes(1)
+            self.lock_aspect_ratio = self._io.read_u1()
+            self._unnamed17 = self._io.read_bytes(1)
+            self._unnamed18 = self._io.read_bits_int_be(7)
             self.crop = self._io.read_bits_int_be(1) != 0
             self.crop_top = self._io.read_u2be()
             self.crop_left = self._io.read_u2be()
             self.crop_bottom = self._io.read_u2be()
             self.crop_right = self._io.read_u2be()
-            self._unnamed13 = self._io.read_bytes(8)
+            self._unnamed24 = self._io.read_bytes(7)
+            self.include_project_link = self._io.read_u1()
             self.post_render_action = self._io.read_u4be()
             self.post_render_use_comp = self._io.read_u4be()
             self.remaining = self._io.read_bytes(72)
@@ -1613,7 +1772,7 @@ class Aep(KaitaiStruct):
         def _read(self):
             self._unnamed0 = self._io.read_bytes(15)
             self.property_control_type = KaitaiStream.resolve_enum(Aep.PropertyControlType, self._io.read_u1())
-            self.name = (KaitaiStream.bytes_terminate(self._io.read_bytes(32), 0, False)).decode(u"windows-1250")
+            self.name = (KaitaiStream.bytes_terminate(self._io.read_bytes(32), 0, False)).decode(u"windows-1252")
             self._unnamed3 = self._io.read_bytes(8)
             if self.property_control_type == Aep.PropertyControlType.color:
                 pass
@@ -1937,23 +2096,30 @@ class Aep(KaitaiStruct):
         def _read(self):
             self.magic = self._io.read_bytes(4)
             self.video_codec = (self._io.read_bytes(4)).decode(u"ASCII")
-            self._unnamed2 = self._io.read_bytes(24)
-            self._unnamed3 = self._io.read_bytes(4)
+            self._unnamed2 = self._io.read_bytes(8)
+            self.starting_number = self._io.read_u4be()
+            self._unnamed4 = self._io.read_bytes(6)
+            self.format_id = (self._io.read_bytes(4)).decode(u"ASCII")
+            self._unnamed6 = self._io.read_bytes(2)
+            self._unnamed7 = self._io.read_bytes(4)
             self.width = self._io.read_u2be()
-            self._unnamed5 = self._io.read_bytes(2)
+            self._unnamed9 = self._io.read_bytes(2)
             self.height = self._io.read_u2be()
-            self._unnamed7 = self._io.read_bytes(25)
+            self._unnamed11 = self._io.read_bytes(25)
             self.frame_rate = self._io.read_u1()
-            self._unnamed9 = self._io.read_bytes(9)
+            self._unnamed13 = self._io.read_bytes(3)
+            self.depth = self._io.read_u1()
+            self._unnamed15 = self._io.read_bytes(5)
             self.color_premultiplied = self._io.read_u1()
-            self._unnamed11 = self._io.read_bytes(3)
+            self._unnamed17 = self._io.read_bytes(3)
             self.color_matted = self._io.read_u1()
-            self._unnamed13 = self._io.read_bytes(26)
+            self._unnamed19 = self._io.read_bytes(18)
+            self.audio_sample_rate = self._io.read_f8be()
             self.audio_disabled_hi = self._io.read_u1()
             self.audio_format = self._io.read_u1()
-            self._unnamed16 = self._io.read_bytes(1)
+            self._unnamed23 = self._io.read_bytes(1)
             self.audio_bit_depth = self._io.read_u1()
-            self._unnamed18 = self._io.read_bytes(1)
+            self._unnamed25 = self._io.read_bytes(1)
             self.audio_channels = self._io.read_u1()
             self.remaining = self._io.read_bytes_full()
 
@@ -2067,6 +2233,7 @@ class Aep(KaitaiStruct):
             self._unnamed30 = self._io.read_bytes(12)
             self.start_frame = self._io.read_u4be()
             self.end_frame = self._io.read_u4be()
+            self.frame_padding = self._io.read_u4be()
 
 
         def _fetch_instances(self):

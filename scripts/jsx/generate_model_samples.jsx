@@ -1965,46 +1965,69 @@ var AEP_EXPORT_AS_LIBRARY = true;
         // Skip Frames samples
         // -----------------------------------------------------------------
         p = createRenderQueueProject("Comp 1");
-        applyRenderSettings(p.rqItem, "Best Settings");
-        p.rqItem.skipFrames = 3;
+        applyRenderSettings(p.rqItem, "Best Settings", {"Time Span": 0, "Frame Rate": 1, "Use this frame rate": 30});
         p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
         p.om.file = new File(downloadFolder + "/[compName].mp4");
+        p.rqItem.skipFrames = 0;
+        saveProject(p.proj, folder.fsName + "/skip_frames_0.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Time Span": 0, "Frame Rate": 1, "Use this frame rate": 30});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        p.rqItem.skipFrames = 1;
+        saveProject(p.proj, folder.fsName + "/skip_frames_1.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Time Span": 0, "Frame Rate": 1, "Use this frame rate": 30});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        p.rqItem.skipFrames = 2;
+        saveProject(p.proj, folder.fsName + "/skip_frames_2.aep");
+
+        p = createRenderQueueProject("Comp 1");
+        applyRenderSettings(p.rqItem, "Best Settings", {"Time Span": 0, "Frame Rate": 1, "Use this frame rate": 30});
+        p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
+        p.om.file = new File(downloadFolder + "/[compName].mp4");
+        p.rqItem.skipFrames = 3;
         saveProject(p.proj, folder.fsName + "/skip_frames_3.aep");
 
         // -----------------------------------------------------------------
         // Output Module samples - Audio settings
         // -----------------------------------------------------------------
+        var omFolder = ensureFolder(outputPath + "/output_module");
+
         p = createRenderQueueProject("Comp 1");
         applyRenderSettings(p.rqItem, "Best Settings");
         p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Output Audio": false});
         p.om.file = new File(downloadFolder + "/[compName].avi");
-        saveProject(p.proj, folder.fsName + "/output_module_audio_output_off.aep");
+        saveProject(p.proj, omFolder.fsName + "/audio_output_off.aep");
 
         p = createRenderQueueProject("Comp 1");
         applyRenderSettings(p.rqItem, "Best Settings");
         p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Output Audio": true});
         p.om.file = new File(downloadFolder + "/[compName].avi");
-        saveProject(p.proj, folder.fsName + "/output_module_audio_output_on.aep");
+        saveProject(p.proj, omFolder.fsName + "/audio_output_on.aep");
 
         // Audio bit depth samples
         p = createRenderQueueProject("Comp 1");
         applyRenderSettings(p.rqItem, "Best Settings");
         p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Output Audio": true, "Audio Bit Depth": 1});  // 8-bit
         p.om.file = new File(downloadFolder + "/[compName].avi");
-        saveProject(p.proj, folder.fsName + "/output_module_audio_8bit.aep");
+        saveProject(p.proj, omFolder.fsName + "/audio_8bit.aep");
 
         p = createRenderQueueProject("Comp 1");
         applyRenderSettings(p.rqItem, "Best Settings");
         p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Output Audio": true, "Audio Bit Depth": 4});  // 32-bit
         p.om.file = new File(downloadFolder + "/[compName].avi");
-        saveProject(p.proj, folder.fsName + "/output_module_audio_32bit.aep");
+        saveProject(p.proj, omFolder.fsName + "/audio_32bit.aep");
 
         // Audio channels sample
         p = createRenderQueueProject("Comp 1");
         applyRenderSettings(p.rqItem, "Best Settings");
         p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Output Audio": true, "Audio Channels": 1});  // Mono
         p.om.file = new File(downloadFolder + "/[compName].avi");
-        saveProject(p.proj, folder.fsName + "/output_module_audio_mono.aep");
+        saveProject(p.proj, omFolder.fsName + "/audio_mono.aep");
 
         // Audio sample rate samples
         var sampleRates = [16000, 22050, 24000, 32000, 44100];
@@ -2013,7 +2036,7 @@ var AEP_EXPORT_AS_LIBRARY = true;
             applyRenderSettings(p.rqItem, "Best Settings");
             p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Output Audio": true, "Sample Rate": sampleRates[i]});
             p.om.file = new File(downloadFolder + "/[compName].avi");
-            saveProject(p.proj, folder.fsName + "/output_module_audio_" + sampleRates[i] + "hz.aep");
+            saveProject(p.proj, omFolder.fsName + "/audio_" + sampleRates[i] + "hz.aep");
         }
 
         // -----------------------------------------------------------------
@@ -2023,7 +2046,7 @@ var AEP_EXPORT_AS_LIBRARY = true;
         applyRenderSettings(p.rqItem, "Best Settings");
         p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Channels": 2});  // Alpha only
         p.om.file = new File(downloadFolder + "/[compName].avi");
-        saveProject(p.proj, folder.fsName + "/output_module_channels_alpha.aep");
+        saveProject(p.proj, omFolder.fsName + "/channels_alpha.aep");
 
         // Color: Straight (Unmatted)
         // NOTE: The "Color" setting cannot be changed via setSettings() in ExtendScript.
@@ -2033,21 +2056,21 @@ var AEP_EXPORT_AS_LIBRARY = true;
         applyRenderSettings(p.rqItem, "Best Settings");
         p.om = applyOutputModuleSettings(p.rqItem, "TIFF Sequence with Alpha", {"Color": 0});  // Straight (Unmatted) - DOES NOT WORK
         p.om.file = new File(downloadFolder + "/[compName]/[compName]_[#####].tif");
-        saveProject(p.proj, folder.fsName + "/output_module_color_straight_unmatted.aep");
+        saveProject(p.proj, omFolder.fsName + "/color_straight_unmatted.aep");
 
         // Preserve RGB sample (requires alpha channel)
         p = createRenderQueueProject("Comp 1");
         applyRenderSettings(p.rqItem, "Best Settings");
         p.om = applyOutputModuleSettings(p.rqItem, "Lossless with Alpha");
         p.om.file = new File(downloadFolder + "/[compName].avi");
-        saveProject(p.proj, folder.fsName + "/output_module_preserve_rgb.aep");
+        saveProject(p.proj, omFolder.fsName + "/preserve_rgb.aep");
 
         // Custom H.264 sample
         p = createRenderQueueProject("Comp 1");
         applyRenderSettings(p.rqItem, "Best Settings");
         p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
         p.om.file = new File(downloadFolder + "/[compName].mp4");
-        saveProject(p.proj, folder.fsName + "/output_module_custom_h264.aep");
+        saveProject(p.proj, omFolder.fsName + "/custom_h264.aep");
 
         // -----------------------------------------------------------------
         // Output Module samples - Crop settings
@@ -2062,7 +2085,7 @@ var AEP_EXPORT_AS_LIBRARY = true;
             "Crop Right": 10
         });
         p.om.file = new File(downloadFolder + "/[compName].avi");
-        saveProject(p.proj, folder.fsName + "/output_module_crop_checked.aep");
+        saveProject(p.proj, omFolder.fsName + "/crop_checked.aep");
 
         // Crop using Region of Interest
         p = createRenderQueueProject("Comp 1");
@@ -2070,7 +2093,7 @@ var AEP_EXPORT_AS_LIBRARY = true;
         applyRenderSettings(p.rqItem, "Best Settings");
         p.om = applyOutputModuleSettings(p.rqItem, "Lossless", {"Crop": true});
         p.om.file = new File(downloadFolder + "/[compName].avi");
-        saveProject(p.proj, folder.fsName + "/output_module_crop_use_roi_checked.aep");
+        saveProject(p.proj, omFolder.fsName + "/crop_use_roi_checked.aep");
 
         // -----------------------------------------------------------------
         // Output Module samples - Resize settings
@@ -2083,7 +2106,7 @@ var AEP_EXPORT_AS_LIBRARY = true;
             "Stretch Height": 720
         });
         p.om.file = new File(downloadFolder + "/[compName].avi");
-        saveProject(p.proj, folder.fsName + "/output_module_resize_checked.aep");
+        saveProject(p.proj, omFolder.fsName + "/resize_checked.aep");
 
         p = createRenderQueueProject("Comp 1");
         applyRenderSettings(p.rqItem, "Best Settings");
@@ -2093,7 +2116,7 @@ var AEP_EXPORT_AS_LIBRARY = true;
             "Stretch Height": 800  // Different aspect ratio
         });
         p.om.file = new File(downloadFolder + "/[compName].avi");
-        saveProject(p.proj, folder.fsName + "/output_module_resize_lock_aspect_ratio_unchecked.aep");
+        saveProject(p.proj, omFolder.fsName + "/resize_lock_aspect_ratio_unchecked.aep");
 
         p = createRenderQueueProject("Comp 1");
         applyRenderSettings(p.rqItem, "Best Settings");
@@ -2104,7 +2127,7 @@ var AEP_EXPORT_AS_LIBRARY = true;
             "Stretch Quality": 0  // Low
         });
         p.om.file = new File(downloadFolder + "/[compName].avi");
-        saveProject(p.proj, folder.fsName + "/output_module_resize_quality_low.aep");
+        saveProject(p.proj, omFolder.fsName + "/resize_quality_low.aep");
 
         // -----------------------------------------------------------------
         // Output Module samples - Other settings
@@ -2114,13 +2137,13 @@ var AEP_EXPORT_AS_LIBRARY = true;
         p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
         try { p.om.includeSourceXMP = true; } catch (e) {}
         p.om.file = new File(downloadFolder + "/[compName].mp4");
-        saveProject(p.proj, folder.fsName + "/output_module_include_source_xmp_data_on.aep");
+        saveProject(p.proj, omFolder.fsName + "/include_source_xmp_data_on.aep");
 
         p = createRenderQueueProject("Comp 1");
         applyRenderSettings(p.rqItem, "Best Settings");
         p.om = applyOutputModuleSettings(p.rqItem, "H.264 - Match Render Settings - 15 Mbps");
         p.om.file = new File(downloadFolder + "/[compName].mp4");
-        saveProject(p.proj, folder.fsName + "/output_module_include_project_link_off.aep");
+        saveProject(p.proj, omFolder.fsName + "/include_project_link_off.aep");
 
         // -----------------------------------------------------------------
         // Output path pattern samples

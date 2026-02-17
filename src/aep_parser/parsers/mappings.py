@@ -215,3 +215,43 @@ def map_viewer_type_from_string(label: str) -> ViewerType | None:
         "AE Footage": ViewerType.VIEWER_FOOTAGE,
     }
     return mapping.get(label, ViewerType.VIEWER_COMPOSITION)
+
+
+def map_output_format(format_id: str) -> int:
+    """Map a Roou 4-char format identifier to its ExtendScript numeric Format value.
+
+    The Roou chunk stores the output format as a 4-character ASCII string
+    (e.g. ``"H264"``, ``"TIF "``, ``"png!"``). ExtendScript exposes this as a
+    numeric ``Format`` value in ``OutputModule.getSettings()``.
+
+    Args:
+        format_id: The 4-char format identifier from the Roou chunk.
+
+    Returns:
+        The numeric Format value matching ExtendScript ``getSettings()``.
+
+    Raises:
+        ValueError: If the format identifier is not recognised.
+    """
+    mapping: dict[str, int] = {
+        "AIFF": 0,
+        ".AVI": 1,
+        "sDPX": 2,
+        "H264": 3,
+        "IFF ": 4,
+        "JPEG": 5,
+        "Mp3 ": 6,
+        "oEXR": 7,
+        "png!": 8,
+        "8BPS": 9,
+        "MooV": 10,
+        "RHDR": 11,
+        "SGI ": 12,
+        "TIF ": 13,
+        "TPIC": 14,
+        "wao_": 15,
+    }
+    try:
+        return mapping[format_id]
+    except KeyError:
+        raise ValueError(f"Unknown output format identifier: {format_id!r}") from None

@@ -62,6 +62,7 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
     root_chunks = aep.data.chunks
 
     root_folder_chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")
+    head_chunk = find_by_type(chunks=root_chunks, chunk_type="head")
     nnhd_chunk = find_by_type(chunks=root_chunks, chunk_type="nnhd")
     acer_chunk = find_by_type(chunks=root_chunks, chunk_type="acer")
     dwga_chunk = find_by_type(chunks=root_chunks, chunk_type="dwga")
@@ -72,6 +73,7 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
 
     project = Project(
         bits_per_channel=map_bits_per_channel(nnhd_chunk.bits_per_channel),
+        revision=head_chunk.file_revision,
         color_management_system=ColorManagementSystem(
             int(color_profile["colorManagementSystem"])
         ),

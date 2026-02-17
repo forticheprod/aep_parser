@@ -137,6 +137,21 @@ class TestColorManagement:
         assert project.lut_interpolation_method == project.lut_interpolation_method.TETRAHEDRAL
 
 
+class TestRevision:
+    """Tests for revision attribute."""
+
+    def test_revision_save_01(self) -> None:
+        """A new project saved once has revision 1."""
+        project = parse_project(SAMPLES_DIR / "save_01.aep")
+        assert project.revision == 1
+
+    def test_revision_increases_with_changes(self) -> None:
+        """Projects with more user actions have higher revision numbers."""
+        project_simple = parse_project(SAMPLES_DIR / "save_01.aep")
+        project_changed = parse_project(SAMPLES_DIR / "bitsPerChannel_16.aep")
+        assert project_changed.revision > project_simple.revision
+
+
 VIEW_SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "view"
 
 

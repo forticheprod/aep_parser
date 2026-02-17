@@ -136,11 +136,13 @@ def parse(aep_file_path: str | os.PathLike[str]) -> App:
         aep_file_path: Path to the ``.aep`` file.
 
     Example:
+        ```
         import aep_parser
 
         app = aep_parser.parse("project.aep")
         project = app.project
         print(app.version)
+        ```
     """
     file_path = os.fspath(aep_file_path)
     with Aep.from_file(file_path) as aep:

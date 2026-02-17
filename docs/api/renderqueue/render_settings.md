@@ -22,18 +22,10 @@ Render settings are stored as a `dict[str, Any]` on the `RenderQueueItem.setting
 | `"Time Span Start"` | `float` | Start time in seconds |
 | `"Time Span Duration"` | `float` | Duration in seconds |
 | `"Time Span End"` | `float` | End time in seconds |
-| `"Time Span Start Frames"` | `int` | Start time in frames |
-| `"Time Span Duration Frames"` | `int` | Duration in frames |
-| `"Time Span End Frames"` | `int` | End time in frames |
 | `"Frame Rate"` | `bool` | Whether to use a custom frame rate |
 | `"Use this frame rate"` | `float` | Custom frame rate value (when `"Frame Rate"` is True) |
 | `"Use comp's frame rate"` | `float` | The composition's frame rate |
-| `"Template Name"` | `str` | Name of the render settings template |
-| `"Log Type"` | `LogType` | Logging level (ERRORS_ONLY, ERRORS_AND_SETTINGS, ERRORS_AND_PER_FRAME_INFO) |
-| `"Queue Item Notify"` | `bool` | Whether to notify user upon completion |
 | `"Skip Existing Files"` | `bool` | Whether to skip rendering if output file exists |
-| `"Start Time:"` | `int` | Unix timestamp when rendering started |
-| `"Elapsed Time:"` | `float` | Elapsed render time in seconds |
 
 ## Enumerations
 
@@ -63,5 +55,5 @@ for rq_item in project.render_queue.items:
     print(f"Resolution: {settings['Resolution']}")
     print(f"Motion Blur: {settings['Motion Blur'].name}")
     print(f"Time Span: {settings['Time Span'].name}")
-    print(f"Template: {settings['Template Name']}")
+    print(f"Template: {rq_item.name}")
 ```

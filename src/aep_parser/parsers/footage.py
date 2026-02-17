@@ -90,19 +90,19 @@ def parse_footage(
         asset_type = "file"
         file_source = _parse_file_source(pin_child_chunks, source_attrs)
 
-        # If start frame or end frame is undefined, try to get it from the filenames
-        if 0xFFFFFFFF in (start_frame, end_frame):
-            first_file_numbers = re.findall(r"\d+", file_source.file_names[0])
-            last_file_numbers = re.findall(r"\d+", file_source.file_names[-1])
-            if len(file_source.file_names) == 1:
-                start_frame = end_frame = int(first_file_numbers[-1])
-            else:
-                for first, last in zip(
-                    reversed(first_file_numbers), reversed(last_file_numbers)
-                ):
-                    if first != last:
-                        start_frame = int(first)
-                        end_frame = int(last)
+        # Extract PSD-specific metadata into file_attributes
+        if opti_chunk.asset_type == "8BPS":
+            file_source.file_attributes = _parse_psd_attributes(opti_chunk)
+
+        # If start frame or end frame is undefined, derive from StVc filenames.
+        # The frame number is always the last digit group in each filename
+        # (e.g. "render.0101.exr" → 101).
+        if 0xFFFFFFFF in (start_frame, end_frame) and file_source.file_names:
+            first_match = re.search(r"(\d+)\D*$", file_source.file_names[0])
+            last_match = re.search(r"(\d+)\D*$", file_source.file_names[-1])
+            if first_match and last_match:
+                start_frame = int(first_match.group(1))
+                end_frame = int(last_match.group(1))
 
         if not item_name:
             if not source_attrs["is_still"] and file_source.target_is_folder:
@@ -110,10 +110,16 @@ def parse_footage(
                     pin_child_chunks,
                     start_frame,
                     end_frame,
-                    file_names=file_source.file_names,
+                    frame_padding=sspc_chunk.frame_padding,
                 )
             if not item_name:
-                item_name = os.path.basename(file_source.file)
+                basename = os.path.basename(file_source.file)
+                # For PSD footage, prepend the PSD group/folder name
+                psd_group = getattr(opti_chunk, "psd_group_name", "")
+                if psd_group:
+                    item_name = f"{psd_group}/{basename}"
+                else:
+                    item_name = basename
 
         main_source = file_source
 
@@ -172,11 +178,37 @@ def _parse_file_source(
     return file_source
 
 
+def _parse_psd_attributes(opti_chunk: Aep.OptiBody) -> dict[str, object]:
+    """Build a ``file_attributes`` dict from PSD-specific opti fields.
+
+    Args:
+        opti_chunk: The parsed opti body with ``asset_type == "8BPS"``.
+
+    Returns:
+        A dict of PSD metadata suitable for
+        [FileSource.file_attributes][aep_parser.models.sources.file.FileSource.file_attributes].
+    """
+    attrs: dict[str, object] = {
+        "psd_layer_index": opti_chunk.psd_layer_index,
+        "psd_group_name": opti_chunk.psd_group_name or "",
+        "psd_layer_count": opti_chunk.psd_layer_count,
+        "psd_canvas_width": opti_chunk.psd_canvas_width,
+        "psd_canvas_height": opti_chunk.psd_canvas_height,
+        "psd_bit_depth": opti_chunk.psd_bit_depth,
+        "psd_channels": opti_chunk.psd_channels,
+        "psd_layer_top": opti_chunk.psd_layer_top,
+        "psd_layer_left": opti_chunk.psd_layer_left,
+        "psd_layer_bottom": opti_chunk.psd_layer_bottom,
+        "psd_layer_right": opti_chunk.psd_layer_right,
+    }
+    return attrs
+
+
 def _build_sequence_name(
     pin_child_chunks: list[Aep.Chunk],
     start_frame: int,
     end_frame: int,
-    file_names: list[str] | None = None,
+    frame_padding: int,
 ) -> str:
     """Build the display name for an image sequence with ``[start-end]`` format.
 
@@ -190,8 +222,7 @@ def _build_sequence_name(
         pin_child_chunks: The Pin chunk's child chunks.
         start_frame: The first frame number of the sequence.
         end_frame: The last frame number of the sequence.
-        file_names: Optional list of actual filenames from StVc chunks,
-            used to derive the correct zero-padding width.
+        frame_padding: The zero-padding width from the sspc chunk.
     """
     if 0xFFFFFFFF in (start_frame, end_frame):
         return ""
@@ -214,32 +245,5 @@ def _build_sequence_name(
     if not prefix and not extension:
         return ""
 
-    padding = _get_frame_padding(file_names, start_frame, end_frame)
-    frame_range = f"[{start_frame:0{padding}d}-{end_frame:0{padding}d}]"
+    frame_range = f"[{start_frame:0{frame_padding}d}-{end_frame:0{frame_padding}d}]"
     return f"{prefix}{frame_range}{extension}"
-
-
-def _get_frame_padding(
-    file_names: list[str] | None,
-    start_frame: int,
-    end_frame: int,
-) -> int:
-    """Determine the zero-padding width for frame numbers.
-
-    Examines actual filenames from the sequence to detect the padding used
-    on disk. Falls back to ``max(4, digits_needed)`` when filenames are
-    unavailable.
-
-    Args:
-        file_names: Actual filenames from StVc chunks.
-        start_frame: The first frame number.
-        end_frame: The last frame number.
-    """
-    if file_names:
-        # Extract the last group of digits from the first filename to
-        # determine the padding used on disk.
-        match = re.search(r"(\d+)(?=\D*$)", file_names[0])
-        if match:
-            return len(match.group(1))
-
-    return max(4, len(str(end_frame)))

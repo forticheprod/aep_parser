@@ -450,8 +450,23 @@ types:
         size: 4
         encoding: ASCII
         doc: Video codec 4-char code
-      - size: 24
-        doc: Unknown bytes 8-31
+      - size: 8
+        doc: Unknown bytes 8-15
+      - id: starting_number
+        type: u4
+        doc: Starting frame number for image sequence output (bytes 16-19)
+      - size: 6
+        doc: Unknown bytes 20-25
+      - id: format_id
+        type: str
+        size: 4
+        encoding: ASCII
+        doc: |
+          Output format 4-char identifier (e.g. ".AVI", "H264", "TIF ", "8BPS",
+          "png!", "JPEG", "MooV", "oEXR", "AIFF", "wao_", "Mp3 ", "sDPX",
+          "SGI ", "IFF ", "TPIC", "RHDR")
+      - size: 2
+        doc: Unknown bytes 30-31
       - size: 4
         doc: Unknown bytes 32-35
       - id: width
@@ -467,8 +482,13 @@ types:
       - id: frame_rate
         type: u1
         doc: Frame rate in fps
-      - size: 9
-        doc: Unknown bytes 68-76
+      - size: 3
+        doc: Unknown bytes 68-70
+      - id: depth
+        type: u1
+        doc: Color depth in bits per pixel (24=Millions/8bpc, 48=Trillions/16bpc, 96=Floating/32bpc)
+      - size: 5
+        doc: Unknown bytes 72-76
       - id: color_premultiplied
         type: u1
         doc: Color premultiplied flag (0=no, 1=yes)
@@ -477,8 +497,11 @@ types:
       - id: color_matted
         type: u1
         doc: Color matted flag (0=no, 1=yes)
-      - size: 26
-        doc: Unknown bytes 82-107
+      - size: 18
+        doc: Unknown bytes 82-99
+      - id: audio_sample_rate
+        type: f8
+        doc: Audio sample rate in Hz (e.g. 8000, 22050, 44100, 48000, 96000)
       - id: audio_disabled_hi
         type: u1
         doc: High byte of audio disabled flag (0xFF when disabled)
@@ -535,8 +558,16 @@ types:
       - id: include_source_xmp
         type: b1
         doc: Include source XMP metadata in output (bit 6)
-      - type: b6
-        doc: Unknown bits 5-0
+      - type: b1
+        doc: Unknown bit 5
+      - id: use_region_of_interest
+        type: b1
+        doc: Use Region of Interest checkbox (bit 4)
+      - id: use_comp_frame_number
+        type: b1
+        doc: Use Comp Frame Number checkbox (bit 3)
+      - type: b3
+        doc: Unknown bits 2-0
       - id: post_render_target_comp_id
         type: u4
         doc: |
@@ -545,8 +576,28 @@ types:
           When 0, uses the render queue item's comp.
       - size: 4
         doc: Unknown bytes 12-15
-      - size: 15
-        doc: Unknown bytes 16-30
+      - size: 3
+        doc: Unknown bytes 16-18
+      - id: channels
+        type: u1
+        doc: Output channels (0=RGB, 1=RGBA, 2=Alpha)
+      - size: 3
+        doc: Unknown bytes 20-22
+      - id: resize_quality
+        type: u1
+        doc: Resize quality (byte 23, 0=low, 1=high)
+      - size: 3
+        doc: Unknown bytes 24-26
+      - id: resize
+        type: u1
+        doc: Resize checkbox (byte 27, 0=off, 1=on)
+      - size: 1
+        doc: Unknown byte 28
+      - id: lock_aspect_ratio
+        type: u1
+        doc: Lock Aspect Ratio checkbox (byte 29, 0=off, 1=on)
+      - size: 1
+        doc: Unknown byte 30
       - type: b7
         doc: Unknown bits 7-1 of byte 31
       - id: crop
@@ -564,8 +615,11 @@ types:
       - id: crop_right
         type: u2
         doc: Crop right value in pixels (bytes 38-39)
-      - size: 8
-        doc: Unknown bytes 40-47
+      - size: 7
+        doc: Unknown bytes 40-46
+      - id: include_project_link
+        type: u1
+        doc: Include project link in output (byte 47, 0=off, 1=on)
       - id: post_render_action
         type: u4
         doc: Post-render action (0=NONE, 1=IMPORT, 2=IMPORT_AND_REPLACE, 3=SET_PROXY)
@@ -934,7 +988,7 @@ types:
       - id: layer_name
         size: 32
         type: str
-        encoding: windows-1250
+        encoding: windows-1252
       - size: 3
       - id: blending_mode
         type: u1
@@ -1004,7 +1058,7 @@ types:
     seq:
       - id: list_type
         type: str
-        encoding: windows-1250
+        encoding: windows-1252
         size: 4
       - id: chunks
         type: chunk
@@ -1087,16 +1141,97 @@ types:
         if: asset_type == "Soli"
       - id: solid_name
         type: strz
-        encoding: windows-1250
+        encoding: windows-1252
         size: 256
         if: asset_type == "Soli"
       - size: 4
         if: asset_type_int == 2
       - id: placeholder_name
         type: strz
-        encoding: windows-1250
+        encoding: windows-1252
         size-eos: true
         if: asset_type_int == 2
+      # PSD-specific fields (Photoshop document layers)
+      # Note: PSD sub-structure seems to use little-endian byte order...
+      - size: 10
+        if: asset_type == "8BPS"
+        doc: Unknown PSD bytes 6-15
+      - id: psd_layer_index
+        type: u2
+        if: asset_type == "8BPS"
+        doc: |
+          Zero-based index of this layer within the source PSD file.
+          0 is typically the Background layer. 0xFFFF means
+          merged/flattened (no specific layer).
+      - size: 4
+        if: asset_type == "8BPS"
+        doc: Unknown PSD bytes 18-21 (contains reversed magic "SPB8")
+      - size: 4
+        if: asset_type == "8BPS"
+        doc: Unknown PSD bytes 22-25
+      - size: 4
+        if: asset_type == "8BPS"
+        doc: Unknown PSD bytes 26-29
+      - id: psd_channels
+        type: u1
+        if: asset_type == "8BPS"
+        doc: Number of color channels (3=RGB, 4=RGBA or CMYK)
+      - size: 1
+        if: asset_type == "8BPS"
+        doc: Unknown PSD byte 31
+      - id: psd_canvas_height
+        type: u2le
+        if: asset_type == "8BPS"
+        doc: Full PSD canvas height in pixels
+      - size: 2
+        if: asset_type == "8BPS"
+        doc: Unknown PSD bytes 34-35
+      - id: psd_canvas_width
+        type: u2le
+        if: asset_type == "8BPS"
+        doc: Full PSD canvas width in pixels
+      - size: 2
+        if: asset_type == "8BPS"
+        doc: Unknown PSD bytes 38-39
+      - id: psd_bit_depth
+        type: u1
+        if: asset_type == "8BPS"
+        doc: Bit depth per channel (8=8bpc, 16=16bpc)
+      - size: 7
+        if: asset_type == "8BPS"
+        doc: Unknown PSD bytes 41-47
+      - id: psd_layer_count
+        type: u1
+        if: asset_type == "8BPS"
+        doc: Total number of layers in the source PSD file
+      - size: 29
+        if: asset_type == "8BPS"
+        doc: Unknown PSD bytes 49-77
+      - id: psd_layer_top
+        type: s4le
+        if: asset_type == "8BPS"
+        doc: Layer bounding box top coordinate in pixels (can be negative)
+      - id: psd_layer_left
+        type: s4le
+        if: asset_type == "8BPS"
+        doc: Layer bounding box left coordinate in pixels (can be negative)
+      - id: psd_layer_bottom
+        type: s4le
+        if: asset_type == "8BPS"
+        doc: Layer bounding box bottom coordinate in pixels
+      - id: psd_layer_right
+        type: s4le
+        if: asset_type == "8BPS"
+        doc: Layer bounding box right coordinate in pixels
+      - size: 250
+        if: asset_type == "8BPS"
+        doc: Unknown PSD bytes 94-343
+      - id: psd_group_name
+        type: strz
+        encoding: UTF-8
+        size-eos: true
+        if: asset_type == "8BPS"
+        doc: PSD group/folder name that this layer belongs to (e.g. "PAINT 02")
     instances:
       red:
         value: 'color[1]'
@@ -1119,7 +1254,7 @@ types:
       - id: name
         size: 32
         type: strz
-        encoding: windows-1250
+        encoding: windows-1252
       - size: 8
       - id: last_color
         type: u1
@@ -1292,6 +1427,12 @@ types:
         type: u4
       - id: end_frame
         type: u4
+      - id: frame_padding
+        type: u4
+        doc: |
+          Number of zero-padded digits used for frame numbers in image
+          sequences. For example, 4 means frames are numbered as 0001,
+          0002 etc. 0 for non-sequence footage.
     instances:
       duration:
         value: 'duration_dividend * 1.0 / duration_divisor'
