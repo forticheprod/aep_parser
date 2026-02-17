@@ -32,6 +32,7 @@ from aep_parser.models.layers import (
 )
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "layer"
+BUGS_DIR = Path(__file__).parent.parent / "samples" / "bugs"
 
 
 @pytest.mark.parametrize("sample_name", get_sample_files(SAMPLES_DIR))
@@ -486,3 +487,21 @@ class TestAudio:
         layer_json = get_layer_from_json(expected)
         assert layer_json["audioEnabled"] is False
         assert layer.audio_enabled == layer_json["audioEnabled"]
+
+
+class TestLayerNameEncoding:
+    """Regression tests for layer name encoding edge cases."""
+
+    def test_non_ascii_layer_name(self) -> None:
+        """Layer names with non-ASCII characters (e.g. ≈) should parse without error.
+
+        Regression test for windows-1250 decoding error: byte 0x98 is undefined
+        in windows-1250 but valid in windows-1252.
+        """
+        expected = load_expected(BUGS_DIR, "windows-1250_decoding_error")
+        layer = get_first_layer(
+            parse_project(BUGS_DIR / "windows-1250_decoding_error.aep")
+        )
+        layer_json = get_layer_from_json(expected)
+        assert layer.name == layer_json["name"]
+        assert layer.name == "\u2248"

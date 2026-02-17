@@ -1,7 +1,7 @@
 {
   "projectName": "skip_frames_3.aep",
   "bitsPerChannel": 32,
-  "colorManagementSystem": 1,
+  "colorManagementSystem": 0,
   "compensateForSceneReferredProfiles": false,
   "displayStartFrame": 0,
   "expressionEngine": "extendscript",
@@ -21,7 +21,7 @@
     
   ],
   "workingGamma": 2.4,
-  "workingSpace": "None",
+  "workingSpace": "sRGB IEC61966-2.1",
   "items": [
     {
       "activeCamera": null,
