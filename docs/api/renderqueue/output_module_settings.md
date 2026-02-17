@@ -8,13 +8,10 @@ Output module settings are stored as a `dict[str, Any]` on the `OutputModule.set
 |-----|------|-------------|
 | `"Video Output"` | `bool` | Whether video output is enabled |
 | `"Output Audio"` | `bool` | Whether audio output is enabled |
-| `"Video Codec"` | `str | None` | Video codec four-character code (e.g., "avc1", "ap4h") |
-| `"Width"` | `int` | Output width in pixels |
-| `"Height"` | `int` | Output height in pixels |
 | `"Color"` | `OutputColorMode` | Color mode (straight or premultiplied alpha) |
 | `"Audio Bit Depth"` | `AudioBitDepth` | Audio bit depth |
 | `"Audio Channels"` | `AudioChannels` | Audio channel configuration |
-| `"Frame Rate"` | `float` | Output frame rate |
+| `"Crop"` | `bool` | Whether the Crop checkbox is enabled |
 | `"Crop Top"` | `int` | Crop pixels from the top |
 | `"Crop Left"` | `int` | Crop pixels from the left |
 | `"Crop Bottom"` | `int` | Crop pixels from the bottom |
@@ -38,8 +35,7 @@ for rq_item in project.render_queue.items:
     for output_module in rq_item.output_modules:
         settings = output_module.settings
         print(f"Video Output: {settings['Video Output']}")
-        print(f"Video Codec: {settings['Video Codec']}")
-        print(f"Dimensions: {settings['Width']}x{settings['Height']}")
+        print(f"Dimensions: {output_module.width}x{output_module.height}")
         print(f"Color Mode: {settings['Color'].name}")
-        print(f"Output Frame Rate: {settings['Frame Rate']}")
+        print(f"Output Frame Rate: {output_module.frame_rate}")
 ```

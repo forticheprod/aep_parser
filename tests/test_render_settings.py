@@ -8,6 +8,7 @@ import pytest
 from conftest import parse_project
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "renderqueue"
+OM_SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "output_module"
 
 
 class TestRenderSettings:
@@ -311,11 +312,21 @@ class TestOutputModuleSettings:
         assert om.settings is not None
         assert om.settings["Audio Channels"] == 2  # Stereo
         assert om.settings["Audio Bit Depth"] == 2  # 16-bit
+        assert om.settings["Audio Sample Rate"] == 48000
+        assert om.settings["Channels"] == 0  # RGB
+        assert om.settings["Depth"] == 24  # Millions of Colors (8 bpc)
+        assert om.settings["Format"] == 3  # H.264
         assert om.settings["Color"] == 1  # Premultiplied
+        assert om.settings["Include Project Link"] is True
+        assert om.settings["Lock Aspect Ratio"] is True
+        assert om.settings["Resize"] is False
+        assert om.settings["Resize Quality"] == 1  # High
+        assert om.settings["Starting #"] == 0
+        assert om.settings["Use Comp Frame Number"] is True
 
     def test_audio_output_off(self) -> None:
         """Test audio output disabled."""
-        project = parse_project(SAMPLES_DIR / "output_module_audio_output_off.aep")
+        project = parse_project(OM_SAMPLES_DIR / "audio_output_off.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         # Audio settings still present even when disabled
@@ -323,39 +334,242 @@ class TestOutputModuleSettings:
 
     def test_audio_mono(self) -> None:
         """Test mono audio channel."""
-        project = parse_project(SAMPLES_DIR / "output_module_audio_mono.aep")
+        project = parse_project(OM_SAMPLES_DIR / "audio_mono.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Audio Channels"] == 1  # Mono
 
     def test_audio_8bit(self) -> None:
         """Test 8-bit audio depth."""
-        project = parse_project(SAMPLES_DIR / "output_module_audio_8bit.aep")
+        project = parse_project(OM_SAMPLES_DIR / "audio_8bit.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Audio Bit Depth"] == 1  # 8-bit
 
     def test_audio_32bit(self) -> None:
         """Test 32-bit audio depth."""
-        project = parse_project(SAMPLES_DIR / "output_module_audio_32bit.aep")
+        project = parse_project(OM_SAMPLES_DIR / "audio_32bit.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Audio Bit Depth"] == 4  # 32-bit
+
+    @pytest.mark.parametrize(
+        "filename, expected_rate",
+        [
+            ("audio_8000hz.aep", 8000),
+            ("audio_16000hz.aep", 16000),
+            ("audio_22050hz.aep", 22050),
+            ("audio_32000hz.aep", 32000),
+            ("audio_96000hz.aep", 96000),
+        ],
+    )
+    def test_audio_sample_rate(self, filename: str, expected_rate: int) -> None:
+        """Test audio sample rate parsing."""
+        project = parse_project(OM_SAMPLES_DIR / filename)
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Audio Sample Rate"] == expected_rate
+
+    @pytest.mark.parametrize(
+        "filename, expected_channels",
+        [
+            ("channels_rgb.aep", 0),
+            ("channels_rgba.aep", 1),
+            ("channels_alpha.aep", 2),
+        ],
+    )
+    def test_channels(self, filename: str, expected_channels: int) -> None:
+        """Test output channels parsing."""
+        project = parse_project(OM_SAMPLES_DIR / filename)
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Channels"] == expected_channels
+
+    @pytest.mark.parametrize(
+        "filename, expected_depth",
+        [
+            ("depth_millions.aep", 24),
+            ("depth_millions+.aep", 32),
+            ("depth_trillions.aep", 48),
+            ("depth_trillions+.aep", 64),
+            ("depth_floating.aep", 96),
+            ("depth_floating+.aep", 128),
+        ],
+    )
+    def test_depth(self, filename: str, expected_depth: int) -> None:
+        """Test output color depth parsing."""
+        project = parse_project(OM_SAMPLES_DIR / filename)
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Depth"] == expected_depth
+
+    @pytest.mark.parametrize(
+        "filename, expected_format",
+        [
+            ("format_aiff.aep", 0),
+            ("format_avi.aep", 1),
+            ("format_dpx_cineon_sequence.aep", 2),
+            ("format_h264.aep", 3),
+            ("format_iff_sequence.aep", 4),
+            ("format_jpeg_sequence.aep", 5),
+            ("format_mp3.aep", 6),
+            ("format_openexr_sequence.aep", 7),
+            ("format_png_sequence.aep", 8),
+            ("format_photoshop_sequence.aep", 9),
+            ("format_quicktime.aep", 10),
+            ("format_radiance_sequence.aep", 11),
+            ("format_sgi_sequence.aep", 12),
+            ("format_tiff_sequence.aep", 13),
+            ("format_targa_sequence.aep", 14),
+            ("format_wav.aep", 15),
+        ],
+    )
+    def test_format(self, filename: str, expected_format: int) -> None:
+        """Test output format parsing."""
+        project = parse_project(SAMPLES_DIR / filename)
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Format"] == expected_format
 
     @pytest.mark.skip(
         reason="Cannot generate via ExtendScript - Color setting ignored by AE API"
     )
     def test_color_straight_unmatted(self) -> None:
         """Test straight (unmatted) color mode."""
-        project = parse_project(SAMPLES_DIR / "output_module_color_straight_unmatted.aep")
+        project = parse_project(OM_SAMPLES_DIR / "color_straight_unmatted.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Color"] == 0  # Straight (Unmatted)
 
+    def test_include_project_link_off(self) -> None:
+        """Test include project link is False when disabled."""
+        project = parse_project(
+            OM_SAMPLES_DIR / "include_project_link_off.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Include Project Link"] is False
+
+    def test_include_project_link_on(self) -> None:
+        """Test include project link is True when enabled."""
+        project = parse_project(
+            OM_SAMPLES_DIR / "include_project_link_on.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Include Project Link"] is True
+
+    def test_use_region_of_interest_unchecked(self) -> None:
+        """Test Use Region of Interest is False when unchecked."""
+        project = parse_project(
+            OM_SAMPLES_DIR / "crop_use_roi_unchecked.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Use Region of Interest"] is False
+
+    def test_use_region_of_interest_checked(self) -> None:
+        """Test Use Region of Interest is True when checked."""
+        project = parse_project(
+            OM_SAMPLES_DIR / "crop_use_roi_checked.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Use Region of Interest"] is True
+
+    def test_lock_aspect_ratio_off(self) -> None:
+        """Test Lock Aspect Ratio is False when disabled."""
+        project = parse_project(
+            SAMPLES_DIR / "lock_aspect_ratio_off.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Lock Aspect Ratio"] is False
+
+    def test_lock_aspect_ratio_on(self) -> None:
+        """Test Lock Aspect Ratio is True when enabled."""
+        project = parse_project(
+            SAMPLES_DIR / "lock_aspect_ratio_on.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Lock Aspect Ratio"] is True
+
+    def test_resize_unchecked(self) -> None:
+        """Test Resize is False when unchecked."""
+        project = parse_project(
+            OM_SAMPLES_DIR / "resize_unchecked.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Resize"] is False
+
+    def test_resize_checked(self) -> None:
+        """Test Resize is True when checked."""
+        project = parse_project(
+            OM_SAMPLES_DIR / "resize_checked.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Resize"] is True
+
+    def test_resize_quality_low(self) -> None:
+        """Test Resize Quality is 0 when set to low."""
+        project = parse_project(
+            OM_SAMPLES_DIR / "resize_quality_low.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Resize Quality"] == 0
+
+    def test_resize_quality_high(self) -> None:
+        """Test Resize Quality is 1 when set to high."""
+        project = parse_project(
+            OM_SAMPLES_DIR / "resize_quality_high.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Resize Quality"] == 1
+
+    @pytest.mark.parametrize(
+        "filename, expected_value",
+        [
+            ("starting_0.aep", 0),
+            ("starting_101.aep", 101),
+            ("starting_9999999.aep", 9999999),
+        ],
+    )
+    def test_starting_number(
+        self, filename: str, expected_value: int
+    ) -> None:
+        """Test Starting # parsing from Roou chunk."""
+        project = parse_project(SAMPLES_DIR / filename)
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Starting #"] == expected_value
+
+    def test_use_comp_frame_number_off(self) -> None:
+        """Test Use Comp Frame Number is False when unchecked."""
+        project = parse_project(
+            SAMPLES_DIR / "use_comp_frame_number_off.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Use Comp Frame Number"] is False
+
+    def test_use_comp_frame_number_on(self) -> None:
+        """Test Use Comp Frame Number is True when checked."""
+        project = parse_project(
+            SAMPLES_DIR / "use_comp_frame_number_on.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Use Comp Frame Number"] is True
+
     def test_include_source_xmp_off(self) -> None:
         """Test include source XMP is False when disabled."""
         project = parse_project(
-            SAMPLES_DIR / "output_module_include_source_xmp_data_off.aep"
+            OM_SAMPLES_DIR / "include_source_xmp_data_off.aep"
         )
         om = project.render_queue.items[0].output_modules[0]
 
@@ -364,7 +578,7 @@ class TestOutputModuleSettings:
     def test_include_source_xmp_on(self) -> None:
         """Test include source XMP is True when enabled."""
         project = parse_project(
-            SAMPLES_DIR / "output_module_include_source_xmp_data_on.aep"
+            OM_SAMPLES_DIR / "include_source_xmp_data_on.aep"
         )
         om = project.render_queue.items[0].output_modules[0]
 
@@ -372,21 +586,21 @@ class TestOutputModuleSettings:
 
     def test_video_output_on(self) -> None:
         """Test video output is enabled (default)."""
-        project = parse_project(SAMPLES_DIR / "output_module_custom_h264.aep")
-        settings = project.render_queue.items[0].output_modules[0].settings
+        project = parse_project(OM_SAMPLES_DIR / "custom_h264.aep")
+        om = project.render_queue.items[0].output_modules[0]
 
-        assert settings["Video Output"] is True
-        assert settings["Width"] == 1920
-        assert settings["Height"] == 1080
+        assert om.settings["Video Output"] is True
+        assert om.width == 1920
+        assert om.height == 1080
 
     def test_video_output_off(self) -> None:
         """Test video output is disabled."""
-        project = parse_project(SAMPLES_DIR / "output_module_custom_has_video_off.aep")
-        settings = project.render_queue.items[0].output_modules[0].settings
+        project = parse_project(OM_SAMPLES_DIR / "custom_has_video_off.aep")
+        om = project.render_queue.items[0].output_modules[0]
 
-        assert settings["Video Output"] is False
-        assert settings["Width"] == 0
-        assert settings["Height"] == 0
+        assert om.settings["Video Output"] is False
+        assert om.width == 0
+        assert om.height == 0
 
 
 class TestOutputModule:

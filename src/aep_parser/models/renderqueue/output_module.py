@@ -353,14 +353,17 @@ class OutputModule:
     See: https://ae-scripting.docsforadobe.dev/renderqueue/outputmodule/
     """
 
-    crop: bool
-    """When `True`, the Crop checkbox is enabled for this output module."""
-
     file_template: str | None
     """
     The raw file path template, may contain `[compName]` and `[fileExtension]`
     variables.
     """
+
+    frame_rate: float
+    """The output frame rate for this output module."""
+
+    height: int
+    """The output height in pixels."""
 
     include_source_xmp: bool
     """When `True`, writes all source footage XMP metadata to the output file."""
@@ -399,13 +402,13 @@ class OutputModule:
     The names of all output-module templates available in the local
     installation of After Effects.
     """
+
+    width: int
+    """The output width in pixels."""
+
     _project_name: str | None = field(default=None, repr=False)
     _project_color_depth: int | None = field(default=None, repr=False)
-
-    @property
-    def comp_name(self) -> str:
-        """The composition name, resolved from parent RenderQueueItem."""
-        return self.parent.comp_name
+    _video_codec: str | None = field(default=None, repr=False)
 
     @property
     def file(self) -> str | None:
@@ -426,8 +429,11 @@ class OutputModule:
         # Default to Millions of Colors (8 bpc) if not specified
         om_depth = self.settings.get("Depth", OutputColorDepth.MILLIONS_OF_COLORS)
         # Map codec FourCC to friendly name
-        codec = self.settings.get("Video Codec")
-        compressor = _VIDEO_CODEC_NAMES.get(codec, codec) if codec else None
+        compressor = (
+            _VIDEO_CODEC_NAMES.get(self._video_codec, self._video_codec)
+            if self._video_codec
+            else None
+        )
 
         # Calculate effective dimensions applying resolution factor
         # Resolution is stored as [x_factor, y_factor] e.g., [7, 1]
@@ -457,9 +463,6 @@ class OutputModule:
         # 0 = Work Area, 1 = Length of Comp, 2 = Custom
         time_span_mode = rq_settings.get("Time Span", 1)
 
-        # Compute starting frame number from comp's display_start_time and render timeSpanStart
-        # Formula: Starting # = int(displayStartTime * fps) + int(timeSpanStart * fps)
-        # This accounts for both the comp's display offset and the render time span offset
         if time_span_mode == 1:  # LENGTH_OF_COMP
             # Use comp's full duration at effective frame rate
             time_span_start = 0.0
@@ -467,8 +470,11 @@ class OutputModule:
             time_span_end = comp.duration
             # Use round() for duration frames to match AE behavior
             duration_frames = round(comp.duration * effective_frame_rate)
-            # Starting frame is based on display_start_time only
-            starting_number = int(comp.display_start_time * effective_frame_rate)
+            # Compute first rendered frame from comp display start time
+            # This determines the frame offset for output file numbering
+            first_rendered_frame = int(
+                comp.display_start_time * effective_frame_rate
+            )
         else:
             # Use values from render settings (Work Area or Custom)
             time_span_start = rq_settings.get("Time Span Start", 0.0)
@@ -476,14 +482,13 @@ class OutputModule:
             time_span_end = rq_settings.get("Time Span End", 0.0)
             # Use round() for duration frames to match AE behavior
             duration_frames = round(duration_time * effective_frame_rate)
-            # Starting frame combines display_start_time and time_span_start
-            starting_number = int(comp.display_start_time * effective_frame_rate) + int(
-                time_span_start * effective_frame_rate
-            )
+            first_rendered_frame = int(
+                comp.display_start_time * effective_frame_rate
+            ) + int(time_span_start * effective_frame_rate)
 
-        # Frame numbers use computed starting number
-        start_frame = starting_number
-        end_frame = starting_number + duration_frames
+        # Frame numbers use computed first rendered frame
+        start_frame = first_rendered_frame
+        end_frame = first_rendered_frame + duration_frames
 
         # Timecodes include display_start_time offset for absolute positioning
         start_time_for_tc = comp.display_start_time + time_span_start
@@ -493,7 +498,7 @@ class OutputModule:
             self.file_template,
             project_name=self._project_name,
             comp_name=comp.name,
-            render_settings_name=rq_settings.get("Template Name"),
+            render_settings_name=self.parent.name,
             output_module_name=self.name,
             width=effective_width,
             height=effective_height,
