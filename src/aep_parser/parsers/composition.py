@@ -8,6 +8,7 @@ from ..kaitai.utils import (
     find_by_list_type,
     find_by_type,
 )
+from ..models.enums import Label
 from ..models.items.composition import CompItem
 from .layer import parse_layer
 
@@ -21,7 +22,7 @@ def parse_composition(
     child_chunks: list[Aep.Chunk],
     item_id: int,
     item_name: str,
-    label: Aep.Label,
+    label: Label,
     parent_folder: FolderItem,
     comment: str,
 ) -> CompItem:

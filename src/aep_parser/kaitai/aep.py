@@ -722,6 +722,15 @@ class Aep(KaitaiStruct):
         def _fetch_instances(self):
             pass
 
+        @property
+        def working_gamma(self):
+            """Working gamma value (2.2 or 2.4)."""
+            if hasattr(self, '_m_working_gamma'):
+                return self._m_working_gamma
+
+            self._m_working_gamma = (2.4 if self.working_gamma_selector != 0 else 2.2)
+            return getattr(self, '_m_working_gamma', None)
+
 
     class FcidBody(KaitaiStruct):
         """Active composition item ID. Stores the item ID of the currently
@@ -1339,6 +1348,15 @@ class Aep(KaitaiStruct):
             self._m_start_time = (self.start_time_dividend * 1.0) / self.start_time_divisor
             return getattr(self, '_m_start_time', None)
 
+        @property
+        def stretch(self):
+            """Layer time stretch as percentage (100 = normal speed)."""
+            if hasattr(self, '_m_stretch'):
+                return self._m_stretch
+
+            self._m_stretch = ((self.stretch_dividend * 100.0) / self.stretch_divisor if self.stretch_divisor != 0 else 0)
+            return getattr(self, '_m_stretch', None)
+
 
     class Lhd3Body(KaitaiStruct):
         """Header for item/keyframe lists. AE reuses this structure for:
@@ -1432,6 +1450,15 @@ class Aep(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
+
+        @property
+        def duration(self):
+            """Marker duration in seconds (frame_duration is in 600ths of a second)."""
+            if hasattr(self, '_m_duration'):
+                return self._m_duration
+
+            self._m_duration = (self.frame_duration * 1.0) / 600
+            return getattr(self, '_m_duration', None)
 
 
     class NnhdBody(KaitaiStruct):
@@ -2074,6 +2101,15 @@ class Aep(KaitaiStruct):
 
             self._m_time_span_duration = ((self.time_span_duration_frames * 1.0) / self.time_span_duration_timebase if self.time_span_duration_timebase != 0 else 0)
             return getattr(self, '_m_time_span_duration', None)
+
+        @property
+        def time_span_end(self):
+            """Time span end in seconds."""
+            if hasattr(self, '_m_time_span_end'):
+                return self._m_time_span_end
+
+            self._m_time_span_end = self.time_span_start + self.time_span_duration
+            return getattr(self, '_m_time_span_end', None)
 
         @property
         def time_span_start(self):

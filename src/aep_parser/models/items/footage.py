@@ -41,5 +41,5 @@ class FootageItem(AVItem):
     def file(self) -> str | None:
         """The footage file path if its source is a [FileSource][], else `None`."""
         if hasattr(self.main_source, "file"):
-            return str(self.main_source.file)
+            return self.main_source.file
         return None

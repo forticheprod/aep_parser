@@ -26,6 +26,10 @@ from typing import Any, Iterator
 
 from ..kaitai import Aep
 
+#: Sentinel used in :class:`ByteDifference` when one chunk is shorter
+#: than the other and a byte position doesn't exist.
+MISSING_BYTE = -1
+
 
 @dataclass
 class ByteDifference:
@@ -154,15 +158,15 @@ def compare_binary_data(
                 path=path,
                 offset=i,
                 byte1=data1[i],
-                byte2=-1,  # -1 indicates missing
+                byte2=MISSING_BYTE,  # byte doesn't exist in file 2
             )
     elif len(data2) > min_len:
         for i in range(min_len, len(data2)):
             yield ByteDifference(
                 path=path,
                 offset=i,
-                byte1=-1,
-                byte2=data2[i],  # -1 indicates missing
+                byte1=MISSING_BYTE,
+                byte2=data2[i],  # byte doesn't exist in file 1
             )
 
 
@@ -363,12 +367,12 @@ def print_results(
                 print(f"  Size: {diff.size1} bytes vs {diff.size2} bytes")
 
             for byte_diff in diff.byte_diffs:
-                if byte_diff.byte1 == -1:
+                if byte_diff.byte1 == MISSING_BYTE:
                     print(
                         f"  Offset {byte_diff.offset:4d} (0x{byte_diff.offset:04X}): "
                         f"<missing> vs 0x{byte_diff.byte2:02X}"
                     )
-                elif byte_diff.byte2 == -1:
+                elif byte_diff.byte2 == MISSING_BYTE:
                     print(
                         f"  Offset {byte_diff.offset:4d} (0x{byte_diff.offset:04X}): "
                         f"0x{byte_diff.byte1:02X} vs <missing>"
@@ -407,12 +411,12 @@ def to_json_output(
                     {
                         "offset": bd.offset,
                         "offset_hex": f"0x{bd.offset:04X}",
-                        "byte1": bd.byte1 if bd.byte1 >= 0 else None,
-                        "byte1_hex": f"0x{bd.byte1:02X}" if bd.byte1 >= 0 else None,
-                        "byte1_binary": f"{bd.byte1:08b}" if bd.byte1 >= 0 else None,
-                        "byte2": bd.byte2 if bd.byte2 >= 0 else None,
-                        "byte2_hex": f"0x{bd.byte2:02X}" if bd.byte2 >= 0 else None,
-                        "byte2_binary": f"{bd.byte2:08b}" if bd.byte2 >= 0 else None,
+                        "byte1": bd.byte1 if bd.byte1 != MISSING_BYTE else None,
+                        "byte1_hex": f"0x{bd.byte1:02X}" if bd.byte1 != MISSING_BYTE else None,
+                        "byte1_binary": f"{bd.byte1:08b}" if bd.byte1 != MISSING_BYTE else None,
+                        "byte2": bd.byte2 if bd.byte2 != MISSING_BYTE else None,
+                        "byte2_hex": f"0x{bd.byte2:02X}" if bd.byte2 != MISSING_BYTE else None,
+                        "byte2_binary": f"{bd.byte2:08b}" if bd.byte2 != MISSING_BYTE else None,
                         "bit_position": bd.bit_position,
                     }
                     for bd in diff.byte_diffs

@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import typing
 from dataclasses import dataclass, field
 
-if typing.TYPE_CHECKING:
-    from ...kaitai import Aep
+from ..enums import Label
 
 
 @dataclass
@@ -48,7 +46,7 @@ class MarkerValue:
     frame_time: int
     """The time of the marker, in frames."""
 
-    label: Aep.Label
+    label: Label
     """
     The label color. Colors are represented by their number (0 for None, or 1
     to 16 for one of the preset colors in the Labels preferences).
