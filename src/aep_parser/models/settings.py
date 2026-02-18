@@ -60,6 +60,20 @@ RenderSettings = TypedDict("RenderSettings", {
 
 Keys match the ExtendScript
 ``RenderQueueItem.getSettings(GetSettingsFormat.NUMBER)`` output.
+
+Example:
+    ```python
+    from aep_parser import parse
+
+    project = parse("project.aep").project
+    for rq_item in project.render_queue.items:
+        for output_module in rq_item.output_modules:
+            settings = output_module.settings
+            print(f"Video Output: {settings['Video Output']}")
+            print(f"Dimensions: {output_module.width}x{output_module.height}")
+            print(f"Color Mode: {settings['Color'].name}")
+            print(f"Output Frame Rate: {output_module.frame_rate}")
+    ```
 """
 
 
@@ -75,7 +89,7 @@ OutputModuleSettings = TypedDict("OutputModuleSettings", {
     "Crop Top": int,
     "Crop": bool,
     "Depth": OutputColorDepth,
-    "Format": str,
+    "Format": int,
     "Include Project Link": bool,
     "Include Source XMP Metadata": bool,
     "Lock Aspect Ratio": bool,
@@ -88,3 +102,22 @@ OutputModuleSettings = TypedDict("OutputModuleSettings", {
     "Use Region of Interest": int,
     "Video Output": bool,
 })
+"""Output module settings for a render queue item.
+
+Keys match the ExtendScript
+``OutputModule.getSettings(GetSettingsFormat.NUMBER)`` output.
+
+Example:
+    ```python
+    from aep_parser import parse
+
+    project = parse("project.aep").project
+    for rq_item in project.render_queue.items:
+        for output_module in rq_item.output_modules:
+            settings = output_module.settings
+            print(f"Video Output: {settings['Video Output']}")
+            print(f"Dimensions: {output_module.width}x{output_module.height}")
+            print(f"Color Mode: {settings['Color'].name}")
+            print(f"Output Frame Rate: {output_module.frame_rate}")
+    ```
+"""

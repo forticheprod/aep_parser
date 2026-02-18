@@ -124,7 +124,7 @@ def compare_values(expected: Any, parsed: Any, tolerance: float = 0.001) -> bool
         if len(expected) != len(parsed):
             return False
         return all(compare_values(e, p, tolerance) for e, p in zip(expected, parsed))
-    return expected == parsed
+    return bool(expected == parsed)
 
 
 class ValidationResult:
