@@ -10,7 +10,7 @@ from conftest import get_sample_files, load_expected, parse_project
 from aep_parser import Project
 from aep_parser.models.enums import OutputChannels, OutputColorDepth
 from aep_parser.models.renderqueue import OutputModule, RenderQueue
-from aep_parser.models.renderqueue.output_module import resolve_output_filename
+from aep_parser.resolvers.output import resolve_output_filename
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "renderqueue"
 OM_SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "output_module"

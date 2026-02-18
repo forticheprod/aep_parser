@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from contextlib import suppress
 from typing import Any
 
@@ -12,7 +13,12 @@ from ..kaitai.utils import (
     find_by_type,
     str_contents,
 )
-from ..models.enums import KeyframeInterpolationType
+from ..models.enums import (
+    KeyframeInterpolationType,
+    Label,
+    PropertyControlType,
+    PropertyValueType,
+)
 from ..models.properties.keyframe import Keyframe
 from ..models.properties.marker import MarkerValue
 from ..models.properties.property import Property
@@ -21,8 +27,10 @@ from .match_names import MATCH_NAME_TO_NICE_NAME
 from .utils import (
     get_chunks_by_match_name,
     parse_ldat_items,
-    split_in_chunks,
+    split_into_batches,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def parse_property_group(
@@ -122,8 +130,8 @@ def parse_orientation(
         time_scale=time_scale,
     )
     # Override types for orientation
-    prop.property_control_type = Aep.PropertyControlType.angle
-    prop.property_value_type = Aep.LdatItemType.orientation
+    prop.property_control_type = PropertyControlType.ANGLE
+    prop.property_value_type = PropertyValueType.ORIENTATION
 
     # otky_chunk = find_by_list_type(
     #     chunks=otst_chunk.chunks,
@@ -174,6 +182,90 @@ def parse_text_document(
     return prop
 
 
+def _determine_property_types(
+    no_value: bool,
+    color: bool,
+    integer: bool,
+    vector: bool,
+    dimensions: int,
+    is_spatial: bool,
+    match_name: str,
+    name: str,
+    animated: bool,
+) -> tuple[PropertyControlType, PropertyValueType]:
+    """Determine property control and value types from tdb4 flags.
+
+    Uses the combination of boolean flags from the tdb4 chunk to determine
+    the property control type (e.g., scalar, color, boolean) and value type
+    (e.g., one_d, two_d_spatial, color).
+
+    Args:
+        no_value: Whether the property has no value.
+        color: Whether the property is a color.
+        integer: Whether the property is an integer.
+        vector: Whether the property is a vector.
+        dimensions: Number of dimensions.
+        is_spatial: Whether the property is spatial.
+        match_name: The property match name (for debug output).
+        name: The property display name (for debug output).
+        animated: Whether the property is animated (for debug output).
+
+    Returns:
+        Tuple of (property_control_type, property_value_type).
+    """
+    property_control_type = PropertyControlType.UNKNOWN
+    property_value_type = PropertyValueType.UNKNOWN
+
+    if no_value:
+        property_value_type = PropertyValueType.NO_VALUE
+    if color:
+        property_control_type = PropertyControlType.COLOR
+        property_value_type = PropertyValueType.COLOR
+    elif integer:
+        property_control_type = PropertyControlType.BOOLEAN
+        property_value_type = PropertyValueType.ONE_D
+    elif vector:
+        if dimensions == 1:
+            property_control_type = PropertyControlType.SCALAR
+            property_value_type = PropertyValueType.ONE_D
+        elif dimensions == 2:
+            property_control_type = PropertyControlType.TWO_D
+            property_value_type = (
+                PropertyValueType.TWO_D_SPATIAL if is_spatial else PropertyValueType.TWO_D
+            )
+        elif dimensions == 3:
+            property_control_type = PropertyControlType.THREE_D
+            property_value_type = (
+                PropertyValueType.THREE_D_SPATIAL
+                if is_spatial
+                else PropertyValueType.THREE_D
+            )
+
+    if property_control_type == PropertyControlType.UNKNOWN:
+        logger.warning(
+            "Could not determine type for property %s"
+            " | name: %s"
+            " | dimensions: %s"
+            " | animated: %s"
+            " | integer: %s"
+            " | is_spatial: %s"
+            " | vector: %s"
+            " | no_value: %s"
+            " | color: %s",
+            match_name,
+            name,
+            dimensions,
+            animated,
+            integer,
+            is_spatial,
+            vector,
+            no_value,
+            color,
+        )
+
+    return property_control_type, property_value_type
+
+
 def parse_property(
     tdbs_chunk: Aep.Chunk,
     match_name: str,
@@ -196,19 +288,16 @@ def parse_property(
     """
     tdbs_child_chunks = tdbs_chunk.chunks
 
-    # Get property settings from tdsb chunk
     tdsb_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdsb")
 
     locked_ratio = tdsb_chunk.locked_ratio
     enabled = tdsb_chunk.enabled
     dimensions_separated = tdsb_chunk.dimensions_separated
 
-    # Get nice name
     name = _get_user_defined_name(tdbs_chunk) or MATCH_NAME_TO_NICE_NAME.get(
         match_name, match_name
     )
 
-    # Get property type info from tdb4 chunk
     tdb4_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdb4")
 
     is_spatial = tdb4_chunk.is_spatial
@@ -220,63 +309,30 @@ def parse_property(
     no_value = tdb4_chunk.no_value
     color = tdb4_chunk.color
 
-    # Determine property control and value types
-    property_control_type = Aep.PropertyControlType.unknown
-    property_value_type = Aep.LdatItemType.unknown
+    property_control_type, property_value_type = _determine_property_types(
+        no_value=no_value,
+        color=color,
+        integer=integer,
+        vector=vector,
+        dimensions=dimensions,
+        is_spatial=is_spatial,
+        match_name=match_name,
+        name=name,
+        animated=animated,
+    )
 
-    if no_value:
-        property_value_type = Aep.LdatItemType.no_value
-    if color:
-        property_control_type = Aep.PropertyControlType.color
-        property_value_type = Aep.LdatItemType.color
-    elif integer:
-        property_control_type = Aep.PropertyControlType.boolean
-        property_value_type = Aep.LdatItemType.one_d
-    elif vector:
-        if dimensions == 1:
-            property_control_type = Aep.PropertyControlType.scalar
-            property_value_type = Aep.LdatItemType.one_d
-        elif dimensions == 2:
-            property_control_type = Aep.PropertyControlType.two_d
-            property_value_type = (
-                Aep.LdatItemType.two_d_spatial if is_spatial else Aep.LdatItemType.two_d
-            )
-        elif dimensions == 3:
-            property_control_type = Aep.PropertyControlType.three_d
-            property_value_type = (
-                Aep.LdatItemType.three_d_spatial
-                if is_spatial
-                else Aep.LdatItemType.three_d
-            )
-
-    if property_control_type == Aep.PropertyControlType.unknown:
-        print(
-            f"Could not determine type for property {match_name}"
-            f" | name: {name}"
-            f" | dimensions: {dimensions}"
-            f" | animated: {animated}"
-            f" | integer: {integer}"
-            f" | is_spatial: {is_spatial}"
-            f" | vector: {vector}"
-            f" | no_value: {no_value}"
-            f" | color: {color}"
-        )
-
-    # Get property value
     try:
         cdat_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="cdat")
         value = cdat_chunk.value[:dimensions]
     except ChunkNotFoundError:
         value = None
 
-    # Get property expression
     try:
         utf8_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="Utf8")
         expression = str_contents(utf8_chunk)
     except ChunkNotFoundError:
         expression = ""
 
-    # Get property keyframes
     keyframes = _parse_keyframes(tdbs_child_chunks, time_scale, is_spatial)
 
     return Property(
@@ -314,11 +370,11 @@ def _parse_keyframes(
 
     keyframes = [
         Keyframe(
-            frame_time=int(round(kf.time_raw / time_scale)),
+            frame_time=round(kf.time_raw / time_scale),
             keyframe_interpolation_type=KeyframeInterpolationType.from_binary(
                 kf.keyframe_interpolation_type
             ),
-            label=kf.label,
+            label=Label(int(kf.label)),
             continuous_bezier=kf.continuous_bezier,
             auto_bezier=kf.auto_bezier,
             roving_across_time=kf.roving_across_time,
@@ -326,6 +382,97 @@ def _parse_keyframes(
         for kf in kf_items
     ]
     return keyframes
+
+
+def _parse_effect_param_defs(
+    sspc_child_chunks: list[Aep.Chunk],
+) -> dict[str, dict[str, Any]]:
+    """Parse effect parameter definitions from parT chunk.
+
+    Each effect has a parT LIST containing parameter definitions that
+    describe the control type, default values, and ranges.
+
+    Args:
+        sspc_child_chunks: The SSPC chunk's child chunks.
+
+    Returns:
+        Dict mapping parameter match names to definition dicts.
+    """
+    part_chunk = find_by_list_type(chunks=sspc_child_chunks, list_type="parT")
+    param_defs: dict[str, dict[str, Any]] = {}
+
+    chunks_by_parameter = get_chunks_by_match_name(part_chunk)
+    for index, (match_name, parameter_chunks) in enumerate(chunks_by_parameter.items()):
+        # Skip first, it describes parent
+        if index == 0:
+            continue
+        param_defs[match_name] = _parse_effect_parameter_def(parameter_chunks)
+
+    return param_defs
+
+
+def _merge_param_def(prop: Property, param_def: dict[str, Any]) -> None:
+    """Merge parameter definition values into a parsed property.
+
+    Overrides auto-detected property attributes with the more precise
+    values from the effect's parameter definition.
+
+    Args:
+        prop: The property to update in place.
+        param_def: The parameter definition dict.
+    """
+    prop.name = param_def["name"] or prop.name
+    prop.property_control_type = param_def["property_control_type"]
+    prop.property_value_type = param_def.get(
+        "property_value_type", prop.property_value_type
+    )
+    prop.last_value = param_def.get("last_value")
+    prop.default_value = param_def.get("default_value")
+    prop.min_value = param_def.get("min_value") or prop.min_value
+    prop.max_value = param_def.get("max_value") or prop.max_value
+    prop.nb_options = param_def.get("nb_options")
+    prop.property_parameters = param_def.get("property_parameters")
+
+
+def _parse_effect_properties(
+    tdgp_chunk: Aep.Chunk,
+    param_defs: dict[str, dict[str, Any]],
+    time_scale: float,
+) -> list[Property | PropertyGroup]:
+    """Parse effect properties and merge with parameter definitions.
+
+    Iterates the tdgp chunk's sub-properties, parses each one, and merges
+    in the corresponding parameter definition if available.
+
+    Args:
+        tdgp_chunk: The tdgp chunk containing property data.
+        param_defs: Parameter definitions to merge into properties.
+        time_scale: The time scale of the parent composition.
+
+    Returns:
+        List of parsed and merged properties.
+    """
+    properties: list[Property | PropertyGroup] = []
+    chunks_by_property = get_chunks_by_match_name(tdgp_chunk)
+    for match_name, prop_chunks in chunks_by_property.items():
+        first_chunk = prop_chunks[0]
+        if first_chunk.list_type == "tdbs":
+            prop = parse_property(
+                tdbs_chunk=first_chunk,
+                match_name=match_name,
+                time_scale=time_scale,
+            )
+            if match_name in param_defs:
+                _merge_param_def(prop, param_defs[match_name])
+            properties.append(prop)
+        elif first_chunk.list_type == "tdgp":
+            # Encountered with "ADBE FreePin3" effect (Obsolete > Puppet)
+            pass
+        else:
+            raise NotImplementedError(
+                f"Cannot parse parameter value : {first_chunk.list_type}"
+            )
+    return properties
 
 
 def parse_effect(
@@ -355,53 +502,8 @@ def parse_effect(
     tdgp_chunk = find_by_list_type(chunks=sspc_child_chunks, list_type="tdgp")
     name = _get_user_defined_name(tdgp_chunk) or str_contents(utf8_chunk)
 
-    # Get effect parameter definitions from parT chunk
-    param_defs: dict[str, dict[str, Any]] = {}
-
-    part_chunk = find_by_list_type(chunks=sspc_child_chunks, list_type="parT")
-
-    chunks_by_parameter = get_chunks_by_match_name(part_chunk)
-    for index, (match_name, parameter_chunks) in enumerate(chunks_by_parameter.items()):
-        # Skip first, it describes parent
-        if index == 0:
-            continue
-        param_defs[match_name] = _parse_effect_parameter_def(parameter_chunks)
-
-    # Parse properties and merge with parameter definitions
-    properties: list[Property | PropertyGroup] = []
-    chunks_by_property = get_chunks_by_match_name(tdgp_chunk)
-    for match_name, prop_chunks in chunks_by_property.items():
-        first_chunk = prop_chunks[0]
-        if first_chunk.list_type == "tdbs":
-            prop = parse_property(
-                tdbs_chunk=first_chunk,
-                match_name=match_name,
-                time_scale=time_scale,
-            )
-            # Merge parameter definition if available
-            if match_name in param_defs:
-                param_def = param_defs[match_name]
-                prop.name = param_def.get("name") or prop.name
-                prop.property_control_type = param_def.get(
-                    "property_control_type", prop.property_control_type
-                )
-                prop.property_value_type = param_def.get(
-                    "property_value_type", prop.property_value_type
-                )
-                prop.last_value = param_def.get("last_value")
-                prop.default_value = param_def.get("default_value")
-                prop.min_value = param_def.get("min_value") or prop.min_value
-                prop.max_value = param_def.get("max_value") or prop.max_value
-                prop.nb_options = param_def.get("nb_options")
-                prop.property_parameters = param_def.get("property_parameters")
-            properties.append(prop)
-        elif first_chunk.list_type == "tdgp":
-            # Encountered with "ADBE FreePin3" effect (Obsolete > Puppet)
-            pass
-        else:
-            raise NotImplementedError(
-                f"Cannot parse parameter value : {first_chunk.list_type}"
-            )
+    param_defs = _parse_effect_param_defs(sspc_child_chunks)
+    properties = _parse_effect_properties(tdgp_chunk, param_defs, time_scale)
 
     return PropertyGroup(
         enabled=True,
@@ -416,56 +518,56 @@ def _parse_effect_parameter_def(parameter_chunks: list[Aep.Chunk]) -> dict[str, 
     """Parse effect parameter definition from pard chunk, returning a dict of values."""
     pard_chunk = find_by_type(chunks=parameter_chunks, chunk_type="pard")
 
+    control_type = PropertyControlType(int(pard_chunk.property_control_type))
+
     result: dict[str, Any] = {
         "name": pard_chunk.name,
-        "property_control_type": pard_chunk.property_control_type,
+        "property_control_type": control_type,
     }
-    control_type = pard_chunk.property_control_type
 
-    if control_type == Aep.PropertyControlType.angle:
+    if control_type == PropertyControlType.ANGLE:
         result["last_value"] = pard_chunk.last_value
-        result["property_value_type"] = Aep.LdatItemType.orientation
+        result["property_value_type"] = PropertyValueType.ORIENTATION
 
-    elif control_type == Aep.PropertyControlType.boolean:
+    elif control_type == PropertyControlType.BOOLEAN:
         result["last_value"] = pard_chunk.last_value
         result["default_value"] = pard_chunk.default
 
-    elif control_type == Aep.PropertyControlType.color:
+    elif control_type == PropertyControlType.COLOR:
         result["last_value"] = pard_chunk.last_color
         result["default_value"] = pard_chunk.default_color
         result["max_value"] = pard_chunk.max_color
-        result["property_value_type"] = Aep.LdatItemType.color
+        result["property_value_type"] = PropertyValueType.COLOR
 
-    elif control_type == Aep.PropertyControlType.enum:
+    elif control_type == PropertyControlType.ENUM:
         result["last_value"] = pard_chunk.last_value
         result["nb_options"] = pard_chunk.nb_options
         result["default_value"] = pard_chunk.default
 
-    elif control_type == Aep.PropertyControlType.scalar:
+    elif control_type == PropertyControlType.SCALAR:
         result["last_value"] = pard_chunk.last_value
         result["min_value"] = pard_chunk.min_value
         result["max_value"] = pard_chunk.max_value
 
-    elif control_type == Aep.PropertyControlType.slider:
+    elif control_type == PropertyControlType.SLIDER:
         result["last_value"] = pard_chunk.last_value
         result["max_value"] = pard_chunk.max_value
 
-    elif control_type == Aep.PropertyControlType.three_d:
+    elif control_type == PropertyControlType.THREE_D:
         result["last_value"] = [
             pard_chunk.last_value_x,
             pard_chunk.last_value_y,
             pard_chunk.last_value_z,
         ]
 
-    elif control_type == Aep.PropertyControlType.two_d:
+    elif control_type == PropertyControlType.TWO_D:
         result["last_value"] = [pard_chunk.last_value_x, pard_chunk.last_value_y]
 
-    # Check for display name override or enum options
     with suppress(ChunkNotFoundError):
         pdnm_chunk = find_by_type(chunks=parameter_chunks, chunk_type="pdnm")
         utf8_chunk = pdnm_chunk.chunk
         pdnm_data = str_contents(utf8_chunk)
-        if control_type == Aep.PropertyControlType.enum:
+        if control_type == PropertyControlType.ENUM:
             result["property_parameters"] = pdnm_data.split("|")
         elif pdnm_data:
             result["name"] = pdnm_data
@@ -496,14 +598,12 @@ def parse_markers(
             marker duration in seconds.
     """
     tdbs_chunk = find_by_list_type(chunks=mrst_chunk.chunks, list_type="tdbs")
-    # Get keyframes (markers time)
     marker_group = parse_property(
         tdbs_chunk=tdbs_chunk,
         match_name=group_match_name,
         time_scale=time_scale,
     )
     mrky_chunk = find_by_list_type(chunks=mrst_chunk.chunks, list_type="mrky")
-    # Get each marker with its frame_time
     nmrd_chunks = filter_by_list_type(chunks=mrky_chunk.chunks, list_type="Nmrd")
     markers = []
     for i, nmrd_chunk in enumerate(nmrd_chunks):
@@ -533,13 +633,12 @@ def parse_marker(
 
     utf8_chunks = filter_by_type(chunks=nmrd_chunk.chunks, chunk_type="Utf8")
 
-    # FIXME Marker duration is stored in 600ths of a second
-    # It is hardcoded here until we have a better time representation
-    duration = nmhd_chunk.frame_duration / 600
+    # Marker duration from Kaitai instance (stored in 600ths of a second)
+    duration = nmhd_chunk.duration
 
     # Parse cue point params
     params = {}
-    for param_name, param_value in split_in_chunks(utf8_chunks[5:], 2):
+    for param_name, param_value in split_into_batches(utf8_chunks[5:], 2):
         params[str_contents(param_name)] = str_contents(param_value)
 
     return MarkerValue(
@@ -550,7 +649,7 @@ def parse_marker(
         navigation=nmhd_chunk.navigation,
         frame_target=str_contents(utf8_chunks[3]),
         url=str_contents(utf8_chunks[2]),
-        label=nmhd_chunk.label,
+        label=Label(int(nmhd_chunk.label)),
         protected_region=nmhd_chunk.protected_region,
         params=params,
         frame_duration=nmhd_chunk.frame_duration,
@@ -564,7 +663,6 @@ def _get_user_defined_name(root_chunk: Aep.Chunk) -> str:
     Args:
         root_chunk (Aep.Chunk): The LIST chunk to parse.
     """
-    # Look for a tdsn which specifies the user-defined name of the property
     tdsn_chunk = find_by_type(chunks=root_chunk.chunks, chunk_type="tdsn")
     utf8_chunk = tdsn_chunk.chunk
     name = str_contents(utf8_chunk)

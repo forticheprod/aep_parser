@@ -83,15 +83,15 @@ class AVLayer(Layer):
     time_remap_enabled: bool
     """`True` if time remapping is enabled for this layer."""
 
-    source_id: int | None  # None for text layers (no source item)
-    """The ID of the source item for this layer. `None` for a text layer."""
+    _source_id: int
+    """The ID of the source item for this layer. 0 for a text layer."""
 
     # Set after parsing - reference to source item (not serialized)
     _source: Item | None = field(default=None, init=False, repr=False)
 
     @property
     def source(self) -> Item | None:
-        """The source item for this layer."""
+        """The source item for this layer. `None` for a text layer."""
         return self._source
 
     @source.setter

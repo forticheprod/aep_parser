@@ -4,8 +4,9 @@ import typing
 from abc import ABC
 from dataclasses import dataclass, field
 
+from ..enums import Label
+
 if typing.TYPE_CHECKING:
-    from ...kaitai import Aep
     from ..enums import AutoOrientType
     from ..items.composition import CompItem
     from ..properties.marker import MarkerValue
@@ -13,7 +14,7 @@ if typing.TYPE_CHECKING:
     from ..properties.property_group import PropertyGroup
 
 
-@dataclass
+@dataclass(eq=False)
 class Layer(ABC):
     """
     The `Layer` object provides access to layers within compositions.
@@ -87,13 +88,13 @@ class Layer(ABC):
     parsed value is absolute composition time.
     """
 
-    label: Aep.Label
+    label: Label
     """
     The label color. Colors are represented by their number (0 for None, or 1
     to 16 for one of the preset colors in the Labels preferences).
     """
 
-    layer_type: Aep.LayerType
+    layer_type: str
     """The type of layer (footage, light, camera, text, shape)."""
 
     locked: bool
@@ -120,9 +121,9 @@ class Layer(ABC):
     The binary format stores this relative to `start_time`.
     """
 
-    parent_id: int | None
+    _parent_id: int
     """
-    The ID of the layer's parent layer. `None` if the layer has no parent.
+    The ID of the layer's parent layer. `0` if the layer has no parent.
     """
 
     start_time: float

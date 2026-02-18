@@ -35,6 +35,7 @@ from ..models.items.composition import CompItem
 from ..models.renderqueue.output_module import OutputModule
 from ..models.renderqueue.render_queue import RenderQueue
 from ..models.renderqueue.render_queue_item import RenderQueueItem
+from ..models.settings import OutputModuleSettings, RenderSettings
 from .mappings import map_output_format
 from .utils import parse_alas_data, parse_ldat_items
 
@@ -82,7 +83,6 @@ def parse_render_queue_items(
     # This ldat contains N × item_size bytes, one block per render queue item
     list_settings_chunk = find_by_list_type(chunks=lrdr_child_chunks, list_type="list")
 
-    # Get item count from lhd3 header
     settings_lhd3 = find_by_type(chunks=list_settings_chunk.chunks, chunk_type="lhd3")
     num_items = settings_lhd3.count
     if num_items == 0:
@@ -92,7 +92,6 @@ def parse_render_queue_items(
         list_settings_chunk
     )
 
-    # Parse Rout chunk for per-item render flags
     rout_chunk = find_by_type(chunks=lrdr_child_chunks, chunk_type="Rout")
     rout_items = rout_chunk.items
 
@@ -152,7 +151,6 @@ def parse_render_queue_item(
         project: The Project object being constructed, used to link comp
             references in render queue items.
     """
-    # Parse output module data from ldat
     om_ldat_items: list[Aep.OutputModuleSettingsLdatBody] = parse_ldat_items(list_chunk)
 
     # comp_id is stored in the render settings ldat
@@ -161,12 +159,11 @@ def parse_render_queue_item(
 
     settings = _parse_render_settings(ldat_body, comp)
 
-    # Extract attributes that were previously in settings
     elapsed_seconds: int | None = (
         ldat_body.elapsed_seconds if ldat_body.elapsed_seconds else None
     )
     log_type_val = LogType.from_binary(ldat_body.log_type)
-    queue_item_notify = bool(ldat_body.queue_item_notify)
+    queue_item_notify = ldat_body.queue_item_notify
     template_name = ldat_body.template_name.rstrip("\x00")
     time_span_start_frames = ldat_body.time_span_start_frames
     time_span_duration_frames = ldat_body.time_span_duration_frames
@@ -203,9 +200,6 @@ def parse_render_queue_item(
         output_module = parse_output_module(
             group, om_ldat_items[om_index], project, render_queue_item
         )
-        # Set project-level data for template resolution
-        output_module._project_name = Path(project.file).stem if project.file else None
-        output_module._project_color_depth = int(project.bits_per_channel)
         output_modules.append(output_module)
 
     # Calculate skip_frames from frame rate ratio
@@ -222,7 +216,7 @@ def parse_render_queue_item(
 
 def _parse_render_settings(
     ldat_body: Aep.RenderSettingsLdatBody, comp: CompItem
-) -> dict[str, Any]:
+) -> RenderSettings:
     """Parse render settings from LdatItem.
 
     Returns a dict with ExtendScript-compatible keys matching getSettings() output.
@@ -250,12 +244,102 @@ def _parse_render_settings(
         "Skip Existing Files": bool(ldat_body.skip_existing_files),
         "Solo Switches": SoloSwitchesSetting.from_binary(ldat_body.solo_switches),
         "Time Span Duration": ldat_body.time_span_duration,
-        "Time Span End": ldat_body.time_span_start + ldat_body.time_span_duration,
+        "Time Span End": ldat_body.time_span_end,
         "Time Span Start": ldat_body.time_span_start,
         "Time Span": TimeSpanSource.from_binary(ldat_body.time_span_source),
         "Use comp's frame rate": comp.frame_rate,
         "Use this frame rate": ldat_body.frame_rate,
     }
+
+
+def _parse_output_module_settings(
+    roou_chunk: Aep.Chunk,
+    om_ldat_data: Aep.OutputModuleSettingsLdatBody,
+    include_source_xmp: bool,
+    post_render_action: PostRenderAction,
+) -> OutputModuleSettings:
+    """Parse all output module settings from Roou chunk and ldat data.
+
+    Combines settings from the Roou chunk (codec, format, audio, etc.)
+    with per-output-module settings from the ldat body (crop, channels,
+    resize, etc.) into a single dict with ExtendScript-compatible keys.
+
+    Args:
+        roou_chunk: The Roou chunk containing output options.
+        om_ldat_data: Parsed OutputModuleSettingsLdatBody.
+        include_source_xmp: Whether source XMP metadata is included.
+        post_render_action: The post-render action setting.
+
+    Returns:
+        Dict with ExtendScript keys like "Video Output", "Audio Bit Depth",
+        "Crop", "Channels", etc.
+    """
+    audio_bit_depth = AudioBitDepth.from_binary(roou_chunk.audio_bit_depth)
+    audio_channels = AudioChannels.from_binary(roou_chunk.audio_channels)
+    color = OutputColorMode(roou_chunk.color_premultiplied)
+
+    return {
+        "Audio Bit Depth": audio_bit_depth,
+        "Audio Channels": audio_channels,
+        "Audio Sample Rate": int(roou_chunk.audio_sample_rate),
+        "Channels": OutputChannels(om_ldat_data.channels),
+        "Color": color,
+        "Crop Bottom": om_ldat_data.crop_bottom,
+        "Crop Left": om_ldat_data.crop_left,
+        "Crop Right": om_ldat_data.crop_right,
+        "Crop Top": om_ldat_data.crop_top,
+        "Crop": om_ldat_data.crop,
+        "Depth": roou_chunk.depth,
+        "Format": map_output_format(roou_chunk.format_id),
+        "Include Project Link": bool(om_ldat_data.include_project_link),
+        "Include Source XMP Metadata": include_source_xmp,
+        "Lock Aspect Ratio": bool(om_ldat_data.lock_aspect_ratio),
+        "Output Audio": roou_chunk.output_audio,
+        "Post-Render Action": post_render_action,
+        "Resize Quality": om_ldat_data.resize_quality,
+        "Resize": bool(om_ldat_data.resize),
+        "Starting #": roou_chunk.starting_number,
+        "Use Comp Frame Number": om_ldat_data.use_comp_frame_number,
+        "Use Region of Interest": om_ldat_data.use_region_of_interest,
+        "Video Output": roou_chunk.video_output,
+    }
+
+
+def _build_file_template(
+    folder_path: str | None,
+    file_name_template: str | None,
+    is_folder: bool,
+) -> str | None:
+    """Build the full output file template path from components.
+
+    Combines the output folder path and file name template into a single
+    path string, using the path separator found in the folder path.
+
+    Args:
+        folder_path: The output folder path from alas data.
+        file_name_template: The file name template
+            (e.g., ``[compName].[fileExtension]``).
+        is_folder: Whether the alas path points to a folder.
+
+    Returns:
+        The complete file template path, or None if no folder path.
+    """
+    if not folder_path:
+        return None
+
+    if not file_name_template:
+        return folder_path
+
+    if is_folder:
+        # Get separator from path to keep consistency with Windows vs.
+        # Mac paths in samples. The separator is not always the same
+        # as os.path.sep since the AEP file can contain paths from a
+        # different OS than the one running the parser.
+        path_sep = "\\" if "\\" in folder_path else "/"
+        cleaned_path = folder_path.rstrip(path_sep)
+        return f"{cleaned_path}{path_sep}{file_name_template}"
+
+    return folder_path
 
 
 def parse_output_module(
@@ -299,43 +383,21 @@ def parse_output_module(
             CompItem, project.items[post_render_target_comp_id]
         )
 
-    # Parse output module settings from Roou chunk
     roou_chunk = find_by_type(chunks=chunks, chunk_type="Roou")
-
-    settings = _parse_output_module_settings(roou_chunk)
-
-    # Extract attributes from settings that are now top-level on OutputModule
-    video_codec = settings.pop("Video Codec", None)
-    width = settings.pop("Width", 0)
-    height = settings.pop("Height", 0)
-    frame_rate = settings.pop("Frame Rate", 0.0)
-
-    # Add crop to settings from ldat
-    settings["Crop"] = om_ldat_data.crop
-    settings["Crop Top"] = om_ldat_data.crop_top
-    settings["Crop Left"] = om_ldat_data.crop_left
-    settings["Crop Bottom"] = om_ldat_data.crop_bottom
-    settings["Crop Right"] = om_ldat_data.crop_right
-    settings["Channels"] = OutputChannels(om_ldat_data.channels)
-    settings["Include Project Link"] = bool(om_ldat_data.include_project_link)
-    settings["Include Source XMP Metadata"] = include_source_xmp
-    settings["Lock Aspect Ratio"] = bool(om_ldat_data.lock_aspect_ratio)
-    settings["Post-Render Action"] = post_render_action
-    settings["Resize"] = bool(om_ldat_data.resize)
-    settings["Resize Quality"] = om_ldat_data.resize_quality
-    settings["Use Comp Frame Number"] = bool(
-        om_ldat_data.use_comp_frame_number
-    )
-    settings["Use Region of Interest"] = bool(
-        om_ldat_data.use_region_of_interest
+    settings = _parse_output_module_settings(
+        roou_chunk, om_ldat_data, include_source_xmp, post_render_action
     )
 
-    # Get output file from LIST Als2 > alas
+    video_codec = roou_chunk.video_codec.strip("\x00") or None
+
+    width = roou_chunk.width
+    height = roou_chunk.height
+    frame_rate = roou_chunk.frame_rate
+
     alas_data = parse_alas_data(chunks)
     folder_path = alas_data.get("fullpath")
     is_folder = alas_data.get("target_is_folder", False)
 
-    # Get Utf8 chunks for template/format name and file name
     utf8_chunks = filter_by_type(chunks, "Utf8")
 
     # Utf8[0] = ??
@@ -349,22 +411,7 @@ def parse_output_module(
     if len(utf8_chunks) >= 3:
         file_name_template = str_contents(utf8_chunks[2])
 
-    # Construct full file template
-    file_template = None
-    if folder_path:
-        if file_name_template:
-            if is_folder:
-                # Get separator from path to keep consistency with Windows vs.
-                # Mac paths in samples. The separator is not always the same
-                # as os.path.sep since the AEP file can contain paths from a
-                # different OS than the one running the parser.
-                path_sep = "\\" if "\\" in folder_path else "/"
-                cleaned_path = folder_path.rstrip(path_sep)
-                file_template = f"{cleaned_path}{path_sep}{file_name_template}"
-            else:
-                file_template = folder_path
-        else:
-            file_template = folder_path
+    file_template = _build_file_template(folder_path, file_name_template, is_folder)
 
     return OutputModule(
         file_template=file_template,
@@ -379,39 +426,8 @@ def parse_output_module(
         templates=[],  # Not available in binary format
         width=width,
         _video_codec=video_codec,
+        _project_name=Path(project.file).stem if project.file else "Untitled Project",
+        _project_color_depth=int(project.bits_per_channel),
+
     )
 
-
-def _parse_output_module_settings(roou_chunk: Aep.Chunk) -> dict[str, Any]:
-    """Parse output module settings from Roou chunk data.
-
-    The Roou chunk is 154 bytes and contains output module settings.
-    Returns a dict with ExtendScript-compatible keys.
-
-    Args:
-        roou_chunk: The Roou chunk.
-
-    Returns:
-        Dict with ExtendScript keys like "Video Output", "Audio Bit Depth", etc.
-    """
-    video_codec = roou_chunk.video_codec.strip("\x00") or None
-    audio_bit_depth = AudioBitDepth.from_binary(roou_chunk.audio_bit_depth)
-
-    audio_channels = AudioChannels.from_binary(roou_chunk.audio_channels)
-    color = OutputColorMode(roou_chunk.color_premultiplied)
-
-    return {
-        "Video Codec": video_codec,
-        "Video Output": roou_chunk.video_output,
-        "Output Audio": roou_chunk.output_audio,
-        "Width": roou_chunk.width,
-        "Height": roou_chunk.height,
-        "Color": color,
-        "Audio Bit Depth": audio_bit_depth,
-        "Audio Channels": audio_channels,
-        "Audio Sample Rate": int(roou_chunk.audio_sample_rate),
-        "Format": map_output_format(roou_chunk.format_id),
-        "Frame Rate": roou_chunk.frame_rate,
-        "Depth": roou_chunk.depth,
-        "Starting #": roou_chunk.starting_number,
-    }

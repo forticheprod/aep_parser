@@ -56,14 +56,12 @@ class PropertyGroup(PropertyBase):
             index: The index of the property to return.
             name: The name of the property to return.
         """
-        defined_arg = index or name
-        if defined_arg:
-            if isinstance(defined_arg, (int, float)):
-                return self.properties[defined_arg]
-            elif isinstance(defined_arg, str):
-                for prop in self.properties:
-                    if prop.name == defined_arg or prop.match_name == defined_arg:
-                        return prop
-                raise ValueError(f"No property found with name '{defined_arg}'")
+        if index is not None:
+            return self.properties[index]
+        elif name is not None:
+            for prop in self.properties:
+                if prop.name == name or prop.match_name == name:
+                    return prop
+            raise ValueError(f"No property found with name '{name}'")
         else:
             raise ValueError("Either index or name must be provided to get a property.")

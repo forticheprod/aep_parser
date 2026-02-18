@@ -12,6 +12,7 @@ one or more `View` objects containing `ViewOptions`.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from conftest import parse_app
 
@@ -21,10 +22,13 @@ from aep_parser import (
     ViewerType,
 )
 
+if TYPE_CHECKING:
+    from aep_parser import ViewOptions
+
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "view"
 
 
-def _get_active_view_options(aep_path: Path):  # type: ignore[no-untyped-def]
+def _get_active_view_options(aep_path: Path) -> ViewOptions:
     """Parse a project and return the ViewOptions of the active viewer's active view."""
     app = parse_app(aep_path)
     assert app.active_viewer is not None, "No active viewer found"

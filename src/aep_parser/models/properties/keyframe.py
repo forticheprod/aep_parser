@@ -3,8 +3,9 @@ from __future__ import annotations
 import typing
 from dataclasses import dataclass
 
+from ..enums import Label
+
 if typing.TYPE_CHECKING:
-    from ...kaitai import Aep
     from ..enums import KeyframeInterpolationType
 
 
@@ -30,7 +31,7 @@ class Keyframe:
     keyframe_interpolation_type: KeyframeInterpolationType
     """Interpolation type for the specified keyframe."""
 
-    label: Aep.Label
+    label: Label
     """
     The label color. Colors are represented by their number (0 for None, or 1
     to 16 for one of the preset colors in the Labels preferences).

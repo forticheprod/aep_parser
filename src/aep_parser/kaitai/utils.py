@@ -176,5 +176,5 @@ def split_on_type(
 
 def str_contents(chunk: Aep.Chunk) -> str:
     """Return the string contents of a chunk whose chunk_type is Utf8."""
-    text = str(chunk.contents)
+    text = chunk.contents
     return text.rstrip("\x00")

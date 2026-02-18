@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import functools
+import os
 import warnings
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from pathlib import Path
 from typing import Any, Callable, TypeVar
 
 R = TypeVar("R")
@@ -62,3 +64,16 @@ def fs_timeout(
         return wrapper
 
     return decorator
+
+
+@fs_timeout(timeout=2.0, default=False)
+def safe_path_exists(path: str | os.PathLike[str]) -> bool:
+    """Check if a path exists, guarded against hanging on network paths.
+
+    Args:
+        path: Filesystem path to check.
+
+    Returns:
+        ``True`` if the path exists, ``False`` on timeout or error.
+    """
+    return Path(path).exists()

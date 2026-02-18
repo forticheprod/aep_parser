@@ -55,12 +55,14 @@ def build_project_node(app: App, include_properties: bool = True) -> dict[str, A
 
     children: list[dict[str, Any]] = []
     root = project.root_folder
-    assert root is not None, "Could not find root folder in project"
+    if root is None:
+        raise RuntimeError("Could not find root folder in project")
     for item in root:
         children.append(build_item_node(item, project, include_properties))
 
     # Add render queue if it has items
-    assert project.render_queue is not None, "Project render_queue should not be None"
+    if project.render_queue is None:
+        raise RuntimeError("Project render_queue should not be None")
     if project.render_queue.items:
         children.append(build_render_queue_node(project))
 
@@ -102,7 +104,7 @@ def build_folder_node(
     return {
         "type": "Folder",
         "name": folder.name,
-        "attrs": {"label": folder.label.name if folder.label.value else None},
+        "attrs": {"label": folder.label.name.lower() if folder.label.value else None},
         "children": children,
     }
 
@@ -156,7 +158,7 @@ def build_layer_node(
 ) -> dict[str, Any]:
     """Build a layer node with properties."""
     attrs: dict[str, Any] = {
-        "type": layer.layer_type.name,
+        "type": layer.layer_type,
         "enabled": layer.enabled,
     }
     if not layer.enabled:
@@ -248,7 +250,8 @@ def build_property_node(prop: Property) -> dict[str, Any]:
 
 def build_render_queue_node(project: Project) -> dict[str, Any]:
     """Build a render queue node with its items."""
-    assert project.render_queue is not None, "Project render_queue should not be None"
+    if project.render_queue is None:
+        raise RuntimeError("Project render_queue should not be None")
     attrs: dict[str, Any] = {
         "items": len(project.render_queue.items),
     }
@@ -532,7 +535,7 @@ def format_json(
 # =============================================================================
 
 
-def main() -> None:
+def main() -> int:
     """CLI entry point for aep-visualize command."""
     parser = argparse.ArgumentParser(
         prog="aep-visualize",
@@ -580,7 +583,7 @@ Examples:
     aep_path = Path(args.aep_file)
     if not aep_path.exists():
         print(f"Error: File not found: {aep_path}", file=sys.stderr)
-        sys.exit(1)
+        return 1
 
     app = parse(aep_path)
 
@@ -609,6 +612,8 @@ Examples:
         elif args.format == "json":
             format_json(root_node, output, max_depth=args.depth)
 
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

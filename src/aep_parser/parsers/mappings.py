@@ -36,7 +36,10 @@ def map_alpha_mode(alpha_mode_raw: int, has_alpha: bool) -> AlphaMode:
         2: AlphaMode.IGNORE,
         3: AlphaMode.IGNORE,  # no_alpha treated as ignore
     }
-    return mapping.get(alpha_mode_raw, AlphaMode.STRAIGHT)
+    try:
+        return mapping[alpha_mode_raw]
+    except KeyError:
+        raise ValueError(f"Unknown alpha_mode value: {alpha_mode_raw}") from None
 
 
 def map_bits_per_channel(bits_per_channel_raw: int) -> BitsPerChannel:
@@ -46,12 +49,18 @@ def map_bits_per_channel(bits_per_channel_raw: int) -> BitsPerChannel:
         1: BitsPerChannel.SIXTEEN,
         2: BitsPerChannel.THIRTY_TWO,
     }
-    return mapping.get(bits_per_channel_raw, BitsPerChannel.EIGHT)
+    try:
+        return mapping[bits_per_channel_raw]
+    except KeyError:
+        raise ValueError(
+            f"Unknown bits_per_channel value: {bits_per_channel_raw}"
+        ) from None
 
 
 def map_blending_mode(blending_mode_raw: int) -> BlendingMode:
     """Map binary blending_mode value to ExtendScript BlendingMode enum."""
     mapping = {
+        0: BlendingMode.NORMAL,  # cameras, lights, and null layers
         2: BlendingMode.NORMAL,
         3: BlendingMode.DISSOLVE,
         4: BlendingMode.ADD,
@@ -90,7 +99,12 @@ def map_blending_mode(blending_mode_raw: int) -> BlendingMode:
         37: BlendingMode.SUBTRACT,
         38: BlendingMode.DIVIDE,
     }
-    return mapping.get(blending_mode_raw, BlendingMode.NORMAL)
+    try:
+        return mapping[blending_mode_raw]
+    except KeyError:
+        raise ValueError(
+            f"Unknown blending_mode value: {blending_mode_raw}"
+        ) from None
 
 
 def map_field_separation_type(
@@ -117,7 +131,12 @@ def map_footage_timecode_display_start_type(
         0: FootageTimecodeDisplayStartType.FTCS_START_0,
         1: FootageTimecodeDisplayStartType.FTCS_USE_SOURCE_MEDIA,
     }
-    return mapping.get(ftcs_raw, FootageTimecodeDisplayStartType.FTCS_START_0)
+    try:
+        return mapping[ftcs_raw]
+    except KeyError:
+        raise ValueError(
+            f"Unknown footage_timecode_display_start_type value: {ftcs_raw}"
+        ) from None
 
 
 def map_frame_blending_type(
@@ -143,7 +162,12 @@ def map_frame_blending_type(
         0: FrameBlendingType.FRAME_MIX,
         1: FrameBlendingType.PIXEL_MOTION,
     }
-    return mapping.get(frame_blending_type_raw, FrameBlendingType.FRAME_MIX)
+    try:
+        return mapping[frame_blending_type_raw]
+    except KeyError:
+        raise ValueError(
+            f"Unknown frame_blending_type value: {frame_blending_type_raw}"
+        ) from None
 
 
 def map_auto_orient_type(
@@ -214,7 +238,10 @@ def map_viewer_type_from_string(label: str) -> ViewerType | None:
         "AE Layer": ViewerType.VIEWER_LAYER,
         "AE Footage": ViewerType.VIEWER_FOOTAGE,
     }
-    return mapping.get(label, ViewerType.VIEWER_COMPOSITION)
+    try:
+        return mapping[label]
+    except KeyError:
+        raise ValueError(f"Unknown viewer type label: {label!r}") from None
 
 
 def map_output_format(format_id: str) -> int:

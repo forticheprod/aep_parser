@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from conftest import (
@@ -16,6 +17,9 @@ from conftest import (
 
 from aep_parser import Project
 
+if TYPE_CHECKING:
+    from aep_parser import MarkerValue
+
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "marker"
 
 
@@ -27,7 +31,7 @@ def test_parse_marker_sample(sample_name: str) -> None:
     assert isinstance(project, Project)
 
 
-def get_first_comp_marker(project: Project):  # type: ignore[no-untyped-def]
+def get_first_comp_marker(project: Project) -> MarkerValue:
     """Get the first marker from the first composition."""
     assert len(project.compositions) >= 1
     comp = project.compositions[0]
@@ -35,7 +39,7 @@ def get_first_comp_marker(project: Project):  # type: ignore[no-untyped-def]
     return comp.markers[0]
 
 
-def get_first_layer_marker(project: Project):  # type: ignore[no-untyped-def]
+def get_first_layer_marker(project: Project) -> MarkerValue:
     """Get the first marker from the first layer."""
     assert len(project.compositions) >= 1
     comp = project.compositions[0]

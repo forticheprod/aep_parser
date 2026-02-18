@@ -63,9 +63,9 @@ def get_chunks_by_match_name(
     return chunks_by_match_name
 
 
-def split_in_chunks(iterable: T, n: int) -> Iterator[T]:
+def split_into_batches(iterable: T, n: int) -> Iterator[T]:
     """
-    Yield successive n-sized chunks from bytes or list.
+    Yield successive n-sized batches from bytes or list.
     NOTE use itertools.batched in py 3.12+
     """
     if n < 1:
@@ -154,7 +154,7 @@ def parse_ldat_items(
         item_type = Aep.LdatItemType.three_d_spatial
 
     items = []
-    for item_bytes in split_in_chunks(ldat.items, item_size):
+    for item_bytes in split_into_batches(ldat.items, item_size):
         stream = KaitaiStream(BytesIO(item_bytes))
         if item_type == Aep.LdatItemType.lrdr:
             item = Aep.RenderSettingsLdatBody(stream)

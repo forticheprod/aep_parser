@@ -124,7 +124,7 @@ def compare_values(expected: Any, parsed: Any, tolerance: float = 0.001) -> bool
         if len(expected) != len(parsed):
             return False
         return all(compare_values(e, p, tolerance) for e, p in zip(expected, parsed))
-    return bool(expected == parsed)
+    return expected == parsed
 
 
 class ValidationResult:
@@ -255,7 +255,7 @@ def compare_layer(
         "threeDLayer": "three_d_layer",
         "timeRemapEnabled": "time_remap_enabled",
         "trackMatteType": "track_matte_type",
-        "sourceId": "source_id",
+        "sourceId": "_source_id",
     }
 
     for exp_key, parsed_key in layer_mappings.items():

@@ -35,15 +35,6 @@ class PropertyBase(ABC):
         return self.enabled
 
     @property
-    def elided(self) -> bool:
-        """
-        When true, this property is a group used to organize other properties.
-        The property is not displayed in the user interface and its child
-        properties are not indented in the Timeline panel.
-        """
-        return True
-
-    @property
     def is_modified(self) -> bool:
         """`True` if this property has been changed since its creation."""
         # TODO

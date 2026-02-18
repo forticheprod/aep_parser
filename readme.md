@@ -84,6 +84,8 @@ for rq_item in project.render_queue.items:
 
 See the [open issues](https://github.com/forticheprod/aep_parser/issues) for a full list of proposed features and known issues.
 
+If you encounter a bug, please submit an issue and attach a basic scene to reproduce your issue.
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 

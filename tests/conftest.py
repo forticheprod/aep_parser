@@ -5,9 +5,15 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from aep_parser import App, Project
 from aep_parser import parse as _parse_aep
+
+if TYPE_CHECKING:
+    from aep_parser.models.items.folder import FolderItem
+    from aep_parser.models.items.footage import FootageItem
+    from aep_parser.models.layers.layer import Layer
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples"
 
@@ -76,7 +82,7 @@ def get_folder_from_json(expected: dict) -> dict:
     return {}
 
 
-def get_first_layer(project: Project):  # type: ignore[no-untyped-def]
+def get_first_layer(project: Project) -> Layer:
     """Get the first layer from the first composition that has layers."""
     assert len(project.compositions) >= 1
     for comp in project.compositions:
@@ -85,14 +91,14 @@ def get_first_layer(project: Project):  # type: ignore[no-untyped-def]
     raise AssertionError("No composition with layers found")
 
 
-def get_first_footage(project: Project):  # type: ignore[no-untyped-def]
+def get_first_footage(project: Project) -> FootageItem | None:
     """Get the first footage item."""
     if project.footages:
         return project.footages[0]
     return None
 
 
-def get_first_folder(project: Project):  # type: ignore[no-untyped-def]
+def get_first_folder(project: Project) -> FolderItem | None:
     """Get the first user-created folder (not root)."""
     for folder in project.folders:
         if folder.name != "root":

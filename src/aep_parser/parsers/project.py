@@ -17,6 +17,7 @@ from ..models.enums import (
     ColorManagementSystem,
     FeetFramesFilmType,
     FramesCountType,
+    Label,
     LutInterpolationMethod,
     TimeDisplayType,
 )
@@ -68,7 +69,6 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
     dwga_chunk = find_by_type(chunks=root_chunks, chunk_type="dwga")
     xmp_packet = ET.fromstring(aep.xmp_packet)
 
-    # Parse color profile settings from JSON in CPPl section
     color_profile = _get_color_profile_settings(root_chunks)
 
     project = Project(
@@ -95,10 +95,10 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
         ),
         frame_rate=nnhd_chunk.frame_rate,
         frames_count_type=FramesCountType.from_binary(nnhd_chunk.frames_count_type),
-        frames_use_feet_frames=bool(nnhd_chunk.frames_use_feet_frames),
+        frames_use_feet_frames=nnhd_chunk.frames_use_feet_frames,
         linear_blending=any(c.chunk_type == "lnrb" for c in root_chunks),
-        linearize_working_space=bool(nnhd_chunk.linearize_working_space),
-        working_gamma=2.4 if dwga_chunk.working_gamma_selector else 2.2,
+        linearize_working_space=nnhd_chunk.linearize_working_space,
+        working_gamma=dwga_chunk.working_gamma,
         working_space=_get_working_space(root_chunks),
         items={},
         render_queue=None,
@@ -113,7 +113,7 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
         project=project,
         item_id=0,
         item_name="root",
-        label=Aep.Label(0),
+        label=Label(0),
         parent_folder=None,
         comment="",
     )
@@ -122,10 +122,8 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
 
     _link_layers(project)
 
-    # Parse render_queue after items to link comp references in render queue items
     project.render_queue = parse_render_queue(root_chunks, project)
 
-    # Set active_item from fcid chunk
     with contextlib.suppress(ChunkNotFoundError):
         fcid_chunk = find_by_type(chunks=root_chunks, chunk_type="fcid")
         project.active_item = project.items[fcid_chunk.active_item_id]
@@ -135,22 +133,19 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
 
 
 def _link_layers(project: Project) -> None:
-    # Link layers to their source items and parent layers
     for composition in project.compositions:
-        # Build layer lookup by id for this composition
         layers_by_id = {layer.id: layer for layer in composition.layers}
         for layer in composition.layers:
-            if layer.layer_type == Aep.LayerType.footage and hasattr(
-                layer, "source_id"
-            ):
-                if hasattr(layer, "source"):
-                    source = project.items.get(layer.source_id)
+            if layer.layer_type == "footage" and getattr(
+                layer, "_source_id", 0
+            ) != 0 and hasattr(layer, "source"):
+                    source = project.items.get(layer._source_id)
                     layer.source = source
                     _clamp_layer_times(layer, source, composition)
                     if source is not None and hasattr(source, "_used_in"):
                         source._used_in.add(composition)
-            if layer.parent_id is not None:
-                layer.parent = layers_by_id.get(layer.parent_id)
+            if layer._parent_id != 0:
+                layer.parent = layers_by_id.get(layer._parent_id)
 
 
 def _clamp_layer_times(
@@ -210,13 +205,13 @@ def _clamp_layer_times(
     # Clamp inPoint: cannot be before start_time
     if layer.in_point < layer.start_time:
         layer.in_point = layer.start_time
-        layer.frame_in_point = int(round(layer.start_time * frame_rate))
+        layer.frame_in_point = round(layer.start_time * frame_rate)
 
     # Clamp outPoint: cannot exceed start_time + source.duration * stretch
     max_out = layer.start_time + source_duration * stretch_factor
     if layer.out_point > max_out:
         layer.out_point = max_out
-        layer.frame_out_point = int(round(max_out * frame_rate))
+        layer.frame_out_point = round(max_out * frame_rate)
 
 
 def _get_expression_engine(root_chunks: list[Aep.Chunk]) -> str:

@@ -20,6 +20,7 @@ from .enums import (
     GetSettingsFormat,
     ImportAsType,
     KeyframeInterpolationType,
+    Label,
     Language,
     LayerQuality,
     LayerSamplingQuality,
@@ -61,6 +62,7 @@ from .properties.property_group import PropertyGroup
 from .renderqueue.output_module import OutputModule
 from .renderqueue.render_queue import RenderQueue
 from .renderqueue.render_queue_item import RenderQueueItem
+from .settings import OutputModuleSettings, RenderSettings
 from .viewer import View, Viewer, ViewOptions
 
 __all__ = [
@@ -90,6 +92,7 @@ __all__ = [
     "Item",
     "Keyframe",
     "KeyframeInterpolationType",
+    "Label",
     "Language",
     "Layer",
     "LayerQuality",
@@ -102,6 +105,7 @@ __all__ = [
     "MaskMode",
     "MaskMotionBlur",
     "OutputModule",
+    "OutputModuleSettings",
     "ParagraphJustification",
     "PlayMode",
     "PostRenderAction",
@@ -117,6 +121,7 @@ __all__ = [
     "PurgeTarget",
     "RenderQueue",
     "RenderQueueItem",
+    "RenderSettings",
     "ResolveType",
     "RQItemStatus",
     "TimeDisplayType",

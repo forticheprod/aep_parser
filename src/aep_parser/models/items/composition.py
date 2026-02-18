@@ -206,7 +206,7 @@ class CompItem(AVItem):
                 if layer.name == name:
                     return layer
             raise ValueError(f"Layer with name '{name}' not found")
-        elif index:
+        elif index is not None:
             return self.layers[index]
         elif other_layer and rel_index:
             return self.layers[self.layers.index(other_layer) + rel_index]

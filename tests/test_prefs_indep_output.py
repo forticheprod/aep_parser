@@ -17,13 +17,14 @@ from aep_parser.parsers.prefs_indep_output import (
 SAMPLES_DIR = Path(__file__).parent.parent / "samples"
 
 
+@pytest.fixture(scope="module")
+def sample_prefs_path() -> Path:
+    """Return path to the sample prefs file."""
+    return SAMPLES_DIR / "assets" / "prefs_indep_output.txt"
+
+
 class TestPrefsIndepOutputParser:
     """Tests for parsing prefs_indep_output.txt files."""
-
-    @pytest.fixture
-    def sample_prefs_path(self) -> Path:
-        """Return path to the sample prefs file."""
-        return SAMPLES_DIR / "assets" / "prefs_indep_output.txt"
 
     def test_parse_returns_settings(self, sample_prefs_path: Path) -> None:
         """Parser returns a Settings object."""
@@ -200,11 +201,6 @@ class TestExporterParam:
 class TestOutputModulePreferencesFromFile:
     """Tests for parsing Output Module Preferences from file."""
 
-    @pytest.fixture
-    def sample_prefs_path(self) -> Path:
-        """Return path to the sample prefs file."""
-        return SAMPLES_DIR / "assets" / "prefs_indep_output.txt"
-
     def test_parse_default_om_index(self, sample_prefs_path: Path) -> None:
         """Parser extracts default OM index."""
         settings = parse_prefs_indep_output(sample_prefs_path)
@@ -223,11 +219,6 @@ class TestOutputModulePreferencesFromFile:
 
 class TestOutputFileOptionsFromFile:
     """Tests for parsing Output File Options from file."""
-
-    @pytest.fixture
-    def sample_prefs_path(self) -> Path:
-        """Return path to the sample prefs file."""
-        return SAMPLES_DIR / "assets" / "prefs_indep_output.txt"
 
     def test_parse_output_file_options(self, sample_prefs_path: Path) -> None:
         """Parser extracts output file options."""

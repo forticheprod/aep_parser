@@ -8,6 +8,7 @@ from ..kaitai.utils import (
     find_by_list_type,
     find_by_type,
 )
+from ..models.enums import Label
 from ..models.items.folder import FolderItem
 from .composition import parse_composition
 from .footage import parse_footage
@@ -42,7 +43,7 @@ def parse_item(
 
     item_id = idta_chunk.id
     item_type = idta_chunk.item_type
-    label = idta_chunk.label
+    label = Label(int(idta_chunk.label))
 
     item: CompItem | FolderItem | FootageItem
     if item_type == Aep.ItemType.folder:
@@ -77,6 +78,9 @@ def parse_item(
             comment=comment,
         )
 
+    else:
+        raise ValueError(f"Unknown item type: {item_type}")
+
     project.items[item_id] = item
 
     return item
@@ -88,7 +92,7 @@ def parse_folder(
     project: Project,
     item_id: int,
     item_name: str,
-    label: Aep.Label,
+    label: Label,
     parent_folder: FolderItem | None,
     comment: str,
 ) -> FolderItem:
@@ -115,7 +119,6 @@ def parse_folder(
         type_name="Folder",
         parent_folder=parent_folder,
     )
-    # Get folder contents
     if is_root:
         child_item_chunks = filter_by_list_type(chunks=child_chunks, list_type="Item")
     else:
