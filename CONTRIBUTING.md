@@ -27,7 +27,7 @@ AEP Parser transforms binary .aep files into typed Python objects through a thre
 
 **Stage 2: Data Transformation (Parsers)**
 - `src/aep_parser/parsers/` - Transform raw chunks into model instances
-- Entry point: `parse_project()` in `parsers/project.py`
+- Entry point: `parse()` in `parsers/app.py`
 - Pattern: Each parser receives chunks + context, returns a model instance
 
 **Stage 3: Data Models**
@@ -156,11 +156,12 @@ The [Kaitai Struct Web IDE](https://ide.kaitai.io/) is invaluable for debugging 
 Explore parsed data interactively:
 
 ```python
-from aep_parser import parse_project
+from aep_parser import parse
 from aep_parser.kaitai.utils import find_by_type, filter_by_list_type
 
 # Parse a project
-project = parse_project("samples/models/composition/bgColor_custom.aep")
+app = parse("samples/models/composition/bgColor_custom.aep")
+project = app.project
 
 # Explore the data
 print(project.frame_rate)
@@ -273,7 +274,8 @@ Create a test in the appropriate test file:
 ```python
 def test_comp_shutter_angle():
     """Test parsing shutter angle from composition."""
-    project = parse_project("samples/models/composition/shutterAngle_180.aep")
+    app = parse("samples/models/composition/shutterAngle_180.aep")
+    project = app.project
     comp = project.items[0]
     
     assert comp.shutter_angle == 180.0
@@ -420,7 +422,8 @@ Follow the existing test patterns and compare twith the JSON values whenever pos
 def test_attribute_name():
     """Test parsing <attribute> from <object>."""
     # Parse a sample project
-    project = parse_project("samples/models/<type>/<attribute>_<value>.aep")
+    app = parse("samples/models/<type>/<attribute>_<value>.aep")
+    project = app.project
 
     # Navigate to the target object
     comp = project.items[0]

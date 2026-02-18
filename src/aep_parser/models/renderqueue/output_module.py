@@ -68,9 +68,10 @@ class OutputModule:
 
     settings: OutputModuleSettings
     """
-    Dictionary containing all output module settings with ExtendScript keys.
-    Includes "Video Output", "Audio Bit Depth", "Audio Channels", "Color",
-    etc. Matches the format from `OutputModule.getSettings(GetSettingsFormat.NUMBER)`.
+    [OutputModuleSettings][aep_parser.models.settings.OutputModuleSettings]
+    dict with ExtendScript-compatible keys. Includes "Video Output",
+    "Audio Bit Depth", "Audio Channels", "Color", etc. Matches the
+    format from ``OutputModule.getSettings(GetSettingsFormat.NUMBER)``.
     """
 
     templates: list[str]

@@ -140,7 +140,7 @@ def parse(aep_file_path: str | os.PathLike[str]) -> App:
         aep_file_path: Path to the ``.aep`` file.
 
     Example:
-        ```
+        ```python
         import aep_parser
 
         app = aep_parser.parse("project.aep")

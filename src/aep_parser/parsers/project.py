@@ -21,6 +21,7 @@ from ..models.enums import (
     LutInterpolationMethod,
     TimeDisplayType,
 )
+from ..models.layers.av_layer import AVLayer
 from ..models.project import Project
 from ..utils import deprecated
 from .app import parse_app
@@ -136,13 +137,12 @@ def _link_layers(project: Project) -> None:
     for composition in project.compositions:
         layers_by_id = {layer.id: layer for layer in composition.layers}
         for layer in composition.layers:
-            if layer.layer_type == "footage" and getattr(
-                layer, "_source_id", 0
-            ) != 0 and hasattr(layer, "source"):
-                    source = project.items.get(layer._source_id)
+            if isinstance(layer, AVLayer) and layer._source_id != 0:
+                source = project.items.get(layer._source_id)
+                if source is not None:
                     layer.source = source
                     _clamp_layer_times(layer, source, composition)
-                    if source is not None and hasattr(source, "_used_in"):
+                    if hasattr(source, "_used_in"):
                         source._used_in.add(composition)
             if layer._parent_id != 0:
                 layer.parent = layers_by_id.get(layer._parent_id)

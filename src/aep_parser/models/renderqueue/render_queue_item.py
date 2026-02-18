@@ -59,7 +59,8 @@ class RenderQueueItem:
 
     settings: RenderSettings
     """
-    Dict with ExtendScript-compatible keys matching getSettings() output.
+    [RenderSettings][aep_parser.models.settings.RenderSettings] dict
+    with ExtendScript-compatible keys matching getSettings() output.
     Contains quality, resolution, motion blur, frame blending, and other
     rendering options.
     """

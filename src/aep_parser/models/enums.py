@@ -8,45 +8,6 @@ from __future__ import annotations
 from enum import IntEnum
 
 
-def _offset_from_binary(offset: int, default_name: str) -> classmethod:
-    """Create a ``from_binary`` classmethod using offset-based conversion.
-
-    The generated method returns ``cls(value + offset)``, falling back to the
-    member named *default_name* on ``ValueError``.
-
-    Args:
-        offset: Added to the raw binary value before enum lookup.
-        default_name: Name of the member returned for unknown values.
-    """
-
-    @classmethod
-    def from_binary(cls, value: int):
-        try:
-            return cls(value + offset)
-        except ValueError:
-            return cls[default_name]
-
-    return from_binary
-
-
-def _sentinel_from_binary(sentinel: int, member_name: str) -> classmethod:
-    """Create a ``from_binary`` classmethod using sentinel detection.
-
-    Returns the member named *member_name* when *value* equals *sentinel*,
-    otherwise returns *value* unchanged as a plain ``int``.
-
-    Args:
-        sentinel: The raw value that triggers the special member.
-        member_name: Name of the member returned when the sentinel matches.
-    """
-
-    @classmethod
-    def from_binary(cls, value: int) -> int:
-        return cls[member_name] if value == sentinel else value
-
-    return from_binary
-
-
 class Label(IntEnum):
     """Label color for items, layers, keyframes and markers.
 
@@ -228,7 +189,13 @@ class ChannelType(IntEnum):
     CHANNEL_ALPHA_OVERLAY = 7821
     CHANNEL_ALPHA_BOUNDARY = 7822
 
-    from_binary = _offset_from_binary(7812, "CHANNEL_RGB")
+    @classmethod
+    def from_binary(cls, value: int) -> ChannelType:
+        """Convert binary value to ChannelType."""
+        try:
+            return cls(value + 7812)
+        except ValueError:
+            return cls.CHANNEL_RGB
 
 
 class ColorManagementSystem(IntEnum):
@@ -327,7 +294,13 @@ class FramesCountType(IntEnum):
     FC_START_1 = 2613
     FC_TIMECODE_CONVERSION = 2614
 
-    from_binary = _offset_from_binary(2612, "FC_START_0")
+    @classmethod
+    def from_binary(cls, value: int) -> FramesCountType:
+        """Convert binary value to FramesCountType."""
+        try:
+            return cls(value + 2612)
+        except ValueError:
+            return cls.FC_START_0
 
 
 class GetSettingsFormat(IntEnum):
@@ -378,7 +351,13 @@ class KeyframeInterpolationType(IntEnum):
     BEZIER = 6613
     HOLD = 6614
 
-    from_binary = _offset_from_binary(6611, "LINEAR")
+    @classmethod
+    def from_binary(cls, value: int) -> KeyframeInterpolationType:
+        """Convert binary value to KeyframeInterpolationType."""
+        try:
+            return cls(value + 6611)
+        except ValueError:
+            return cls.LINEAR
 
 
 class Language(IntEnum):
@@ -409,7 +388,13 @@ class LayerQuality(IntEnum):
     DRAFT = 4613
     BEST = 4614
 
-    from_binary = _offset_from_binary(4612, "BEST")
+    @classmethod
+    def from_binary(cls, value: int) -> LayerQuality:
+        """Convert binary value to LayerQuality."""
+        try:
+            return cls(value + 4612)
+        except ValueError:
+            return cls.BEST
 
 
 class LayerSamplingQuality(IntEnum):
@@ -421,7 +406,13 @@ class LayerSamplingQuality(IntEnum):
     BILINEAR = 4812
     BICUBIC = 4813
 
-    from_binary = _offset_from_binary(4812, "BILINEAR")
+    @classmethod
+    def from_binary(cls, value: int) -> LayerSamplingQuality:
+        """Convert binary value to LayerSamplingQuality."""
+        try:
+            return cls(value + 4812)
+        except ValueError:
+            return cls.BILINEAR
 
 
 class LightType(IntEnum):
@@ -435,7 +426,13 @@ class LightType(IntEnum):
     POINT = 4414
     AMBIENT = 4415
 
-    from_binary = _offset_from_binary(4412, "PARALLEL")
+    @classmethod
+    def from_binary(cls, value: int) -> LightType:
+        """Convert binary value to LightType."""
+        try:
+            return cls(value + 4412)
+        except ValueError:
+            return cls.PARALLEL
 
 
 class LogType(IntEnum):
@@ -448,7 +445,13 @@ class LogType(IntEnum):
     ERRORS_AND_SETTINGS = 3213
     ERRORS_AND_PER_FRAME_INFO = 3214
 
-    from_binary = _offset_from_binary(3212, "ERRORS_ONLY")
+    @classmethod
+    def from_binary(cls, value: int) -> LogType:
+        """Convert binary value to LogType."""
+        try:
+            return cls(value + 3212)
+        except ValueError:
+            return cls.ERRORS_ONLY
 
 
 class LoopMode(IntEnum):
@@ -532,7 +535,13 @@ class PostRenderAction(IntEnum):
     IMPORT_AND_REPLACE_USAGE = 3614
     SET_PROXY = 3615
 
-    from_binary = _offset_from_binary(3612, "NONE")
+    @classmethod
+    def from_binary(cls, value: int) -> PostRenderAction:
+        """Convert binary value to PostRenderAction."""
+        try:
+            return cls(value + 3612)
+        except ValueError:
+            return cls.NONE
 
 
 class PREFType(IntEnum):
@@ -628,7 +637,13 @@ class RQItemStatus(IntEnum):
     ERR_STOPPED = 3018
     DONE = 3019
 
-    from_binary = _offset_from_binary(3013, "UNQUEUED")
+    @classmethod
+    def from_binary(cls, value: int) -> RQItemStatus:
+        """Convert binary value to RQItemStatus."""
+        try:
+            return cls(value + 3013)
+        except ValueError:
+            return cls.UNQUEUED
 
 
 class TimeDisplayType(IntEnum):
@@ -640,7 +655,13 @@ class TimeDisplayType(IntEnum):
     TIMECODE = 2012
     FRAMES = 2013
 
-    from_binary = _offset_from_binary(2012, "TIMECODE")
+    @classmethod
+    def from_binary(cls, value: int) -> TimeDisplayType:
+        """Convert binary value to TimeDisplayType."""
+        try:
+            return cls(value + 2012)
+        except ValueError:
+            return cls.TIMECODE
 
 
 class ToolType(IntEnum):
@@ -702,7 +723,13 @@ class TrackMatteType(IntEnum):
     LUMA = 5015
     LUMA_INVERTED = 5016
 
-    from_binary = _offset_from_binary(5012, "NO_TRACK_MATTE")
+    @classmethod
+    def from_binary(cls, value: int) -> TrackMatteType:
+        """Convert binary value to TrackMatteType."""
+        try:
+            return cls(value + 5012)
+        except ValueError:
+            return cls.NO_TRACK_MATTE
 
 
 class ViewerType(IntEnum):
@@ -793,7 +820,10 @@ class RenderQuality(IntEnum):
     DRAFT = 1
     BEST = 2
 
-    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
+    @classmethod
+    def from_binary(cls, value: int) -> RenderQuality:
+        """Convert binary value to RenderQuality (0xFFFF = CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
 
 
 class FieldRender(IntEnum):
@@ -837,7 +867,10 @@ class MotionBlurSetting(IntEnum):
     ON_FOR_CHECKED_LAYERS = 1
     CURRENT_SETTINGS = 2
 
-    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
+    @classmethod
+    def from_binary(cls, value: int) -> MotionBlurSetting:
+        """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
 
 
 class FrameBlendingSetting(IntEnum):
@@ -852,7 +885,10 @@ class FrameBlendingSetting(IntEnum):
     ON_FOR_CHECKED_LAYERS = 1
     CURRENT_SETTINGS = 2
 
-    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
+    @classmethod
+    def from_binary(cls, value: int) -> FrameBlendingSetting:
+        """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
 
 
 class EffectsSetting(IntEnum):
@@ -867,7 +903,10 @@ class EffectsSetting(IntEnum):
     ALL_ON = 1
     CURRENT_SETTINGS = 2
 
-    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
+    @classmethod
+    def from_binary(cls, value: int) -> EffectsSetting:
+        """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
 
 
 class ProxyUseSetting(IntEnum):
@@ -883,7 +922,10 @@ class ProxyUseSetting(IntEnum):
     CURRENT_SETTINGS = 2
     USE_COMP_PROXIES_ONLY = 3
 
-    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
+    @classmethod
+    def from_binary(cls, value: int) -> ProxyUseSetting:
+        """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
 
 
 class SoloSwitchesSetting(IntEnum):
@@ -897,7 +939,10 @@ class SoloSwitchesSetting(IntEnum):
     ALL_OFF = 0
     CURRENT_SETTINGS = 2
 
-    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
+    @classmethod
+    def from_binary(cls, value: int) -> SoloSwitchesSetting:
+        """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
 
 
 class GuideLayers(IntEnum):
@@ -911,7 +956,10 @@ class GuideLayers(IntEnum):
     ALL_OFF = 0
     CURRENT_SETTINGS = 2
 
-    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
+    @classmethod
+    def from_binary(cls, value: int) -> GuideLayers:
+        """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
 
 
 class DiskCacheSetting(IntEnum):
@@ -925,7 +973,10 @@ class DiskCacheSetting(IntEnum):
     READ_ONLY = 0
     CURRENT_SETTINGS = 2
 
-    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
+    @classmethod
+    def from_binary(cls, value: int) -> DiskCacheSetting:
+        """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
 
 
 class ColorDepthSetting(IntEnum):
@@ -941,7 +992,10 @@ class ColorDepthSetting(IntEnum):
     SIXTEEN_BITS_PER_CHANNEL = 1
     THIRTY_TWO_BITS_PER_CHANNEL = 2
 
-    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
+    @classmethod
+    def from_binary(cls, value: int) -> ColorDepthSetting:
+        """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
+        return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
 
 
 class TimeSpanSource(IntEnum):
@@ -956,7 +1010,10 @@ class TimeSpanSource(IntEnum):
     LENGTH_OF_COMP = 1
     CUSTOM = 2
 
-    from_binary = _sentinel_from_binary(0xFFFF, "CUSTOM")
+    @classmethod
+    def from_binary(cls, value: int) -> TimeSpanSource:
+        """Convert binary value (0xFFFF = CUSTOM)."""
+        return cls.CUSTOM if value == 0xFFFF else cls(value)
 
 
 # =============================================================================
