@@ -329,7 +329,7 @@ class CosParser:
         elif kw == b"false":
             return Token(TokenType.Boolean, False)
         elif kw == b"null":
-            return Token(TokenType.Boolean, None)
+            return Token(TokenType.Null, None)
         elif kw == b"obj":
             return Token(TokenType.IndirectObjectStart)
         elif kw == b"endobj":
@@ -446,7 +446,7 @@ class CosParser:
         raise SyntaxError("Invalid escape sequence")
 
     def is_octal(self, char: bytes) -> bool:
-        return b"0" <= char <= b"8"
+        return b"0" <= char <= b"7"
 
     def is_hex(self, char: bytes) -> bool:
         return char.isdigit() or b"a" <= char <= b"f" or b"A" <= char <= b"F"
@@ -468,7 +468,7 @@ class CosParser:
 
         data = b""
         for i in range(0, len(hstr), 2):
-            data += int(hstr[i : i + 1], 16).to_bytes(1, "big")
+            data += int(hstr[i : i + 2], 16).to_bytes(1, "big")
 
         return Token(TokenType.HexString, data)
 

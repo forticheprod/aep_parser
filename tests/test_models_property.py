@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from conftest import get_first_layer, get_sample_files, load_expected, parse_project
@@ -10,10 +11,14 @@ from conftest import get_first_layer, get_sample_files, load_expected, parse_pro
 from aep_parser import Project
 from aep_parser.models.enums import KeyframeInterpolationType
 
+if TYPE_CHECKING:
+    from aep_parser import Property
+
+
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "property"
 
 
-def _find_property(layer, match_name: str):  # type: ignore[no-untyped-def]
+def _find_property(layer, match_name: str) -> Property | None:
     """Find a property in the layer's transform by match_name."""
     for prop in layer.transform:
         if prop.match_name == match_name:

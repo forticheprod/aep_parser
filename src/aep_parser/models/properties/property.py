@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 from dataclasses import dataclass
 
-from ...kaitai import Aep
+from ..enums import PropertyControlType, PropertyValueType
 from .property_base import PropertyBase
 
 if typing.TYPE_CHECKING:
@@ -77,12 +77,12 @@ class Property(PropertyBase):
     no_value: bool
     """When `True`, the property stores no data."""
 
-    property_control_type: Aep.PropertyControlType
+    property_control_type: PropertyControlType
     """
     The type of effect control (scalar, color, enum, etc.) for this property.
     """
 
-    property_value_type: Aep.LdatItemType
+    property_value_type: PropertyValueType
     """
     The type of value stored in the named property. Each type of data is
     stored and retrieved in a different kind of structure. For example, a 3D
@@ -172,7 +172,7 @@ class Property(PropertyBase):
     @property
     def is_dropdown_effect(self) -> bool:
         """`True` if the property is the Menu property of a Dropdown Menu Control effect."""
-        return bool(self.property_control_type == Aep.PropertyControlType.enum)
+        return self.property_control_type == PropertyControlType.ENUM
 
     @property
     def is_time_varying(self) -> bool:
@@ -182,9 +182,9 @@ class Property(PropertyBase):
     @property
     def has_max(self) -> bool:
         """`True` if there is a maximum permitted value for the named property."""
-        return bool(self.max_value)
+        return self.max_value is not None
 
     @property
     def has_min(self) -> bool:
         """`True` if there is a minimum permitted value for the named property."""
-        return bool(self.min_value)
+        return self.min_value is not None

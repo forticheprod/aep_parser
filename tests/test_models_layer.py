@@ -210,7 +210,7 @@ class TestLayerTypes:
 
     def test_type_camera(self) -> None:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "type_camera.aep"))
-        assert layer.layer_type.name == "camera"
+        assert layer.layer_type == "camera"
         assert isinstance(layer, CameraLayer)
 
     def test_type_null(self) -> None:
@@ -222,12 +222,12 @@ class TestLayerTypes:
 
     def test_type_shape(self) -> None:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "type_shape.aep"))
-        assert layer.layer_type.name == "shape"
+        assert layer.layer_type == "shape"
         assert isinstance(layer, ShapeLayer)
 
     def test_type_text(self) -> None:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "type_text.aep"))
-        assert layer.layer_type.name == "text"
+        assert layer.layer_type == "text"
         assert isinstance(layer, TextLayer)
 
 
@@ -452,13 +452,13 @@ class TestParenting:
         expected = load_expected(SAMPLES_DIR, "parent")
         project = parse_project(SAMPLES_DIR / "parent.aep")
         comp = project.compositions[0]
-        child_layer = next((layer for layer in comp.layers if layer.parent_id is not None), None)
+        child_layer = next((layer for layer in comp.layers if layer._parent_id != 0), None)
         assert child_layer is not None
         for item in expected["items"]:
             if "layers" in item:
                 for layer_json in item["layers"]:
                     if layer_json.get("parent") is not None:
-                        assert child_layer.parent_id == layer_json["parent"]
+                        assert child_layer._parent_id == layer_json["parent"]
 
 
 class TestTimeRemap:

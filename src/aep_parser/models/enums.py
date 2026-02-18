@@ -8,6 +8,128 @@ from __future__ import annotations
 from enum import IntEnum
 
 
+def _offset_from_binary(offset: int, default_name: str) -> classmethod:
+    """Create a ``from_binary`` classmethod using offset-based conversion.
+
+    The generated method returns ``cls(value + offset)``, falling back to the
+    member named *default_name* on ``ValueError``.
+
+    Args:
+        offset: Added to the raw binary value before enum lookup.
+        default_name: Name of the member returned for unknown values.
+    """
+
+    @classmethod
+    def from_binary(cls, value: int):
+        try:
+            return cls(value + offset)
+        except ValueError:
+            return cls[default_name]
+
+    return from_binary
+
+
+def _sentinel_from_binary(sentinel: int, member_name: str) -> classmethod:
+    """Create a ``from_binary`` classmethod using sentinel detection.
+
+    Returns the member named *member_name* when *value* equals *sentinel*,
+    otherwise returns *value* unchanged as a plain ``int``.
+
+    Args:
+        sentinel: The raw value that triggers the special member.
+        member_name: Name of the member returned when the sentinel matches.
+    """
+
+    @classmethod
+    def from_binary(cls, value: int) -> int:
+        return cls[member_name] if value == sentinel else value
+
+    return from_binary
+
+
+class Label(IntEnum):
+    """Label color for items, layers, keyframes and markers.
+
+    Colors are represented by their number (0 for None, or 1 to 16 for one
+    of the preset colors in the Labels preferences).
+
+    See: https://ae-scripting.docsforadobe.dev/item/item/#itemlabel
+    """
+
+    NONE = 0
+    RED = 1
+    YELLOW = 2
+    AQUA = 3
+    PINK = 4
+    LAVENDER = 5
+    PEACH = 6
+    SEA_FOAM = 7
+    BLUE = 8
+    GREEN = 9
+    PURPLE = 10
+    ORANGE = 11
+    BROWN = 12
+    FUCHSIA = 13
+    CYAN = 14
+    SANDSTONE = 15
+    DARK_GREEN = 16
+
+
+class PropertyControlType(IntEnum):
+    """The type of effect control for a property.
+
+    Describes the UI control type exposed in the After Effects effect panel
+    (scalar slider, color picker, angle dial, checkbox, dropdown, etc.).
+    """
+
+    LAYER = 0
+    INTEGER = 1
+    SCALAR = 2
+    ANGLE = 3
+    BOOLEAN = 4
+    COLOR = 5
+    TWO_D = 6
+    ENUM = 7
+    PAINT_GROUP = 9
+    SLIDER = 10
+    CURVE = 11
+    MASK = 12
+    GROUP = 13
+    UNKNOWN_14 = 14
+    UNKNOWN = 15
+    THREE_D = 18
+
+
+class PropertyValueType(IntEnum):
+    """The type of value stored in a property.
+
+    Each type of data is stored and retrieved in a different kind of
+    structure.  For example, a 3-D spatial property (such as a layer's
+    position) is stored as an array of three floating-point values.
+
+    See: https://ae-scripting.docsforadobe.dev/property/property/#propertypropertyvaluetype
+    """
+
+    UNKNOWN = 0
+    NO_VALUE = 1
+    THREE_D_SPATIAL = 2
+    THREE_D = 3
+    TWO_D_SPATIAL = 4
+    TWO_D = 5
+    ONE_D = 6
+    COLOR = 7
+    CUSTOM_VALUE = 8
+    MARKER = 9
+    LAYER_INDEX = 10
+    MASK_INDEX = 11
+    SHAPE = 12
+    TEXT_DOCUMENT = 13
+    LRDR = 14
+    LITM = 15
+    GIDE = 16
+    ORIENTATION = 17
+
+
 class AlphaMode(IntEnum):
     """Defines how alpha information in footage is interpreted.
 
@@ -106,13 +228,7 @@ class ChannelType(IntEnum):
     CHANNEL_ALPHA_OVERLAY = 7821
     CHANNEL_ALPHA_BOUNDARY = 7822
 
-    @classmethod
-    def from_binary(cls, value: int) -> ChannelType:
-        """Convert binary value (0-10) to ChannelType."""
-        try:
-            return cls(value + 7812)
-        except ValueError:
-            return cls.CHANNEL_RGB
+    from_binary = _offset_from_binary(7812, "CHANNEL_RGB")
 
 
 class ColorManagementSystem(IntEnum):
@@ -211,13 +327,7 @@ class FramesCountType(IntEnum):
     FC_START_1 = 2613
     FC_TIMECODE_CONVERSION = 2614
 
-    @classmethod
-    def from_binary(cls, value: int) -> FramesCountType:
-        """Convert binary value (0-2) to FramesCountType."""
-        try:
-            return cls(value + 2612)
-        except ValueError:
-            return cls.FC_START_0
+    from_binary = _offset_from_binary(2612, "FC_START_0")
 
 
 class GetSettingsFormat(IntEnum):
@@ -268,13 +378,7 @@ class KeyframeInterpolationType(IntEnum):
     BEZIER = 6613
     HOLD = 6614
 
-    @classmethod
-    def from_binary(cls, value: int) -> KeyframeInterpolationType:
-        """Convert binary value (1-3) to KeyframeInterpolationType."""
-        try:
-            return cls(value + 6611)
-        except ValueError:
-            return cls.LINEAR
+    from_binary = _offset_from_binary(6611, "LINEAR")
 
 
 class Language(IntEnum):
@@ -305,13 +409,7 @@ class LayerQuality(IntEnum):
     DRAFT = 4613
     BEST = 4614
 
-    @classmethod
-    def from_binary(cls, value: int) -> LayerQuality:
-        """Convert binary value (0-2) to LayerQuality."""
-        try:
-            return cls(value + 4612)
-        except ValueError:
-            return cls.BEST
+    from_binary = _offset_from_binary(4612, "BEST")
 
 
 class LayerSamplingQuality(IntEnum):
@@ -323,13 +421,7 @@ class LayerSamplingQuality(IntEnum):
     BILINEAR = 4812
     BICUBIC = 4813
 
-    @classmethod
-    def from_binary(cls, value: int) -> LayerSamplingQuality:
-        """Convert binary value (0-1) to LayerSamplingQuality."""
-        try:
-            return cls(value + 4812)
-        except ValueError:
-            return cls.BILINEAR
+    from_binary = _offset_from_binary(4812, "BILINEAR")
 
 
 class LightType(IntEnum):
@@ -343,13 +435,7 @@ class LightType(IntEnum):
     POINT = 4414
     AMBIENT = 4415
 
-    @classmethod
-    def from_binary(cls, value: int) -> LightType:
-        """Convert binary value (0-3) to LightType."""
-        try:
-            return cls(value + 4412)
-        except ValueError:
-            return cls.PARALLEL
+    from_binary = _offset_from_binary(4412, "PARALLEL")
 
 
 class LogType(IntEnum):
@@ -362,13 +448,7 @@ class LogType(IntEnum):
     ERRORS_AND_SETTINGS = 3213
     ERRORS_AND_PER_FRAME_INFO = 3214
 
-    @classmethod
-    def from_binary(cls, value: int) -> LogType:
-        """Convert binary value (0-2) to LogType."""
-        try:
-            return cls(value + 3212)
-        except ValueError:
-            return cls.ERRORS_ONLY
+    from_binary = _offset_from_binary(3212, "ERRORS_ONLY")
 
 
 class LoopMode(IntEnum):
@@ -452,13 +532,7 @@ class PostRenderAction(IntEnum):
     IMPORT_AND_REPLACE_USAGE = 3614
     SET_PROXY = 3615
 
-    @classmethod
-    def from_binary(cls, value: int) -> PostRenderAction:
-        """Convert binary value (0-3) to PostRenderAction."""
-        try:
-            return cls(value + 3612)
-        except ValueError:
-            return cls.NONE
+    from_binary = _offset_from_binary(3612, "NONE")
 
 
 class PREFType(IntEnum):
@@ -485,27 +559,6 @@ class PropertyType(IntEnum):
     PROPERTY = 6212
     NAMED_GROUP = 6213
     INDEXED_GROUP = 6214
-
-
-class PropertyValueType(IntEnum):
-    """Value type of a property.
-
-    See: https://ae-scripting.docsforadobe.dev/property/property/#propertypropertyvaluetype
-    """
-
-    NO_VALUE = 6412
-    ThreeD_SPATIAL = 6413
-    ThreeD = 6414
-    TwoD_SPATIAL = 6415
-    TwoD = 6416
-    OneD = 6417
-    COLOR = 6418
-    CUSTOM_VALUE = 6419
-    MARKER = 6420
-    LAYER_INDEX = 6421
-    MASK_INDEX = 6422
-    SHAPE = 6423
-    TEXT_DOCUMENT = 6424
 
 
 class PulldownMethod(IntEnum):
@@ -575,14 +628,7 @@ class RQItemStatus(IntEnum):
     ERR_STOPPED = 3018
     DONE = 3019
 
-    @classmethod
-    def from_binary(cls, value: int) -> RQItemStatus:
-        """Convert binary value to RQItemStatus."""
-        try:
-            return cls(value + 3013)
-        except ValueError:
-            # Default to UNQUEUED for unknown values
-            return cls.UNQUEUED
+    from_binary = _offset_from_binary(3013, "UNQUEUED")
 
 
 class TimeDisplayType(IntEnum):
@@ -594,13 +640,7 @@ class TimeDisplayType(IntEnum):
     TIMECODE = 2012
     FRAMES = 2013
 
-    @classmethod
-    def from_binary(cls, value: int) -> TimeDisplayType:
-        """Convert binary value (0-1) to TimeDisplayType."""
-        try:
-            return cls(value + 2012)
-        except ValueError:
-            return cls.TIMECODE
+    from_binary = _offset_from_binary(2012, "TIMECODE")
 
 
 class ToolType(IntEnum):
@@ -662,13 +702,7 @@ class TrackMatteType(IntEnum):
     LUMA = 5015
     LUMA_INVERTED = 5016
 
-    @classmethod
-    def from_binary(cls, value: int) -> TrackMatteType:
-        """Convert binary value (0-4) to TrackMatteType."""
-        try:
-            return cls(value + 5012)
-        except ValueError:
-            return cls.NO_TRACK_MATTE
+    from_binary = _offset_from_binary(5012, "NO_TRACK_MATTE")
 
 
 class ViewerType(IntEnum):
@@ -759,10 +793,7 @@ class RenderQuality(IntEnum):
     DRAFT = 1
     BEST = 2
 
-    @classmethod
-    def from_binary(cls, value: int) -> int:
-        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
-        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
 
 
 class FieldRender(IntEnum):
@@ -806,10 +837,7 @@ class MotionBlurSetting(IntEnum):
     ON_FOR_CHECKED_LAYERS = 1
     CURRENT_SETTINGS = 2
 
-    @classmethod
-    def from_binary(cls, value: int) -> int:
-        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
-        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
 
 
 class FrameBlendingSetting(IntEnum):
@@ -824,10 +852,7 @@ class FrameBlendingSetting(IntEnum):
     ON_FOR_CHECKED_LAYERS = 1
     CURRENT_SETTINGS = 2
 
-    @classmethod
-    def from_binary(cls, value: int) -> int:
-        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
-        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
 
 
 class EffectsSetting(IntEnum):
@@ -842,10 +867,7 @@ class EffectsSetting(IntEnum):
     ALL_ON = 1
     CURRENT_SETTINGS = 2
 
-    @classmethod
-    def from_binary(cls, value: int) -> int:
-        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
-        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
 
 
 class ProxyUseSetting(IntEnum):
@@ -861,10 +883,7 @@ class ProxyUseSetting(IntEnum):
     CURRENT_SETTINGS = 2
     USE_COMP_PROXIES_ONLY = 3
 
-    @classmethod
-    def from_binary(cls, value: int) -> int:
-        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
-        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
 
 
 class SoloSwitchesSetting(IntEnum):
@@ -878,10 +897,7 @@ class SoloSwitchesSetting(IntEnum):
     ALL_OFF = 0
     CURRENT_SETTINGS = 2
 
-    @classmethod
-    def from_binary(cls, value: int) -> int:
-        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
-        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
 
 
 class GuideLayers(IntEnum):
@@ -895,10 +911,7 @@ class GuideLayers(IntEnum):
     ALL_OFF = 0
     CURRENT_SETTINGS = 2
 
-    @classmethod
-    def from_binary(cls, value: int) -> int:
-        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
-        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
 
 
 class DiskCacheSetting(IntEnum):
@@ -912,10 +925,7 @@ class DiskCacheSetting(IntEnum):
     READ_ONLY = 0
     CURRENT_SETTINGS = 2
 
-    @classmethod
-    def from_binary(cls, value: int) -> int:
-        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
-        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
 
 
 class ColorDepthSetting(IntEnum):
@@ -931,10 +941,7 @@ class ColorDepthSetting(IntEnum):
     SIXTEEN_BITS_PER_CHANNEL = 1
     THIRTY_TWO_BITS_PER_CHANNEL = 2
 
-    @classmethod
-    def from_binary(cls, value: int) -> int:
-        """Convert binary value to ExtendScript value (0xFFFF → CURRENT_SETTINGS)."""
-        return cls.CURRENT_SETTINGS if value == 0xFFFF else value
+    from_binary = _sentinel_from_binary(0xFFFF, "CURRENT_SETTINGS")
 
 
 class TimeSpanSource(IntEnum):
@@ -949,10 +956,7 @@ class TimeSpanSource(IntEnum):
     LENGTH_OF_COMP = 1
     CUSTOM = 2
 
-    @classmethod
-    def from_binary(cls, value: int) -> int:
-        """Convert binary value to ExtendScript value (0xFFFF → CUSTOM)."""
-        return cls.CUSTOM if value == 0xFFFF else value
+    from_binary = _sentinel_from_binary(0xFFFF, "CUSTOM")
 
 
 # =============================================================================

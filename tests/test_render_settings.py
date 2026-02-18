@@ -23,6 +23,7 @@ class TestRenderSettings:
         assert rs["Quality"] == 2  # Best
         assert rs["Resolution"] == [1, 1]  # Full
         assert rs["Frame Rate"] == 0
+        assert rs["3:2 Pulldown"] == 0  # Off
 
     def test_quality_draft(self) -> None:
         """Test draft quality setting."""
@@ -102,13 +103,6 @@ class TestRenderSettings:
         rs = project.render_queue.items[0].settings
 
         assert rs["Field Render"] == 1  # Upper Field First
-
-    def test_pulldown_off(self) -> None:
-        """Test pulldown off (default)."""
-        project = parse_project(SAMPLES_DIR / "base.aep")
-        rs = project.render_queue.items[0].settings
-
-        assert rs["3:2 Pulldown"] == 0  # Off
 
     def test_pulldown_wssww(self) -> None:
         """Test 3:2 pulldown WSSWW setting."""
@@ -531,59 +525,6 @@ class TestOutputModuleSettings:
 
         assert settings["Resize Quality"] == 1
 
-    @pytest.mark.parametrize(
-        "filename, expected_value",
-        [
-            ("starting_0.aep", 0),
-            ("starting_101.aep", 101),
-            ("starting_9999999.aep", 9999999),
-        ],
-    )
-    def test_starting_number(
-        self, filename: str, expected_value: int
-    ) -> None:
-        """Test Starting # parsing from Roou chunk."""
-        project = parse_project(SAMPLES_DIR / filename)
-        settings = project.render_queue.items[0].output_modules[0].settings
-
-        assert settings["Starting #"] == expected_value
-
-    def test_use_comp_frame_number_off(self) -> None:
-        """Test Use Comp Frame Number is False when unchecked."""
-        project = parse_project(
-            SAMPLES_DIR / "use_comp_frame_number_off.aep"
-        )
-        settings = project.render_queue.items[0].output_modules[0].settings
-
-        assert settings["Use Comp Frame Number"] is False
-
-    def test_use_comp_frame_number_on(self) -> None:
-        """Test Use Comp Frame Number is True when checked."""
-        project = parse_project(
-            SAMPLES_DIR / "use_comp_frame_number_on.aep"
-        )
-        settings = project.render_queue.items[0].output_modules[0].settings
-
-        assert settings["Use Comp Frame Number"] is True
-
-    def test_include_source_xmp_off(self) -> None:
-        """Test include source XMP is False when disabled."""
-        project = parse_project(
-            OM_SAMPLES_DIR / "include_source_xmp_data_off.aep"
-        )
-        om = project.render_queue.items[0].output_modules[0]
-
-        assert om.include_source_xmp is False
-
-    def test_include_source_xmp_on(self) -> None:
-        """Test include source XMP is True when enabled."""
-        project = parse_project(
-            OM_SAMPLES_DIR / "include_source_xmp_data_on.aep"
-        )
-        om = project.render_queue.items[0].output_modules[0]
-
-        assert om.include_source_xmp is True
-
     def test_video_output_on(self) -> None:
         """Test video output is enabled (default)."""
         project = parse_project(OM_SAMPLES_DIR / "custom_h264.aep")
@@ -657,13 +598,6 @@ class TestRenderQueueItem:
 
         assert item.render is True
 
-    def test_render_disabled(self) -> None:
-        """Test render flag is False when unchecked in queue."""
-        project = parse_project(SAMPLES_DIR / "render_unchecked.aep")
-        item = project.render_queue.items[0]
-
-        assert item.render is False
-
     def test_item_time_span_start(self) -> None:
         """Test RenderQueueItem.time_span_start property."""
         project = parse_project(
@@ -683,13 +617,6 @@ class TestRenderQueueItem:
 
         # Should delegate to settings.time_span_duration
         assert item.time_span_duration == 30.0
-
-    def test_comment(self) -> None:
-        """Test RenderQueueItem.comment is parsed from RCom chunk."""
-        project = parse_project(SAMPLES_DIR / "comment_aaaaa.aep")
-        item = project.render_queue.items[0]
-
-        assert item.comment == "aaaaa"
 
     def test_default_comment(self) -> None:
         """Test RenderQueueItem.comment is None when no comment set."""

@@ -3,9 +3,9 @@ from __future__ import annotations
 import typing
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
 
 from ..enums import LogType, RQItemStatus
+from ..settings import RenderSettings
 
 if typing.TYPE_CHECKING:
     from typing import Iterator
@@ -57,7 +57,7 @@ class RenderQueueItem:
     render: bool
     """When `True`, the item will be rendered when the render queue is started."""
 
-    settings: dict[str, Any]
+    settings: RenderSettings
     """
     Dict with ExtendScript-compatible keys matching getSettings() output.
     Contains quality, resolution, motion blur, frame blending, and other

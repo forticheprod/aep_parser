@@ -1,18 +1,11 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
 from typing import Any
 
-from aep_parser.utils import fs_timeout
+from aep_parser.utils import safe_path_exists
 
 from .footage import FootageSource
-
-
-@fs_timeout(timeout=2.0, default=False)
-def _safe_path_exists(path: str) -> bool:
-    """Check if a path exists, guarded against hanging on network paths."""
-    return os.path.exists(path)
 
 
 @dataclass
@@ -63,7 +56,7 @@ class FileSource(FootageSource):
     @property
     def missing_footage_path(self) -> str:
         """The missing footage path if the footage is missing, else empty."""
-        return self.file if not _safe_path_exists(self.file) else ""
+        return self.file if not safe_path_exists(self.file) else ""
 
     @property
     def is_solid(self) -> bool:

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import os
 import re
 import typing
+from pathlib import PurePosixPath
 
 from ..kaitai.utils import (
     ChunkNotFoundError,
@@ -12,12 +12,16 @@ from ..kaitai.utils import (
     find_chunks_before,
     str_contents,
 )
+from ..models.enums import Label
 from ..models.items.footage import FootageItem
 from ..models.sources.file import FileSource
 from ..models.sources.placeholder import PlaceholderSource
 from ..models.sources.solid import SolidSource
 from .mappings import map_alpha_mode, map_field_separation_type
 from .utils import parse_alas_data
+
+#: Sentinel value indicating an undefined frame number in the binary format.
+UNDEFINED_FRAME = 0xFFFFFFFF
 
 if typing.TYPE_CHECKING:
     from ..kaitai import Aep
@@ -28,7 +32,7 @@ def parse_footage(
     child_chunks: list[Aep.Chunk],
     item_id: int,
     item_name: str,
-    label: Aep.Label,
+    label: Label,
     parent_folder: FolderItem,
     comment: str,
 ) -> FootageItem:
@@ -55,7 +59,6 @@ def parse_footage(
     start_frame = sspc_chunk.start_frame
     end_frame = sspc_chunk.end_frame
 
-    # Common source attributes from sspc
     source_attrs = {
         "has_alpha": sspc_chunk.has_alpha,
         "alpha_mode": map_alpha_mode(sspc_chunk.alpha_mode_raw, sspc_chunk.has_alpha),
@@ -97,7 +100,7 @@ def parse_footage(
         # If start frame or end frame is undefined, derive from StVc filenames.
         # The frame number is always the last digit group in each filename
         # (e.g. "render.0101.exr" → 101).
-        if 0xFFFFFFFF in (start_frame, end_frame) and file_source.file_names:
+        if UNDEFINED_FRAME in (start_frame, end_frame) and file_source.file_names:
             first_match = re.search(r"(\d+)\D*$", file_source.file_names[0])
             last_match = re.search(r"(\d+)\D*$", file_source.file_names[-1])
             if first_match and last_match:
@@ -113,7 +116,7 @@ def parse_footage(
                     frame_padding=sspc_chunk.frame_padding,
                 )
             if not item_name:
-                basename = os.path.basename(file_source.file)
+                basename = PurePosixPath(file_source.file).name
                 # For PSD footage, prepend the PSD group/folder name
                 psd_group = getattr(opti_chunk, "psd_group_name", "")
                 if psd_group:
@@ -164,7 +167,7 @@ def _parse_file_source(
 
     alas_data = parse_alas_data(pin_child_chunks)
     if file_names:
-        file = os.path.join(alas_data.get("fullpath", ""), file_names[0])
+        file = str(PurePosixPath(alas_data.get("fullpath", "")) / file_names[0])
     else:
         file = alas_data.get("fullpath", "")
 
@@ -224,7 +227,7 @@ def _build_sequence_name(
         end_frame: The last frame number of the sequence.
         frame_padding: The zero-padding width from the sspc chunk.
     """
-    if 0xFFFFFFFF in (start_frame, end_frame):
+    if UNDEFINED_FRAME in (start_frame, end_frame):
         return ""
 
     try:

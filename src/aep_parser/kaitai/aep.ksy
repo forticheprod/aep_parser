@@ -95,6 +95,10 @@ types:
         doc: Working gamma selector (0=2.2, 1=2.4)
       - size: 3
         doc: Unknown bytes 1-3
+    instances:
+      working_gamma:
+        value: 'working_gamma_selector != 0 ? 2.4 : 2.2'
+        doc: Working gamma value (2.2 or 2.4)
   ascii_body:
     seq:
       - id: contents
@@ -776,6 +780,9 @@ types:
       frame_rate:
         value: 'frame_rate_integer + (frame_rate_fractional * 1.0 / 65536)'
         doc: Frame rate in fps (integer + fractional)
+      time_span_end:
+        value: 'time_span_start + time_span_duration'
+        doc: Time span end in seconds
   ldat_item:
     params:
       - id: item_type
@@ -1021,6 +1028,9 @@ types:
         value: 'in_point_dividend * 1.0 / in_point_divisor'
       out_point:
         value: 'out_point_dividend * 1.0 / out_point_divisor'
+      stretch:
+        value: 'stretch_divisor != 0 ? stretch_dividend * 100.0 / stretch_divisor : 0'
+        doc: Layer time stretch as percentage (100 = normal speed)
   lhd3_body:
     doc: |
       Header for item/keyframe lists. AE reuses this structure for:
@@ -1084,6 +1094,10 @@ types:
       - id: label
         type: u1
         enum: label
+    instances:
+      duration:
+        value: 'frame_duration * 1.0 / 600'
+        doc: Marker duration in seconds (frame_duration is in 600ths of a second)
   nnhd_body:
     seq:
       - size: 8
