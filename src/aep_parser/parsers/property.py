@@ -182,6 +182,8 @@ def parse_text_document(
             len(btdk_chunk.binary_data),
         )
         cos_data = parser.parse()
+        if not isinstance(cos_data, dict):
+            raise TypeError("Expected dict from COS parser")
         text_documents, _fonts = parse_btdk_cos(cos_data)
         if text_documents:
             prop.value = text_documents[0]

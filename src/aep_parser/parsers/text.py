@@ -432,7 +432,10 @@ def _get_first_char_style(doc: dict[str, Any]) -> dict[str, Any] | None:
 
     Path: ``doc["0"]["6"]["0"][0]["0"]["0"]["6"]``
     """
-    return _g(doc, "0", "6", "0", 0, "0", "0", "6")
+    result = _g(doc, "0", "6", "0", 0, "0", "0", "6")
+    if isinstance(result, dict):
+        return result  # type: ignore[return-value]
+    return None
 
 
 def _get_first_para_style(doc: dict[str, Any]) -> dict[str, Any] | None:
@@ -440,7 +443,10 @@ def _get_first_para_style(doc: dict[str, Any]) -> dict[str, Any] | None:
 
     Path: ``doc["0"]["5"]["0"][0]["0"]["0"]["5"]``
     """
-    return _g(doc, "0", "5", "0", 0, "0", "0", "5")
+    result = _g(doc, "0", "5", "0", 0, "0", "0", "5")
+    if isinstance(result, dict):
+        return result  # type: ignore[return-value]
+    return None
 
 
 def parse_text_documents(
