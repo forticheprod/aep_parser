@@ -161,7 +161,7 @@ class BlendingMode(IntEnum):
     LUMINOSITY = 5239
     STENCIL_ALPHA = 5240
     STENCIL_LUMA = 5241
-    SILHOUETE_ALPHA = 5242
+    SILHOUETE_ALPHA = 5242  # The typo is in the ExtendScript API
     SILHOUETTE_LUMA = 5243
     ALPHA_ADD = 5244
     LUMINESCENT_PREMUL = 5245
@@ -535,6 +535,11 @@ class PostRenderAction(IntEnum):
     IMPORT_AND_REPLACE_USAGE = 3614
     SET_PROXY = 3615
 
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _POST_RENDER_ACTION_LABELS[self.value]
+
     @classmethod
     def from_binary(cls, value: int) -> PostRenderAction:
         """Convert binary value to PostRenderAction."""
@@ -542,6 +547,14 @@ class PostRenderAction(IntEnum):
             return cls(value + 3612)
         except ValueError:
             return cls.NONE
+
+
+_POST_RENDER_ACTION_LABELS: dict[int, str] = {
+    3612: "None",
+    3613: "Import",
+    3614: "Import & Replace Usage",
+    3615: "Set Proxy",
+}
 
 
 class PREFType(IntEnum):
@@ -807,6 +820,32 @@ class ProjectThread(IntEnum):
 # =============================================================================
 
 
+class FrameRateSetting(IntEnum):
+    """Frame rate source setting for rendering.
+
+    Determines whether the render uses the composition's own frame rate
+    or a custom frame rate specified in the render settings.
+
+    Used in RenderQueueItem Settings > Frame Rate
+
+    Not documented in AE scripting reference.
+    """
+
+    USE_COMP_FRAME_RATE = 0
+    USE_THIS_FRAME_RATE = 1
+
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _FRAME_RATE_SETTING_LABELS[self.value]
+
+
+_FRAME_RATE_SETTING_LABELS: dict[int, str] = {
+    0: "Use comp's frame rate",
+    1: "Use this frame rate",
+}
+
+
 class RenderQuality(IntEnum):
     """Quality setting for rendering.
 
@@ -820,10 +859,23 @@ class RenderQuality(IntEnum):
     DRAFT = 1
     BEST = 2
 
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _RENDER_QUALITY_LABELS[self.value]
+
     @classmethod
     def from_binary(cls, value: int) -> RenderQuality:
         """Convert binary value to RenderQuality (0xFFFF = CURRENT_SETTINGS)."""
         return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
+
+
+_RENDER_QUALITY_LABELS: dict[int, str] = {
+    -1: "Current Settings",
+    0: "Wireframe",
+    1: "Draft",
+    2: "Best",
+}
 
 
 class FieldRender(IntEnum):
@@ -837,6 +889,18 @@ class FieldRender(IntEnum):
     OFF = 0
     UPPER_FIELD_FIRST = 1
     LOWER_FIELD_FIRST = 2
+
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _FIELD_RENDER_LABELS[self.value]
+
+
+_FIELD_RENDER_LABELS: dict[int, str] = {
+    0: "Off",
+    1: "Upper Field First",
+    2: "Lower Field First",
+}
 
 
 class PulldownSetting(IntEnum):
@@ -854,6 +918,21 @@ class PulldownSetting(IntEnum):
     WWWSS = 4
     WWSSW = 5
 
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _PULLDOWN_SETTING_LABELS[self.value]
+
+
+_PULLDOWN_SETTING_LABELS: dict[int, str] = {
+    0: "Off",
+    1: "WSSWW",
+    2: "SSWWW",
+    3: "SWWWS",
+    4: "WWWSS",
+    5: "WWSSW",
+}
+
 
 class MotionBlurSetting(IntEnum):
     """Motion blur render setting.
@@ -867,10 +946,22 @@ class MotionBlurSetting(IntEnum):
     ON_FOR_CHECKED_LAYERS = 1
     CURRENT_SETTINGS = 2
 
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _MOTION_BLUR_SETTING_LABELS[self.value]
+
     @classmethod
     def from_binary(cls, value: int) -> MotionBlurSetting:
         """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
         return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
+
+
+_MOTION_BLUR_SETTING_LABELS: dict[int, str] = {
+    0: "Off for All Layers",
+    1: "On for Checked Layers",
+    2: "Current Settings",
+}
 
 
 class FrameBlendingSetting(IntEnum):
@@ -885,10 +976,22 @@ class FrameBlendingSetting(IntEnum):
     ON_FOR_CHECKED_LAYERS = 1
     CURRENT_SETTINGS = 2
 
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _FRAME_BLENDING_SETTING_LABELS[self.value]
+
     @classmethod
     def from_binary(cls, value: int) -> FrameBlendingSetting:
         """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
         return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
+
+
+_FRAME_BLENDING_SETTING_LABELS: dict[int, str] = {
+    0: "Off for All Layers",
+    1: "On for Checked Layers",
+    2: "Current Settings",
+}
 
 
 class EffectsSetting(IntEnum):
@@ -903,10 +1006,22 @@ class EffectsSetting(IntEnum):
     ALL_ON = 1
     CURRENT_SETTINGS = 2
 
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _EFFECTS_SETTING_LABELS[self.value]
+
     @classmethod
     def from_binary(cls, value: int) -> EffectsSetting:
         """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
         return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
+
+
+_EFFECTS_SETTING_LABELS: dict[int, str] = {
+    0: "All Off",
+    1: "All On",
+    2: "Current Settings",
+}
 
 
 class ProxyUseSetting(IntEnum):
@@ -922,10 +1037,23 @@ class ProxyUseSetting(IntEnum):
     CURRENT_SETTINGS = 2
     USE_COMP_PROXIES_ONLY = 3
 
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _PROXY_USE_SETTING_LABELS[self.value]
+
     @classmethod
     def from_binary(cls, value: int) -> ProxyUseSetting:
         """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
         return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
+
+
+_PROXY_USE_SETTING_LABELS: dict[int, str] = {
+    0: "Use No Proxies",
+    1: "Use All Proxies",
+    2: "Current Settings",
+    3: "Use Comp Proxies Only",
+}
 
 
 class SoloSwitchesSetting(IntEnum):
@@ -939,10 +1067,21 @@ class SoloSwitchesSetting(IntEnum):
     ALL_OFF = 0
     CURRENT_SETTINGS = 2
 
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _SOLO_SWITCHES_SETTING_LABELS[self.value]
+
     @classmethod
     def from_binary(cls, value: int) -> SoloSwitchesSetting:
         """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
         return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
+
+
+_SOLO_SWITCHES_SETTING_LABELS: dict[int, str] = {
+    0: "All Off",
+    2: "Current Settings",
+}
 
 
 class GuideLayers(IntEnum):
@@ -956,10 +1095,21 @@ class GuideLayers(IntEnum):
     ALL_OFF = 0
     CURRENT_SETTINGS = 2
 
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _GUIDE_LAYERS_LABELS[self.value]
+
     @classmethod
     def from_binary(cls, value: int) -> GuideLayers:
         """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
         return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
+
+
+_GUIDE_LAYERS_LABELS: dict[int, str] = {
+    0: "All Off",
+    2: "Current Settings",
+}
 
 
 class DiskCacheSetting(IntEnum):
@@ -973,10 +1123,21 @@ class DiskCacheSetting(IntEnum):
     READ_ONLY = 0
     CURRENT_SETTINGS = 2
 
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _DISK_CACHE_SETTING_LABELS[self.value]
+
     @classmethod
     def from_binary(cls, value: int) -> DiskCacheSetting:
         """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
         return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
+
+
+_DISK_CACHE_SETTING_LABELS: dict[int, str] = {
+    0: "Read Only",
+    2: "Current Settings",
+}
 
 
 class ColorDepthSetting(IntEnum):
@@ -992,10 +1153,23 @@ class ColorDepthSetting(IntEnum):
     SIXTEEN_BITS_PER_CHANNEL = 1
     THIRTY_TWO_BITS_PER_CHANNEL = 2
 
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _COLOR_DEPTH_SETTING_LABELS[self.value]
+
     @classmethod
     def from_binary(cls, value: int) -> ColorDepthSetting:
         """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
         return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
+
+
+_COLOR_DEPTH_SETTING_LABELS: dict[int, str] = {
+    -1: "Current Settings",
+    0: "8 bits per channel",
+    1: "16 bits per channel",
+    2: "32 bits per channel",
+}
 
 
 class TimeSpanSource(IntEnum):
@@ -1006,14 +1180,26 @@ class TimeSpanSource(IntEnum):
     Not documented in AE scripting reference.
     """
 
-    WORK_AREA_ONLY = 0
-    LENGTH_OF_COMP = 1
+    LENGTH_OF_COMP = 0
+    WORK_AREA_ONLY = 1
     CUSTOM = 2
+
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _TIME_SPAN_SOURCE_LABELS[self.value]
 
     @classmethod
     def from_binary(cls, value: int) -> TimeSpanSource:
         """Convert binary value (0xFFFF = CUSTOM)."""
         return cls.CUSTOM if value == 0xFFFF else cls(value)
+
+
+_TIME_SPAN_SOURCE_LABELS: dict[int, str] = {
+    0: "Length of Comp",
+    1: "Work Area Only",
+    2: "Custom",
+}
 
 
 # =============================================================================
@@ -1033,18 +1219,58 @@ class OutputChannels(IntEnum):
     RGBA = 1
     ALPHA = 2
 
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _OUTPUT_CHANNELS_LABELS[self.value]
+
+
+_OUTPUT_CHANNELS_LABELS: dict[int, str] = {
+    0: "RGB",
+    1: "RGB + Alpha",
+    2: "Alpha",
+}
+
 
 class OutputColorDepth(IntEnum):
-    """Output color depth in bits per channel.
+    """Output color depth in total bits per pixel.
+
+    The value represents total bits per pixel: 24 or 32 for 8 bpc
+    (with/without alpha), 48 or 64 for 16 bpc, 96 or 128 for 32 bpc
+    (floating point). The ``+`` label suffix indicates alpha is included.
 
     Used in OutputModule Settings > Depth
 
     Not documented in AE scripting reference.
     """
 
-    MILLIONS_OF_COLORS = 0  # 8 bpc
-    TRILLIONS_OF_COLORS = 1  # 16 bpc
-    FLOATING_POINT = 2  # 32 bpc
+    FLOATING_POINT_GRAY = -32      # 32 bpc gray (single channel float)
+    COLORS_256 = 8                 # 8 bpc indexed (256 colors)
+    MILLIONS_OF_COLORS = 24        # 8 bpc RGB (24 bpp)
+    MILLIONS_OF_COLORS_PLUS = 32   # 8 bpc RGBA (32 bpp)
+    GRAYS_256 = 40                 # 8 bpc grayscale (256 grays)
+    TRILLIONS_OF_COLORS = 48       # 16 bpc RGB (48 bpp)
+    TRILLIONS_OF_COLORS_PLUS = 64  # 16 bpc RGBA (64 bpp)
+    FLOATING_POINT = 96            # 32 bpc RGB (96 bpp)
+    FLOATING_POINT_PLUS = 128      # 32 bpc RGBA (128 bpp)
+
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _OUTPUT_COLOR_DEPTH_LABELS[self.value]
+
+
+_OUTPUT_COLOR_DEPTH_LABELS: dict[int, str] = {
+    -32: "Floating Point Gray",
+    8: "256 Colors",
+    24: "Millions of Colors",
+    32: "Millions of Colors+",
+    40: "256 Grays",
+    48: "Trillions of Colors",
+    64: "Trillions of Colors+",
+    96: "Floating Point",
+    128: "Floating Point+",
+}
 
 
 class OutputColorMode(IntEnum):
@@ -1057,6 +1283,131 @@ class OutputColorMode(IntEnum):
 
     STRAIGHT_UNMATTED = 0
     PREMULTIPLIED = 1
+
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _OUTPUT_COLOR_MODE_LABELS[self.value]
+
+
+_OUTPUT_COLOR_MODE_LABELS: dict[int, str] = {
+    0: "Straight (Unmatted)",
+    1: "Premultiplied (Matted)",
+}
+
+
+class OutputAudio(IntEnum):
+    """Audio output mode.
+
+    Used in OutputModule Settings > Output Audio
+
+    Not documented in AE scripting reference.
+    """
+
+    OFF = 1
+    ON = 2
+    AUTO = 3
+
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _OUTPUT_AUDIO_LABELS[self.value]
+
+
+_OUTPUT_AUDIO_LABELS: dict[int, str] = {
+    1: "Off",
+    2: "On",
+    3: "Auto",
+}
+
+
+class OutputFormat(IntEnum):
+    """Output file format.
+
+    Used in OutputModule Settings > Format
+
+    Not documented in AE scripting reference.
+    """
+
+    AIFF = 0
+    AVI = 1
+    DPX_CINEON_SEQUENCE = 2
+    H264 = 3
+    IFF_SEQUENCE = 4
+    JPEG_SEQUENCE = 5
+    MP3 = 6
+    OPENEXR_SEQUENCE = 7
+    PNG_SEQUENCE = 8
+    PHOTOSHOP_SEQUENCE = 9
+    QUICKTIME = 10
+    RADIANCE_SEQUENCE = 11
+    SGI_SEQUENCE = 12
+    TIFF_SEQUENCE = 13
+    TARGA_SEQUENCE = 14
+    WAV = 15
+
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _OUTPUT_FORMAT_LABELS[self.value]
+
+    @classmethod
+    def from_format_id(cls, format_id: str) -> OutputFormat:
+        """Convert a Roou 4-char format identifier to OutputFormat.
+
+        Args:
+            format_id: The 4-char format identifier from the Roou chunk
+                (e.g. ``"H264"``, ``"TIF "``, ``"png!"``).
+
+        Raises:
+            ValueError: If the format identifier is not recognised.
+        """
+        try:
+            return _FORMAT_ID_TO_OUTPUT_FORMAT[format_id]
+        except KeyError:
+            raise ValueError(
+                f"Unknown output format identifier: {format_id!r}"
+            ) from None
+
+
+_OUTPUT_FORMAT_LABELS: dict[int, str] = {
+    0: "AIFF",
+    1: "AVI",
+    2: "DPX/Cineon Sequence",
+    3: "H.264",
+    4: "IFF Sequence",
+    5: "JPEG Sequence",
+    6: "MP3",
+    7: "OpenEXR Sequence",
+    8: "PNG Sequence",
+    9: "Photoshop Sequence",
+    10: "QuickTime",
+    11: "Radiance Sequence",
+    12: "SGI Sequence",
+    13: "TIFF Sequence",
+    14: "Targa Sequence",
+    15: "WAV",
+}
+
+
+_FORMAT_ID_TO_OUTPUT_FORMAT: dict[str, OutputFormat] = {
+    "AIFF": OutputFormat.AIFF,
+    ".AVI": OutputFormat.AVI,
+    "sDPX": OutputFormat.DPX_CINEON_SEQUENCE,
+    "H264": OutputFormat.H264,
+    "IFF ": OutputFormat.IFF_SEQUENCE,
+    "JPEG": OutputFormat.JPEG_SEQUENCE,
+    "Mp3 ": OutputFormat.MP3,
+    "oEXR": OutputFormat.OPENEXR_SEQUENCE,
+    "png!": OutputFormat.PNG_SEQUENCE,
+    "8BPS": OutputFormat.PHOTOSHOP_SEQUENCE,
+    "MooV": OutputFormat.QUICKTIME,
+    "RHDR": OutputFormat.RADIANCE_SEQUENCE,
+    "SGI ": OutputFormat.SGI_SEQUENCE,
+    "TIF ": OutputFormat.TIFF_SEQUENCE,
+    "TPIC": OutputFormat.TARGA_SEQUENCE,
+    "wao_": OutputFormat.WAV,
+}
 
 
 class AudioBitDepth(IntEnum):
@@ -1072,12 +1423,25 @@ class AudioBitDepth(IntEnum):
     TWENTY_FOUR_BIT = 3
     THIRTY_TWO_BIT = 4
 
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _AUDIO_BIT_DEPTH_LABELS[self.value]
+
     @classmethod
     def from_binary(cls, value: int) -> AudioBitDepth:
         """Convert binary value to AudioBitDepth (defaults to SIXTEEN_BIT)."""
         if value in cls._value2member_map_:
             return cls(value)
         return cls.SIXTEEN_BIT
+
+
+_AUDIO_BIT_DEPTH_LABELS: dict[int, str] = {
+    1: "8 Bit",
+    2: "16 Bit",
+    3: "24 Bit",
+    4: "32 Bit",
+}
 
 
 class AudioChannels(IntEnum):
@@ -1091,12 +1455,23 @@ class AudioChannels(IntEnum):
     MONO = 1
     STEREO = 2
 
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _AUDIO_CHANNELS_LABELS[self.value]
+
     @classmethod
     def from_binary(cls, value: int) -> AudioChannels:
         """Convert binary value to AudioChannels (0 or unknown defaults to STEREO)."""
         if value == 1:
             return cls.MONO
         return cls.STEREO
+
+
+_AUDIO_CHANNELS_LABELS: dict[int, str] = {
+    1: "Mono",
+    2: "Stereo",
+}
 
 
 class ResizeQuality(IntEnum):
@@ -1109,3 +1484,56 @@ class ResizeQuality(IntEnum):
 
     LOW = 0
     HIGH = 1
+
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _RESIZE_QUALITY_LABELS[self.value]
+
+
+_RESIZE_QUALITY_LABELS: dict[int, str] = {
+    0: "Low",
+    1: "High",
+}
+
+
+class AudioSampleRate(IntEnum):
+    """Audio sample rate in Hz.
+
+    Standard sample rates available in After Effects output module
+    audio settings.
+
+    Used in OutputModule Settings > Audio > Sample Rate
+
+    Not documented in AE scripting reference.
+    """
+
+    OFF = 0
+    RATE_8000 = 8000
+    RATE_11025 = 11025
+    RATE_16000 = 16000
+    RATE_22050 = 22050
+    RATE_24000 = 24000
+    RATE_32000 = 32000
+    RATE_44100 = 44100
+    RATE_48000 = 48000
+    RATE_88200 = 88200
+    RATE_96000 = 96000
+
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label (e.g. ``"48.000 kHz"``)."""
+        if self.value == 0:
+            return ""
+        return f"{self.value / 1000:.3f} kHz"
+
+    @classmethod
+    def from_binary(cls, value: int) -> AudioSampleRate:
+        """Convert binary audio sample rate value.
+
+        Unknown or negative values (e.g. ``-1`` when audio is disabled)
+        are mapped to ``OFF``.
+        """
+        if value in cls._value2member_map_:
+            return cls(value)
+        return cls.OFF

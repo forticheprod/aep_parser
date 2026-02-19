@@ -3,9 +3,14 @@ from __future__ import annotations
 import typing
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
-from ..enums import LogType, RQItemStatus
-from ..settings import RenderSettings
+from ..enums import GetSettingsFormat, LogType, RQItemStatus
+from ..settings import (
+    RenderSettings,
+    settings_to_number,
+    settings_to_string,
+)
 
 if typing.TYPE_CHECKING:
     from typing import Iterator
@@ -30,10 +35,9 @@ class RenderQueueItem:
     comp: CompItem = field(repr=False)
     """The composition that will be rendered by this render-queue item."""
 
-    elapsed_seconds: int | None
+    elapsed_seconds: int
     """
-    The number of seconds that have elapsed in rendering this item, or
-    `None` if the item has not started rendering.
+    The number of seconds that have elapsed in rendering this item.
     """
 
     log_type: LogType
@@ -142,3 +146,33 @@ class RenderQueueItem:
     def __iter__(self) -> Iterator[OutputModule]:
         """Allow iteration over Output Modules."""
         return iter(self.output_modules)
+
+    def get_settings(
+        self,
+        format: GetSettingsFormat = GetSettingsFormat.STRING,
+    ) -> dict[str, Any]:
+        """Return render settings in the specified format.
+
+        Args:
+            format: The output format.
+                ``GetSettingsFormat.NUMBER`` returns numeric values (enums unwrapped to ints).
+                ``GetSettingsFormat.STRING`` returns all values as strings
+        """
+        if format == GetSettingsFormat.STRING:
+            return settings_to_string(self.settings)
+        if format == GetSettingsFormat.NUMBER:
+            return settings_to_number(self.settings)
+        raise ValueError(f"Unsupported format: {format!r}")
+
+    def get_setting(
+        self,
+        key: str,
+        format: GetSettingsFormat = GetSettingsFormat.STRING,
+    ) -> Any:
+        """Return a single render setting in the specified format.
+
+        Args:
+            key: The setting key (e.g. ``"Quality"``, ``"Frame Rate"``).
+            format: The output format.
+        """
+        return self.get_settings(format)[key]

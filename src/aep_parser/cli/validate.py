@@ -441,13 +441,14 @@ def compare_output_module_settings(
 
     # Compare audio output
     if "audioOutput" in expected_settings:
-        exp_has_audio = expected_settings["audioOutput"] == "On"
-        parsed_has_audio = parsed_settings.get("Output Audio", False)
-        if exp_has_audio != parsed_has_audio:
+        parsed_audio = parsed_settings.get("Output Audio")
+        expected_audio = expected_settings["audioOutput"]
+        parsed_audio_str = parsed_audio.label
+        if expected_audio != parsed_audio_str:
             result.add_diff(
                 f"{path}.audioOutput",
-                expected_settings["audioOutput"],
-                "On" if parsed_has_audio else "Off",
+                expected_audio,
+                parsed_audio_str,
                 "renderqueue",
             )
 

@@ -619,8 +619,13 @@ types:
       - id: crop_right
         type: u2
         doc: Crop right value in pixels (bytes 38-39)
-      - size: 7
-        doc: Unknown bytes 40-46
+      - size: 2
+        doc: Unknown bytes 40-41
+      - id: output_audio
+        type: u1
+        doc: Output audio mode (byte 42, 0=on, 1=auto)
+      - size: 4
+        doc: Unknown bytes 43-46
       - id: include_project_link
         type: u1
         doc: Include project link in output (byte 47, 0=off, 1=on)
