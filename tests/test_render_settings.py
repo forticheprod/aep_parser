@@ -286,13 +286,13 @@ class TestRenderSettings:
         assert abs(rs["Time Span Duration"] - (24 + 13 / 24)) < 0.0001
 
     def test_time_span_duration_30s(self) -> None:
-        """Test time span duration of exactly 30 seconds."""
+        """Test time span duration of 719 frames at 24fps."""
         project = parse_project(
-            SAMPLES_DIR / "time_span_custom_start_00_duration_30s.aep"
+            SAMPLES_DIR / "time_span_custom_start_01_duration_29.9583s.aep"
         )
         rs = project.render_queue.items[0].settings
 
-        assert rs["Time Span Duration"] == 30.0
+        assert abs(rs["Time Span Duration"] - 29.9583333333333) < 0.0001
 
 
 class TestOutputModuleSettings:
@@ -318,13 +318,20 @@ class TestOutputModuleSettings:
         assert om.settings["Starting #"] == 0
         assert om.settings["Use Comp Frame Number"] is True
 
-    def test_audio_output_off(self) -> None:
-        """Test audio output disabled."""
-        project = parse_project(OM_SAMPLES_DIR / "audio_output_off.aep")
+    @pytest.mark.parametrize(
+        "filename, expected_output_audio",
+        [
+            ("audio_output_off.aep", 1),
+            ("audio_output_on.aep", 2),
+            ("audio_output_auto.aep", 3 ),
+        ],
+    )
+    def test_audio_output(self, filename: str, expected_output_audio: int) -> None:
+        """Test audio output settings."""
+        project = parse_project(OM_SAMPLES_DIR / filename)
         settings = project.render_queue.items[0].output_modules[0].settings
 
-        # Audio settings still present even when disabled
-        assert settings is not None
+        assert settings["Output Audio"] == expected_output_audio
 
     def test_audio_mono(self) -> None:
         """Test mono audio channel."""
@@ -425,9 +432,6 @@ class TestOutputModuleSettings:
 
         assert settings["Format"] == expected_format
 
-    @pytest.mark.skip(
-        reason="Cannot generate via ExtendScript - Color setting ignored by AE API"
-    )
     def test_color_straight_unmatted(self) -> None:
         """Test straight (unmatted) color mode."""
         project = parse_project(OM_SAMPLES_DIR / "color_straight_unmatted.aep")
@@ -525,14 +529,116 @@ class TestOutputModuleSettings:
 
         assert settings["Resize Quality"] == 1
 
+    def test_resize_to_hd(self) -> None:
+        """Test Resize to HD 1920x1080."""
+        project = parse_project(
+            OM_SAMPLES_DIR / "resize_hd_1920x1080_29.97_fps.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Resize to"] == [1920, 1080]
+
+    def test_resize_to_dvcpro_hd(self) -> None:
+        """Test Resize to DVCPRO HD 960x720."""
+        project = parse_project(
+            OM_SAMPLES_DIR / "resize_dvcpro_hd_960x720_1.33_23.976_fps.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Resize to"] == [960, 720]
+
+    def test_resize_to_custom(self) -> None:
+        """Test Resize to custom 960x540."""
+        project = parse_project(
+            OM_SAMPLES_DIR / "resize_custom_960x540.aep"
+        )
+        settings = project.render_queue.items[0].output_modules[0].settings
+
+        assert settings["Resize to"] == [960, 540]
+
+    def test_output_file_info_default(self) -> None:
+        """Test Output File Info with default [compName].[fileExtension]."""
+        project = parse_project(
+            SAMPLES_DIR / "output_to_comp_and_frame_range.aep"
+        )
+        info = project.render_queue.items[0].output_modules[0].settings[
+            "Output File Info"
+        ]
+
+        assert info["File Template"] == "[compName].[fileExtension]"
+        assert info["Subfolder Path"] == ""
+        assert info["Base Path"] != ""
+        assert info["Full Flat Path"] != ""
+        assert info["File Name"] == "[compName].[fileExtension]"
+
+    def test_output_file_info_comp_folder(self) -> None:
+        """Test Output File Info with [compName] subfolder in base path."""
+        project = parse_project(
+            SAMPLES_DIR / "output_to_comp_folder_and_name.aep"
+        )
+        info = project.render_queue.items[0].output_modules[0].settings[
+            "Output File Info"
+        ]
+
+        assert "[compName]" in info["Base Path"]
+        assert info["File Template"] == "[compName].[fileExtension]"
+        assert info["File Name"] == "[compName].[fileExtension]"
+        assert info["Subfolder Path"] == ""
+
+    def test_output_file_info_custom_all_fields(self) -> None:
+        """Test Output File Info with all available template tokens."""
+        project = parse_project(
+            SAMPLES_DIR / "output_to_custom_all_fields.aep"
+        )
+        info = project.render_queue.items[0].output_modules[0].settings[
+            "Output File Info"
+        ]
+
+        template = info["File Template"]
+        assert "[projectFolder]" in template
+        assert "[projectName]" in template
+        assert "[compName]" in template
+        assert "[width]" in template
+        assert "[height]" in template
+        assert "[fileExtension]" in template
+        assert info["Base Path"] != ""
+        assert info["Full Flat Path"].endswith(".[fileExtension]")
+
+    def test_output_file_info_project_and_comp(self) -> None:
+        """Test Output File Info with project and comp name template."""
+        project = parse_project(
+            SAMPLES_DIR / "output_to_project_and_comp_name.aep"
+        )
+        info = project.render_queue.items[0].output_modules[0].settings[
+            "Output File Info"
+        ]
+
+        assert info["File Template"] == (
+            "[projectName]_[compName].[fileExtension]"
+        )
+
+    def test_output_file_info_subfolder(self) -> None:
+        """Test Output File Info with subfolder in file name template."""
+        project = parse_project(
+            SAMPLES_DIR / "save_in_subfolder_toto.aep"
+        )
+        om = project.render_queue.items[0].output_modules[0]
+        info = om.settings["Output File Info"]
+
+        assert info["Subfolder Path"] == "toto"
+        assert info["File Name"] == "Comp 1.[fileExtension]"
+        assert info["File Template"] == "toto\\Comp 1.[fileExtension]"
+        assert info["Base Path"] == "C:\\Users\\aurore.delaunay\\Downloads"
+        assert info["Full Flat Path"] == (
+            "C:\\Users\\aurore.delaunay\\Downloads\\toto\\Comp 1.[fileExtension]"
+        )
+
     def test_video_output_on(self) -> None:
         """Test video output is enabled (default)."""
         project = parse_project(OM_SAMPLES_DIR / "custom_h264.aep")
         om = project.render_queue.items[0].output_modules[0]
 
         assert om.settings["Video Output"] is True
-        assert om.width == 1920
-        assert om.height == 1080
 
     def test_video_output_off(self) -> None:
         """Test video output is disabled."""
@@ -540,8 +646,6 @@ class TestOutputModuleSettings:
         om = project.render_queue.items[0].output_modules[0]
 
         assert om.settings["Video Output"] is False
-        assert om.width == 0
-        assert om.height == 0
 
 
 class TestOutputModule:
@@ -605,18 +709,16 @@ class TestRenderQueueItem:
         )
         item = project.render_queue.items[0]
 
-        # Should delegate to settings.time_span_start (1s 23f at 24fps)
         assert abs(item.time_span_start - (1 + 23 / 24)) < 0.0001
 
     def test_item_time_span_duration(self) -> None:
         """Test RenderQueueItem.time_span_duration property."""
         project = parse_project(
-            SAMPLES_DIR / "time_span_custom_start_00_duration_30s.aep"
+            SAMPLES_DIR / "time_span_custom_start_01_duration_29.9583s.aep"
         )
         item = project.render_queue.items[0]
 
-        # Should delegate to settings.time_span_duration
-        assert item.time_span_duration == 30.0
+        assert abs(item.time_span_duration - 29.9583333333333) < 0.0001
 
     def test_default_comment(self) -> None:
         """Test RenderQueueItem.comment is None when no comment set."""

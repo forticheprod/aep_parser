@@ -89,10 +89,56 @@
     "numItems": 1,
     "items": [
       {
+        "comment": "",
+        "elapsedSeconds": 0,
+        "logType": 3212,
         "numOutputModules": 1,
+        "queueItemNotify": false,
+        "render": true,
+        "skipFrames": 0,
+        "startTime": null,
+        "status": 3015,
+        "templates": [
+          "Best Settings",
+          "Current Settings",
+          "DV Settings",
+          "Draft Settings",
+          "Multi-Machine Settings",
+          "_HIDDEN X-Factor"
+        ],
+        "timeSpanDuration": 30,
+        "timeSpanStart": 0,
+        "compName": "Comp 1",
+        "settings": {
+          "3:2 Pulldown": 0,
+          "Color Depth": -1,
+          "Disk Cache": 0,
+          "Effects": 2,
+          "Field Render": 0,
+          "Frame Blending": 1,
+          "Frame Rate": 0,
+          "Guide Layers": 0,
+          "Motion Blur": 1,
+          "Proxy Use": 0,
+          "Quality": 2,
+          "Resolution": {
+            "x": 1,
+            "y": 1
+          },
+          "Skip Existing Files": false,
+          "Solo Switches": 2,
+          "Time Span": 1,
+          "Time Span Duration": 30,
+          "Time Span End": 30,
+          "Time Span Start": 0,
+          "Use comp's frame rate": 24,
+          "Use this frame rate": 24
+        },
         "outputModules": [
           {
-            "file": "C:\\Users\\aurore.delaunay\\Downloads\\Comp 1\\Comp 1_[####].tga",
+            "includeSourceXMP": false,
+            "name": "H.264 - Match Render Settings - 15 Mbps",
+            "postRenderAction": 3612,
             "templates": [
               "AIFF 48kHz",
               "Alpha Only",
@@ -113,9 +159,7 @@
               "_HIDDEN X-Factor 8",
               "_HIDDEN X-Factor 8 Premul"
             ],
-            "name": "H.264 - Match Render Settings - 15 Mbps",
-            "postRenderAction": 3612,
-            "includeSourceXMP": false,
+            "file": "C:\\Users\\aurore.delaunay\\Downloads\\Comp 1\\Comp 1_[####].tga",
             "settings": {
               "Audio Bit Depth": 4,
               "Audio Channels": 2,
@@ -133,44 +177,27 @@
               "Include Source XMP Metadata": false,
               "Lock Aspect Ratio": true,
               "Output Audio": 1,
+              "Output File Info": {
+                "Full Flat Path": "C:\\Users\\aurore.delaunay\\Downloads\\Comp 1\\Comp 1_[####].tga",
+                "Base Path": "C:\\Users\\aurore.delaunay\\Downloads",
+                "Subfolder Path": "Comp 1",
+                "File Name": "Comp 1_[####].tga",
+                "File Template": "[compName]\\[compName]_[####].[fileextension]"
+              },
               "Post-Render Action": 0,
               "Resize": false,
               "Resize Quality": 1,
+              "Resize to": {
+                "x": 1920,
+                "y": 1080
+              },
               "Starting #": 0,
               "Use Comp Frame Number": true,
               "Use Region of Interest": false,
               "Video Output": true
             }
           }
-        ],
-        "status": 3015,
-        "render": true,
-        "startTime": null,
-        "skipFrames": 0,
-        "timeSpanStart": 0,
-        "timeSpanDuration": 30,
-        "compName": "Comp 1",
-        "settings": {
-          "3:2 Pulldown": 0,
-          "Color Depth": -1,
-          "Disk Cache": 0,
-          "Effects": 2,
-          "Field Render": 0,
-          "Frame Blending": 1,
-          "Frame Rate": 0,
-          "Guide Layers": 0,
-          "Motion Blur": 1,
-          "Proxy Use": 0,
-          "Quality": 2,
-          "Skip Existing Files": false,
-          "Solo Switches": 2,
-          "Time Span": 1,
-          "Time Span Duration": 30,
-          "Time Span End": 30,
-          "Time Span Start": 0,
-          "Use comp's frame rate": 24,
-          "Use this frame rate": 24
-        }
+        ]
       }
     ]
   }

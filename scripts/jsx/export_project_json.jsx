@@ -87,6 +87,10 @@ var AepExport = AepExport || {};
                 var value = settingsObj[key];
                 if (isSimpleValue(value)) {
                     result[key] = value;
+                } else if (typeof value === "object" && value !== null) {
+                    // Recurse into nested settings objects
+                    // (e.g. "Output File Info", "Resize to")
+                    result[key] = exportSettingsObject(value);
                 }
             }
         }
@@ -190,16 +194,13 @@ var AepExport = AepExport || {};
             var kf = {
                 index: i,
                 time: prop.keyTime(i),
-                value: prop.keyValue(i)
+                value: prop.keyValue(i),
+                inInterpolationType: prop.keyInInterpolationType(i),
+                outInterpolationType: prop.keyOutInterpolationType(i)
             };
 
-            // Get interpolation types
-            try {
-                kf.inInterpolationType = prop.keyInInterpolationType(i);
-                kf.outInterpolationType = prop.keyOutInterpolationType(i);
-            } catch (e) {}
-
-            // Get spatial tangents for position properties
+            // Spatial tangents only exist for spatial properties (e.g. Position)
+            // and throw on non-spatial ones (e.g. Opacity, Rotation)
             try {
                 kf.inSpatialTangent = prop.keyInSpatialTangent(i);
                 kf.outSpatialTangent = prop.keyOutSpatialTangent(i);
@@ -209,24 +210,16 @@ var AepExport = AepExport || {};
             } catch (e) {}
 
             // Get temporal ease
-            try {
-                kf.inTemporalEase = [];
-                kf.outTemporalEase = [];
-                var inEase = prop.keyInTemporalEase(i);
-                var outEase = prop.keyOutTemporalEase(i);
-                for (var j = 0; j < inEase.length; j++) {
-                    kf.inTemporalEase.push({
-                        speed: inEase[j].speed,
-                        influence: inEase[j].influence
-                    });
-                    kf.outTemporalEase.push({
-                        speed: outEase[j].speed,
-                        influence: outEase[j].influence
-                    });
-                }
-                kf.temporalAutoBezier = prop.keyTemporalAutoBezier(i);
-                kf.temporalContinuous = prop.keyTemporalContinuous(i);
-            } catch (e) {}
+            kf.inTemporalEase = [];
+            kf.outTemporalEase = [];
+            var inEase = prop.keyInTemporalEase(i);
+            var outEase = prop.keyOutTemporalEase(i);
+            for (var j = 0; j < inEase.length; j++) {
+                kf.inTemporalEase.push(getAllAttributes(inEase[j]));
+                kf.outTemporalEase.push(getAllAttributes(outEase[j]));
+            }
+            kf.temporalAutoBezier = prop.keyTemporalAutoBezier(i);
+            kf.temporalContinuous = prop.keyTemporalContinuous(i);
 
             keyframes.push(kf);
         }
@@ -238,44 +231,13 @@ var AepExport = AepExport || {};
      * Export a single property (not a group).
      */
     function exportProperty(prop) {
-        var result = {
-            name: prop.name,
-            matchName: prop.matchName,
-            propertyIndex: prop.propertyIndex,
-            propertyType: "Property",
-            isModified: prop.isModified
-        };
-
-        // Get property value type
-        try {
-            result.propertyValueType = prop.propertyValueType;
-        } catch (e) {}
-
-        // Check if property has expression
-        try {
-            result.canSetExpression = prop.canSetExpression;
-            if (prop.canSetExpression) {
-                result.expression = prop.expression;
-                result.expressionEnabled = prop.expressionEnabled;
-                result.expressionError = prop.expressionError;
-            }
-        } catch (e) {}
-
-        // Get current value
-        try {
-            var val = prop.value;
-            if (isSimpleValue(val)) {
-                result.value = val;
-            }
-        } catch (e) {}
+        var result = getAllAttributes(prop);
+        result.propertyType = "Property";
 
         // Get keyframes
-        try {
-            if (prop.numKeys > 0) {
-                result.numKeys = prop.numKeys;
-                result.keyframes = exportKeyframes(prop);
-            }
-        } catch (e) {}
+        if (prop.numKeys > 0) {
+            result.keyframes = exportKeyframes(prop);
+        }
 
         return result;
     }
@@ -288,32 +250,24 @@ var AepExport = AepExport || {};
         if (typeof depth === "undefined") depth = 0;
         if (depth > 10) return null; // Prevent infinite recursion
 
-        var result = {
-            name: group.name,
-            matchName: group.matchName,
-            propertyIndex: group.propertyIndex,
-            propertyType: "PropertyGroup",
-            numProperties: group.numProperties,
-            enabled: group.enabled
-        };
+        var result = getAllAttributes(group);
+        result.propertyType = "PropertyGroup";
 
         // Export child properties
         result.properties = [];
         for (var i = 1; i <= group.numProperties; i++) {
-            try {
-                var child = group.property(i);
-                if (!child) continue;
+            var child = group.property(i);
+            if (!child) continue;
 
-                // Skip markers (handled separately)
-                if (child.matchName === "ADBE Marker") continue;
+            // Skip markers (handled separately)
+            if (child.matchName === "ADBE Marker") continue;
 
-                if (child.propertyType === PropertyType.PROPERTY) {
-                    result.properties.push(exportProperty(child));
-                } else if (child.propertyType === PropertyType.INDEXED_GROUP || 
-                           child.propertyType === PropertyType.NAMED_GROUP) {
-                    result.properties.push(exportPropertyGroup(child, depth + 1));
-                }
-            } catch (e) {}
+            if (child.propertyType === PropertyType.PROPERTY) {
+                result.properties.push(exportProperty(child));
+            } else if (child.propertyType === PropertyType.INDEXED_GROUP || 
+                       child.propertyType === PropertyType.NAMED_GROUP) {
+                result.properties.push(exportPropertyGroup(child, depth + 1));
+            }
         }
 
         return result;
@@ -324,39 +278,29 @@ var AepExport = AepExport || {};
      */
     function exportEffects(layer) {
         var effects = [];
-        
-        try {
-            var effectsGroup = layer.property("ADBE Effect Parade");
-            if (!effectsGroup || effectsGroup.numProperties === 0) {
-                return effects;
-            }
+        var effectsGroup = layer.property("ADBE Effect Parade");
+        if (!effectsGroup || effectsGroup.numProperties === 0) {
+            return effects;
+        }
 
-            for (var i = 1; i <= effectsGroup.numProperties; i++) {
-                var effect = effectsGroup.property(i);
-                var effectData = {
-                    name: effect.name,
-                    matchName: effect.matchName,
-                    propertyIndex: effect.propertyIndex,
-                    enabled: effect.enabled,
-                    properties: []
-                };
+        for (var i = 1; i <= effectsGroup.numProperties; i++) {
+            var effect = effectsGroup.property(i);
+            var effectData = getAllAttributes(effect);
 
-                // Export effect properties
-                for (var j = 1; j <= effect.numProperties; j++) {
-                    try {
-                        var prop = effect.property(j);
-                        if (prop.propertyType === PropertyType.PROPERTY) {
-                            effectData.properties.push(exportProperty(prop));
-                        } else if (prop.propertyType === PropertyType.INDEXED_GROUP || 
-                                   prop.propertyType === PropertyType.NAMED_GROUP) {
-                            effectData.properties.push(exportPropertyGroup(prop, 0));
-                        }
-                    } catch (e) {}
+            // Export effect properties
+            effectData.properties = [];
+            for (var j = 1; j <= effect.numProperties; j++) {
+                var prop = effect.property(j);
+                if (prop.propertyType === PropertyType.PROPERTY) {
+                    effectData.properties.push(exportProperty(prop));
+                } else if (prop.propertyType === PropertyType.INDEXED_GROUP || 
+                           prop.propertyType === PropertyType.NAMED_GROUP) {
+                    effectData.properties.push(exportPropertyGroup(prop, 0));
                 }
-
-                effects.push(effectData);
             }
-        } catch (e) {}
+
+            effects.push(effectData);
+        }
 
         return effects;
     }
@@ -571,33 +515,18 @@ var AepExport = AepExport || {};
      * Export a single render queue item.
      */
     function exportRenderQueueItem(rqItem) {
-        var result = {
-            numOutputModules: rqItem.numOutputModules,
-            outputModules: []
-        };
-
-        // Get basic attributes
-        try { result.status = rqItem.status; } catch (e) {}
-        try { result.render = rqItem.render; } catch (e) {}
-        try { result.startTime = rqItem.startTime; } catch (e) {}
-        try { result.endTime = rqItem.endTime; } catch (e) {}
-        try { result.skipFrames = rqItem.skipFrames; } catch (e) {}
-        try { result.timeSpanStart = rqItem.timeSpanStart; } catch (e) {}
-        try { result.timeSpanDuration = rqItem.timeSpanDuration; } catch (e) {}
+        var result = getAllAttributes(rqItem);
 
         // Get comp reference
-        try {
-            if (rqItem.comp) {
-                result.compName = rqItem.comp.name;
-            }
-        } catch (e) {}
+        if (rqItem.comp) {
+            result.compName = rqItem.comp.name;
+        }
 
         // Export render settings
-        try {
-            result.settings = exportRenderSettings(rqItem);
-        } catch (e) {}
+        result.settings = exportRenderSettings(rqItem);
 
         // Export output modules
+        result.outputModules = [];
         for (var i = 1; i <= rqItem.numOutputModules; i++) {
             result.outputModules.push(exportOutputModule(rqItem.outputModule(i)));
         }
@@ -610,37 +539,23 @@ var AepExport = AepExport || {};
      * Uses getSettings() to retrieve all render settings.
      */
     function exportRenderSettings(rqItem) {
-        var numSettings = rqItem.getSettings(GetSettingsFormat.NUMBER);
-        return exportSettingsObject(numSettings);
+        var settings = rqItem.getSettings(GetSettingsFormat.NUMBER);
+        return exportSettingsObject(settings);
     }
 
     /**
      * Export a single output module.
      */
     function exportOutputModule(om) {
-        var result = {};
+        var result = getAllAttributes(om);
 
         // Get file path
-        try {
-            if (om.file) {
-                result.file = om.file.fsName;
-            }
-        } catch (e) {}
-
-        // Get templates
-        try {
-            result.templates = om.templates;
-        } catch (e) {}
-
-        // Get other attributes
-        try { result.name = om.name; } catch (e) {}
-        try { result.postRenderAction = om.postRenderAction; } catch (e) {}
-        try { result.includeSourceXMP = om.includeSourceXMP; } catch (e) {}
+        if (om.file) {
+            result.file = om.file.fsName;
+        }
 
         // Export output module settings
-        try {
-            result.settings = exportOutputModuleSettings(om);
-        } catch (e) {}
+        result.settings = exportOutputModuleSettings(om);
 
         return result;
     }
@@ -650,8 +565,8 @@ var AepExport = AepExport || {};
      * Uses getSettings() to retrieve all output module settings.
      */
     function exportOutputModuleSettings(om) {
-        var numSettings = om.getSettings(GetSettingsFormat.NUMBER);
-        return exportSettingsObject(numSettings);
+        var settings = om.getSettings(GetSettingsFormat.NUMBER);
+        return exportSettingsObject(settings);
     }
 
     // =========================================================================

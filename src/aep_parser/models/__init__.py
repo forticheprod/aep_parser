@@ -45,7 +45,12 @@ from .enums import (
     MaskFeatherFalloff,
     MaskMode,
     MaskMotionBlur,
+<<<<<<< feat/text-document
     ParagraphDirection,
+=======
+    OutputAudio,
+    OutputFormat,
+>>>>>>> main
     ParagraphJustification,
     PlayMode,
     PostRenderAction,
@@ -142,8 +147,13 @@ __all__ = [
     "MaskMotionBlur",
     "OutputModule",
     "OutputModuleSettings",
+<<<<<<< feat/text-document
     "ParagraphDirection",
     "OutputModuleSettings",
+=======
+    "OutputAudio",
+    "OutputFormat",
+>>>>>>> main
     "ParagraphJustification",
     "PlayMode",
     "PostRenderAction",
