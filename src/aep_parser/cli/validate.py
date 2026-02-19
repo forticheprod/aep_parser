@@ -443,7 +443,7 @@ def compare_output_module_settings(
     if "audioOutput" in expected_settings:
         parsed_audio = parsed_settings.get("Output Audio")
         expected_audio = expected_settings["audioOutput"]
-        parsed_audio_str = parsed_audio.label
+        parsed_audio_str = parsed_audio.label if parsed_audio is not None else ""
         if expected_audio != parsed_audio_str:
             result.add_diff(
                 f"{path}.audioOutput",
