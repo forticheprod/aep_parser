@@ -136,6 +136,10 @@ class TestRenderQueueItemAttributes:
 class TestSkipFrames:
     """Tests for skip_frames calculation from frame rate ratio."""
 
+    @pytest.mark.skip(
+        reason="FIXME: Could not find parameter in UI and jsx generate"
+        " script does not set this properly"
+    )
     @pytest.mark.parametrize("n", [0, 1, 2, 3])
     def test_skip_frames(self, n: int) -> None:
         sample_name = f"skip_frames_{n}"
@@ -188,8 +192,8 @@ class TestOutputModuleSettings:
 class TestResolveOutputFilename:
     """Unit tests for resolve_output_filename()."""
 
-    def test_none_template(self) -> None:
-        assert resolve_output_filename(None) is None
+    def test_empty_template(self) -> str:
+        assert resolve_output_filename("") == ""
 
     @pytest.mark.parametrize(
         "template, kwargs, expected",
@@ -243,8 +247,11 @@ class TestResolveOutputFilename:
         "color_depth, expected",
         [
             (OutputColorDepth.MILLIONS_OF_COLORS, "Millions"),
+            (OutputColorDepth.MILLIONS_OF_COLORS_PLUS, "Millions+"),
             (OutputColorDepth.TRILLIONS_OF_COLORS, "Trillions"),
-            (OutputColorDepth.FLOATING_POINT, "Float"),
+            (OutputColorDepth.TRILLIONS_OF_COLORS_PLUS, "Trillions+"),
+            (OutputColorDepth.FLOATING_POINT, "Floating Point"),
+            (OutputColorDepth.FLOATING_POINT_PLUS, "Floating Point+"),
         ],
     )
     def test_output_color_depth(
