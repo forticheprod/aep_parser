@@ -150,66 +150,25 @@
     "numItems": 2,
     "items": [
       {
+        "comment": "",
+        "elapsedSeconds": 0,
+        "logType": 3212,
         "numOutputModules": 1,
-        "outputModules": [
-          {
-            "file": "C:\\Users\\aurore.delaunay\\Downloads\\Comp1.mp4",
-            "templates": [
-              "AIFF 48kHz",
-              "Alpha Only",
-              "H.264 - Match Render Settings -  5 Mbps",
-              "H.264 - Match Render Settings - 15 Mbps",
-              "H.264 - Match Render Settings - 40 Mbps",
-              "High Quality",
-              "High Quality with Alpha",
-              "Lossless",
-              "Lossless with Alpha",
-              "Multi-Machine Sequence",
-              "Photoshop",
-              "TIFF Sequence with Alpha",
-              "_HIDDEN X-Factor 16",
-              "_HIDDEN X-Factor 16 Premul",
-              "_HIDDEN X-Factor 32",
-              "_HIDDEN X-Factor 32 Premul",
-              "_HIDDEN X-Factor 8",
-              "_HIDDEN X-Factor 8 Premul"
-            ],
-            "name": "H.264 - Match Render Settings - 15 Mbps",
-            "postRenderAction": 3612,
-            "includeSourceXMP": false,
-            "settings": {
-              "Audio Bit Depth": 2,
-              "Audio Channels": 2,
-              "Audio Sample Rate": 48000,
-              "Channels": 0,
-              "Color": 1,
-              "Crop": false,
-              "Crop Bottom": 0,
-              "Crop Left": 0,
-              "Crop Right": 0,
-              "Crop Top": 0,
-              "Depth": 24,
-              "Format": 3,
-              "Include Project Link": true,
-              "Include Source XMP Metadata": false,
-              "Lock Aspect Ratio": true,
-              "Output Audio": 3,
-              "Post-Render Action": 0,
-              "Resize": false,
-              "Resize Quality": 1,
-              "Starting #": 0,
-              "Use Comp Frame Number": true,
-              "Use Region of Interest": false,
-              "Video Output": true
-            }
-          }
-        ],
-        "status": 3015,
+        "queueItemNotify": false,
         "render": true,
-        "startTime": null,
         "skipFrames": 0,
-        "timeSpanStart": 0,
+        "startTime": null,
+        "status": 3015,
+        "templates": [
+          "Best Settings",
+          "Current Settings",
+          "DV Settings",
+          "Draft Settings",
+          "Multi-Machine Settings",
+          "_HIDDEN X-Factor"
+        ],
         "timeSpanDuration": 10,
+        "timeSpanStart": 0,
         "compName": "Comp1",
         "settings": {
           "3:2 Pulldown": 0,
@@ -223,6 +182,10 @@
           "Motion Blur": 1,
           "Proxy Use": 0,
           "Quality": 2,
+          "Resolution": {
+            "x": 1,
+            "y": 1
+          },
           "Skip Existing Files": false,
           "Solo Switches": 2,
           "Time Span": 1,
@@ -231,13 +194,12 @@
           "Time Span Start": 0,
           "Use comp's frame rate": 24,
           "Use this frame rate": 24
-        }
-      },
-      {
-        "numOutputModules": 1,
+        },
         "outputModules": [
           {
-            "file": "C:\\Users\\aurore.delaunay\\Downloads\\Comp2.mp4",
+            "includeSourceXMP": false,
+            "name": "H.264 - Match Render Settings - 15 Mbps",
+            "postRenderAction": 3612,
             "templates": [
               "AIFF 48kHz",
               "Alpha Only",
@@ -258,9 +220,7 @@
               "_HIDDEN X-Factor 8",
               "_HIDDEN X-Factor 8 Premul"
             ],
-            "name": "H.264 - Match Render Settings - 15 Mbps",
-            "postRenderAction": 3614,
-            "includeSourceXMP": false,
+            "file": "C:\\Users\\aurore.delaunay\\Downloads\\Comp1.mp4",
             "settings": {
               "Audio Bit Depth": 2,
               "Audio Channels": 2,
@@ -278,22 +238,48 @@
               "Include Source XMP Metadata": false,
               "Lock Aspect Ratio": true,
               "Output Audio": 3,
-              "Post-Render Action": 2,
+              "Output File Info": {
+                "Full Flat Path": "C:\\Users\\aurore.delaunay\\Downloads\\Comp1.mp4",
+                "Base Path": "C:\\Users\\aurore.delaunay\\Downloads",
+                "Subfolder Path": "",
+                "File Name": "Comp1.mp4",
+                "File Template": "[compName].[fileextension]"
+              },
+              "Post-Render Action": 0,
               "Resize": false,
               "Resize Quality": 1,
+              "Resize to": {
+                "x": 100,
+                "y": 100
+              },
               "Starting #": 0,
               "Use Comp Frame Number": true,
               "Use Region of Interest": false,
               "Video Output": true
             }
           }
-        ],
-        "status": 3015,
+        ]
+      },
+      {
+        "comment": "",
+        "elapsedSeconds": 0,
+        "logType": 3212,
+        "numOutputModules": 1,
+        "queueItemNotify": false,
         "render": true,
-        "startTime": null,
         "skipFrames": 0,
-        "timeSpanStart": 0,
+        "startTime": null,
+        "status": 3015,
+        "templates": [
+          "Best Settings",
+          "Current Settings",
+          "DV Settings",
+          "Draft Settings",
+          "Multi-Machine Settings",
+          "_HIDDEN X-Factor"
+        ],
         "timeSpanDuration": 5,
+        "timeSpanStart": 0,
         "compName": "Comp2",
         "settings": {
           "3:2 Pulldown": 0,
@@ -307,6 +293,10 @@
           "Motion Blur": 1,
           "Proxy Use": 0,
           "Quality": 2,
+          "Resolution": {
+            "x": 1,
+            "y": 1
+          },
           "Skip Existing Files": false,
           "Solo Switches": 2,
           "Time Span": 1,
@@ -315,7 +305,71 @@
           "Time Span Start": 0,
           "Use comp's frame rate": 30,
           "Use this frame rate": 30
-        }
+        },
+        "outputModules": [
+          {
+            "includeSourceXMP": false,
+            "name": "H.264 - Match Render Settings - 15 Mbps",
+            "postRenderAction": 3614,
+            "templates": [
+              "AIFF 48kHz",
+              "Alpha Only",
+              "H.264 - Match Render Settings -  5 Mbps",
+              "H.264 - Match Render Settings - 15 Mbps",
+              "H.264 - Match Render Settings - 40 Mbps",
+              "High Quality",
+              "High Quality with Alpha",
+              "Lossless",
+              "Lossless with Alpha",
+              "Multi-Machine Sequence",
+              "Photoshop",
+              "TIFF Sequence with Alpha",
+              "_HIDDEN X-Factor 16",
+              "_HIDDEN X-Factor 16 Premul",
+              "_HIDDEN X-Factor 32",
+              "_HIDDEN X-Factor 32 Premul",
+              "_HIDDEN X-Factor 8",
+              "_HIDDEN X-Factor 8 Premul"
+            ],
+            "file": "C:\\Users\\aurore.delaunay\\Downloads\\Comp2.mp4",
+            "settings": {
+              "Audio Bit Depth": 2,
+              "Audio Channels": 2,
+              "Audio Sample Rate": 48000,
+              "Channels": 0,
+              "Color": 1,
+              "Crop": false,
+              "Crop Bottom": 0,
+              "Crop Left": 0,
+              "Crop Right": 0,
+              "Crop Top": 0,
+              "Depth": 24,
+              "Format": 3,
+              "Include Project Link": true,
+              "Include Source XMP Metadata": false,
+              "Lock Aspect Ratio": true,
+              "Output Audio": 3,
+              "Output File Info": {
+                "Full Flat Path": "C:\\Users\\aurore.delaunay\\Downloads\\Comp2.mp4",
+                "Base Path": "C:\\Users\\aurore.delaunay\\Downloads",
+                "Subfolder Path": "",
+                "File Name": "Comp2.mp4",
+                "File Template": "[compName].[fileextension]"
+              },
+              "Post-Render Action": 2,
+              "Resize": false,
+              "Resize Quality": 1,
+              "Resize to": {
+                "x": 200,
+                "y": 200
+              },
+              "Starting #": 0,
+              "Use Comp Frame Number": true,
+              "Use Region of Interest": false,
+              "Video Output": true
+            }
+          }
+        ]
       }
     ]
   }
