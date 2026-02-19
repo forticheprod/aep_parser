@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import io
 import logging
 from contextlib import suppress
 from typing import Any
 
+from ..cos import CosParser
 from ..kaitai import Aep
 from ..kaitai.utils import (
     ChunkNotFoundError,
@@ -24,6 +26,7 @@ from ..models.properties.marker import MarkerValue
 from ..models.properties.property import Property
 from ..models.properties.property_group import PropertyGroup
 from .match_names import MATCH_NAME_TO_NICE_NAME
+from .text import parse_btdk_cos
 from .utils import (
     get_chunks_by_match_name,
     parse_ldat_items,
@@ -169,16 +172,24 @@ def parse_text_document(
         time_scale=time_scale,
     )
 
-    # btdk_chunk = find_by_list_type(
-    #     chunks=btds_chunk.chunks,
-    #     list_type="btdk"
-    # )
-    # parser = CosParser(
-    #     io.BytesIO(btdk_chunk.binary_data),
-    #     len(btdk_chunk.binary_data)
-    # )
+    try:
+        btdk_chunk = find_by_list_type(
+            chunks=btds_chunk.chunks,
+            list_type="btdk",
+        )
+        parser = CosParser(
+            io.BytesIO(btdk_chunk.binary_data),
+            len(btdk_chunk.binary_data),
+        )
+        cos_data = parser.parse()
+        if not isinstance(cos_data, dict):
+            raise TypeError("Expected dict from COS parser")
+        text_documents, _fonts = parse_btdk_cos(cos_data)
+        if text_documents:
+            prop.value = text_documents[0]
+    except (ChunkNotFoundError, Exception):
+        logger.debug("Could not parse btdk COS data for %s", match_name)
 
-    # content_as_dict = parser.parse()
     return prop
 
 

@@ -756,9 +756,6 @@ class ViewerType(IntEnum):
     VIEWER_FOOTAGE = 7614
 
 
-# Additional enums for Content-Aware Fill (less commonly used)
-
-
 class FillLightingCorrectionType(IntEnum):
     """Lighting correction for Content-Aware Fill.
 
@@ -1537,3 +1534,297 @@ class AudioSampleRate(IntEnum):
         if value in cls._value2member_map_:
             return cls(value)
         return cls.OFF
+
+# =============================================================================
+# Text Document Enums
+# =============================================================================
+
+
+class AutoKernType(IntEnum):
+    """Auto kerning type option for text characters.
+
+    See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentautokerntype
+    """
+
+    NO_AUTO_KERN = 0
+    METRIC_KERN = 1
+    OPTICAL_KERN = 2
+
+
+class BaselineDirection(IntEnum):
+    """Baseline direction option for text characters.
+
+    This is significant for Japanese language in vertical texts.
+    ``BASELINE_VERTICAL_CROSS_STREAM`` is also known as Tate-Chu-Yoko.
+
+    See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentbaselinedirection
+    """
+
+    BASELINE_WITH_STREAM = 0
+    BASELINE_VERTICAL_ROTATED = 1
+    BASELINE_VERTICAL_CROSS_STREAM = 2
+
+
+class BoxAutoFitPolicy(IntEnum):
+    """Box auto fit policy for paragraph text boxes.
+
+    See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentboxautofitpolicy
+    """
+
+    NONE = 0
+    HEIGHT_CURSOR = 1
+    HEIGHT_PRECISE_BOUNDS = 2
+    HEIGHT_BASELINE = 3
+
+
+class BoxFirstBaselineAlignment(IntEnum):
+    """First baseline alignment for paragraph text boxes.
+
+    See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentboxfirstbaselinealignment
+    """
+
+    ASCENT = 0
+    CAP_HEIGHT = 1
+    EM_BOX = 2
+    LEADING = 3
+    LEGACY_METRIC = 4
+    MINIMUM_VALUE_ASIAN = 5
+    MINIMUM_VALUE_ROMAN = 6
+    TYPO_ASCENT = 7
+    X_HEIGHT = 8
+
+
+class BoxVerticalAlignment(IntEnum):
+    """Vertical alignment for paragraph text boxes.
+
+    See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentboxverticalalignment
+    """
+
+    TOP = 0
+    CENTER = 1
+    BOTTOM = 2
+    JUSTIFY = 3
+
+
+class ComposerEngine(IntEnum):
+    """Text composer engine type.
+
+    See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentcomposerengine
+    """
+
+    LATIN_CJK_ENGINE = 0
+    UNIVERSAL_TYPE_ENGINE = 1
+
+
+class DigitSet(IntEnum):
+    """Digit set option for text characters.
+
+    See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentdigitset
+    """
+
+    DEFAULT_DIGITS = 0
+    ARABIC_DIGITS = 1
+    HINDI_DIGITS = 2
+    FARSI_DIGITS = 3
+    ARABIC_DIGITS_RTL = 4
+
+
+class FontBaselineOption(IntEnum):
+    """Font baseline option for superscript and subscript.
+
+    See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentfontbaselineoption
+    """
+
+    FONT_NORMAL_BASELINE = 0
+    FONT_FAUXED_SUPERSCRIPT = 1
+    FONT_FAUXED_SUBSCRIPT = 2
+
+
+class FontCapsOption(IntEnum):
+    """Font caps option for text characters.
+
+    See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentfontcapsoption
+    """
+
+    FONT_NORMAL_CAPS = 0
+    FONT_SMALL_CAPS = 1
+    FONT_ALL_CAPS = 2
+    FONT_ALL_SMALL_CAPS = 3
+
+
+class LeadingType(IntEnum):
+    """Paragraph leading type.
+
+    See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentleadingtype
+    """
+
+    ROMAN_LEADING_TYPE = 0
+    JAPANESE_LEADING_TYPE = 1
+
+
+class LineJoinType(IntEnum):
+    """Line join type for text stroke.
+
+    See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentlinejointype
+    """
+
+    LINE_JOIN_MITER = 0
+    LINE_JOIN_ROUND = 1
+    LINE_JOIN_BEVEL = 2
+
+
+class LineOrientation(IntEnum):
+    """Line orientation for text layers.
+
+    See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentlineorientation
+    """
+
+    HORIZONTAL = 0
+    VERTICAL_RIGHT_TO_LEFT = 1
+    VERTICAL_LEFT_TO_RIGHT = 2
+
+
+class ParagraphDirection(IntEnum):
+    """Paragraph direction for text layers.
+
+    See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentdirection
+    """
+
+    DIRECTION_LEFT_TO_RIGHT = 0
+    DIRECTION_RIGHT_TO_LEFT = 1
+
+
+# =============================================================================
+# Font Object Enums
+# =============================================================================
+
+
+class CTFontTechnology(IntEnum):
+    """Font technology type.
+
+    See: https://ae-scripting.docsforadobe.dev/text/fontobject/#fontobjecttechnology
+    """
+
+    CT_TYPE1_FONT = 0
+    CT_TRUETYPE_FONT = 1
+    CT_CID_FONT = 2
+    CT_BITMAP_FONT = 3
+    CT_ATC_FONT = 4
+    CT_TYPE3_FONT = 5
+    CT_SVG_FONT = 6
+    CT_ANYTECHNOLOGY = 7
+
+
+class CTFontType(IntEnum):
+    """Font type.
+
+    See: https://ae-scripting.docsforadobe.dev/text/fontobject/#fontobjecttype
+    """
+
+    CT_TYPE1_FONTTYPE = 0
+    CT_TRUETYPE_FONTTYPE = 1
+    CT_CID_FONTTYPE = 2
+    CT_ATC_FONTTYPE = 3
+    CT_BITMAP_FONTTYPE = 4
+    CT_OPENTYPE_CFF_FONTTYPE = 5
+    CT_OPENTYPE_CID_FONTTYPE = 6
+    CT_OPENTYPE_TT_FONTTYPE = 7
+    CT_TYPE3_FONTTYPE = 8
+    CT_SVG_FONTTYPE = 9
+
+
+class CTScript(IntEnum):
+    """Character script/writing system.
+
+    See: https://ae-scripting.docsforadobe.dev/text/fontobject/#fontobjectwritingscripts
+    """
+
+    CT_ROMAN_SCRIPT = 0
+    CT_JAPANESE_SCRIPT = 1
+    CT_TRADITIONALCHINESE_SCRIPT = 2
+    CT_KOREAN_SCRIPT = 3
+    CT_ARABIC_SCRIPT = 4
+    CT_HEBREW_SCRIPT = 5
+    CT_GREEK_SCRIPT = 6
+    CT_CYRILLIC_SCRIPT = 7
+    CT_RIGHTLEFT_SCRIPT = 8
+    CT_DEVANAGARI_SCRIPT = 9
+    CT_GURMUKHI_SCRIPT = 10
+    CT_GUJARATI_SCRIPT = 11
+    CT_ORIYA_SCRIPT = 12
+    CT_BENGALI_SCRIPT = 13
+    CT_TAMIL_SCRIPT = 14
+    CT_TELUGU_SCRIPT = 15
+    CT_KANNADA_SCRIPT = 16
+    CT_MALAYALAM_SCRIPT = 17
+    CT_SINHALESE_SCRIPT = 18
+    CT_BURMESE_SCRIPT = 19
+    CT_KHMER_SCRIPT = 20
+    CT_THAI_SCRIPT = 21
+    CT_LAOTIAN_SCRIPT = 22
+    CT_GEORGIAN_SCRIPT = 23
+    CT_ARMENIAN_SCRIPT = 24
+    CT_SIMPLIFIEDCHINESE_SCRIPT = 25
+    CT_TIBETAN_SCRIPT = 26
+    CT_MONGOLIAN_SCRIPT = 27
+    CT_GEEZ_SCRIPT = 28
+    CT_EASTEUROPEANROMAN_SCRIPT = 29
+    CT_VIETNAMESE_SCRIPT = 30
+    CT_EXTENDEDARABIC_SCRIPT = 31
+    CT_KLINGON_SCRIPT = 32
+    CT_EMOJI_SCRIPT = 33
+    CT_ROHINGYA_SCRIPT = 34
+    CT_JAVANESE_SCRIPT = 35
+    CT_SUNDANESE_SCRIPT = 36
+    CT_LONTARA_SCRIPT = 37
+    CT_SYRIAC_SCRIPT = 38
+    CT_TAITHAM_SCRIPT = 39
+    CT_BUGINESE_SCRIPT = 40
+    CT_BALINESE_SCRIPT = 41
+    CT_CHEROKEE_SCRIPT = 42
+    CT_MANDAIC_SCRIPT = 43
+    CT_VAI_SCRIPT = 44
+    CT_THAANA_SCRIPT = 45
+    CT_BRAVANESE_SCRIPT = 46
+    CT_BRAHMI_SCRIPT = 47
+    CT_CARIAN_SCRIPT = 48
+    CT_CYPRIOT_SCRIPT = 49
+    CT_EGYPTIAN_SCRIPT = 50
+    CT_IMPERIALARAMAIC_SCRIPT = 51
+    CT_PAHLAVI_SCRIPT = 52
+    CT_PARTHIAN_SCRIPT = 53
+    CT_KHAROSHTHI_SCRIPT = 54
+    CT_LYCIAN_SCRIPT = 55
+    CT_LYDIAN_SCRIPT = 56
+    CT_PHOENICIAN_SCRIPT = 57
+    CT_PERSIAN_SCRIPT = 58
+    CT_SHAVIAN_SCRIPT = 59
+    CT_SUMAKKCUNEIFORM_SCRIPT = 60
+    CT_UGARITIC_SCRIPT = 61
+    CT_GLAGOLITIC_SCRIPT = 62
+    CT_GOTHIC_SCRIPT = 63
+    CT_OGHAM_SCRIPT = 64
+    CT_OLDITALIC_SCRIPT = 65
+    CT_ORKHON_SCRIPT = 66
+    CT_RUNIC_SCRIPT = 67
+    CT_MEROITICCURSIVE_SCRIPT = 68
+    CT_COPTIC_SCRIPT = 69
+    CT_OLCHIKI_SCRIPT = 70
+    CT_SORASOMPENG_SCRIPT = 71
+    CT_OLDHANGUL_SCRIPT = 72
+    CT_LISU_SCRIPT = 73
+    CT_NKO_SCRIPT = 74
+    CT_ADLAM_SCRIPT = 75
+    CT_BAMUM_SCRIPT = 76
+    CT_BASSAVAH_SCRIPT = 77
+    CT_NEWA_SCRIPT = 78
+    CT_NEWTAILU_SCRIPT = 79
+    CT_SCRIPT = 80
+    CT_OSAGE_SCRIPT = 81
+    CT_UCAS_SCRIPT = 82
+    CT_TIFINAGH_SCRIPT = 83
+    CT_KAYAHLI_SCRIPT = 84
+    CT_LAO_SCRIPT = 85
+    CT_TAILE_SCRIPT = 86
+    CT_TAIVIET_SCRIPT = 87
+    CT_DONTKNOW_SCRIPT = 88
