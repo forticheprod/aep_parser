@@ -756,9 +756,6 @@ class ViewerType(IntEnum):
     VIEWER_FOOTAGE = 7614
 
 
-# Additional enums for Content-Aware Fill (less commonly used)
-
-
 class FillLightingCorrectionType(IntEnum):
     """Lighting correction for Content-Aware Fill.
 
@@ -1538,7 +1535,7 @@ class AudioSampleRate(IntEnum):
             return cls(value)
         return cls.OFF
 
-      # =============================================================================
+# =============================================================================
 # Text Document Enums
 # =============================================================================
 
