@@ -415,7 +415,7 @@ def parse_output_module(
     frame_rate = roou_chunk.frame_rate
 
     alas_data = parse_alas_data(chunks)
-    folder_path = alas_data.get("fullpath")
+    folder_path = alas_data.get("fullpath", "")
     is_folder = alas_data.get("target_is_folder", False)
 
     utf8_chunks = filter_by_type(chunks, "Utf8")

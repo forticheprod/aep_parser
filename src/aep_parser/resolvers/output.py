@@ -169,7 +169,7 @@ def resolve_output_filename(
     field_render: int | None = None,
     pulldown_phase: int | None = None,
     file_extension: str | None = None,
-) -> str | None:
+) -> str:
     """Resolve an After Effects output filename template to the actual filename.
 
     After Effects stores output paths with template variables like
@@ -212,7 +212,7 @@ def resolve_output_filename(
         file_extension: The file extension for ``[fileExtension]``.
 
     Returns:
-        The resolved file path, or None if file_template is None.
+        The resolved file path, or an empty string if file_template is None.
     """
     if not file_template:
         return ""
