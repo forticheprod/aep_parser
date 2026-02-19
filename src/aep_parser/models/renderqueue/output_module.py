@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ...resolvers.output import (
     TEMPLATE_EXTENSIONS,
@@ -11,8 +11,12 @@ from ...resolvers.output import (
     resolve_output_filename,
     resolve_time_span,
 )
-from ..enums import PostRenderAction
-from ..settings import OutputModuleSettings
+from ..enums import GetSettingsFormat, PostRenderAction
+from ..settings import (
+    OutputModuleSettings,
+    settings_to_number,
+    settings_to_string,
+)
 
 if TYPE_CHECKING:
     from ..items.composition import CompItem
@@ -29,7 +33,7 @@ class OutputModule:
     See: https://ae-scripting.docsforadobe.dev/renderqueue/outputmodule/
     """
 
-    file_template: str | None
+    file_template: str
     """
     The raw file path template, may contain `[compName]` and `[fileExtension]`
     variables.
@@ -38,13 +42,10 @@ class OutputModule:
     frame_rate: float
     """The output frame rate for this output module."""
 
-    height: int
-    """The output height in pixels."""
-
     include_source_xmp: bool
     """When `True`, writes all source footage XMP metadata to the output file."""
 
-    name: str | None
+    name: str
     """The name of the output module, as shown in the user interface."""
 
     parent: RenderQueueItem = field(repr=False)
@@ -80,15 +81,12 @@ class OutputModule:
     installation of After Effects.
     """
 
-    width: int
-    """The output width in pixels."""
-
     _project_color_depth: int = field(repr=False)
     _project_name: str = field(repr=False)
     _video_codec: str | None = field(default=None, repr=False)
 
     @property
-    def file(self) -> str | None:
+    def file(self) -> str:
         """The full path for the file this output module is set to render.
 
         Resolves template variables like `[compName]`, `[width]`, `[frameRate]`,
@@ -135,3 +133,33 @@ class OutputModule:
             pulldown_phase=rq_settings["3:2 Pulldown"],
             file_extension=extension,
         )
+
+    def get_settings(
+        self,
+        format: GetSettingsFormat = GetSettingsFormat.STRING,
+    ) -> dict[str, Any]:
+        """Return output module settings in the specified format.
+
+        Args:
+            format: The output format.
+                ``GetSettingsFormat.NUMBER`` returns numeric values (enums unwrapped to ints).
+                ``GetSettingsFormat.STRING`` returns all values as strings
+        """
+        if format == GetSettingsFormat.STRING:
+            return settings_to_string(self.settings)
+        if format == GetSettingsFormat.NUMBER:
+            return settings_to_number(self.settings)
+        raise ValueError(f"Unsupported format: {format!r}")
+
+    def get_setting(
+        self,
+        key: str,
+        format: GetSettingsFormat = GetSettingsFormat.STRING,
+    ) -> Any:
+        """Return a single output module setting in the specified format.
+
+        Args:
+            key: The setting key (e.g. ``"Video Output"``, ``"Audio Bit Depth"``).
+            format: The output format.
+        """
+        return self.get_settings(format)[key]

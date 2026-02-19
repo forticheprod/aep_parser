@@ -10,7 +10,7 @@ import math
 import re
 from typing import TYPE_CHECKING, Any
 
-from ..models.enums import OutputChannels, OutputColorDepth
+from ..models.enums import OutputChannels, OutputColorDepth, TimeSpanSource
 
 if TYPE_CHECKING:
     from ..models.items.composition import CompItem
@@ -55,8 +55,11 @@ OUTPUT_CHANNELS_NAMES: dict[OutputChannels, str] = {
 
 OUTPUT_COLOR_DEPTH_NAMES: dict[OutputColorDepth, str] = {
     OutputColorDepth.MILLIONS_OF_COLORS: "Millions",
+    OutputColorDepth.MILLIONS_OF_COLORS_PLUS: "Millions+",
     OutputColorDepth.TRILLIONS_OF_COLORS: "Trillions",
-    OutputColorDepth.FLOATING_POINT: "Float",
+    OutputColorDepth.TRILLIONS_OF_COLORS_PLUS: "Trillions+",
+    OutputColorDepth.FLOATING_POINT: "Floating Point",
+    OutputColorDepth.FLOATING_POINT_PLUS: "Floating Point+",
 }
 
 PROJECT_COLOR_DEPTH_NAMES: dict[int, str] = {
@@ -145,11 +148,11 @@ def format_timecode(
 
 
 def resolve_output_filename(
-    file_template: str | None,
+    file_template: str,
     project_name: str | None = None,
     comp_name: str | None = None,
     render_settings_name: str | None = None,
-    output_module_name: str | None = None,
+    output_module_name: str = "",
     width: int | None = None,
     height: int | None = None,
     frame_rate: float | None = None,
@@ -211,8 +214,8 @@ def resolve_output_filename(
     Returns:
         The resolved file path, or None if file_template is None.
     """
-    if file_template is None:
-        return None
+    if not file_template:
+        return ""
 
     fps = frame_rate or 24.0
 
@@ -376,7 +379,7 @@ def resolve_time_span(
     """
     time_span_mode = rq_settings["Time Span"]
 
-    if time_span_mode == 1:  # LENGTH_OF_COMP
+    if time_span_mode == TimeSpanSource.LENGTH_OF_COMP:
         time_span_start = 0.0
         duration_time = comp.duration
         time_span_end = comp.duration

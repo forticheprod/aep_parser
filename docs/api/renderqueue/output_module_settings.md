@@ -11,26 +11,28 @@ Output module settings are stored as an [OutputModuleSettings][aep_parser.models
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `"Audio Bit Depth"` | `AudioBitDepth` | Audio bit depth |
-| `"Audio Channels"` | `AudioChannels` | Audio channel configuration |
-| `"Audio Sample Rate"` | `int` | Audio sample rate in Hz |
-| `"Channels"` | `OutputChannels` | Output channels configuration |
-| `"Color"` | `OutputColorMode` | Color mode (straight or premultiplied alpha) |
+| `"Audio Bit Depth"` | [AudioBitDepth][aep_parser.models.enums.AudioBitDepth] | Audio bit depth |
+| `"Audio Channels"` | [AudioChannels][aep_parser.models.enums.AudioChannels] | Audio channel configuration |
+| `"Audio Sample Rate"` | [AudioSampleRate][aep_parser.models.enums.AudioSampleRate] | Audio sample rate in Hz |
+| `"Channels"` | [OutputChannels][aep_parser.models.enums.OutputChannels] | Output channels configuration |
+| `"Color"` | [OutputColorMode][aep_parser.models.enums.OutputColorMode] | Color mode (straight or premultiplied alpha) |
 | `"Crop Bottom"` | `int` | Crop pixels from the bottom |
 | `"Crop Left"` | `int` | Crop pixels from the left |
 | `"Crop Right"` | `int` | Crop pixels from the right |
 | `"Crop Top"` | `int` | Crop pixels from the top |
 | `"Crop"` | `bool` | Whether the Crop checkbox is enabled |
-| `"Depth"` | `OutputColorDepth` | Output color depth |
-| `"Format"` | `int` | Output format numeric ID |
+| `"Depth"` | [OutputColorDepth][aep_parser.models.enums.OutputColorDepth] | Output color depth |
+| `"Format"` | [OutputFormat][aep_parser.models.enums.OutputFormat] | Output format |
 | `"Include Project Link"` | `bool` | Whether to include a project link in the output |
 | `"Include Source XMP Metadata"` | `bool` | Whether to include source XMP metadata |
 | `"Lock Aspect Ratio"` | `bool` | Whether the aspect ratio is locked when resizing |
-| `"Output Audio"` | `bool` | Whether audio output is enabled |
-| `"Post-Render Action"` | `PostRenderAction` | Action to perform after rendering |
-| `"Resize Quality"` | `int` | Resize quality level |
+| `"Output Audio"` | [OutputAudio][aep_parser.models.enums.OutputAudio] | Audio output mode (Off, On, or Auto) |
+| `"Output File Info"` | `dict[str, str]` | Output file path info (Full Flat Path, Base Path, Subfolder Path, File Name, File Template) |
+| `"Post-Render Action"` | [PostRenderAction][aep_parser.models.enums.PostRenderAction] | Action to perform after rendering |
+| `"Resize Quality"` | [ResizeQuality][aep_parser.models.enums.ResizeQuality] | Resize quality level |
+| `"Resize to"` | `list[int]` | Target resize dimensions `[width, height]` |
 | `"Resize"` | `bool` | Whether resizing is enabled |
 | `"Starting #"` | `int` | Starting frame number for file sequences |
-| `"Use Comp Frame Number"` | `int` | Whether to use composition frame numbers |
-| `"Use Region of Interest"` | `int` | Whether to use the region of interest |
+| `"Use Comp Frame Number"` | `bool` | Whether to use composition frame numbers |
+| `"Use Region of Interest"` | `bool` | Whether to use the region of interest |
 | `"Video Output"` | `bool` | Whether video output is enabled |

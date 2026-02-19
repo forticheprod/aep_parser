@@ -2030,7 +2030,7 @@ var AEP_EXPORT_AS_LIBRARY = true;
         saveProject(p.proj, omFolder.fsName + "/audio_mono.aep");
 
         // Audio sample rate samples
-        var sampleRates = [16000, 22050, 24000, 32000, 44100];
+        var sampleRates = [8000, 16000, 22050, 32000, 96000];
         for (var i = 0; i < sampleRates.length; i++) {
             p = createRenderQueueProject("Comp 1");
             applyRenderSettings(p.rqItem, "Best Settings");
