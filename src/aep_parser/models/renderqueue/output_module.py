@@ -45,6 +45,17 @@ class OutputModule:
     include_source_xmp: bool
     """When `True`, writes all source footage XMP metadata to the output file."""
 
+    output_color_space: int
+    """The output color space."""
+
+    preserve_rgb: bool
+    """
+    When `True`, disable color management conversions for this output module.
+
+    Note:
+        Not exposed in ExtendScript.
+    """
+
     name: str
     """The name of the output module, as shown in the user interface."""
 

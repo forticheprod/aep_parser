@@ -1792,7 +1792,7 @@ class Aep(KaitaiStruct):
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(7)
-            self._unnamed1 = self._io.read_bits_int_be(1) != 0
+            self.preserve_rgb = self._io.read_bits_int_be(1) != 0
             self.include_source_xmp = self._io.read_bits_int_be(1) != 0
             self._unnamed3 = self._io.read_bits_int_be(1) != 0
             self.use_region_of_interest = self._io.read_bits_int_be(1) != 0
@@ -1821,7 +1821,11 @@ class Aep(KaitaiStruct):
             self.include_project_link = self._io.read_u1()
             self.post_render_action = self._io.read_u4be()
             self.post_render_use_comp = self._io.read_u4be()
-            self.remaining = self._io.read_bytes(72)
+            self._unnamed30 = self._io.read_bytes(16)
+            self.output_profile_id = self._io.read_bytes(16)
+            self._unnamed32 = self._io.read_bytes(5)
+            self.output_color_space_working = self._io.read_u1()
+            self._unnamed34 = self._io.read_bytes(34)
 
 
         def _fetch_instances(self):
