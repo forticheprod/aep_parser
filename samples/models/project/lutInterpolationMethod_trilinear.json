@@ -1,34 +1,3 @@
-{
-  "projectName": "lutInterpolationMethod_trilinear.aep",
-  "bitsPerChannel": 32,
-  "colorManagementSystem": 0,
-  "compensateForSceneReferredProfiles": false,
-  "displayStartFrame": 0,
-  "expressionEngine": "extendscript",
-  "feetFramesFilmType": 2413,
-  "footageTimecodeDisplayStartType": 2212,
-  "framesCountType": 2612,
-  "framesUseFeetFrames": true,
-  "gpuAccelType": 1813,
-  "linearBlending": true,
-  "linearizeWorkingSpace": true,
-  "lutInterpolationMethod": 0,
-  "numItems": 0,
-  "ocioConfigurationFile": "",
-  "timeDisplayType": 2012,
-  "transparencyGridThumbnails": true,
-  "usedFonts": [
-    
-  ],
-  "workingGamma": 2.4,
-  "workingSpace": "None",
-  "items": [
-    
-  ],
-  "renderQueue": {
-    "numItems": 0,
-    "items": [
-      
-    ]
-  }
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:b2a94fb0d62c07445a166ee8aec5d963fec3c36af6437b8a9afb7ace0491687c
+size 785

@@ -1,34 +1,3 @@
-{
-  "projectName": "ocioConfigurationFile_custom.aep",
-  "bitsPerChannel": 32,
-  "colorManagementSystem": 1,
-  "compensateForSceneReferredProfiles": false,
-  "displayStartFrame": 0,
-  "expressionEngine": "extendscript",
-  "feetFramesFilmType": 2413,
-  "footageTimecodeDisplayStartType": 2212,
-  "framesCountType": 2612,
-  "framesUseFeetFrames": true,
-  "gpuAccelType": 1813,
-  "linearBlending": true,
-  "linearizeWorkingSpace": true,
-  "lutInterpolationMethod": 1,
-  "numItems": 0,
-  "ocioConfigurationFile": "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\assets\\config.ocio",
-  "timeDisplayType": 2012,
-  "transparencyGridThumbnails": true,
-  "usedFonts": [
-    
-  ],
-  "workingGamma": 2.4,
-  "workingSpace": "None",
-  "items": [
-    
-  ],
-  "renderQueue": {
-    "numItems": 0,
-    "items": [
-      
-    ]
-  }
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:e7561f0fd1265ac18c69d3ae2a3a9fd00fabe713363cdf04dbe8aec615c0a3b4
+size 854

@@ -1,34 +1,3 @@
-{
-  "projectName": "footageTimecodeDisplayStartType_source.aep",
-  "bitsPerChannel": 32,
-  "colorManagementSystem": 0,
-  "compensateForSceneReferredProfiles": false,
-  "displayStartFrame": 1,
-  "expressionEngine": "extendscript",
-  "feetFramesFilmType": 2413,
-  "footageTimecodeDisplayStartType": 2212,
-  "framesCountType": 2613,
-  "framesUseFeetFrames": true,
-  "gpuAccelType": 1813,
-  "linearBlending": true,
-  "linearizeWorkingSpace": true,
-  "lutInterpolationMethod": 1,
-  "numItems": 0,
-  "ocioConfigurationFile": "ACES 1.2",
-  "timeDisplayType": 2012,
-  "transparencyGridThumbnails": true,
-  "usedFonts": [
-    
-  ],
-  "workingGamma": 2.4,
-  "workingSpace": "None",
-  "items": [
-    
-  ],
-  "renderQueue": {
-    "numItems": 0,
-    "items": [
-      
-    ]
-  }
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:4cca3de0884547c59698e4d767235a86b33fb5071ff1070f65ea7165b1c2aad4
+size 799

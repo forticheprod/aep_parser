@@ -1,34 +1,3 @@
-{
-  "projectName": "workingSpace_Image_P3.aep",
-  "bitsPerChannel": 32,
-  "colorManagementSystem": 0,
-  "compensateForSceneReferredProfiles": false,
-  "displayStartFrame": 0,
-  "expressionEngine": "extendscript",
-  "feetFramesFilmType": 2413,
-  "footageTimecodeDisplayStartType": 2212,
-  "framesCountType": 2612,
-  "framesUseFeetFrames": true,
-  "gpuAccelType": 1813,
-  "linearBlending": true,
-  "linearizeWorkingSpace": false,
-  "lutInterpolationMethod": 1,
-  "numItems": 0,
-  "ocioConfigurationFile": "",
-  "timeDisplayType": 2012,
-  "transparencyGridThumbnails": true,
-  "usedFonts": [
-    
-  ],
-  "workingGamma": 2.4,
-  "workingSpace": "image P3",
-  "items": [
-    
-  ],
-  "renderQueue": {
-    "numItems": 0,
-    "items": [
-      
-    ]
-  }
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:edaa0fe3634ac562a83c558a1ae15763656c9496394aaa9ed828ad843e86b271
+size 779

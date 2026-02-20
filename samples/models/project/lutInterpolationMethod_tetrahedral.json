@@ -1,34 +1,3 @@
-{
-  "projectName": "lutInterpolationMethod_tetrahedral.aep",
-  "bitsPerChannel": 32,
-  "colorManagementSystem": 0,
-  "compensateForSceneReferredProfiles": false,
-  "displayStartFrame": 0,
-  "expressionEngine": "extendscript",
-  "feetFramesFilmType": 2413,
-  "footageTimecodeDisplayStartType": 2212,
-  "framesCountType": 2612,
-  "framesUseFeetFrames": true,
-  "gpuAccelType": 1813,
-  "linearBlending": true,
-  "linearizeWorkingSpace": true,
-  "lutInterpolationMethod": 1,
-  "numItems": 0,
-  "ocioConfigurationFile": "",
-  "timeDisplayType": 2012,
-  "transparencyGridThumbnails": true,
-  "usedFonts": [
-    
-  ],
-  "workingGamma": 2.4,
-  "workingSpace": "None",
-  "items": [
-    
-  ],
-  "renderQueue": {
-    "numItems": 0,
-    "items": [
-      
-    ]
-  }
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:be9636a502ffd8dd7ff9d3839d190ccafa22f97127071b69da860478d6ec158e
+size 787
