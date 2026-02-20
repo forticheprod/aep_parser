@@ -151,9 +151,9 @@ types:
       - id: title_action_safe
         type: b1  # bit 0 (value 0x01)
         doc: Whether title/action safe guides are displayed
-      # Byte 12: draft_3d flag
+      # Byte 12: draft3d flag
       - type: b5  # skip bits 7-3
-      - id: draft_3d
+      - id: draft3d
         type: b1  # bit 2 (value 0x04)
         doc: Whether Draft 3D mode is enabled for this viewer panel
       - type: b2  # skip bits 1-0
@@ -324,9 +324,9 @@ types:
         repeat: expr
         repeat-expr: 3
       - size: 83
-      - id: draft_3d
+      - id: draft3d
         type: b1  # bit 7
-        doc: Whether Draft 3D is enabled for this composition
+        doc: Whether Draft 3D is enabled for this composition. Deprecated.
       - type: b7  # skip bits 6-0
       - id: preserve_nested_resolution
         type: b1  # bit 7

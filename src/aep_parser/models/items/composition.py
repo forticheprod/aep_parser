@@ -35,10 +35,13 @@ class CompItem(AVItem):
     display_start_frame: int
     """The frame value of the beginning of the composition."""
 
-    draft_3d: bool
+    draft3d: bool
     """
     When `True`, Draft 3D mode is enabled for the composition. This
     improves preview speed by disabling certain 3D rendering features.
+
+    Warning:
+        Deprecated in After Effects 2024 in favor of the new Draft 3D mode.
     """
 
     drop_frame: bool

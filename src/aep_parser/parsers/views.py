@@ -27,7 +27,7 @@ def _parse_view_options(fips_chunk: Aep.Chunk) -> ViewOptions:
     return ViewOptions(
         channels=ChannelType.from_binary(fips_chunk.channels),
         checkerboards=fips_chunk.transparency_grid,
-        draft_3d=fips_chunk.draft_3d,
+        draft3d=fips_chunk.draft3d,
         exposure=fips_chunk.exposure,
         fast_preview=map_fast_preview_type(
             adaptive=fips_chunk.fast_preview_adaptive,
