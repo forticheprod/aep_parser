@@ -123,9 +123,6 @@ class Aep(KaitaiStruct):
 
 
     class AdfrBody(KaitaiStruct):
-        """Audio default frame rate chunk. Stores the project-level audio
-        sample rate as a float64 value (8 bytes).
-        """
         def __init__(self, _io, _parent=None, _root=None):
             super(Aep.AdfrBody, self).__init__(_io)
             self._parent = _parent
@@ -222,29 +219,31 @@ class Aep(KaitaiStruct):
             for i in range(3):
                 self.bg_color.append(self._io.read_u1())
 
-            self._unnamed14 = self._io.read_bytes(84)
+            self._unnamed14 = self._io.read_bytes(83)
+            self.draft_3d = self._io.read_bits_int_be(1) != 0
+            self._unnamed16 = self._io.read_bits_int_be(7)
             self.preserve_nested_resolution = self._io.read_bits_int_be(1) != 0
-            self._unnamed16 = self._io.read_bits_int_be(1) != 0
+            self._unnamed18 = self._io.read_bits_int_be(1) != 0
             self.preserve_nested_frame_rate = self._io.read_bits_int_be(1) != 0
             self.frame_blending = self._io.read_bits_int_be(1) != 0
             self.motion_blur = self._io.read_bits_int_be(1) != 0
-            self._unnamed20 = self._io.read_bits_int_be(2)
+            self._unnamed22 = self._io.read_bits_int_be(2)
             self.hide_shy_layers = self._io.read_bits_int_be(1) != 0
             self.width = self._io.read_u2be()
             self.height = self._io.read_u2be()
             self.pixel_ratio_width = self._io.read_u4be()
             self.pixel_ratio_height = self._io.read_u4be()
-            self._unnamed26 = self._io.read_bytes(4)
+            self._unnamed28 = self._io.read_bytes(4)
             self.frame_rate_integer = self._io.read_u2be()
             self.frame_rate_fractional = self._io.read_u2be()
-            self._unnamed29 = self._io.read_bytes(4)
+            self._unnamed31 = self._io.read_bytes(4)
             self.display_start_time_dividend = self._io.read_s4be()
             self.display_start_time_divisor = self._io.read_u4be()
-            self._unnamed32 = self._io.read_bytes(2)
+            self._unnamed34 = self._io.read_bytes(2)
             self.shutter_angle = self._io.read_u2be()
-            self._unnamed34 = self._io.read_bytes(4)
+            self._unnamed36 = self._io.read_bytes(4)
             self.shutter_phase = self._io.read_s4be()
-            self._unnamed36 = self._io.read_bytes(12)
+            self._unnamed38 = self._io.read_bytes(12)
             self.motion_blur_adaptive_sample_limit = self._io.read_s4be()
             self.motion_blur_samples_per_frame = self._io.read_s4be()
 

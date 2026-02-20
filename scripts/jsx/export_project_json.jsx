@@ -69,7 +69,6 @@ var AepExport = AepExport || {};
         "guides": true,
         "revision": true,
         "xmpPacket": true,
-        "draft3d": true, // Deprecated in favor of view options ?
     };
 
     // =========================================================================

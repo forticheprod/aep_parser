@@ -254,7 +254,7 @@ def map_viewer_type_from_string(label: str) -> ViewerType:
 
     Returns:
         The matching [ViewerType][aep_parser.models.enums.ViewerType]
-    
+
     Raises:
         ValueError: If the label is not recognized.
     """
