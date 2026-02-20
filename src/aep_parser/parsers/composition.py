@@ -56,7 +56,7 @@ def parse_composition(
         name=item_name,
         type_name="Composition",
         parent_folder=parent_folder,
-        draft_3d=False,  # Set later from fips chunk in parse_project
+        draft_3d=cdta_chunk.draft_3d,
         duration=cdta_chunk.duration,
         frame_duration=int(
             cdta_chunk.frame_duration
