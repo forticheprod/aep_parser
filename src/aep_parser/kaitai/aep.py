@@ -220,7 +220,7 @@ class Aep(KaitaiStruct):
                 self.bg_color.append(self._io.read_u1())
 
             self._unnamed14 = self._io.read_bytes(83)
-            self.draft_3d = self._io.read_bits_int_be(1) != 0
+            self.draft3d = self._io.read_bits_int_be(1) != 0
             self._unnamed16 = self._io.read_bits_int_be(7)
             self.preserve_nested_resolution = self._io.read_bits_int_be(1) != 0
             self._unnamed18 = self._io.read_bits_int_be(1) != 0
@@ -841,7 +841,7 @@ class Aep(KaitaiStruct):
             self.proportional_grid = self._io.read_bits_int_be(1) != 0
             self.title_action_safe = self._io.read_bits_int_be(1) != 0
             self._unnamed6 = self._io.read_bits_int_be(5)
-            self.draft_3d = self._io.read_bits_int_be(1) != 0
+            self.draft3d = self._io.read_bits_int_be(1) != 0
             self._unnamed8 = self._io.read_bits_int_be(2)
             self._unnamed9 = self._io.read_bits_int_be(7)
             self.fast_preview_adaptive = self._io.read_bits_int_be(1) != 0
