@@ -25,7 +25,7 @@ class ViewOptions:
     When `True`, checkerboards (transparency grid) is enabled in the current view.
     """
 
-    draft_3d: bool
+    draft3d: bool
     """
     When `True`, Draft 3D mode is enabled for the Composition panel. This
     corresponds to the value of the Draft 3D button in the Composition panel.
