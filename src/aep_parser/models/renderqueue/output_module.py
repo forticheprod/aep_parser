@@ -45,7 +45,7 @@ class OutputModule:
     include_source_xmp: bool
     """When `True`, writes all source footage XMP metadata to the output file."""
 
-    output_color_space: int
+    output_color_space: str | None
     """The output color space."""
 
     preserve_rgb: bool
