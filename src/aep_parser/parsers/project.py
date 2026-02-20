@@ -29,6 +29,7 @@ from .item import parse_folder
 from .mappings import (
     map_bits_per_channel,
     map_footage_timecode_display_start_type,
+    map_gpu_accel_type,
 )
 from .render_queue import parse_render_queue
 
@@ -67,7 +68,9 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
     head_chunk = find_by_type(chunks=root_chunks, chunk_type="head")
     nnhd_chunk = find_by_type(chunks=root_chunks, chunk_type="nnhd")
     acer_chunk = find_by_type(chunks=root_chunks, chunk_type="acer")
+    adfr_chunk = find_by_type(chunks=root_chunks, chunk_type="adfr")
     dwga_chunk = find_by_type(chunks=root_chunks, chunk_type="dwga")
+    gpug_chunk = find_by_list_type(chunks=root_chunks, list_type="gpuG")
     xmp_packet = ET.fromstring(aep.xmp_packet)
 
     color_profile = _get_color_profile_settings(root_chunks)
@@ -101,6 +104,13 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
         linearize_working_space=nnhd_chunk.linearize_working_space,
         working_gamma=dwga_chunk.working_gamma,
         working_space=_get_working_space(root_chunks),
+        display_color_space=_get_display_color_space(root_chunks),
+        gpu_accel_type=map_gpu_accel_type(
+            str_contents(
+                find_by_type(chunks=gpug_chunk.chunks, chunk_type="Utf8")
+            )
+        ),
+        audio_sample_rate=adfr_chunk.audio_sample_rate,
         items={},
         render_queue=None,
         time_display_type=TimeDisplayType.from_binary(nnhd_chunk.time_display_type),
@@ -278,8 +288,8 @@ def _get_working_space(root_chunks: list[Aep.Chunk]) -> str:
     """
     Get the working color space name from the project.
 
-    The working space is stored in a Utf8 chunk containing JSON with
-    baseColorProfile.colorProfileName.
+    The working space is stored in the first Utf8 chunk containing
+    JSON with baseColorProfile.colorProfileName.
 
     Args:
         root_chunks: list of root chunks of the project
@@ -293,4 +303,35 @@ def _get_working_space(root_chunks: list[Aep.Chunk]) -> str:
             profile_data = json.loads(utf8_content)
             base_profile = profile_data.get("baseColorProfile", {})
             return str(base_profile.get("colorProfileName", "None"))
+    return "None"
+
+
+def _get_display_color_space(root_chunks: list[Aep.Chunk]) -> str:
+    """
+    Get the display color space name from the project.
+
+    The display color space is stored in the second Utf8 chunk that
+    follows the working space baseColorProfile chunk. When no display
+    color space is set, the chunk contains ``{}``.
+
+    Args:
+        root_chunks: list of root chunks of the project
+
+    Returns:
+        The display color space name (e.g., "ACES/sRGB") or "None"
+        if not set.
+    """
+    found_working_space = False
+    for chunk in filter_by_type(chunks=root_chunks, chunk_type="Utf8"):
+        utf8_content = str_contents(chunk)
+        if not found_working_space:
+            if "baseColorProfile" in utf8_content:
+                found_working_space = True
+            continue
+        # This is the Utf8 chunk after the working space
+        if "baseColorProfile" in utf8_content:
+            profile_data = json.loads(utf8_content)
+            base_profile = profile_data.get("baseColorProfile", {})
+            return str(base_profile.get("colorProfileName", "None"))
+        return "None"
     return "None"
