@@ -323,7 +323,11 @@ types:
         type: u1
         repeat: expr
         repeat-expr: 3
-      - size: 84
+      - size: 83
+      - id: draft_3d
+        type: b1  # bit 7
+        doc: Whether Draft 3D is enabled for this composition
+      - type: b7  # skip bits 6-0
       - id: preserve_nested_resolution
         type: b1  # bit 7
       - type: b1  # skip bit 6
