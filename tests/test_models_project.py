@@ -93,6 +93,60 @@ class TestWorkingSpace:
         assert project.working_space == expected["workingSpace"]
 
 
+class TestDisplayColorSpace:
+    """Tests for display_color_space attribute."""
+
+    def test_none(self) -> None:
+        project = parse_project(SAMPLES_DIR / "display_color_space_ACES_None.aep")
+        assert project.display_color_space == "None"
+
+    def test_srgb(self) -> None:
+        project = parse_project(SAMPLES_DIR / "display_color_space_ACES_sRGB.aep")
+        assert project.display_color_space == "ACES/sRGB"
+
+    def test_dcdm(self) -> None:
+        project = parse_project(SAMPLES_DIR / "display_color_space_ACES_DCDM.aep")
+        assert project.display_color_space == "ACES/DCDM"
+
+
+class TestAudioSampleRate:
+    """Tests for audio_sample_rate attribute."""
+
+    def test_96000(self) -> None:
+        project = parse_project(SAMPLES_DIR / "Audio_sample_rate_96000.aep")
+        assert project.audio_sample_rate == 96000.0
+
+    def test_22050(self) -> None:
+        project = parse_project(SAMPLES_DIR / "Audio_sample_rate_22050.aep")
+        assert project.audio_sample_rate == 22050.0
+
+
+class TestGpuAccelType:
+    """Tests for gpu_accel_type attribute."""
+
+    def test_cuda(self) -> None:
+        expected = load_expected(
+            SAMPLES_DIR,
+            "gpuAccelType_mercury_gpu_acceleration_CUDA",
+        )
+        project = parse_project(
+            SAMPLES_DIR
+            / "gpuAccelType_mercury_gpu_acceleration_CUDA.aep"
+        )
+        assert expected["gpuAccelType"] == 1813
+        assert project.gpu_accel_type.value == expected["gpuAccelType"]
+
+    def test_software(self) -> None:
+        expected = load_expected(
+            SAMPLES_DIR, "gpuAccelType_mercury_software_only"
+        )
+        project = parse_project(
+            SAMPLES_DIR / "gpuAccelType_mercury_software_only.aep"
+        )
+        assert expected["gpuAccelType"] == 1816
+        assert project.gpu_accel_type.value == expected["gpuAccelType"]
+
+
 class TestLinearBlending:
     """Tests for linearBlending attribute."""
 

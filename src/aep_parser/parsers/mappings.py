@@ -16,6 +16,7 @@ from ..models.enums import (
     FieldSeparationType,
     FootageTimecodeDisplayStartType,
     FrameBlendingType,
+    GpuAccelType,
     OutputAudio,
     ViewerType,
 )
@@ -27,6 +28,9 @@ def map_alpha_mode(alpha_mode_raw: int, has_alpha: bool) -> AlphaMode:
     Args:
         alpha_mode_raw: Raw value from sspc chunk.
         has_alpha: Whether the footage has an alpha channel.
+
+    Raises:
+        ValueError: If alpha_mode_raw is not a recognized value.
     """
     if not has_alpha:
         return AlphaMode.IGNORE
@@ -44,7 +48,12 @@ def map_alpha_mode(alpha_mode_raw: int, has_alpha: bool) -> AlphaMode:
 
 
 def map_bits_per_channel(bits_per_channel_raw: int) -> BitsPerChannel:
-    """Map binary bits_per_channel value to ExtendScript BitsPerChannel enum."""
+    """
+    Map binary bits_per_channel value to ExtendScript BitsPerChannel enum.
+
+    Raises:
+        ValueError: If bits_per_channel_raw is not a recognized value.
+    """
     mapping = {
         0: BitsPerChannel.EIGHT,
         1: BitsPerChannel.SIXTEEN,
@@ -59,7 +68,12 @@ def map_bits_per_channel(bits_per_channel_raw: int) -> BitsPerChannel:
 
 
 def map_blending_mode(blending_mode_raw: int) -> BlendingMode:
-    """Map binary blending_mode value to ExtendScript BlendingMode enum."""
+    """
+    Map binary blending_mode value to ExtendScript BlendingMode enum.
+
+    Raises:
+        ValueError: If blending_mode_raw is not a recognized value.
+    """
     mapping = {
         0: BlendingMode.NORMAL,  # cameras, lights, and null layers
         2: BlendingMode.NORMAL,
@@ -127,7 +141,12 @@ def map_field_separation_type(
 def map_footage_timecode_display_start_type(
     ftcs_raw: int,
 ) -> FootageTimecodeDisplayStartType:
-    """Map binary value to ExtendScript FootageTimecodeDisplayStartType enum."""
+    """
+    Map binary value to ExtendScript FootageTimecodeDisplayStartType enum.
+
+    Raises:
+        ValueError: If ftcs_raw is not a recognized value.
+    """
     mapping = {
         0: FootageTimecodeDisplayStartType.FTCS_START_0,
         1: FootageTimecodeDisplayStartType.FTCS_USE_SOURCE_MEDIA,
@@ -155,6 +174,9 @@ def map_frame_blending_type(
     Args:
         frame_blending_type_raw: The raw 1-bit value from the binary.
         frame_blending_enabled: Whether frame blending is enabled on the layer.
+
+    Raises:
+        ValueError: If frame_blending_type_raw is not a recognized value.
     """
     if not frame_blending_enabled:
         return FrameBlendingType.NO_FRAME_BLEND
@@ -220,7 +242,7 @@ def map_fast_preview_type(
     return FastPreviewType.FP_OFF
 
 
-def map_viewer_type_from_string(label: str) -> ViewerType | None:
+def map_viewer_type_from_string(label: str) -> ViewerType:
     """Map a viewer panel type label string to a ViewerType enum.
 
     The `fitt` chunk stores the inner tab type as an ASCII string
@@ -231,8 +253,10 @@ def map_viewer_type_from_string(label: str) -> ViewerType | None:
         label: The panel type label from the `fitt` chunk.
 
     Returns:
-        The matching [ViewerType][aep_parser.models.enums.ViewerType], or `None` if the label is
-        not recognised.
+        The matching [ViewerType][aep_parser.models.enums.ViewerType]
+    
+    Raises:
+        ValueError: If the label is not recognized.
     """
     mapping = {
         "AE Composition": ViewerType.VIEWER_COMPOSITION,
@@ -243,6 +267,28 @@ def map_viewer_type_from_string(label: str) -> ViewerType | None:
         return mapping[label]
     except KeyError:
         raise ValueError(f"Unknown viewer type label: {label!r}") from None
+
+
+_GPU_ACCEL_UUID_MAP: dict[str, GpuAccelType] = {
+    "7ee0ab59-822d-44cc-ac10-16279d041016": GpuAccelType.CUDA,
+    "f33089e2-1ede-47c1-8a9e-b232bb1cc1a4": GpuAccelType.SOFTWARE,
+}
+
+
+def map_gpu_accel_type(uuid: str) -> GpuAccelType | None:
+    """Map a gpuG UUID to a GpuAccelType enum value.
+
+    The GPU acceleration type is stored in the ``gpuG`` LIST chunk as a
+    UUID string.  Known UUIDs are mapped to their corresponding enum
+    value; unknown UUIDs default to ``None``.
+
+    Args:
+        uuid: The UUID string from the gpuG Utf8 chunk.
+    """
+    try:
+        return _GPU_ACCEL_UUID_MAP[uuid]
+    except KeyError:
+        return None
 
 
 def map_output_audio(

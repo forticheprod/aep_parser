@@ -66,6 +66,7 @@ types:
             '"Roou"': roou_body # Output module settings
             '"Rout"': rout_body # Render queue item flags
             '"acer"': acer_body # Compensate for Scene-Referred Profiles setting
+            '"adfr"': adfr_body # Audio sample rate settings
             '"dwga"': dwga_body # Working gamma setting
             '"fips"': fips_body # Folder item panel settings (viewer state)
             '"fcid"': fcid_body # Active composition item ID
@@ -86,6 +87,11 @@ types:
       - id: compensate_for_scene_referred_profiles
         type: u1
         doc: Whether to compensate for scene-referred profiles (0=false, 1=true)
+  adfr_body:
+    seq:
+      - id: audio_sample_rate
+        type: f8
+        doc: Project audio sample rate in Hz (e.g. 22050.0, 44100.0, 48000.0, 96000.0)
   dwga_body:
     doc: |
       Working gamma setting. Indicates the gamma value used for color management.

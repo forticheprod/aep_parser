@@ -18,6 +18,7 @@ if typing.TYPE_CHECKING:
         FeetFramesFilmType,
         FootageTimecodeDisplayStartType,
         FramesCountType,
+        GpuAccelType,
         LutInterpolationMethod,
         TimeDisplayType,
     )
@@ -118,6 +119,26 @@ class Project:
 
     working_space: str
     """The name of the working color space (e.g., "sRGB IEC61966-2.1", "None")."""
+
+    display_color_space: str
+    """
+    The name of the display color space used for the project (e.g., "ACES/sRGB"). Only
+    relevant when color_management_system is OCIO. "None" when not set.
+
+    Note:
+        Not exposed in ExtendScript
+    """
+
+    gpu_accel_type: GpuAccelType | None
+    """The GPU acceleration type for the project. None if not recognised."""
+
+    audio_sample_rate: float
+    """
+    The project audio sample rate in Hz (e.g. 22050.0, 44100.0, 48000.0, 96000.0).
+
+    Note:
+        Not exposed in ExtendScript
+    """
 
     items: dict[int, Item] = field(repr=False)  # These items are in root_folder already
     """All the items in the project."""

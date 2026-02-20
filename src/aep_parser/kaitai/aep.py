@@ -122,6 +122,24 @@ class Aep(KaitaiStruct):
             pass
 
 
+    class AdfrBody(KaitaiStruct):
+        """Audio default frame rate chunk. Stores the project-level audio
+        sample rate as a float64 value (8 bytes).
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.AdfrBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.audio_sample_rate = self._io.read_f8be()
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class AsciiBody(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             super(Aep.AsciiBody, self).__init__(_io)
@@ -410,6 +428,11 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.AcerBody(_io__raw_data, self, self._root)
+            elif _on == u"adfr":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.AdfrBody(_io__raw_data, self, self._root)
             elif _on == u"alas":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -593,6 +616,9 @@ class Aep(KaitaiStruct):
                 pass
                 self.data._fetch_instances()
             elif _on == u"acer":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"adfr":
                 pass
                 self.data._fetch_instances()
             elif _on == u"alas":
