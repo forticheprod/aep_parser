@@ -49,6 +49,8 @@ AEP Parser transforms binary .aep files into typed Python objects through a thre
 - `find_by_list_type()` - Find a LIST chunk by its list_type
 - `filter_by_type()` - Get all chunks of a given type
 
+**Chunk attribute proxy**: `aep_optimized.py` monkey-patches `Aep.Chunk.__getattr__` so that attribute access on a chunk transparently delegates to `chunk.data` when the attribute is not found on the chunk itself. This means you can write `chunk.list_type` instead of `chunk.data.list_type`, and `cdta_chunk.time_scale` instead of `cdta_chunk.data.time_scale`. Keep this in mind when reading parser code — any attribute on a `Chunk` may actually come from its `.data`.
+
 ## Development Workflow
 
 ### Setting Up Your Environment
