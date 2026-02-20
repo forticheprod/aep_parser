@@ -133,8 +133,12 @@ class CompItem(AVItem):
     resolution is [4, 4]. The default is [1, 1].
     """
 
-    time_scale: int
-    """The time scale, used as a divisor for some time values."""
+    time_scale: float
+    """
+    The time scale, used as a divisor for keyframe time values. For integer
+    frame rates (e.g. 24fps) this is a whole number. For non-integer frame
+    rates (e.g. 29.97fps) this includes a fractional part (e.g. 3.125).
+    """
 
     in_point: float
     """The composition "work area" start (seconds)."""

@@ -283,18 +283,32 @@ types:
         repeat: expr
         repeat-expr: 2
       - size: 1
-      - id: time_scale
+      - id: time_scale_integer
         type: u2
-      - size: 14
-      - id: time_raw
-        type: s2
-      - size: 6
-      - id: in_point_raw
-        type: u2
-      - size: 6
-      - id: out_point_raw
-        type: u2
-      - size: 5
+        doc: |
+          Integer part of the time scale. For non-integer frame rates
+          (e.g. 29.97fps), the actual time scale is a fractional number
+          encoded as time_scale_integer + time_scale_fractional / 256.
+      - id: time_scale_fractional
+        type: u1
+        doc: |
+          Fractional part of the time scale (1/256th units). Zero for
+          integer frame rates, non-zero for NTSC-style frame rates like
+          29.97fps. The effective time scale is
+          time_scale_integer + time_scale_fractional / 256.
+      - size: 12
+      - id: time_dividend
+        type: s4
+      - id: time_divisor
+        type: u4
+      - id: in_point_dividend
+        type: u4
+      - id: in_point_divisor
+        type: u4
+      - id: out_point_dividend
+        type: u4
+      - id: out_point_divisor
+        type: u4
       - id: duration_dividend
         type: u4
       - id: duration_divisor
@@ -349,6 +363,11 @@ types:
       - id: motion_blur_samples_per_frame
         type: s4
     instances:
+      time_scale:
+        value: 'time_scale_integer + time_scale_fractional * 1.0 / 256'
+        doc: |
+          Effective time scale combining integer and fractional parts.
+          Used as divisor for keyframe time_raw to compute frame numbers.
       display_start_time:
         value: 'display_start_time_dividend * 1.0 / display_start_time_divisor'
       frame_rate:
@@ -361,18 +380,18 @@ types:
         value: 'duration * frame_rate'
       pixel_aspect:
         value: 'pixel_ratio_width * 1.0 / pixel_ratio_height'
-      frame_time:
-        value: 'time_raw * 1.0 / time_scale'
       time:
-        value: 'frame_time / frame_rate'
+        value: 'time_dividend * 1.0 / time_divisor'
+      frame_time:
+        value: 'time * frame_rate'
       frame_in_point:
-        value: 'display_start_frame + in_point_raw * 1.0 / time_scale'
+        value: '(display_start_time + in_point_dividend * 1.0 / in_point_divisor) * frame_rate'
       in_point:
-        value: 'frame_in_point / frame_rate'
+        value: 'display_start_time + in_point_dividend * 1.0 / in_point_divisor'
       frame_out_point:
-        value: 'display_start_frame + (out_point_raw == 0xffff ? frame_duration : (out_point_raw * 1.0 / time_scale))'
+        value: '(out_point_dividend == 0xffffffff ? display_start_frame + frame_duration : (display_start_time + out_point_dividend * 1.0 / out_point_divisor) * frame_rate)'
       out_point:
-        value: 'frame_out_point / frame_rate'
+        value: '(out_point_dividend == 0xffffffff ? display_start_time + duration : display_start_time + out_point_dividend * 1.0 / out_point_divisor)'
   child_utf8_body:
     seq:
       - id: chunk

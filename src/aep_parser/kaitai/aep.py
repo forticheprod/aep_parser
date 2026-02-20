@@ -189,43 +189,44 @@ class Aep(KaitaiStruct):
                 self.resolution_factor.append(self._io.read_u2be())
 
             self._unnamed1 = self._io.read_bytes(1)
-            self.time_scale = self._io.read_u2be()
-            self._unnamed3 = self._io.read_bytes(14)
-            self.time_raw = self._io.read_s2be()
-            self._unnamed5 = self._io.read_bytes(6)
-            self.in_point_raw = self._io.read_u2be()
-            self._unnamed7 = self._io.read_bytes(6)
-            self.out_point_raw = self._io.read_u2be()
-            self._unnamed9 = self._io.read_bytes(5)
+            self.time_scale_integer = self._io.read_u2be()
+            self.time_scale_fractional = self._io.read_u1()
+            self._unnamed4 = self._io.read_bytes(12)
+            self.time_dividend = self._io.read_s4be()
+            self.time_divisor = self._io.read_u4be()
+            self.in_point_dividend = self._io.read_u4be()
+            self.in_point_divisor = self._io.read_u4be()
+            self.out_point_dividend = self._io.read_u4be()
+            self.out_point_divisor = self._io.read_u4be()
             self.duration_dividend = self._io.read_u4be()
             self.duration_divisor = self._io.read_u4be()
             self.bg_color = []
             for i in range(3):
                 self.bg_color.append(self._io.read_u1())
 
-            self._unnamed13 = self._io.read_bytes(84)
+            self._unnamed14 = self._io.read_bytes(84)
             self.preserve_nested_resolution = self._io.read_bits_int_be(1) != 0
-            self._unnamed15 = self._io.read_bits_int_be(1) != 0
+            self._unnamed16 = self._io.read_bits_int_be(1) != 0
             self.preserve_nested_frame_rate = self._io.read_bits_int_be(1) != 0
             self.frame_blending = self._io.read_bits_int_be(1) != 0
             self.motion_blur = self._io.read_bits_int_be(1) != 0
-            self._unnamed19 = self._io.read_bits_int_be(2)
+            self._unnamed20 = self._io.read_bits_int_be(2)
             self.hide_shy_layers = self._io.read_bits_int_be(1) != 0
             self.width = self._io.read_u2be()
             self.height = self._io.read_u2be()
             self.pixel_ratio_width = self._io.read_u4be()
             self.pixel_ratio_height = self._io.read_u4be()
-            self._unnamed25 = self._io.read_bytes(4)
+            self._unnamed26 = self._io.read_bytes(4)
             self.frame_rate_integer = self._io.read_u2be()
             self.frame_rate_fractional = self._io.read_u2be()
-            self._unnamed28 = self._io.read_bytes(4)
+            self._unnamed29 = self._io.read_bytes(4)
             self.display_start_time_dividend = self._io.read_s4be()
             self.display_start_time_divisor = self._io.read_u4be()
-            self._unnamed31 = self._io.read_bytes(2)
+            self._unnamed32 = self._io.read_bytes(2)
             self.shutter_angle = self._io.read_u2be()
-            self._unnamed33 = self._io.read_bytes(4)
+            self._unnamed34 = self._io.read_bytes(4)
             self.shutter_phase = self._io.read_s4be()
-            self._unnamed35 = self._io.read_bytes(12)
+            self._unnamed36 = self._io.read_bytes(12)
             self.motion_blur_adaptive_sample_limit = self._io.read_s4be()
             self.motion_blur_samples_per_frame = self._io.read_s4be()
 
@@ -276,7 +277,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_frame_in_point'):
                 return self._m_frame_in_point
 
-            self._m_frame_in_point = self.display_start_frame + (self.in_point_raw * 1.0) / self.time_scale
+            self._m_frame_in_point = (self.display_start_time + (self.in_point_dividend * 1.0) / self.in_point_divisor) * self.frame_rate
             return getattr(self, '_m_frame_in_point', None)
 
         @property
@@ -284,7 +285,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_frame_out_point'):
                 return self._m_frame_out_point
 
-            self._m_frame_out_point = self.display_start_frame + (self.frame_duration if self.out_point_raw == 65535 else (self.out_point_raw * 1.0) / self.time_scale)
+            self._m_frame_out_point = (self.display_start_frame + self.frame_duration if self.out_point_dividend == 4294967295 else (self.display_start_time + (self.out_point_dividend * 1.0) / self.out_point_divisor) * self.frame_rate)
             return getattr(self, '_m_frame_out_point', None)
 
         @property
@@ -300,7 +301,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_frame_time'):
                 return self._m_frame_time
 
-            self._m_frame_time = (self.time_raw * 1.0) / self.time_scale
+            self._m_frame_time = self.time * self.frame_rate
             return getattr(self, '_m_frame_time', None)
 
         @property
@@ -308,7 +309,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_in_point'):
                 return self._m_in_point
 
-            self._m_in_point = self.frame_in_point / self.frame_rate
+            self._m_in_point = self.display_start_time + (self.in_point_dividend * 1.0) / self.in_point_divisor
             return getattr(self, '_m_in_point', None)
 
         @property
@@ -316,7 +317,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_out_point'):
                 return self._m_out_point
 
-            self._m_out_point = self.frame_out_point / self.frame_rate
+            self._m_out_point = (self.display_start_time + self.duration if self.out_point_dividend == 4294967295 else self.display_start_time + (self.out_point_dividend * 1.0) / self.out_point_divisor)
             return getattr(self, '_m_out_point', None)
 
         @property
@@ -332,8 +333,19 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_time'):
                 return self._m_time
 
-            self._m_time = self.frame_time / self.frame_rate
+            self._m_time = (self.time_dividend * 1.0) / self.time_divisor
             return getattr(self, '_m_time', None)
+
+        @property
+        def time_scale(self):
+            """Effective time scale combining integer and fractional parts.
+            Used as divisor for keyframe time_raw to compute frame numbers.
+            """
+            if hasattr(self, '_m_time_scale'):
+                return self._m_time_scale
+
+            self._m_time_scale = self.time_scale_integer + (self.time_scale_fractional * 1.0) / 256
+            return getattr(self, '_m_time_scale', None)
 
 
     class ChildUtf8Body(KaitaiStruct):

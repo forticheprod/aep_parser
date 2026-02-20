@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import typing
-from pathlib import PurePosixPath
+from pathlib import PurePosixPath, PureWindowsPath
 
 from ..kaitai.utils import (
     ChunkNotFoundError,
@@ -107,6 +107,11 @@ def parse_footage(
                 start_frame = int(first_match.group(1))
                 end_frame = int(last_match.group(1))
 
+        # AE stores the full file path in the Utf8 chunk but displays only
+        # the filename.  Strip to basename so the item name matches AE's UI.
+        if item_name and ("/" in item_name or "\\" in item_name):
+            item_name = ""
+
         if not item_name:
             if not source_attrs["is_still"] and file_source.target_is_folder:
                 item_name = _build_sequence_name(
@@ -116,7 +121,9 @@ def parse_footage(
                     frame_padding=sspc_chunk.frame_padding,
                 )
             if not item_name:
-                basename = PurePosixPath(file_source.file).name
+                # PureWindowsPath handles both / and \ separators,
+                # unlike PurePosixPath which only splits on /.
+                basename = PureWindowsPath(file_source.file).name
                 # For PSD footage, prepend the PSD group/folder name
                 psd_group = getattr(opti_chunk, "psd_group_name", "")
                 if psd_group:

@@ -121,6 +121,18 @@ layer_chunks = filter_by_list_type(chunks=comp_chunks, list_type="Layr")
 ldta_chunks = filter_by_type(chunks=comp_chunks, chunk_type="ldta")
 ```
 
+### Chunk Attribute Proxy (`__getattr__` override)
+`aep_optimized.py` monkey-patches `Aep.Chunk.__getattr__` so that attribute access on a chunk transparently delegates to `chunk.data` when the attribute is not found on the chunk itself. This means you can write:
+```python
+# These two are equivalent:
+chunk.list_type          # shorter — uses __getattr__ proxy
+chunk.data.list_type     # explicit access to the parsed data
+
+# Same for typed chunk bodies:
+cdta_chunk.time_scale    # proxied from cdta_chunk.data.time_scale
+```
+Keep this in mind when reading or writing parser code: any attribute access on a `Chunk` object may actually come from `chunk.data`.
+
 ### Value Mapping Pattern
 Binary values often differ from ExtendScript API values. Use mapping functions in `parsers/mappings.py` when this is the case:
 ```python
