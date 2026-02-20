@@ -586,8 +586,9 @@ types:
     seq:
       - size: 7
         doc: Unknown bytes 0-6
-      - type: b1
-        doc: Unknown bit 7
+      - id: preserve_rgb
+        type: b1
+        doc: Preserve RGB channels when exporting (bit 7)
       - id: include_source_xmp
         type: b1
         doc: Include source XMP metadata in output (bit 6)
@@ -664,9 +665,18 @@ types:
       - id: post_render_use_comp
         type: u4
         doc: Post-render action target comp (0=use render queue item comp, 1=use custom comp)
-      - id: remaining
-        size: 72
-        doc: Remaining bytes (56-127)
+      - size: 16
+        doc: Unknown bytes 56-71
+      - id: output_profile_id
+        size: 16
+        doc: Output profile ID (16-byte binary identifier)
+      - size: 5
+        doc: Unknown bytes 88-92
+      - id: output_color_space_working
+        type: u1
+        doc: 1 if "Output Color Space" is set to "Working Color Space"
+      - size: 34
+        doc: Remaining unknown bytes (94-127)
   render_settings_ldat_body:
     doc: Render settings ldat chunk (2246 bytes)
     seq:

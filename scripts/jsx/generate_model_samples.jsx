@@ -2058,13 +2058,6 @@ var AEP_EXPORT_AS_LIBRARY = true;
         p.om.file = new File(downloadFolder + "/[compName]/[compName]_[#####].tif");
         saveProject(p.proj, omFolder.fsName + "/color_straight_unmatted.aep");
 
-        // Preserve RGB sample (requires alpha channel)
-        p = createRenderQueueProject("Comp 1");
-        applyRenderSettings(p.rqItem, "Best Settings");
-        p.om = applyOutputModuleSettings(p.rqItem, "Lossless with Alpha");
-        p.om.file = new File(downloadFolder + "/[compName].avi");
-        saveProject(p.proj, omFolder.fsName + "/preserve_rgb.aep");
-
         // Custom H.264 sample
         p = createRenderQueueProject("Comp 1");
         applyRenderSettings(p.rqItem, "Best Settings");

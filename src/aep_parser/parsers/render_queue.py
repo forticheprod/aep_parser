@@ -447,6 +447,8 @@ def parse_output_module(
         file_template=file_template,
         frame_rate=frame_rate,
         include_source_xmp=include_source_xmp,
+        preserve_rgb=om_ldat_data.preserve_rgb,
+        output_color_space=project.working_space if om_ldat_data.output_color_space_working else None,  # TODO
         name=template_name,
         parent=render_queue_item,
         post_render_action=post_render_action,
