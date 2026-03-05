@@ -43,7 +43,7 @@ jobs:
           fetch-tags: true
       - name: Build Changelog
         id: changelog
-        uses: mikepenz/release-changelog-builder-action@v5
+        uses: mikepenz/release-changelog-builder-action@v6
         with:
           mode: "COMMIT"
           configuration: ".github/changelog-config.json"
