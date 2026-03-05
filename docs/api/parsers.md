@@ -74,6 +74,14 @@ This module contains the internal parsing functions that convert binary chunk da
     options:
       heading_level: 3
 
-::: aep_parser.parsers.render_queue.parse_output_module
+## Output Module Parser
+
+::: aep_parser.parsers.output_module.parse_output_module
+    options:
+      heading_level: 3
+
+## Format Options Parser
+
+::: aep_parser.parsers.format_options.parse_format_options
     options:
       heading_level: 3

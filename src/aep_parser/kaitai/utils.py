@@ -54,9 +54,7 @@ def find_by_list_type(chunks: list[Aep.Chunk], list_type: str) -> Aep.Chunk:
     """
     return _find_chunk(
         chunks=chunks,
-        func=lambda chunk: (
-            chunk.chunk_type == "LIST" and chunk.list_type == list_type
-        ),
+        func=lambda chunk: chunk.chunk_type == "LIST" and chunk.list_type == list_type,
         description=f"LIST/{list_type} chunk",
     )
 
@@ -72,16 +70,14 @@ def filter_by_list_type(chunks: list[Aep.Chunk], list_type: str) -> list[Aep.Chu
     """Return LIST chunks that have the provided list_type."""
     return _filter_chunks(
         chunks=chunks,
-        func=lambda chunk: (
-            chunk.chunk_type == "LIST" and chunk.list_type == list_type
-        ),
+        func=lambda chunk: chunk.chunk_type == "LIST" and chunk.list_type == list_type,
     )
 
 
 def filter_by_type(chunks: list[Aep.Chunk], chunk_type: str) -> list[Aep.Chunk]:
     """Return chunks that have the provided chunk_type."""
     return _filter_chunks(
-        chunks=chunks, func=lambda chunk: (chunk.chunk_type == chunk_type)
+        chunks=chunks, func=lambda chunk: chunk.chunk_type == chunk_type
     )
 
 

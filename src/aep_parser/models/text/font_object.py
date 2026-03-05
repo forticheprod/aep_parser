@@ -8,7 +8,7 @@ from dataclasses import dataclass
 if typing.TYPE_CHECKING:
     from typing import Any
 
-    from ..enums import CTFontTechnology, CTFontType, CTScript
+    from aep_parser.enums import CTFontTechnology, CTFontType, CTScript
 
 
 @dataclass

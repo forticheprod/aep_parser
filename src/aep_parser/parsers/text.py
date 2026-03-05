@@ -32,7 +32,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from ..models.enums import (
+from ..enums import (
     AutoKernType,
     FontBaselineOption,
     FontCapsOption,
@@ -79,6 +79,7 @@ def _g(data: Any, *keys: str | int) -> Any:
 # ---------------------------------------------------------------------------
 # Font parsing
 # ---------------------------------------------------------------------------
+
 
 def parse_fonts(cos_data: dict[str, Any]) -> list[FontObject]:
     """Parse font entries from COS data.

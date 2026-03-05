@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from aep_parser.enums import GetSettingsFormat, PostRenderAction
+
 from ...resolvers.output import (
     TEMPLATE_EXTENSIONS,
     VIDEO_CODEC_NAMES,
@@ -11,11 +13,19 @@ from ...resolvers.output import (
     resolve_output_filename,
     resolve_time_span,
 )
-from ..enums import GetSettingsFormat, PostRenderAction
 from ..settings import (
     OutputModuleSettings,
     settings_to_number,
     settings_to_string,
+)
+from .format_options import (
+    CineonFormatOptions,
+    JpegFormatOptions,
+    OpenExrFormatOptions,
+    PngFormatOptions,
+    TargaFormatOptions,
+    TiffFormatOptions,
+    XmlFormatOptions,
 )
 
 if TYPE_CHECKING:
@@ -39,22 +49,36 @@ class OutputModule:
     variables.
     """
 
+    format_options: (
+        CineonFormatOptions
+        | JpegFormatOptions
+        | OpenExrFormatOptions
+        | PngFormatOptions
+        | TargaFormatOptions
+        | TiffFormatOptions
+        | XmlFormatOptions
+        | None
+    )
+    """
+    Format-specific render options for this output module. The concrete type
+    depends on the output format:
+
+    - [CineonFormatOptions][] for Cineon/DPX sequences
+    - [JpegFormatOptions][] for JPEG sequences
+    - [OpenExrFormatOptions][] for OpenEXR sequences
+    - [PngFormatOptions][] for PNG sequences
+    - [TargaFormatOptions][] for Targa sequences
+    - [TiffFormatOptions][] for TIFF sequences
+    - [XmlFormatOptions][] for XML-based formats (AVI, H.264, MP3,
+      QuickTime, WAV)
+    - ``None`` for formats without parsed format options
+    """
+
     frame_rate: float
     """The output frame rate for this output module."""
 
     include_source_xmp: bool
     """When `True`, writes all source footage XMP metadata to the output file."""
-
-    output_color_space: str | None
-    """The output color space."""
-
-    preserve_rgb: bool
-    """
-    When `True`, disable color management conversions for this output module.
-
-    Note:
-        Not exposed in ExtendScript.
-    """
 
     name: str
     """The name of the output module, as shown in the user interface."""
@@ -81,9 +105,10 @@ class OutputModule:
     settings: OutputModuleSettings
     """
     [OutputModuleSettings][aep_parser.models.settings.OutputModuleSettings]
-    dict with ExtendScript-compatible keys. Includes "Video Output",
-    "Audio Bit Depth", "Audio Channels", "Color", etc. Matches the
-    format from ``OutputModule.getSettings(GetSettingsFormat.NUMBER)``.
+    dict with ExtendScript-compatible keys. Includes ``"Video Output"``,
+    ``"Audio Bit Depth"``, ``"Output Color Space"``, ``"Preserve RGB"``,
+    ``"Convert to Linear Light"``, etc. Matches the format from
+    ``OutputModule.getSettings(GetSettingsFormat.NUMBER)``.
     """
 
     templates: list[str]

@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ..enums import ChannelType
 from ..kaitai.utils import (
     ChunkNotFoundError,
     filter_by_type,
     find_by_type,
     group_chunks,
 )
-from ..models.enums import ChannelType
 from ..models.viewer.view import View
 from ..models.viewer.view_options import ViewOptions
 from ..models.viewer.viewer import Viewer
@@ -56,7 +56,7 @@ def parse_viewers(
     may contain ``fips`` chunks that hold the per-view options.
 
     The ``fitt`` chunk contains the inner tab type label (e.g.
-    ``"AE Composition"``) which maps to [ViewerType][aep_parser.models.enums.ViewerType].
+    ``"AE Composition"``) which maps to [ViewerType][aep_parser.enums.ViewerType].
     The ``foac`` chunk indicates whether the outer panel is active.
 
     Args:

@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import typing
 
+from ..enums import Label
 from ..kaitai.utils import (
     ChunkNotFoundError,
     filter_by_list_type,
     find_by_list_type,
     find_by_type,
 )
-from ..models.enums import Label
 from ..models.items.composition import CompItem
 from .layer import parse_layer
 

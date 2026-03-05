@@ -412,11 +412,19 @@ def to_json_output(
                         "offset": bd.offset,
                         "offset_hex": f"0x{bd.offset:04X}",
                         "byte1": bd.byte1 if bd.byte1 != MISSING_BYTE else None,
-                        "byte1_hex": f"0x{bd.byte1:02X}" if bd.byte1 != MISSING_BYTE else None,
-                        "byte1_binary": f"{bd.byte1:08b}" if bd.byte1 != MISSING_BYTE else None,
+                        "byte1_hex": f"0x{bd.byte1:02X}"
+                        if bd.byte1 != MISSING_BYTE
+                        else None,
+                        "byte1_binary": f"{bd.byte1:08b}"
+                        if bd.byte1 != MISSING_BYTE
+                        else None,
                         "byte2": bd.byte2 if bd.byte2 != MISSING_BYTE else None,
-                        "byte2_hex": f"0x{bd.byte2:02X}" if bd.byte2 != MISSING_BYTE else None,
-                        "byte2_binary": f"{bd.byte2:08b}" if bd.byte2 != MISSING_BYTE else None,
+                        "byte2_hex": f"0x{bd.byte2:02X}"
+                        if bd.byte2 != MISSING_BYTE
+                        else None,
+                        "byte2_binary": f"{bd.byte2:08b}"
+                        if bd.byte2 != MISSING_BYTE
+                        else None,
                         "bit_position": bd.bit_position,
                     }
                     for bd in diff.byte_diffs

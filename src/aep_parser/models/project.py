@@ -12,7 +12,7 @@ from .items.footage import FootageItem
 if typing.TYPE_CHECKING:
     import xml.etree.ElementTree as ET
 
-    from .enums import (
+    from aep_parser.enums import (
         BitsPerChannel,
         ColorManagementSystem,
         FeetFramesFilmType,
@@ -22,6 +22,7 @@ if typing.TYPE_CHECKING:
         LutInterpolationMethod,
         TimeDisplayType,
     )
+
     from .items.item import Item
     from .layers.layer import Layer
     from .renderqueue.render_queue import RenderQueue

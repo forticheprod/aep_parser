@@ -133,9 +133,7 @@ def _build_chunk_type_mapping() -> tuple[dict[str, type], type]:
     tree = ast.parse(source)
     func_def = tree.body[0]
     if not isinstance(func_def, ast.FunctionDef):
-        raise RuntimeError(
-            "Expected a FunctionDef at top level of Chunk._read source"
-        )
+        raise RuntimeError("Expected a FunctionDef at top level of Chunk._read source")
 
     # Find the if/elif chain that switches on _on
     if_node: ast.If | None = None
@@ -146,20 +144,14 @@ def _build_chunk_type_mapping() -> tuple[dict[str, type], type]:
                 break
 
     if if_node is None:
-        raise RuntimeError(
-            "Could not find the _on switch in Aep.Chunk._read"
-        )
+        raise RuntimeError("Could not find the _on switch in Aep.Chunk._read")
 
     name_mapping, fallback_name = _walk_if_chain(if_node)
 
     if not name_mapping:
-        raise RuntimeError(
-            "No chunk_type -> class mappings found in Aep.Chunk._read"
-        )
+        raise RuntimeError("No chunk_type -> class mappings found in Aep.Chunk._read")
     if fallback_name is None:
-        raise RuntimeError(
-            "No fallback (else) class found in Aep.Chunk._read"
-        )
+        raise RuntimeError("No fallback (else) class found in Aep.Chunk._read")
 
     # Resolve class name strings to actual Aep.* classes
     mapping: dict[str, type] = {}
@@ -167,16 +159,13 @@ def _build_chunk_type_mapping() -> tuple[dict[str, type], type]:
         cls = getattr(Aep, class_name, None)
         if cls is None:
             raise RuntimeError(
-                f"Class Aep.{class_name} referenced in Chunk._read "
-                "not found on Aep"
+                f"Class Aep.{class_name} referenced in Chunk._read not found on Aep"
             )
         mapping[chunk_type] = cls
 
     fallback_class = getattr(Aep, fallback_name, None)
     if fallback_class is None:
-        raise RuntimeError(
-            f"Fallback class Aep.{fallback_name} not found on Aep"
-        )
+        raise RuntimeError(f"Fallback class Aep.{fallback_name} not found on Aep")
 
     return mapping, fallback_class
 
