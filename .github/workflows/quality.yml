@@ -7,13 +7,13 @@ jobs:
   ruff:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Ruff
         uses: astral-sh/ruff-action@v3
   mypy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           lfs: true
       - name: Set up Python
@@ -36,7 +36,7 @@ jobs:
           - python-version: '3.x'
             os: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         lfs: true
     - name: Set up Python ${{ matrix.python-version }}
