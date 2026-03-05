@@ -19,11 +19,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: '3.13'
       - name: Install uv
         uses: astral-sh/setup-uv@v5
       - name: Install dependencies
-        run: uv sync --extra dev --python 3.14
+        run: uv sync --extra dev --python 3.13
       - name: Type check with mypy
         run: uv run mypy src/aep_parser
   pytest:
@@ -33,7 +33,7 @@ jobs:
         include:
           - python-version: '3.7'
             os: ubuntu-22.04
-          - python-version: '3.14'
+          - python-version: '3.13'
             os: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
