@@ -8,7 +8,11 @@ import pytest
 from conftest import get_sample_files, load_expected, parse_project
 
 from aep_parser import Project
-from aep_parser.models.enums import OutputChannels, OutputColorDepth
+from aep_parser.enums import (
+    ConvertToLinearLight,
+    OutputChannels,
+    OutputColorDepth,
+)
 from aep_parser.models.renderqueue import OutputModule, RenderQueue
 from aep_parser.resolvers.output import resolve_output_filename
 
@@ -95,6 +99,21 @@ class TestOutputModule:
         project = parse_project(OM_SAMPLES_DIR / f"{sample_name}.aep")
         om = project.render_queue.items[0].output_modules[0]
         assert om.settings["Crop"] is expected_value
+
+    @pytest.mark.parametrize(
+        "sample_name, expected_value",
+        [
+            ("convert_to_linear_light_off", ConvertToLinearLight.OFF),
+            ("convert_to_linear_light_on", ConvertToLinearLight.ON),
+            ("convert_to_linear_light_on_for_32_bpc", ConvertToLinearLight.ON_FOR_32_BPC),
+        ],
+    )
+    def test_convert_to_linear_light(
+        self, sample_name: str, expected_value: ConvertToLinearLight
+    ) -> None:
+        project = parse_project(OM_SAMPLES_DIR / f"{sample_name}.aep")
+        om = project.render_queue.items[0].output_modules[0]
+        assert om.settings["Convert to Linear Light"] == expected_value
 
 
 class TestCompLinking:
@@ -290,3 +309,47 @@ class TestResolveOutputFilename:
     def test_project_folder_empty(self) -> None:
         result = resolve_output_filename("[projectFolder][compName]", comp_name="MyComp")
         assert result == "MyComp"
+
+
+OCS_SAMPLES_DIR = (
+    Path(__file__).parent.parent
+    / "samples"
+    / "models"
+    / "output_module"
+    / "output_color_space"
+)
+
+
+class TestOutputColorSpace:
+    """Tests for OutputModule.output_color_space parsing."""
+
+    @pytest.mark.parametrize(
+        "sample_name, expected_value",
+        [
+            ("srgb", "sRGB IEC61966-2.1"),
+            ("adobe_rgb", "Adobe RGB (1998)"),
+            ("acescg", "ACEScg ACES Working Space AMPAS S-2014-004"),
+            ("acescct", "ACEScct"),
+            ("aces_2065-1", "ACES Academy Color Encoding Specification SMPTE ST 2065-1"),
+            ("prophoto_rgb", "ProPhoto RGB"),
+            ("cie_rgb", "CIE RGB"),
+            ("colormatch_rgb", "ColorMatch RGB"),
+            ("apple_rgb", "Apple RGB"),
+            ("image_p3", "image P3"),
+            ("arri_logc3_800", "ARRI LogC3 Wide Color Gamut - EI 800"),
+            ("canon_cinema_clog2", "Canon Cinema CLog2"),
+            ("arriflex_daylight", "ARRIFLEX D-20 Daylight Log (by Adobe)"),
+        ],
+    )
+    def test_output_color_space(
+        self, sample_name: str, expected_value: str
+    ) -> None:
+        project = parse_project(OCS_SAMPLES_DIR / f"{sample_name}.aep")
+        om = project.render_queue.items[0].output_modules[0]
+        assert om.settings["Output Color Space"] == expected_value
+
+    def test_output_color_space_working(self) -> None:
+        """Working Color Space should resolve to the project's working space."""
+        project = parse_project(OCS_SAMPLES_DIR / "working_color_space.aep")
+        om = project.render_queue.items[0].output_modules[0]
+        assert om.settings["Output Color Space"] == project.working_space

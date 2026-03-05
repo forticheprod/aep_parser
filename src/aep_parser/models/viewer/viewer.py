@@ -4,7 +4,8 @@ import typing
 from dataclasses import dataclass
 
 if typing.TYPE_CHECKING:
-    from ..enums import ViewerType
+    from aep_parser.enums import ViewerType
+
     from .view import View
 
 

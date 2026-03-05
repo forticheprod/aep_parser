@@ -4,7 +4,7 @@ import typing
 from abc import ABC
 from dataclasses import dataclass, field
 
-from ..enums import Label
+from aep_parser.enums import Label
 
 if typing.TYPE_CHECKING:
     from .folder import FolderItem

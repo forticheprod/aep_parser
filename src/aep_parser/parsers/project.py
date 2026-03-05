@@ -5,6 +5,14 @@ import json
 import os
 import xml.etree.ElementTree as ET
 
+from ..enums import (
+    ColorManagementSystem,
+    FeetFramesFilmType,
+    FramesCountType,
+    Label,
+    LutInterpolationMethod,
+    TimeDisplayType,
+)
 from ..kaitai import Aep
 from ..kaitai.utils import (
     ChunkNotFoundError,
@@ -12,14 +20,6 @@ from ..kaitai.utils import (
     find_by_list_type,
     find_by_type,
     str_contents,
-)
-from ..models.enums import (
-    ColorManagementSystem,
-    FeetFramesFilmType,
-    FramesCountType,
-    Label,
-    LutInterpolationMethod,
-    TimeDisplayType,
 )
 from ..models.layers.av_layer import AVLayer
 from ..models.project import Project
@@ -106,9 +106,7 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
         working_space=_get_working_space(root_chunks),
         display_color_space=_get_display_color_space(root_chunks),
         gpu_accel_type=map_gpu_accel_type(
-            str_contents(
-                find_by_type(chunks=gpug_chunk.chunks, chunk_type="Utf8")
-            )
+            str_contents(find_by_type(chunks=gpug_chunk.chunks, chunk_type="Utf8"))
         ),
         audio_sample_rate=adfr_chunk.audio_sample_rate,
         items={},
@@ -140,7 +138,6 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
         project.active_item = project.items[fcid_chunk.active_item_id]
 
     return project
-
 
 
 def _link_layers(project: Project) -> None:

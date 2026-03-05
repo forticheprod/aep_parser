@@ -5,7 +5,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from ..enums import GetSettingsFormat, LogType, RQItemStatus
+from aep_parser.enums import GetSettingsFormat, LogType, RQItemStatus
+
 from ..settings import (
     RenderSettings,
     settings_to_number,

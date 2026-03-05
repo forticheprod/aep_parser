@@ -3,7 +3,8 @@ from __future__ import annotations
 import typing
 from dataclasses import dataclass
 
-from ..enums import PropertyControlType, PropertyValueType
+from aep_parser.enums import PropertyControlType, PropertyValueType
+
 from .property_base import PropertyBase
 
 if typing.TYPE_CHECKING:

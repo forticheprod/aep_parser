@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ..enums import Label
 from ..kaitai import Aep
 from ..kaitai.utils import (
     filter_by_list_type,
     find_by_list_type,
     find_by_type,
 )
-from ..models.enums import Label
 from ..models.items.folder import FolderItem
 from .composition import parse_composition
 from .footage import parse_footage

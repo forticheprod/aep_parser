@@ -45,8 +45,6 @@ SKIP_FIELDS = {
 SKIP_PROPERTIES = {
     "composition_layers",
     "footage_layers",
-    "footage_missing",
-    "missing_footage_path",
     "selected_layers",
     # Circular: AVLayer.source → Item → layers → AVLayer…
     "source",

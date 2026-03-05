@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from ..enums import Label
+from aep_parser.enums import Label
 
 
 @dataclass

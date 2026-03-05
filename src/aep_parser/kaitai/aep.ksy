@@ -64,6 +64,7 @@ types:
             '"nnhd"': nnhd_body # Project data
             '"head"': head_body # Contains AE version and file revision
             '"Roou"': roou_body # Output module settings
+            '"Ropt"': ropt_body # Format-specific render options
             '"Rout"': rout_body # Render queue item flags
             '"acer"': acer_body # Compensate for Scene-Referred Profiles setting
             '"adfr"': adfr_body # Audio sample rate settings
@@ -208,13 +209,13 @@ types:
         doc: Unknown bytes 70-71
       # Bytes 72-79: zoom level (float64 big-endian)
       - id: zoom
-        type: f8be
+        type: f8
         doc: |
           Zoom factor where 1.0 = 100%%. E.g. 0.25 = 25%%,
           16.0 = 1600%%.
       # Bytes 80-83: exposure (float32 big-endian)
       - id: exposure
-        type: f4be
+        type: f4
         doc: |
           Exposure value in stops. 0.0 = no adjustment.
           Range is -40.0 to 40.0.
@@ -231,7 +232,6 @@ types:
       - id: auto_resolution
         type: b1  # bit 0 (value 0x01)
         doc: Whether auto resolution is enabled for the viewer
-      # Bytes 87-95: remaining unknown bytes
       - size-eos: true
   foac_body:
     doc: |
@@ -551,15 +551,185 @@ types:
       - id: audio_channels
         type: u1
         doc: Audio channels (1=mono, 2=stereo)
-      - id: remaining
-        size-eos: true
-        doc: Remaining bytes to end of chunk
+      - size-eos: true
     instances:
       video_output:
         value: width > 0 or height > 0
         doc: True when video output is enabled (width or height non-zero)
       output_audio:
         value: audio_disabled_hi != 0xFF
+  ropt_body:
+    doc: |
+      Format-specific render options for the output module.
+      The first 4 bytes identify the format, followed by format-specific data.
+      These settings complement the main output module settings in roou_body.
+    seq:
+      - id: format_code
+        type: str
+        size: 4
+        encoding: ASCII
+        doc: |
+          Output format 4-char identifier matching roou_body.format_id
+          (e.g. ".AVI", "sDPX", "png!", "JPEG")
+      - id: body
+        type:
+          switch-on: format_code
+          cases:
+            '"sDPX"': cineon_ropt_data
+            '"JPEG"': jpeg_ropt_data
+            '"oEXR"': openexr_ropt_data
+            '"TPIC"': targa_ropt_data
+            '"TIF "': tiff_ropt_data
+            '"png!"': png_ropt_data
+            _: ropt_generic_data
+  cineon_ropt_data:
+    doc: |
+      Cineon/DPX format-specific render options (44 bytes after format code).
+      These correspond to the Cineon Settings dialog in After Effects.
+    seq:
+      - size: 6
+        doc: Unknown bytes (offsets 4-9)
+      - size: 4
+        doc: Unknown bytes (offsets 10-13)
+      - id: ten_bit_black_point
+        type: u2
+        doc: 10-bit black point value (0-1023)
+      - id: ten_bit_white_point
+        type: u2
+        doc: 10-bit white point value (0-1023)
+      - id: converted_black_point
+        type: f8
+        doc: Converted black point value, normalized to 0.0-1.0 range
+      - id: converted_white_point
+        type: f8
+        doc: Converted white point value, normalized to 0.0-1.0 range
+      - id: current_gamma
+        type: f8
+        doc: Current gamma value
+      - id: highlight_expansion
+        type: u2
+        doc: Highlight expansion value
+      - id: logarithmic_conversion
+        type: u1
+        doc: Logarithmic conversion flag (0=off, 1=on)
+      - id: file_format
+        type: u1
+        doc: File format (0=FIDO/Cineon 4.5, 1=DPX)
+      - id: bit_depth
+        type: u1
+        doc: Bit depth (8, 10, 12, or 16)
+      - size-eos: true
+  targa_ropt_data:
+    doc: |
+      Targa (TGA) format-specific render options.
+      These correspond to the Targa Options dialog in After Effects.
+    seq:
+      - size: 73
+        doc: Unknown header bytes (offsets 0-72)
+      - id: bits_per_pixel
+        type: u1
+        doc: |
+          Color depth in bits per pixel.
+          24 = 24 bits/pixel (no alpha), 32 = 32 bits/pixel (with alpha).
+      - size: 4
+        doc: "'TimS' marker string (offsets 74-77)"
+      - id: rle_compression
+        type: u1
+        doc: RLE compression flag (0=off, 1=on)
+      - size-eos: true
+  tiff_ropt_data:
+    doc: |
+      TIFF format-specific render options.
+      These correspond to the TIFF Options dialog in After Effects.
+    seq:
+      - size: 596
+        doc: Unknown header bytes (offsets 0-595)
+      - id: ibm_pc_byte_order
+        type: u1
+        doc: IBM PC byte order flag (0=Macintosh/big-endian, 1=IBM PC/little-endian)
+      - id: lzw_compression
+        type: u1
+        doc: LZW compression flag (0=off, 1=on)
+  openexr_ropt_data:
+    doc: |
+      OpenEXR format-specific render options.
+      These correspond to the OpenEXR Options dialog in After Effects.
+    seq:
+      - size: 8
+        doc: Unknown header bytes (offsets 0-7)
+      - size: 2
+        doc: Unknown bytes (offsets 8-9, always 0)
+      - id: compression
+        type: u1
+        doc: |
+          Compression method: 0=None, 1=RLE, 2=Zip, 3=Zip16, 4=Piz,
+          5=PXR24, 6=B44, 7=B44A, 8=DWAA, 9=DWAB.
+      - id: thirty_two_bit_float
+        type: u1
+        doc: 32-bit float output flag (0=off, 1=on)
+      - id: luminance_chroma
+        type: u1
+        doc: Luminance/Chroma encoding flag (0=off, 1=on)
+      - size: 1
+        doc: Padding byte (always 0)
+      - id: dwa_compression_level
+        type: f4le
+        doc: |
+          DWA compression level (little-endian float32, default 45.0).
+          Only meaningful when compression is DWAA or DWAB.
+          Stored as little-endian despite the RIFX big-endian container,
+          matching OpenEXR's native byte order.
+      - size-eos: true
+  png_ropt_data:
+    doc: |
+      PNG format-specific render options.
+      Contains width, height, and bit depth at known offsets.
+    seq:
+      - size: 14
+        doc: Unknown header bytes (offsets 0-13)
+      - id: width
+        type: u4
+        doc: Output width in pixels
+      - id: height
+        type: u4
+        doc: Output height in pixels
+      - size: 2
+        doc: Unknown bytes (offsets 22-23)
+      - id: bit_depth
+        type: u2
+        doc: Bit depth per channel (8 or 16)
+      - id: compression
+        type: u4
+        doc: |
+          Compression / interlace mode: 0 = None, 1 = Interlaced (Adam7).
+          Corresponds to the Compression dropdown in the PNG Options dialog.
+      - size-eos: true
+  jpeg_ropt_data:
+    doc: |
+      JPEG format-specific render options (54 bytes after format code).
+      The first 48 bytes are a static header/magic block. The last 6 bytes
+      hold quality, format type, and scans as big-endian u16 values.
+    seq:
+      - size: 48
+        doc: Static header block (includes 'JP64' magic at offset 26)
+      - id: quality
+        type: u2
+        doc: JPEG quality level (0-10)
+      - id: format_type
+        type: u2
+        doc: |
+          JPEG format option type:
+          0 = Baseline (Standard), 1 = Baseline Optimized, 2 = Progressive.
+      - id: scans
+        type: u2
+        doc: |
+          Scans index for Progressive format (1=3 scans, 2=4 scans, 3=5 scans).
+          Always 1 for non-Progressive formats.
+  ropt_generic_data:
+    doc: Generic render options data for formats without specific parsing.
+    seq:
+      - id: raw
+        size-eos: true
   rout_body:
     doc: Render queue item flags (4-byte header + 4 bytes per item)
     seq:
@@ -670,8 +840,13 @@ types:
       - id: output_profile_id
         size: 16
         doc: Output profile ID (16-byte binary identifier)
-      - size: 5
-        doc: Unknown bytes 88-92
+      - size: 3
+        doc: Unknown bytes 88-90
+      - id: convert_to_linear_light
+        type: u1
+        doc: Convert to Linear Light setting (byte 91, 0=off, 1=on, 2=on for 32 bpc)
+      - size: 1
+        doc: Unknown byte 92
       - id: output_color_space_working
         type: u1
         doc: 1 if "Output Color Space" is set to "Working Color Space"
@@ -811,9 +986,7 @@ types:
       - id: elapsed_seconds
         type: u4
         doc: Elapsed render time in seconds
-      - id: remaining
-        size: 40
-        doc: Remaining bytes (2206-2245)
+      - size-eos: true
     instances:
       time_span_start:
         value: 'time_span_start_timebase != 0 ? time_span_start_frames * 1.0 / time_span_start_timebase : 0'
@@ -1462,7 +1635,13 @@ types:
         type: u1
         doc: |
           Field order when field separation is enabled
-      - size: 41
+      - size: 27
+      - id: footage_missing_at_save
+        type: u1
+        doc: |
+          Whether the footage was missing when the project was last saved.
+          0 = source file found, 1 = source file missing or placeholder.
+      - size: 13
       - id: loop
         type: u1
         doc: Number of times to loop the footage (1 = no loop, 2+ = loop count)

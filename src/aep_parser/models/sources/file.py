@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from aep_parser.utils import safe_path_exists
-
 from .footage import FootageSource
 
 
@@ -29,6 +27,12 @@ class FileSource(FootageSource):
     target_is_folder: bool
     """`True` if the file is a folder, else `False`."""
 
+    missing_footage_path: str = ""
+    """
+    The path of the missing source file when the footage was missing at
+    the time the project was last saved, otherwise an empty string.
+    """
+
     file_attributes: dict[str, Any] = field(default_factory=dict)
     """
     Format-specific metadata extracted from the source file header stored
@@ -52,11 +56,6 @@ class FileSource(FootageSource):
     - ``psd_layer_bottom`` (`int`): Layer bounding-box bottom.
     - ``psd_layer_right`` (`int`): Layer bounding-box right.
     """
-
-    @property
-    def missing_footage_path(self) -> str:
-        """The missing footage path if the footage is missing, else empty."""
-        return self.file if not safe_path_exists(self.file) else ""
 
     @property
     def is_solid(self) -> bool:

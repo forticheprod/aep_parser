@@ -10,7 +10,7 @@ import math
 import re
 from typing import TYPE_CHECKING, Any
 
-from ..models.enums import OutputChannels, OutputColorDepth, TimeSpanSource
+from ..enums import OutputChannels, OutputColorDepth, TimeSpanSource
 
 if TYPE_CHECKING:
     from ..models.items.composition import CompItem
@@ -115,7 +115,9 @@ def format_frame_number(frame: int, fps: float) -> str:
 
 
 def format_timecode(
-    seconds: float, fps: float, drop_frame: bool = False,
+    seconds: float,
+    fps: float,
+    drop_frame: bool = False,
     is_duration: bool = False,
 ) -> str:
     """Format time as timecode string with dashes.
@@ -223,9 +225,7 @@ def resolve_output_filename(
     frame_rate_str: str | None = None
     if frame_rate is not None:
         frame_rate_str = (
-            str(int(frame_rate))
-            if frame_rate == int(frame_rate)
-            else str(frame_rate)
+            str(int(frame_rate)) if frame_rate == int(frame_rate) else str(frame_rate)
         )
 
     # Build substitution map: template_key -> resolved_value
@@ -244,14 +244,10 @@ def resolve_output_filename(
             else None
         ),
         "startFrame": (
-            format_frame_number(start_frame, fps)
-            if start_frame is not None
-            else None
+            format_frame_number(start_frame, fps) if start_frame is not None else None
         ),
         "endFrame": (
-            format_frame_number(end_frame, fps)
-            if end_frame is not None
-            else None
+            format_frame_number(end_frame, fps) if end_frame is not None else None
         ),
         "durationFrames": (
             format_frame_number(duration_frames, fps)
@@ -274,9 +270,7 @@ def resolve_output_filename(
             else None
         ),
         "channels": (
-            OUTPUT_CHANNELS_NAMES.get(channels, "RGB")
-            if channels is not None
-            else None
+            OUTPUT_CHANNELS_NAMES.get(channels, "RGB") if channels is not None else None
         ),
         "projectColorDepth": (
             PROJECT_COLOR_DEPTH_NAMES.get(project_color_depth, "8bit")
@@ -306,15 +300,14 @@ def resolve_output_filename(
     result = file_template
     for key, value in substitutions.items():
         if value is not None:
-            result = re.sub(
-                rf"\[{key}\]", value, result, flags=re.IGNORECASE
-            )
+            result = re.sub(rf"\[{key}\]", value, result, flags=re.IGNORECASE)
 
     return result
 
 
 def resolve_effective_dimensions(
-    comp: CompItem, rq_settings: RenderSettings,
+    comp: CompItem,
+    rq_settings: RenderSettings,
 ) -> tuple[int, int]:
     """Calculate effective render dimensions applying resolution factor.
 
@@ -340,7 +333,8 @@ def resolve_effective_dimensions(
 
 
 def resolve_effective_frame_rate(
-    comp: CompItem, rq_settings: RenderSettings,
+    comp: CompItem,
+    rq_settings: RenderSettings,
 ) -> float:
     """Determine the effective frame rate for rendering.
 
@@ -360,7 +354,8 @@ def resolve_effective_frame_rate(
 
 
 def resolve_time_span(
-    comp: CompItem, rq_settings: RenderSettings,
+    comp: CompItem,
+    rq_settings: RenderSettings,
     effective_frame_rate: float,
 ) -> dict[str, Any]:
     """Compute time span values based on render settings.
@@ -384,9 +379,7 @@ def resolve_time_span(
         duration_time = comp.duration
         time_span_end = comp.duration
         duration_frames = round(comp.duration * effective_frame_rate)
-        first_rendered_frame = int(
-            comp.display_start_time * effective_frame_rate
-        )
+        first_rendered_frame = int(comp.display_start_time * effective_frame_rate)
     else:
         time_span_start = rq_settings["Time Span Start"]
         duration_time = rq_settings["Time Span Duration"]

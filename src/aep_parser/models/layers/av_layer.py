@@ -6,13 +6,14 @@ from dataclasses import dataclass, field
 from .layer import Layer
 
 if typing.TYPE_CHECKING:
-    from ..enums import (
+    from aep_parser.enums import (
         BlendingMode,
         FrameBlendingType,
         LayerQuality,
         LayerSamplingQuality,
         TrackMatteType,
     )
+
     from ..items.item import Item
 
 

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from .layer import Layer
 
 if typing.TYPE_CHECKING:
-    from ..enums import LightType
+    from aep_parser.enums import LightType
 
 
 @dataclass

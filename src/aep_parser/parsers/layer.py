@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import typing
 
-from ..kaitai.utils import (
-    find_by_list_type,
-    find_by_type,
-    str_contents,
-)
-from ..models.enums import (
+from ..enums import (
     Label,
     LayerQuality,
     LayerSamplingQuality,
     LightType,
     TrackMatteType,
+)
+from ..kaitai.utils import (
+    find_by_list_type,
+    find_by_type,
+    str_contents,
 )
 from ..models.layers.av_layer import AVLayer
 from ..models.layers.camera_layer import CameraLayer

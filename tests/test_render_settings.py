@@ -653,7 +653,7 @@ class TestOutputModule:
 
     def test_post_render_action_none(self) -> None:
         """Test post_render_action is NONE by default."""
-        from aep_parser.models.enums import PostRenderAction
+        from aep_parser.enums import PostRenderAction
 
         project = parse_project(SAMPLES_DIR / "base.aep")
         om = project.render_queue.items[0].output_modules[0]
@@ -662,7 +662,7 @@ class TestOutputModule:
 
     def test_post_render_action_import(self) -> None:
         """Test post_render_action is IMPORT."""
-        from aep_parser.models.enums import PostRenderAction
+        from aep_parser.enums import PostRenderAction
 
         project = parse_project(SAMPLES_DIR / "post_render_import.aep")
         om = project.render_queue.items[0].output_modules[0]
@@ -671,7 +671,7 @@ class TestOutputModule:
 
     def test_post_render_action_import_and_replace(self) -> None:
         """Test post_render_action is IMPORT_AND_REPLACE_USAGE."""
-        from aep_parser.models.enums import PostRenderAction
+        from aep_parser.enums import PostRenderAction
 
         project = parse_project(
             SAMPLES_DIR / "post_render_import_and_replace_this_comp.aep"
@@ -682,7 +682,7 @@ class TestOutputModule:
 
     def test_post_render_action_set_proxy(self) -> None:
         """Test post_render_action is SET_PROXY."""
-        from aep_parser.models.enums import PostRenderAction
+        from aep_parser.enums import PostRenderAction
 
         project = parse_project(
             SAMPLES_DIR / "post_render_set_proxy_this_comp.aep"
