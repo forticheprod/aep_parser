@@ -556,7 +556,7 @@ class TestActiveAtTime:
         """A non-soloed layer is inactive when another layer in the comp is soloed."""
         project = parse_project(SAMPLES_DIR / "solo_true.aep")
         comp = project.compositions[0]
-        non_solo_layers = [l for l in comp.layers if not l.solo]
+        non_solo_layers = [lyr for lyr in comp.layers if not lyr.solo]
         if non_solo_layers:
             layer = non_solo_layers[0]
             midpoint = (layer.in_point + layer.out_point) / 2
