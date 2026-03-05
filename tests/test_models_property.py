@@ -9,7 +9,7 @@ import pytest
 from conftest import get_first_layer, get_sample_files, load_expected, parse_project
 
 from aep_parser import Project
-from aep_parser.models.enums import KeyframeInterpolationType
+from aep_parser.enums import KeyframeInterpolationType
 
 if TYPE_CHECKING:
     from aep_parser import Property

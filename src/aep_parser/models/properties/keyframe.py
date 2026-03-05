@@ -3,10 +3,10 @@ from __future__ import annotations
 import typing
 from dataclasses import dataclass
 
-from ..enums import Label
+from aep_parser.enums import Label
 
 if typing.TYPE_CHECKING:
-    from ..enums import KeyframeInterpolationType
+    from aep_parser.enums import KeyframeInterpolationType
 
 
 @dataclass

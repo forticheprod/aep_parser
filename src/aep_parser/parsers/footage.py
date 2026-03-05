@@ -4,6 +4,7 @@ import re
 import typing
 from pathlib import PurePosixPath, PureWindowsPath
 
+from ..enums import Label
 from ..kaitai.utils import (
     ChunkNotFoundError,
     filter_by_type,
@@ -12,7 +13,6 @@ from ..kaitai.utils import (
     find_chunks_before,
     str_contents,
 )
-from ..models.enums import Label
 from ..models.items.footage import FootageItem
 from ..models.sources.file import FileSource
 from ..models.sources.placeholder import PlaceholderSource
@@ -131,6 +131,9 @@ def parse_footage(
                 else:
                     item_name = basename
 
+        if sspc_chunk.footage_missing_at_save:
+            file_source.missing_footage_path = file_source.file
+
         main_source = file_source
 
     item = FootageItem(
@@ -151,6 +154,7 @@ def parse_footage(
         end_frame=end_frame,
         start_frame=start_frame,
     )
+    item.footage_missing = bool(sspc_chunk.footage_missing_at_save)
     return item
 
 

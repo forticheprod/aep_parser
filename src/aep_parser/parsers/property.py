@@ -6,6 +6,12 @@ from contextlib import suppress
 from typing import Any
 
 from ..cos import CosParser
+from ..enums import (
+    KeyframeInterpolationType,
+    Label,
+    PropertyControlType,
+    PropertyValueType,
+)
 from ..kaitai import Aep
 from ..kaitai.utils import (
     ChunkNotFoundError,
@@ -14,12 +20,6 @@ from ..kaitai.utils import (
     find_by_list_type,
     find_by_type,
     str_contents,
-)
-from ..models.enums import (
-    KeyframeInterpolationType,
-    Label,
-    PropertyControlType,
-    PropertyValueType,
 )
 from ..models.properties.keyframe import Keyframe
 from ..models.properties.marker import MarkerValue
@@ -242,7 +242,9 @@ def _determine_property_types(
         elif dimensions == 2:
             property_control_type = PropertyControlType.TWO_D
             property_value_type = (
-                PropertyValueType.TWO_D_SPATIAL if is_spatial else PropertyValueType.TWO_D
+                PropertyValueType.TWO_D_SPATIAL
+                if is_spatial
+                else PropertyValueType.TWO_D
             )
         elif dimensions == 3:
             property_control_type = PropertyControlType.THREE_D

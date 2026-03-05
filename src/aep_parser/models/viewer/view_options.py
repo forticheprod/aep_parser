@@ -4,7 +4,7 @@ import typing
 from dataclasses import dataclass
 
 if typing.TYPE_CHECKING:
-    from ..enums import ChannelType, FastPreviewType
+    from aep_parser.enums import ChannelType, FastPreviewType
 
 
 @dataclass

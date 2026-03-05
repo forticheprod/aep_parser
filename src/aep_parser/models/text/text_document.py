@@ -6,7 +6,7 @@ import typing
 from dataclasses import dataclass
 
 if typing.TYPE_CHECKING:
-    from ..enums import (
+    from aep_parser.enums import (
         AutoKernType,
         BaselineDirection,
         BoxAutoFitPolicy,
@@ -22,6 +22,7 @@ if typing.TYPE_CHECKING:
         ParagraphDirection,
         ParagraphJustification,
     )
+
     from .font_object import FontObject
 
 

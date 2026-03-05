@@ -15,7 +15,7 @@ from conftest import (
 )
 
 from aep_parser import Project
-from aep_parser.models.enums import (
+from aep_parser.enums import (
     AutoOrientType,
     BlendingMode,
     FrameBlendingType,
@@ -505,3 +505,59 @@ class TestLayerNameEncoding:
         layer_json = get_layer_from_json(expected)
         assert layer.name == layer_json["name"]
         assert layer.name == "\u2248"
+
+
+class TestActiveAtTime:
+    """Tests for Layer.active_at_time() method."""
+
+    def test_enabled_layer_within_range(self) -> None:
+        """An enabled, non-soloed layer returns True inside its in/out range."""
+        project = parse_project(SAMPLES_DIR / "startTime_5.aep")
+        layer = get_first_layer(project)
+        assert layer.enabled is True
+        midpoint = (layer.in_point + layer.out_point) / 2
+        assert layer.active_at_time(midpoint) is True
+
+    def test_at_in_point(self) -> None:
+        """Layer is active exactly at its in_point (inclusive)."""
+        project = parse_project(SAMPLES_DIR / "inPoint_5.aep")
+        layer = get_first_layer(project)
+        assert layer.active_at_time(layer.in_point) is True
+
+    def test_at_out_point(self) -> None:
+        """Layer is not active at its out_point (exclusive)."""
+        project = parse_project(SAMPLES_DIR / "inPoint_5.aep")
+        layer = get_first_layer(project)
+        assert layer.active_at_time(layer.out_point) is False
+
+    def test_before_in_point(self) -> None:
+        """Layer is not active before its in_point."""
+        project = parse_project(SAMPLES_DIR / "inPoint_5.aep")
+        layer = get_first_layer(project)
+        assert layer.active_at_time(layer.in_point - 1) is False
+
+    def test_disabled_layer(self) -> None:
+        """A disabled layer is never active."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        assert layer.enabled is False
+        midpoint = (layer.in_point + layer.out_point) / 2
+        assert layer.active_at_time(midpoint) is False
+
+    def test_solo_layer_active(self) -> None:
+        """A soloed layer is active within its time range."""
+        project = parse_project(SAMPLES_DIR / "solo_true.aep")
+        layer = get_first_layer(project)
+        assert layer.solo is True
+        midpoint = (layer.in_point + layer.out_point) / 2
+        assert layer.active_at_time(midpoint) is True
+
+    def test_non_solo_layer_inactive_when_other_is_soloed(self) -> None:
+        """A non-soloed layer is inactive when another layer in the comp is soloed."""
+        project = parse_project(SAMPLES_DIR / "solo_true.aep")
+        comp = project.compositions[0]
+        non_solo_layers = [l for l in comp.layers if not l.solo]
+        if non_solo_layers:
+            layer = non_solo_layers[0]
+            midpoint = (layer.in_point + layer.out_point) / 2
+            assert layer.active_at_time(midpoint) is False

@@ -46,26 +46,20 @@ class AVItem(Item):
     width: int
     """The width of the item in pixels."""
 
+    footage_missing: bool = field(default=False, init=False)
+    """
+    When `True`, the AVItem is a placeholder, or represents footage with a
+    source file that could not be found when the project was last saved.
+
+    In this case, the path of the missing source file is in the
+    `missing_footage_path` attribute of the footage item's source-file object.
+    See [FootageItem.main_source][aep_parser.models.items.footage.FootageItem.main_source] and
+    [FileSource.missing_footage_path][aep_parser.models.sources.file.FileSource.missing_footage_path].
+    """
+
     _used_in: set[CompItem] = field(default_factory=set, init=False, repr=False)
 
     @property
     def used_in(self) -> list[CompItem]:
         """All the compositions that use this AVItem."""
         return list(self._used_in)
-
-    @property
-    def footage_missing(self) -> bool:
-        """
-        When `True`, the AVItem is a placeholder, or represents footage with a
-        source file that cannot be found. In this case, the path of the
-        missing source file is in the `missing_footage_path` attribute of the
-        footage item's source-file object.
-        See [FootageItem.main_source][aep_parser.models.items.footage.FootageItem.main_source] and
-        [FileSource.missing_footage_path][aep_parser.models.sources.file.FileSource.missing_footage_path].
-        """
-        if not hasattr(self, "main_source"):
-            return False
-        source = self.main_source
-        if hasattr(source, "missing_footage_path"):
-            return bool(source.missing_footage_path)
-        return False

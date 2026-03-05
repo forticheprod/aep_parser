@@ -4,10 +4,11 @@ import typing
 from abc import ABC
 from dataclasses import dataclass, field
 
-from ..enums import Label
+from aep_parser.enums import Label
 
 if typing.TYPE_CHECKING:
-    from ..enums import AutoOrientType
+    from aep_parser.enums import AutoOrientType
+
     from ..items.composition import CompItem
     from ..properties.marker import MarkerValue
     from ..properties.property import Property
@@ -169,6 +170,32 @@ class Layer(ABC):
     @parent.setter
     def parent(self, value: Layer | None) -> None:
         self._parent = value
+
+    def active_at_time(self, time: float) -> bool:
+        """Return whether the layer is active at the given time.
+
+        For this method to return ``True``, three conditions must be met:
+
+        1. The layer must be [enabled][].
+        2. No other layer in the [containing_comp][] may be soloed unless
+           this layer is also [solo][].
+        3. *time* must fall between [in_point][] (inclusive) and
+           [out_point][] (exclusive).
+
+        Args:
+            time: The time in seconds.
+        """
+        if not self.enabled:
+            return False
+
+        any_solo = any(layer.solo for layer in self.containing_comp.layers)
+        if any_solo and not self.solo:
+            return False
+
+        if time < self.in_point or time >= self.out_point:
+            return False
+
+        return True
 
     def __post_init__(self) -> None:
         """Set computed fields after initialization."""

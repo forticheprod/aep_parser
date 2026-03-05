@@ -11,25 +11,28 @@ Output module settings are stored as an [OutputModuleSettings][aep_parser.models
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `"Audio Bit Depth"` | [AudioBitDepth][aep_parser.models.enums.AudioBitDepth] | Audio bit depth |
-| `"Audio Channels"` | [AudioChannels][aep_parser.models.enums.AudioChannels] | Audio channel configuration |
-| `"Audio Sample Rate"` | [AudioSampleRate][aep_parser.models.enums.AudioSampleRate] | Audio sample rate in Hz |
-| `"Channels"` | [OutputChannels][aep_parser.models.enums.OutputChannels] | Output channels configuration |
-| `"Color"` | [OutputColorMode][aep_parser.models.enums.OutputColorMode] | Color mode (straight or premultiplied alpha) |
+| `"Audio Bit Depth"` | [AudioBitDepth][aep_parser.enums.AudioBitDepth] | Audio bit depth |
+| `"Audio Channels"` | [AudioChannels][aep_parser.enums.AudioChannels] | Audio channel configuration |
+| `"Audio Sample Rate"` | [AudioSampleRate][aep_parser.enums.AudioSampleRate] | Audio sample rate in Hz |
+| `"Channels"` | [OutputChannels][aep_parser.enums.OutputChannels] | Output channels configuration |
+| `"Color"` | [OutputColorMode][aep_parser.enums.OutputColorMode] | Color mode (straight or premultiplied alpha) |
+| `"Convert to Linear Light"` | [ConvertToLinearLight][aep_parser.enums.ConvertToLinearLight] | Whether to convert to linear light on export |
 | `"Crop Bottom"` | `int` | Crop pixels from the bottom |
 | `"Crop Left"` | `int` | Crop pixels from the left |
 | `"Crop Right"` | `int` | Crop pixels from the right |
 | `"Crop Top"` | `int` | Crop pixels from the top |
 | `"Crop"` | `bool` | Whether the Crop checkbox is enabled |
-| `"Depth"` | [OutputColorDepth][aep_parser.models.enums.OutputColorDepth] | Output color depth in total bits per pixel |
-| `"Format"` | [OutputFormat][aep_parser.models.enums.OutputFormat] | Output format |
+| `"Depth"` | [OutputColorDepth][aep_parser.enums.OutputColorDepth] | Output color depth in total bits per pixel |
+| `"Format"` | [OutputFormat][aep_parser.enums.OutputFormat] | Output format |
 | `"Include Project Link"` | `bool` | Whether to include a project link in the output |
 | `"Include Source XMP Metadata"` | `bool` | Whether to include source XMP metadata |
 | `"Lock Aspect Ratio"` | `bool` | Whether the aspect ratio is locked when resizing |
-| `"Output Audio"` | [OutputAudio][aep_parser.models.enums.OutputAudio] | Audio output mode |
+| `"Output Audio"` | [OutputAudio][aep_parser.enums.OutputAudio] | Audio output mode |
+| `"Output Color Space"` | `str` | Output color space name, or empty string if unset |
 | `"Output File Info"` | `dict[str, str]` | Output file path info (see [sub-keys](#output-file-info-sub-keys) below) |
-| `"Post-Render Action"` | [PostRenderAction][aep_parser.models.enums.PostRenderAction] | Action after rendering |
-| `"Resize Quality"` | [ResizeQuality][aep_parser.models.enums.ResizeQuality] | Resize quality |
+| `"Post-Render Action"` | [PostRenderAction][aep_parser.enums.PostRenderAction] | Action after rendering |
+| `"Preserve RGB"` | `bool` | When `true`, disables color management conversions for this output module |
+| `"Resize Quality"` | [ResizeQuality][aep_parser.enums.ResizeQuality] | Resize quality |
 | `"Resize to"` | `list[int]` | Target resize dimensions `[width, height]` |
 | `"Resize"` | `bool` | Whether resizing is enabled |
 | `"Starting #"` | `int` | Starting frame number for file sequences |
@@ -156,3 +159,11 @@ The `"Output File Info"` value is a `dict[str, str]` with the following keys:
 |--------|-------|-------|
 | `LOW` | 0 | `"Low"` |
 | `HIGH` | 1 | `"High"` |
+
+### ConvertToLinearLight
+
+| Member | Value | Label |
+|--------|-------|-------|
+| `OFF` | 0 | `"Off"` |
+| `ON` | 1 | `"On"` |
+| `ON_FOR_32_BPC` | 2 | `"On for 32 bpc"` |

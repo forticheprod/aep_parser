@@ -412,6 +412,11 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.RoouBody(_io__raw_data, self, self._root)
+            elif _on == u"Ropt":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.RoptBody(_io__raw_data, self, self._root)
             elif _on == u"Rout":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -608,6 +613,9 @@ class Aep(KaitaiStruct):
             elif _on == u"Roou":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"Ropt":
+                pass
+                self.data._fetch_instances()
             elif _on == u"Rout":
                 pass
                 self.data._fetch_instances()
@@ -740,6 +748,35 @@ class Aep(KaitaiStruct):
                 pass
                 self.chunks[i]._fetch_instances()
 
+
+
+    class CineonRoptData(KaitaiStruct):
+        """Cineon/DPX format-specific render options (44 bytes after format code).
+        These correspond to the Cineon Settings dialog in After Effects.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.CineonRoptData, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self._unnamed0 = self._io.read_bytes(6)
+            self._unnamed1 = self._io.read_bytes(4)
+            self.ten_bit_black_point = self._io.read_u2be()
+            self.ten_bit_white_point = self._io.read_u2be()
+            self.converted_black_point = self._io.read_f8be()
+            self.converted_white_point = self._io.read_f8be()
+            self.current_gamma = self._io.read_f8be()
+            self.highlight_expansion = self._io.read_u2be()
+            self.logarithmic_conversion = self._io.read_u1()
+            self.file_format = self._io.read_u1()
+            self.bit_depth = self._io.read_u1()
+            self._unnamed11 = self._io.read_bytes_full()
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class DwgaBody(KaitaiStruct):
@@ -1009,6 +1046,28 @@ class Aep(KaitaiStruct):
             self.id = self._io.read_u4be()
             self._unnamed3 = self._io.read_bytes(38)
             self.label = KaitaiStream.resolve_enum(Aep.Label, self._io.read_u1())
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class JpegRoptData(KaitaiStruct):
+        """JPEG format-specific render options (54 bytes after format code).
+        The first 48 bytes are a static header/magic block. The last 6 bytes
+        hold quality, format type, and scans as big-endian u16 values.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.JpegRoptData, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self._unnamed0 = self._io.read_bytes(48)
+            self.quality = self._io.read_u2be()
+            self.format_type = self._io.read_u2be()
+            self.scans = self._io.read_u2be()
 
 
         def _fetch_instances(self):
@@ -1531,6 +1590,31 @@ class Aep(KaitaiStruct):
             pass
 
 
+    class OpenexrRoptData(KaitaiStruct):
+        """OpenEXR format-specific render options.
+        These correspond to the OpenEXR Options dialog in After Effects.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.OpenexrRoptData, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self._unnamed0 = self._io.read_bytes(8)
+            self._unnamed1 = self._io.read_bytes(2)
+            self.compression = self._io.read_u1()
+            self.thirty_two_bit_float = self._io.read_u1()
+            self.luminance_chroma = self._io.read_u1()
+            self._unnamed5 = self._io.read_bytes(1)
+            self.dwa_compression_level = self._io.read_f4le()
+            self._unnamed7 = self._io.read_bytes_full()
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class OptiBody(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             super(Aep.OptiBody, self).__init__(_io)
@@ -1823,9 +1907,11 @@ class Aep(KaitaiStruct):
             self.post_render_use_comp = self._io.read_u4be()
             self._unnamed30 = self._io.read_bytes(16)
             self.output_profile_id = self._io.read_bytes(16)
-            self._unnamed32 = self._io.read_bytes(5)
+            self._unnamed32 = self._io.read_bytes(3)
+            self.convert_to_linear_light = self._io.read_u1()
+            self._unnamed34 = self._io.read_bytes(1)
             self.output_color_space_working = self._io.read_u1()
-            self._unnamed34 = self._io.read_bytes(34)
+            self._unnamed36 = self._io.read_bytes(34)
 
 
         def _fetch_instances(self):
@@ -2062,6 +2148,30 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_last_value_z', None)
 
 
+    class PngRoptData(KaitaiStruct):
+        """PNG format-specific render options.
+        Contains width, height, and bit depth at known offsets.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.PngRoptData, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self._unnamed0 = self._io.read_bytes(14)
+            self.width = self._io.read_u4be()
+            self.height = self._io.read_u4be()
+            self._unnamed3 = self._io.read_bytes(2)
+            self.bit_depth = self._io.read_u2be()
+            self.compression = self._io.read_u4be()
+            self._unnamed6 = self._io.read_bytes_full()
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class RenderSettingsLdatBody(KaitaiStruct):
         """Render settings ldat chunk (2246 bytes)."""
         def __init__(self, _io, _parent=None, _root=None):
@@ -2121,7 +2231,7 @@ class Aep(KaitaiStruct):
             self._unnamed47 = self._io.read_bytes(16)
             self.start_time = self._io.read_u4be()
             self.elapsed_seconds = self._io.read_u4be()
-            self.remaining = self._io.read_bytes(40)
+            self._unnamed50 = self._io.read_bytes_full()
 
 
         def _fetch_instances(self):
@@ -2200,7 +2310,7 @@ class Aep(KaitaiStruct):
             self.audio_bit_depth = self._io.read_u1()
             self._unnamed25 = self._io.read_bytes(1)
             self.audio_channels = self._io.read_u1()
-            self.remaining = self._io.read_bytes_full()
+            self._unnamed27 = self._io.read_bytes_full()
 
 
         def _fetch_instances(self):
@@ -2222,6 +2332,85 @@ class Aep(KaitaiStruct):
 
             self._m_video_output =  ((self.width > 0) or (self.height > 0)) 
             return getattr(self, '_m_video_output', None)
+
+
+    class RoptBody(KaitaiStruct):
+        """Format-specific render options for the output module.
+        The first 4 bytes identify the format, followed by format-specific data.
+        These settings complement the main output module settings in roou_body.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.RoptBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.format_code = (self._io.read_bytes(4)).decode(u"ASCII")
+            _on = self.format_code
+            if _on == u"JPEG":
+                pass
+                self.body = Aep.JpegRoptData(self._io, self, self._root)
+            elif _on == u"TIF ":
+                pass
+                self.body = Aep.TiffRoptData(self._io, self, self._root)
+            elif _on == u"TPIC":
+                pass
+                self.body = Aep.TargaRoptData(self._io, self, self._root)
+            elif _on == u"oEXR":
+                pass
+                self.body = Aep.OpenexrRoptData(self._io, self, self._root)
+            elif _on == u"png!":
+                pass
+                self.body = Aep.PngRoptData(self._io, self, self._root)
+            elif _on == u"sDPX":
+                pass
+                self.body = Aep.CineonRoptData(self._io, self, self._root)
+            else:
+                pass
+                self.body = Aep.RoptGenericData(self._io, self, self._root)
+
+
+        def _fetch_instances(self):
+            pass
+            _on = self.format_code
+            if _on == u"JPEG":
+                pass
+                self.body._fetch_instances()
+            elif _on == u"TIF ":
+                pass
+                self.body._fetch_instances()
+            elif _on == u"TPIC":
+                pass
+                self.body._fetch_instances()
+            elif _on == u"oEXR":
+                pass
+                self.body._fetch_instances()
+            elif _on == u"png!":
+                pass
+                self.body._fetch_instances()
+            elif _on == u"sDPX":
+                pass
+                self.body._fetch_instances()
+            else:
+                pass
+                self.body._fetch_instances()
+
+
+    class RoptGenericData(KaitaiStruct):
+        """Generic render options data for formats without specific parsing."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.RoptGenericData, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.raw = self._io.read_bytes_full()
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class RoutBody(KaitaiStruct):
@@ -2300,16 +2489,18 @@ class Aep(KaitaiStruct):
             self.field_separation_type_raw = self._io.read_u1()
             self._unnamed19 = self._io.read_bytes(3)
             self.field_order = self._io.read_u1()
-            self._unnamed21 = self._io.read_bytes(41)
+            self._unnamed21 = self._io.read_bytes(27)
+            self.footage_missing_at_save = self._io.read_u1()
+            self._unnamed23 = self._io.read_bytes(13)
             self.loop = self._io.read_u1()
-            self._unnamed23 = self._io.read_bytes(6)
+            self._unnamed25 = self._io.read_bytes(6)
             self.pixel_ratio_width = self._io.read_u4be()
             self.pixel_ratio_height = self._io.read_u4be()
-            self._unnamed26 = self._io.read_bytes(5)
+            self._unnamed28 = self._io.read_bytes(5)
             self.conform_frame_rate = self._io.read_u1()
-            self._unnamed28 = self._io.read_bytes(9)
+            self._unnamed30 = self._io.read_bytes(9)
             self.high_quality_field_separation = self._io.read_u1()
-            self._unnamed30 = self._io.read_bytes(12)
+            self._unnamed32 = self._io.read_bytes(12)
             self.start_frame = self._io.read_u4be()
             self.end_frame = self._io.read_u4be()
             self.frame_padding = self._io.read_u4be()
@@ -2358,6 +2549,28 @@ class Aep(KaitaiStruct):
 
             self._m_pixel_aspect = (self.pixel_ratio_width * 1.0) / self.pixel_ratio_height
             return getattr(self, '_m_pixel_aspect', None)
+
+
+    class TargaRoptData(KaitaiStruct):
+        """Targa (TGA) format-specific render options.
+        These correspond to the Targa Options dialog in After Effects.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.TargaRoptData, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self._unnamed0 = self._io.read_bytes(73)
+            self.bits_per_pixel = self._io.read_u1()
+            self._unnamed2 = self._io.read_bytes(4)
+            self.rle_compression = self._io.read_u1()
+            self._unnamed4 = self._io.read_bytes_full()
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class Tdb4Body(KaitaiStruct):
@@ -2435,6 +2648,26 @@ class Aep(KaitaiStruct):
             self._unnamed4 = self._io.read_bits_int_be(6)
             self.dimensions_separated = self._io.read_bits_int_be(1) != 0
             self.enabled = self._io.read_bits_int_be(1) != 0
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class TiffRoptData(KaitaiStruct):
+        """TIFF format-specific render options.
+        These correspond to the TIFF Options dialog in After Effects.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.TiffRoptData, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self._unnamed0 = self._io.read_bytes(596)
+            self.ibm_pc_byte_order = self._io.read_u1()
+            self.lzw_compression = self._io.read_u1()
 
 
         def _fetch_instances(self):

@@ -18,11 +18,12 @@ try:
 except ImportError:
     from typing_extensions import TypedDict  # type: ignore[assignment]
 
-from .enums import (
+from aep_parser.enums import (
     AudioBitDepth,
     AudioChannels,
     AudioSampleRate,
     ColorDepthSetting,
+    ConvertToLinearLight,
     DiskCacheSetting,
     EffectsSetting,
     FieldRender,
@@ -44,28 +45,31 @@ from .enums import (
     TimeSpanSource,
 )
 
-RenderSettings = TypedDict("RenderSettings", {
-    "3:2 Pulldown": PulldownSetting,
-    "Color Depth": ColorDepthSetting,
-    "Disk Cache": DiskCacheSetting,
-    "Effects": EffectsSetting,
-    "Field Render": FieldRender,
-    "Frame Blending": FrameBlendingSetting,
-    "Frame Rate": FrameRateSetting,
-    "Guide Layers": GuideLayers,
-    "Motion Blur": MotionBlurSetting,
-    "Proxy Use": ProxyUseSetting,
-    "Quality": RenderQuality,
-    "Resolution": list,
-    "Skip Existing Files": bool,
-    "Solo Switches": SoloSwitchesSetting,
-    "Time Span Duration": float,
-    "Time Span End": float,
-    "Time Span Start": float,
-    "Time Span": TimeSpanSource,
-    "Use comp's frame rate": float,
-    "Use this frame rate": float,
-})
+RenderSettings = TypedDict(
+    "RenderSettings",
+    {
+        "3:2 Pulldown": PulldownSetting,
+        "Color Depth": ColorDepthSetting,
+        "Disk Cache": DiskCacheSetting,
+        "Effects": EffectsSetting,
+        "Field Render": FieldRender,
+        "Frame Blending": FrameBlendingSetting,
+        "Frame Rate": FrameRateSetting,
+        "Guide Layers": GuideLayers,
+        "Motion Blur": MotionBlurSetting,
+        "Proxy Use": ProxyUseSetting,
+        "Quality": RenderQuality,
+        "Resolution": list,
+        "Skip Existing Files": bool,
+        "Solo Switches": SoloSwitchesSetting,
+        "Time Span Duration": float,
+        "Time Span End": float,
+        "Time Span Start": float,
+        "Time Span": TimeSpanSource,
+        "Use comp's frame rate": float,
+        "Use this frame rate": float,
+    },
+)
 """Render settings for a render queue item.
 
 Keys match the ExtendScript
@@ -87,33 +91,39 @@ Example:
 """
 
 
-OutputModuleSettings = TypedDict("OutputModuleSettings", {
-    "Audio Bit Depth": AudioBitDepth,
-    "Audio Channels": AudioChannels,
-    "Audio Sample Rate": AudioSampleRate,
-    "Channels": OutputChannels,
-    "Color": OutputColorMode,
-    "Crop Bottom": int,
-    "Crop Left": int,
-    "Crop Right": int,
-    "Crop Top": int,
-    "Crop": bool,
-    "Depth": OutputColorDepth,
-    "Format": OutputFormat,
-    "Include Project Link": bool,
-    "Include Source XMP Metadata": bool,
-    "Lock Aspect Ratio": bool,
-    "Output Audio": OutputAudio,
-    "Output File Info": dict,
-    "Post-Render Action": PostRenderAction,
-    "Resize Quality": ResizeQuality,
-    "Resize to": list,
-    "Resize": bool,
-    "Starting #": int,
-    "Use Comp Frame Number": bool,
-    "Use Region of Interest": bool,
-    "Video Output": bool,
-})
+OutputModuleSettings = TypedDict(
+    "OutputModuleSettings",
+    {
+        "Audio Bit Depth": AudioBitDepth,
+        "Audio Channels": AudioChannels,
+        "Audio Sample Rate": AudioSampleRate,
+        "Channels": OutputChannels,
+        "Color": OutputColorMode,
+        "Convert to Linear Light": ConvertToLinearLight,
+        "Crop Bottom": int,
+        "Crop Left": int,
+        "Crop Right": int,
+        "Crop Top": int,
+        "Crop": bool,
+        "Depth": OutputColorDepth,
+        "Format": OutputFormat,
+        "Include Project Link": bool,
+        "Include Source XMP Metadata": bool,
+        "Lock Aspect Ratio": bool,
+        "Output Audio": OutputAudio,
+        "Output Color Space": str,
+        "Output File Info": dict,
+        "Post-Render Action": PostRenderAction,
+        "Preserve RGB": bool,
+        "Resize Quality": ResizeQuality,
+        "Resize to": list,
+        "Resize": bool,
+        "Starting #": int,
+        "Use Comp Frame Number": bool,
+        "Use Region of Interest": bool,
+        "Video Output": bool,
+    },
+)
 """Output module settings for a render queue item.
 
 Keys match the ExtendScript
@@ -179,10 +189,7 @@ def _to_string_value(key: str, value: Any) -> str:
         value: The settings value.
     """
     if isinstance(value, dict):
-        return {
-            k: _to_string_value(k, v)
-            for k, v in value.items()
-        }  # type: ignore[return-value]
+        return {k: _to_string_value(k, v) for k, v in value.items()}  # type: ignore[return-value]
     if isinstance(value, IntEnum):
         return value.label  # type: ignore[attr-defined,no-any-return]
     if key == "Resolution":
@@ -218,7 +225,4 @@ def settings_to_string(
     Args:
         settings: The typed settings dict.
     """
-    return {
-        k: _to_string_value(k, v)
-        for k, v in settings.items()
-    }
+    return {k: _to_string_value(k, v) for k, v in settings.items()}

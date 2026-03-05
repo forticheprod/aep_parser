@@ -142,6 +142,7 @@ nav:
       - Render Settings: api/renderqueue/render_settings.md
       - Output Module: api/renderqueue/output_module.md
       - Output Module Settings: api/renderqueue/output_module_settings.md
+      - Format Options: api/renderqueue/format_options.md
     - Viewer:
       - Viewer: api/viewer/viewer.md
       - View: api/viewer/view.md
