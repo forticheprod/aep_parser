@@ -38,11 +38,11 @@ dev = [
     "ruff>=0.1",
 ]
 docs = [
-    "mkdocs>=1.5.0",
-    "mkdocs-material>=9.0.0",
-    "mkdocstrings[python]>=0.24.0",
-    "pymdown-extensions>=10.0",
-    "ruff>=0.1",
+    "mkdocs>=1.5.0; python_version >= '3.9'",
+    "mkdocs-material>=9.0.0; python_version >= '3.9'",
+    "mkdocstrings[python]>=0.24.0; python_version >= '3.9'",
+    "pymdown-extensions>=10.0; python_version >= '3.9'",
+    "ruff>=0.1; python_version >= '3.9'",
 ]
 
 [project.urls]
