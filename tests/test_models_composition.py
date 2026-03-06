@@ -8,8 +8,19 @@ import pytest
 from conftest import get_comp_from_json, get_sample_files, load_expected, parse_project
 
 from aep_parser import Project
+from aep_parser.models.layers import (
+    AVLayer,
+    CameraLayer,
+    LightLayer,
+    ShapeLayer,
+    TextLayer,
+)
+from aep_parser.models.sources.file import FileSource
+from aep_parser.models.sources.solid import SolidSource
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "composition"
+LAYER_SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "layer"
+FOOTAGE_SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "footage"
 
 
 @pytest.mark.parametrize("sample_name", get_sample_files(SAMPLES_DIR))
@@ -330,3 +341,172 @@ class TestCompItemDraft3D:
         comp = parse_project(SAMPLES_DIR / "draft3d_off.aep").compositions[0]
         assert comp_json["draft3d"] is False
         assert comp.draft3d is False
+
+
+class TestCompItemLayerFiltering:
+    """Tests for CompItem layer-type filtering properties."""
+
+    def test_text_layers(self) -> None:
+        comp = parse_project(LAYER_SAMPLES_DIR / "type_text.aep").compositions[0]
+        assert len(comp.text_layers) == 1
+        assert all(isinstance(layer, TextLayer) for layer in comp.text_layers)
+
+    def test_text_layers_cached(self) -> None:
+        comp = parse_project(LAYER_SAMPLES_DIR / "type_text.aep").compositions[0]
+        assert comp.text_layers is comp.text_layers
+
+    def test_shape_layers(self) -> None:
+        comp = parse_project(LAYER_SAMPLES_DIR / "type_shape.aep").compositions[0]
+        assert len(comp.shape_layers) == 1
+        assert all(isinstance(layer, ShapeLayer) for layer in comp.shape_layers)
+
+    def test_shape_layers_cached(self) -> None:
+        comp = parse_project(LAYER_SAMPLES_DIR / "type_shape.aep").compositions[0]
+        assert comp.shape_layers is comp.shape_layers
+
+    def test_camera_layers(self) -> None:
+        comp = parse_project(LAYER_SAMPLES_DIR / "type_camera.aep").compositions[0]
+        assert len(comp.camera_layers) == 1
+        assert all(isinstance(layer, CameraLayer) for layer in comp.camera_layers)
+
+    def test_camera_layers_cached(self) -> None:
+        comp = parse_project(LAYER_SAMPLES_DIR / "type_camera.aep").compositions[0]
+        assert comp.camera_layers is comp.camera_layers
+
+    def test_light_layers(self) -> None:
+        comp = parse_project(
+            LAYER_SAMPLES_DIR / "lightType_POINT.aep"
+        ).compositions[0]
+        assert len(comp.light_layers) == 1
+        assert all(isinstance(layer, LightLayer) for layer in comp.light_layers)
+
+    def test_light_layers_cached(self) -> None:
+        comp = parse_project(
+            LAYER_SAMPLES_DIR / "lightType_POINT.aep"
+        ).compositions[0]
+        assert comp.light_layers is comp.light_layers
+
+    def test_null_layers(self) -> None:
+        comp = parse_project(LAYER_SAMPLES_DIR / "type_null.aep").compositions[0]
+        assert len(comp.null_layers) == 1
+        assert all(layer.null_layer for layer in comp.null_layers)
+
+    def test_null_layers_cached(self) -> None:
+        comp = parse_project(LAYER_SAMPLES_DIR / "type_null.aep").compositions[0]
+        assert comp.null_layers is comp.null_layers
+
+    def test_adjustment_layers(self) -> None:
+        comp = parse_project(
+            LAYER_SAMPLES_DIR / "adjustmentLayer_true.aep"
+        ).compositions[0]
+        assert len(comp.adjustment_layers) == 1
+        assert all(
+            isinstance(layer, AVLayer) and layer.adjustment_layer
+            for layer in comp.adjustment_layers
+        )
+
+    def test_adjustment_layers_cached(self) -> None:
+        comp = parse_project(
+            LAYER_SAMPLES_DIR / "adjustmentLayer_true.aep"
+        ).compositions[0]
+        assert comp.adjustment_layers is comp.adjustment_layers
+
+    def test_three_d_layers(self) -> None:
+        comp = parse_project(
+            LAYER_SAMPLES_DIR / "threeDLayer_true.aep"
+        ).compositions[0]
+        assert len(comp.three_d_layers) == 1
+        assert all(
+            isinstance(layer, AVLayer) and layer.three_d_layer
+            for layer in comp.three_d_layers
+        )
+
+    def test_three_d_layers_cached(self) -> None:
+        comp = parse_project(
+            LAYER_SAMPLES_DIR / "threeDLayer_true.aep"
+        ).compositions[0]
+        assert comp.three_d_layers is comp.three_d_layers
+
+    def test_guide_layers(self) -> None:
+        comp = parse_project(
+            LAYER_SAMPLES_DIR / "guideLayer_true.aep"
+        ).compositions[0]
+        assert len(comp.guide_layers) == 1
+        assert all(
+            isinstance(layer, AVLayer) and layer.guide_layer
+            for layer in comp.guide_layers
+        )
+
+    def test_guide_layers_cached(self) -> None:
+        comp = parse_project(
+            LAYER_SAMPLES_DIR / "guideLayer_true.aep"
+        ).compositions[0]
+        assert comp.guide_layers is comp.guide_layers
+
+    def test_solo_layers(self) -> None:
+        comp = parse_project(LAYER_SAMPLES_DIR / "solo_true.aep").compositions[0]
+        assert len(comp.solo_layers) == 1
+        assert all(layer.solo for layer in comp.solo_layers)
+
+    def test_solo_layers_cached(self) -> None:
+        comp = parse_project(LAYER_SAMPLES_DIR / "solo_true.aep").compositions[0]
+        assert comp.solo_layers is comp.solo_layers
+
+    def test_empty_text_layers(self) -> None:
+        """A comp with only a shape layer has no text layers."""
+        comp = parse_project(LAYER_SAMPLES_DIR / "type_shape.aep").compositions[0]
+        assert comp.text_layers == []
+
+    def test_empty_camera_layers(self) -> None:
+        """A comp with only a text layer has no camera layers."""
+        comp = parse_project(LAYER_SAMPLES_DIR / "type_text.aep").compositions[0]
+        assert comp.camera_layers == []
+
+    def test_empty_light_layers(self) -> None:
+        """A comp with only a text layer has no light layers."""
+        comp = parse_project(LAYER_SAMPLES_DIR / "type_text.aep").compositions[0]
+        assert comp.light_layers == []
+
+    def test_file_layers(self) -> None:
+        comp = parse_project(
+            FOOTAGE_SAMPLES_DIR / "footage_not_missing.aep"
+        ).compositions[0]
+        assert len(comp.file_layers) == 1
+        for layer in comp.file_layers:
+            assert isinstance(layer, AVLayer)
+            assert isinstance(layer.source.main_source, FileSource)
+
+    def test_file_layers_cached(self) -> None:
+        comp = parse_project(
+            FOOTAGE_SAMPLES_DIR / "footage_not_missing.aep"
+        ).compositions[0]
+        assert comp.file_layers is comp.file_layers
+
+    def test_solid_layers(self) -> None:
+        comp = parse_project(
+            LAYER_SAMPLES_DIR / "gray_solid_1_above.aep"
+        ).compositions[0]
+        assert len(comp.solid_layers) == 2
+        for layer in comp.solid_layers:
+            assert isinstance(layer, AVLayer)
+            assert isinstance(layer.source.main_source, SolidSource)
+
+    def test_solid_layers_cached(self) -> None:
+        comp = parse_project(
+            LAYER_SAMPLES_DIR / "gray_solid_1_above.aep"
+        ).compositions[0]
+        assert comp.solid_layers is comp.solid_layers
+
+    def test_placeholder_layers_empty(self) -> None:
+        """A comp with only solid layers has no placeholder layers."""
+        comp = parse_project(
+            LAYER_SAMPLES_DIR / "gray_solid_1_above.aep"
+        ).compositions[0]
+        assert comp.placeholder_layers == []
+
+    def test_empty_file_layers(self) -> None:
+        """A comp with only solid layers has no file layers."""
+        comp = parse_project(
+            LAYER_SAMPLES_DIR / "gray_solid_1_above.aep"
+        ).compositions[0]
+        assert comp.file_layers == []

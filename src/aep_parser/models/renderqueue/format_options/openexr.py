@@ -13,6 +13,19 @@ class OpenExrFormatOptions:
 
     These settings correspond to the OpenEXR Options dialog in After Effects,
     accessible when the output format is set to OpenEXR or OpenEXR Sequence.
+
+    Example:
+        ```python
+        import aep_parser
+        from aep_parser.models.renderqueue.format_options.openexr import (
+            OpenExrFormatOptions,
+        )
+
+        app = aep_parser.parse("project.aep")
+        om = app.project.render_queue.items[0].output_modules[0]
+        if isinstance(om.format_options, OpenExrFormatOptions):
+            print(om.format_options.compression)
+        ```
     """
 
     compression: OpenExrCompression

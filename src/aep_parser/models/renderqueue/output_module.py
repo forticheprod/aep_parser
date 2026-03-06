@@ -40,6 +40,15 @@ class OutputModule:
     sequence via a render operation, and contains attributes and methods
     relating to the file to be rendered.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        om = app.project.render_queue.items[0].output_modules[0]
+        print(om.file)
+        ```
+
     See: https://ae-scripting.docsforadobe.dev/renderqueue/outputmodule/
     """
 

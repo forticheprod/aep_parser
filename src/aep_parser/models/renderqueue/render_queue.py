@@ -15,8 +15,21 @@ class RenderQueue:
     particular After Effects project. Attributes provide access to items in
     the render queue and their render status.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        render_queue = app.project.render_queue
+        for rq_item in render_queue:
+            ...
+        ```
+
     See: https://ae-scripting.docsforadobe.dev/renderqueue/renderqueue/
     """
 
     items: list[RenderQueueItem]
     """A collection of all items in the render queue."""
+
+    def __iter__(self) -> typing.Iterator[RenderQueueItem]:
+        return iter(self.items)

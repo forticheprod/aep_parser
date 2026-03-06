@@ -12,6 +12,15 @@ class View:
     """
     The `View` object represents a specific view.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        view = app.active_viewer.views[0]
+        print(view.options)
+        ```
+
     See: https://ae-scripting.docsforadobe.dev/other/view/
     """
 

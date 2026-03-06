@@ -24,6 +24,16 @@ class AVLayer(Layer):
     [AVItem][] objects (composition layers, footage layers, solid layers, text
     layers and sound layers).
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        comp = app.project.compositions[0]
+        layer = comp.file_layers[0]
+        print(layer.source)
+        ```
+
     Info:
         `AVLayer` is a subclass of [Layer][] object. All methods and attributes
         of [Layer][] are available when working with `AVLayer`.

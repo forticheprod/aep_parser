@@ -14,6 +14,16 @@ class LightLayer(Layer):
     """
     The `LightLayer` object represents a light layer within a composition.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        comp = app.project.compositions[0]
+        light = comp.light_layers[0]
+        print(light.light_type)
+        ```
+
     Info:
         `LightLayer` is a subclass of [Layer][] object. All methods and
         attributes of [Layer][] are available when working with `LightLayer`.

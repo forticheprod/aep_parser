@@ -14,6 +14,15 @@ class Viewer:
     """
     The `Viewer` object represents a Composition, Layer, or Footage panel.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        viewer = app.active_viewer
+        print(viewer.type)
+        ```
+
     See: https://ae-scripting.docsforadobe.dev/other/viewer/
     """
 

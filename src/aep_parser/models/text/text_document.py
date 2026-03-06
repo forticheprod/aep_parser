@@ -30,6 +30,16 @@ if typing.TYPE_CHECKING:
 class TextDocument:
     """Stores a value for a TextLayer's Source Text property.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        comp = app.project.compositions[0]
+        text_doc = comp.text_layers[0].text.source_text.value
+        print(text_doc.text)
+        ```
+
     See: https://ae-scripting.docsforadobe.dev/text/textdocument/
     """
 

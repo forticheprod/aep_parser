@@ -5,7 +5,15 @@ from dataclasses import dataclass, field
 from typing import cast
 
 from ..layers.av_layer import AVLayer
+from ..layers.camera_layer import CameraLayer
+from ..layers.light_layer import LightLayer
+from ..layers.shape_layer import ShapeLayer
+from ..layers.text_layer import TextLayer
+from ..sources.file import FileSource
+from ..sources.placeholder import PlaceholderSource
+from ..sources.solid import SolidSource
 from .av_item import AVItem
+from .footage import FootageItem
 
 if typing.TYPE_CHECKING:
     from ..layers.layer import Layer
@@ -17,6 +25,17 @@ class CompItem(AVItem):
     """
     The `CompItem` object represents a composition, and allows you to
     manipulate and get information about it.
+
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        comp = app.project.compositions[0]
+        print(comp.frame_rate)
+        for layer in comp:
+            ...
+        ```
 
     Info:
         [Item][] is the base class for [AVItem][] object and for [FolderItem][]
@@ -161,10 +180,29 @@ class CompItem(AVItem):
     time: float
     """The playhead timestamp, in composition time (seconds)."""
 
+    _av_layers: list[AVLayer] | None = field(default=None, init=False, repr=False)
     _composition_layers: list[AVLayer] | None = field(
         default=None, init=False, repr=False
     )
     _footage_layers: list[AVLayer] | None = field(default=None, init=False, repr=False)
+    _file_layers: list[AVLayer] | None = field(default=None, init=False, repr=False)
+    _solid_layers: list[AVLayer] | None = field(default=None, init=False, repr=False)
+    _placeholder_layers: list[AVLayer] | None = field(
+        default=None, init=False, repr=False
+    )
+    _text_layers: list[TextLayer] | None = field(default=None, init=False, repr=False)
+    _shape_layers: list[ShapeLayer] | None = field(default=None, init=False, repr=False)
+    _camera_layers: list[CameraLayer] | None = field(
+        default=None, init=False, repr=False
+    )
+    _light_layers: list[LightLayer] | None = field(default=None, init=False, repr=False)
+    _null_layers: list[Layer] | None = field(default=None, init=False, repr=False)
+    _adjustment_layers: list[AVLayer] | None = field(
+        default=None, init=False, repr=False
+    )
+    _three_d_layers: list[AVLayer] | None = field(default=None, init=False, repr=False)
+    _guide_layers: list[AVLayer] | None = field(default=None, init=False, repr=False)
+    _solo_layers: list[Layer] | None = field(default=None, init=False, repr=False)
 
     @property
     def work_area_start(self) -> float:
@@ -222,15 +260,22 @@ class CompItem(AVItem):
         )
 
     @property
+    def av_layers(self) -> list[AVLayer]:
+        """A list of all [AVLayer][] objects in this composition."""
+        if self._av_layers is None:
+            self._av_layers = [
+                layer for layer in self.layers if isinstance(layer, AVLayer)
+            ]
+        return self._av_layers
+
+    @property
     def composition_layers(self) -> list[AVLayer]:
         """A list of the composition layers whose source are compositions."""
         if self._composition_layers is None:
             self._composition_layers = [
-                cast(AVLayer, layer)
-                for layer in self.layers
-                if hasattr(layer, "source")
-                and layer.source is not None
-                and layer.source.is_composition
+                layer
+                for layer in self.av_layers
+                if layer.source is not None and layer.source.is_composition
             ]
         return self._composition_layers
 
@@ -239,10 +284,121 @@ class CompItem(AVItem):
         """A list of the composition layers whose source are footages."""
         if self._footage_layers is None:
             self._footage_layers = [
-                cast(AVLayer, layer)
-                for layer in self.layers
-                if hasattr(layer, "source")
-                and layer.source is not None
-                and layer.source.is_footage
+                layer
+                for layer in self.av_layers
+                if layer.source is not None and layer.source.is_footage
             ]
         return self._footage_layers
+
+    @property
+    def file_layers(self) -> list[AVLayer]:
+        """A list of the layers whose source are file footages."""
+        if self._file_layers is None:
+            self._file_layers = [
+                layer
+                for layer in self.footage_layers
+                if isinstance(cast(FootageItem, layer.source).main_source, FileSource)
+            ]
+        return self._file_layers
+
+    @property
+    def solid_layers(self) -> list[AVLayer]:
+        """A list of the layers whose source are solids."""
+        if self._solid_layers is None:
+            self._solid_layers = [
+                layer
+                for layer in self.footage_layers
+                if isinstance(cast(FootageItem, layer.source).main_source, SolidSource)
+            ]
+        return self._solid_layers
+
+    @property
+    def placeholder_layers(self) -> list[AVLayer]:
+        """A list of the layers whose source are placeholders."""
+        if self._placeholder_layers is None:
+            self._placeholder_layers = [
+                layer
+                for layer in self.footage_layers
+                if isinstance(
+                    cast(FootageItem, layer.source).main_source,
+                    PlaceholderSource,
+                )
+            ]
+        return self._placeholder_layers
+
+    @property
+    def text_layers(self) -> list[TextLayer]:
+        """A list of the text layers in this composition."""
+        if self._text_layers is None:
+            self._text_layers = [
+                layer for layer in self.layers if isinstance(layer, TextLayer)
+            ]
+        return self._text_layers
+
+    @property
+    def shape_layers(self) -> list[ShapeLayer]:
+        """A list of the shape layers in this composition."""
+        if self._shape_layers is None:
+            self._shape_layers = [
+                layer for layer in self.layers if isinstance(layer, ShapeLayer)
+            ]
+        return self._shape_layers
+
+    @property
+    def camera_layers(self) -> list[CameraLayer]:
+        """A list of the camera layers in this composition."""
+        if self._camera_layers is None:
+            self._camera_layers = [
+                layer for layer in self.layers if isinstance(layer, CameraLayer)
+            ]
+        return self._camera_layers
+
+    @property
+    def light_layers(self) -> list[LightLayer]:
+        """A list of the light layers in this composition."""
+        if self._light_layers is None:
+            self._light_layers = [
+                layer for layer in self.layers if isinstance(layer, LightLayer)
+            ]
+        return self._light_layers
+
+    @property
+    def null_layers(self) -> list[Layer]:
+        """A list of the null layers in this composition."""
+        if self._null_layers is None:
+            self._null_layers = [layer for layer in self.layers if layer.null_layer]
+        return self._null_layers
+
+    @property
+    def adjustment_layers(self) -> list[AVLayer]:
+        """A list of the adjustment layers in this composition."""
+        if self._adjustment_layers is None:
+            self._adjustment_layers = [
+                layer for layer in self.av_layers if layer.adjustment_layer
+            ]
+        return self._adjustment_layers
+
+    @property
+    def three_d_layers(self) -> list[AVLayer]:
+        """A list of the 3D layers in this composition."""
+        if self._three_d_layers is None:
+            self._three_d_layers = [
+                layer for layer in self.av_layers if layer.three_d_layer
+            ]
+        return self._three_d_layers
+
+    @property
+    def guide_layers(self) -> list[AVLayer]:
+        """A list of the guide layers in this composition."""
+        if self._guide_layers is None:
+            self._guide_layers = [
+                layer for layer in self.av_layers if layer.guide_layer
+            ]
+        return self._guide_layers
+
+    @property
+    def solo_layers(self) -> list[Layer]:
+        """A list of the soloed layers in this composition."""
+        if self._solo_layers is None:
+            self._solo_layers = [layer for layer in self.layers if layer.solo]
+        return self._solo_layers
