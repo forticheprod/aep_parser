@@ -11,6 +11,17 @@ class FileSource(FootageSource):
     """
     The `FileSource` object describes footage that comes from a file.
 
+    Example:
+        ```python
+        import aep_parser
+        from aep_parser.models.sources.file import FileSource
+
+        app = aep_parser.parse("project.aep")
+        footage = app.project.footages[0]
+        if isinstance(footage.main_source, FileSource):
+            print(footage.main_source.file)
+        ```
+
     Info:
         `FileSource` is a subclass of [FootageSource][] object. All methods and
         attributes of [FootageSource][] are available when working with `FileSource`.

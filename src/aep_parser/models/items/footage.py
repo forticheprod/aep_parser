@@ -17,6 +17,15 @@ class FootageItem(AVItem):
     The `FootageItem` object represents a footage item imported into a project,
     which appears in the Project panel.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        footage = app.project.footages[0]
+        print(footage.main_source)
+        ```
+
     Info:
         `FootageItem` is a subclass of [AVItem][] object, which is a subclass of
         [Item][] object. All methods and attributes of [AVItem][] and [Item][] are

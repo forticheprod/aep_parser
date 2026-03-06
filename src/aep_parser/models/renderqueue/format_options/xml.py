@@ -24,6 +24,19 @@ class XmlFormatOptions:
 
     Individual parameters are stored in the ``params`` dictionary, keyed by
     their Adobe parameter identifier (e.g. ``"ADBEVideoCodec"``).
+
+    Example:
+        ```python
+        import aep_parser
+        from aep_parser.models.renderqueue.format_options.xml import (
+            XmlFormatOptions,
+        )
+
+        app = aep_parser.parse("project.aep")
+        om = app.project.render_queue.items[0].output_modules[0]
+        if isinstance(om.format_options, XmlFormatOptions):
+            print(om.format_options.video_codec)
+        ```
     """
 
     format_code: str

@@ -17,6 +17,19 @@ class PngFormatOptions:
     The Ropt body for PNG contains a fixed-size binary block (typically 318
     bytes) with width, height, and bit depth at known offsets. HDR10 metadata
     is stored separately in a JSON ``Utf8`` chunk alongside the Ropt chunk.
+
+    Example:
+        ```python
+        import aep_parser
+        from aep_parser.models.renderqueue.format_options.png import (
+            PngFormatOptions,
+        )
+
+        app = aep_parser.parse("project.aep")
+        om = app.project.render_queue.items[0].output_modules[0]
+        if isinstance(om.format_options, PngFormatOptions):
+            print(om.format_options.compression)
+        ```
     """
 
     width: int

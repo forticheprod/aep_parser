@@ -22,6 +22,16 @@ class FontObject:
     Most of these attributes simply return information which is contained in
     the font data file itself.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        comp = app.project.compositions[0]
+        font = comp.text_layers[0].text.source_text.value.font
+        print(font.family_name)
+        ```
+
     Note:
         This functionality was added in After Effects 24.0.
 

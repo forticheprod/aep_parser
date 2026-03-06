@@ -20,6 +20,17 @@ class PropertyGroup(PropertyBase):
     and attributes; see `PropertyBase.propertyGroup()`. For examples of how to
     access properties and property groups, see [PropertyBase][] object.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        comp = app.project.compositions[0]
+        effects = comp.layers[0].effects
+        for effect in effects:
+            ...
+        ```
+
     Info:
         `PropertyGroup` is a subclass of [PropertyBase][]. All methods and
         attributes of [PropertyBase][] are available when working with
