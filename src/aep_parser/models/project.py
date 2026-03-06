@@ -36,6 +36,17 @@ class Project:
     files or footage and compositions, and also to project settings such as the
     timecode base.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        project = app.project
+        print(project.file)
+        for item in project:
+            ...
+        ```
+
     See: https://ae-scripting.docsforadobe.dev/general/project/
     """
 

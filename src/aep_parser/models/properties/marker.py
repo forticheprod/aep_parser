@@ -12,6 +12,16 @@ class MarkerValue:
     associates a comment, and optionally a chapter reference point, Web-page
     link, or Flash Video cue point with a particular point in a layer.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        comp = app.project.compositions[0]
+        marker = comp.markers[0]
+        print(marker.comment)
+        ```
+
     See: https://ae-scripting.docsforadobe.dev/other/markervalue/
     """
 

@@ -21,6 +21,16 @@ class Property(PropertyBase):
     often animatable, of an effect, mask, or transform within an individual
     layer.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        comp = app.project.compositions[0]
+        prop = comp.layers[0].transform.position
+        print(prop.value)
+        ```
+
     Info:
         `Property` is a subclass of [PropertyBase][]. All methods and attributes
         of [PropertyBase][] are available when working with `Property`.

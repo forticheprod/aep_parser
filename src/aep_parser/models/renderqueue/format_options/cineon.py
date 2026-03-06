@@ -12,6 +12,19 @@ class CineonFormatOptions:
     These settings correspond to the Cineon Settings dialog in After Effects,
     accessible when the output format is set to Cineon Sequence or DPX
     Sequence.
+
+    Example:
+        ```python
+        import aep_parser
+        from aep_parser.models.renderqueue.format_options.cineon import (
+            CineonFormatOptions,
+        )
+
+        app = aep_parser.parse("project.aep")
+        om = app.project.render_queue.items[0].output_modules[0]
+        if isinstance(om.format_options, CineonFormatOptions):
+            print(om.format_options.file_format)
+        ```
     """
 
     ten_bit_black_point: int

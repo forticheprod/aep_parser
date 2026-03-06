@@ -27,6 +27,17 @@ class RenderQueueItem:
     queue. It provides access to the specific settings for an item to be
     rendered.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        rq_item = app.project.render_queue.items[0]
+        print(rq_item.status)
+        for output_module in rq_item:
+            ...
+        ```
+
     See: https://ae-scripting.docsforadobe.dev/renderqueue/renderqueueitem/
     """
 

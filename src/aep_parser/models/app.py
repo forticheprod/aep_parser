@@ -15,6 +15,14 @@ class App:
     provide access to the project and application-level settings parsed from
     the binary file.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        print(app.version)
+        ```
+
     See: https://ae-scripting.docsforadobe.dev/general/application/
     """
 

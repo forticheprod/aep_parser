@@ -13,6 +13,17 @@ class FolderItem(Item):
     can contain various types of items (footage, compositions, solids) as well
     as other folders.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        root = app.project.root_folder
+        print(root.name)
+        for item in root:
+            ...
+        ```
+
     See: https://ae-scripting.docsforadobe.dev/item/folderitem/
     """
 

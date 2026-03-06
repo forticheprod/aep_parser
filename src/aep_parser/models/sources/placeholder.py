@@ -11,6 +11,17 @@ class PlaceholderSource(FootageSource):
     The `PlaceholderSource` object describes the footage source of a
     placeholder.
 
+    Example:
+        ```python
+        import aep_parser
+        from aep_parser.models.sources.placeholder import PlaceholderSource
+
+        app = aep_parser.parse("project.aep")
+        footage = app.project.footages[0]
+        if isinstance(footage.main_source, PlaceholderSource):
+            print(footage.main_source.width)
+        ```
+
     Info:
         `PlaceholderSource` is a subclass of [FootageSource][] object. All
         methods and attributes of [FootageSource][] are available when working

@@ -14,6 +14,16 @@ class Keyframe:
     """
     The `Keyframe` object represents a keyframe of a property.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        comp = app.project.compositions[0]
+        keyframe = comp.layers[0].transform.position.keyframes[0]
+        print(keyframe.time)
+        ```
+
     Warning:
         `Keyframe` object does not exist in ExtendScript API. It has been added
         for convenience.

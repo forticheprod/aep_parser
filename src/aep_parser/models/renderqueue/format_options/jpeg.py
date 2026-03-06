@@ -13,6 +13,19 @@ class JpegFormatOptions:
 
     These settings correspond to the JPEG Options dialog in After Effects,
     accessible when the output format is set to JPEG Sequence.
+
+    Example:
+        ```python
+        import aep_parser
+        from aep_parser.models.renderqueue.format_options.jpeg import (
+            JpegFormatOptions,
+        )
+
+        app = aep_parser.parse("project.aep")
+        om = app.project.render_queue.items[0].output_modules[0]
+        if isinstance(om.format_options, JpegFormatOptions):
+            print(om.format_options.quality)
+        ```
     """
 
     quality: int

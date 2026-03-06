@@ -12,6 +12,15 @@ class ViewOptions:
     """
     The `ViewOptions` object represents the options for a given [View][] object.
 
+    Example:
+        ```python
+        import aep_parser
+
+        app = aep_parser.parse("project.aep")
+        options = app.active_viewer.views[0].options
+        print(options.zoom)
+        ```
+
     See: https://ae-scripting.docsforadobe.dev/other/viewoptions/
     """
 
