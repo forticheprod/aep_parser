@@ -19,12 +19,11 @@ class Layer(PropertyGroup):
     """
     The `Layer` object provides access to layers within compositions.
 
-    In the ExtendScript API, `Layer` is a subclass of [PropertyGroup][], which
-    is a subclass of
-    [PropertyBase][aep_parser.models.properties.property_base.PropertyBase].
-    This hierarchy is reflected here: `Layer` inherits from [PropertyGroup][],
-    giving access to all [PropertyBase][] and [PropertyGroup][] attributes and
-    methods.
+    Info:
+        `Layer` is a subclass of [PropertyGroup][], which is a subclass of
+        [PropertyBase][aep_parser.models.properties.property_base.PropertyBase]. All
+        methods and attributes of [PropertyGroup][], in addition to those listed below,
+        are available when working with `Layer` objects.
 
     Info:
         `Layer` is the base class for [CameraLayer][] object, [LightLayer][]
