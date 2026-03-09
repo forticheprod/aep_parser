@@ -215,8 +215,6 @@ class Property(PropertyBase):
             return True
         if self.default_value is not None:
             return not _values_equal(self.value, self.default_value)
-        if self.no_value:
-            return True
         return False
 
     @property

@@ -1,0 +1,75 @@
+Validating: 29.97_fps_time_scale_3.125.aep
+Expected:   29.97_fps_time_scale_3.125.json
+Parsing: 29.97_fps_time_scale_3.125.aep
+
+=== Comparing Project Properties ===
+
+=== Comparing Compositions ===
+  e204_s015_p500_lignes (id=155): 278 differences
+  e204_s015_p500_lignes (id=11516): 278 differences
+  e204_s015_p500__compo__r011 Precomp (id=281855): 78 differences
+  e204_s010_full (id=12173): 7 differences
+  e204_s010_p005_precomp (id=2767): 16 differences
+
+=== Comparing Folder Hierarchy ===
+
+=== Comparing Render Queue ===
+
+============================================================
+TOTAL DIFFERENCES FOUND: 657
+
+Differences by category:
+  properties: 657
+
+All differences:
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.numProperties: expected 13, got 5
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Position.value: expected [1243.8459797328, 480.69317996513], got [0.5, 0.5]
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Uniform Scale: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Scale Height.minValue: expected -30000, got -200
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Scale Height.maxValue: expected 30000, got 200
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Scale Width: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Skew: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Skew Axis: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Rotation: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Opacity: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Use CompositionÔÇÖs Shutter Angle: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Shutter Angle: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Sampling: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Compositing Options.numProperties: expected 3, got 0
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Compositing Options.Masks: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Compositing Options.Effect Opacity: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Effect Parade].Transform.Compositing Options.GPU Rendering: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Layer Styles].isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Layer Styles].Outer Glow.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Layer Styles].Outer Glow.Colors.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Layer Styles].Inner Glow.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Layer Styles].Inner Glow.Colors.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Layer Styles].Gradient Overlay.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[0].properties[ADBE Layer Styles].Gradient Overlay.Colors.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[1].properties[ADBE Layer Styles].isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[1].properties[ADBE Layer Styles].Outer Glow.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[1].properties[ADBE Layer Styles].Outer Glow.Colors.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[1].properties[ADBE Layer Styles].Inner Glow.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[1].properties[ADBE Layer Styles].Inner Glow.Colors.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[1].properties[ADBE Layer Styles].Gradient Overlay.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[1].properties[ADBE Layer Styles].Gradient Overlay.Colors.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[2].properties[ADBE Layer Styles].isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[2].properties[ADBE Layer Styles].Outer Glow.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[2].properties[ADBE Layer Styles].Outer Glow.Colors.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[2].properties[ADBE Layer Styles].Inner Glow.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[2].properties[ADBE Layer Styles].Inner Glow.Colors.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[2].properties[ADBE Layer Styles].Gradient Overlay.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[2].properties[ADBE Layer Styles].Gradient Overlay.Colors.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[3].properties[ADBE Layer Styles].isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[3].properties[ADBE Layer Styles].Outer Glow.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[3].properties[ADBE Layer Styles].Outer Glow.Colors.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[3].properties[ADBE Layer Styles].Inner Glow.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[3].properties[ADBE Layer Styles].Inner Glow.Colors.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[3].properties[ADBE Layer Styles].Gradient Overlay.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[3].properties[ADBE Layer Styles].Gradient Overlay.Colors.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[4].properties[ADBE Layer Styles].isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[4].properties[ADBE Layer Styles].Outer Glow.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[4].properties[ADBE Layer Styles].Outer Glow.Colors.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[4].properties[ADBE Layer Styles].Inner Glow.isModified: expected False, got True
+  Comp[e204_s015_p500_lignes].layers[4].properties[ADBE Layer Styles].Inner Glow.Colors.isModified: expected False, got True
+  ... and 607 more
