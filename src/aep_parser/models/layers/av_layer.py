@@ -3,6 +3,8 @@ from __future__ import annotations
 import typing
 from dataclasses import dataclass, field
 
+from aep_parser.enums import TrackMatteType
+
 from .layer import Layer
 
 if typing.TYPE_CHECKING:
@@ -11,7 +13,6 @@ if typing.TYPE_CHECKING:
         FrameBlendingType,
         LayerQuality,
         LayerSamplingQuality,
-        TrackMatteType,
     )
 
     from ..items.item import Item
@@ -97,8 +98,20 @@ class AVLayer(Layer):
     _source_id: int
     """The ID of the source item for this layer. 0 for a text layer."""
 
+    _matte_layer_id: int
+    """
+    The ID of the layer used as a track matte for this layer.
+    ``0`` when no track matte is applied.
+    """
+
     # Set after parsing - reference to source item (not serialized)
     _source: Item | None = field(default=None, init=False, repr=False)
+
+    # Set after parsing - track matte references (not serialized)
+    _track_matte_layer: AVLayer | None = field(
+        default=None, init=False, repr=False
+    )
+    _is_track_matte: bool = field(default=False, init=False, repr=False)
 
     @property
     def source(self) -> Item | None:
@@ -135,6 +148,24 @@ class AVLayer(Layer):
         if self._source is not None:
             return getattr(self._source, "height", 0)
         return self.containing_comp.height
+
+    @property
+    def has_track_matte(self) -> bool:
+        """
+        `True` if this layer has track matte. When true, this layer's `track_matte_type`
+        value controls how the matte is applied.
+        """
+        return self.track_matte_type != TrackMatteType.NO_TRACK_MATTE
+
+    @property
+    def is_track_matte(self) -> bool:
+        """`True` if this layer is being used as a track matte."""
+        return self._is_track_matte
+
+    @property
+    def track_matte_layer(self) -> AVLayer | None:
+        """The track matte layer for this layer. Returns `None` if this layer has no track matte layer."""
+        return self._track_matte_layer
 
     @property
     def is_name_from_source(self) -> bool:

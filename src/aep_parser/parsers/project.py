@@ -155,6 +155,11 @@ def _link_layers(project: Project) -> None:
                     _clamp_layer_times(layer, source, composition)
                     if hasattr(source, "_used_in"):
                         source._used_in.add(composition)
+            if isinstance(layer, AVLayer) and layer._matte_layer_id != 0:
+                matte = layers_by_id.get(layer._matte_layer_id)
+                if isinstance(matte, AVLayer):
+                    layer._track_matte_layer = matte
+                    matte._is_track_matte = True
             if layer._parent_id != 0:
                 layer.parent = layers_by_id.get(layer._parent_id)
             set_transform_defaults(layer)

@@ -499,10 +499,7 @@ Reference the [After Effects Scripting Guide](https://ae-scripting.docsforadobe.
 
 ```python
 def parse_layer(chunk: Aep.Chunk) -> Layer:
-    """Parse a layer from AEP chunk data.
-    
-    See: https://ae-scripting.docsforadobe.dev/layers/layer
-    """
+    """Parse a layer from AEP chunk data."""
 ```
 
 ### Cross-Referencing in Docstrings

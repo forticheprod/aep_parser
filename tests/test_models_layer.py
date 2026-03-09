@@ -447,6 +447,67 @@ class TestTrackMatte:
         assert expected_layer is not None
         assert matted_layer.track_matte_type == expected_layer["trackMatteType"]
 
+    def test_has_track_matte(self) -> None:
+        expected = load_expected(SAMPLES_DIR, "track_matte_yes")
+        project = parse_project(SAMPLES_DIR / "track_matte_yes.aep")
+        comp = project.compositions[0]
+        expected_layers = None
+        for item in expected["items"]:
+            if "layers" in item:
+                expected_layers = item["layers"]
+                break
+        assert expected_layers is not None
+        for layer, exp in zip(comp.layers, expected_layers):
+            assert layer.has_track_matte == exp["hasTrackMatte"]
+
+    def test_has_track_matte_false(self) -> None:
+        expected = load_expected(SAMPLES_DIR, "track_matte_no")
+        project = parse_project(SAMPLES_DIR / "track_matte_no.aep")
+        comp = project.compositions[0]
+        expected_layers = None
+        for item in expected["items"]:
+            if "layers" in item:
+                expected_layers = item["layers"]
+                break
+        assert expected_layers is not None
+        for layer in comp.layers:
+            assert layer.has_track_matte is False
+
+    def test_is_track_matte(self) -> None:
+        expected = load_expected(SAMPLES_DIR, "track_matte_yes")
+        project = parse_project(SAMPLES_DIR / "track_matte_yes.aep")
+        comp = project.compositions[0]
+        expected_layers = None
+        for item in expected["items"]:
+            if "layers" in item:
+                expected_layers = item["layers"]
+                break
+        assert expected_layers is not None
+        for layer, exp in zip(comp.layers, expected_layers):
+            assert layer.is_track_matte == exp["isTrackMatte"]
+
+    def test_is_track_matte_false(self) -> None:
+        project = parse_project(SAMPLES_DIR / "track_matte_no.aep")
+        comp = project.compositions[0]
+        for layer in comp.layers:
+            assert layer.is_track_matte is False
+
+    def test_track_matte_layer(self) -> None:
+        project = parse_project(SAMPLES_DIR / "track_matte_yes.aep")
+        comp = project.compositions[0]
+        matted_layer = next(
+            (layer for layer in comp.layers if layer.has_track_matte), None
+        )
+        assert matted_layer is not None
+        assert matted_layer.track_matte_layer is not None
+        assert matted_layer.track_matte_layer.is_track_matte is True
+
+    def test_track_matte_layer_none(self) -> None:
+        project = parse_project(SAMPLES_DIR / "track_matte_no.aep")
+        comp = project.compositions[0]
+        for layer in comp.layers:
+            assert layer.track_matte_layer is None
+
 
 class TestParenting:
     """Tests for layer parenting."""

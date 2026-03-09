@@ -1288,9 +1288,13 @@ types:
         type: u1
         doc: Type of light for light layers (0=parallel, 1=spot, 2=point, 3=ambient)
       - size: 20
-      # - id: matte_layer_id
-      #   type: u4
-      #   doc: only for AE >= 23
+      - id: matte_layer_id
+        type: u4
+        if: _io.size - _io.pos >= 4
+        doc: |
+          ID of the layer used as a track matte for this layer.
+          0 when no track matte is applied. Only present in
+          AE >= 23 (ldta chunks longer than 160 bytes).
     instances:
       start_time:
         value: 'start_time_dividend * 1.0 / start_time_divisor'

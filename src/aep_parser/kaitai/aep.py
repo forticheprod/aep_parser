@@ -1529,10 +1529,17 @@ class Aep(KaitaiStruct):
             self._unnamed49 = self._io.read_bytes(3)
             self.light_type = self._io.read_u1()
             self._unnamed51 = self._io.read_bytes(20)
+            if self._io.size() - self._io.pos() >= 4:
+                pass
+                self.matte_layer_id = self._io.read_u4be()
+
 
 
         def _fetch_instances(self):
             pass
+            if self._io.size() - self._io.pos() >= 4:
+                pass
+
 
         @property
         def in_point(self):
