@@ -28,9 +28,9 @@ class CompItem(AVItem):
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         comp = app.project.compositions[0]
         print(comp.frame_rate)
         for layer in comp:

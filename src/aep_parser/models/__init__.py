@@ -15,6 +15,7 @@ from .layers.text_layer import TextLayer
 from .project import Project
 from .properties.keyframe import Keyframe
 from .properties.marker import MarkerValue
+from .properties.mask_property_group import MaskPropertyGroup
 from .properties.property import Property
 from .properties.property_base import PropertyBase
 from .properties.property_group import PropertyGroup
@@ -59,6 +60,7 @@ __all__ = [
     "Layer",
     "LightLayer",
     "MarkerValue",
+    "MaskPropertyGroup",
     "OpenExrFormatOptions",
     "OutputModule",
     "OutputModuleSettings",

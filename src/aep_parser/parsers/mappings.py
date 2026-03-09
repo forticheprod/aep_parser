@@ -17,6 +17,7 @@ from ..enums import (
     FootageTimecodeDisplayStartType,
     FrameBlendingType,
     GpuAccelType,
+    MaskMode,
     OutputAudio,
     ViewerType,
 )
@@ -64,6 +65,33 @@ def map_bits_per_channel(bits_per_channel_raw: int) -> BitsPerChannel:
     except KeyError:
         raise ValueError(
             f"Unknown bits_per_channel value: {bits_per_channel_raw}"
+        ) from None
+
+
+def map_mask_mode(mask_mode_raw: int) -> MaskMode:
+    """
+    Map binary mask mode value to ExtendScript MaskMode enum.
+
+    Note: binary 4 = Darken and binary 5 = Lighten (swapped relative to
+    enum integer order where LIGHTEN = 6816 < DARKEN = 6817).
+
+    Raises:
+        ValueError: If mask_mode_raw is not a recognized value.
+    """
+    mapping = {
+        0: MaskMode.NONE,
+        1: MaskMode.ADD,
+        2: MaskMode.SUBTRACT,
+        3: MaskMode.INTERSECT,
+        4: MaskMode.DARKEN,
+        5: MaskMode.LIGHTEN,
+        6: MaskMode.DIFFERENCE,
+    }
+    try:
+        return mapping[mask_mode_raw]
+    except KeyError:
+        raise ValueError(
+            f"Unknown mask_mode value: {mask_mode_raw}"
         ) from None
 
 

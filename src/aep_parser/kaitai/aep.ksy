@@ -55,6 +55,8 @@ types:
             '"opti"': opti_body # Footage data
             '"alas"': utf8_body # File footage data in json format as a string, contains file path
             '"NmHd"': nmhd_body # Marker data
+            '"mkif"': mkif_body # Mask info
+            '"shph"': shph_body # Shape path header (bounding box + closed flag)
             '"cdta"': cdta_body # Composition data
             '"cdrp"': cdrp_body # Composition drop frame
             '"pjef"': utf8_body # Effect names
@@ -76,10 +78,60 @@ types:
             '"fitt"': fitt_body # Viewer inner tab type label
             '"fivi"': fivi_body # Viewer inner active view index
             '"fivc"': fivc_body # Viewer inner view count
+            '"EfDC"': efdc_body # Effect definition count
+            '"parn"': parn_body # Parameter count in a parT list
+            '"ewot"': ewot_body # Effect workspace outline entries
             _: ascii_body
       - id: padding
         size: 1
         if: (len_data % 2) != 0
+  ewot_body:
+    doc: |
+      Effect workspace outline entries inside LIST Ewst.
+      Each entry is 4 bytes. The first byte contains flags:
+        - bit 7 (0x80): child property of an effect (not an effect group)
+        - bit 6 (0x40): selected
+      Entries without bit 7 are effect-group-level nodes.
+    seq:
+      - id: num_entries
+        type: u4
+        doc: Number of entries
+      - id: entries
+        type: ewot_entry
+        repeat: expr
+        repeat-expr: num_entries
+        doc: Array of outline entries
+  ewot_entry:
+    doc: Single effect workspace outline entry.
+    seq:
+      - id: is_child_property
+        type: b1
+        doc: When true, this is a child property, not an effect group (bit 7 of flags byte)
+      - id: selected
+        type: b1
+        doc: When true, this entry is selected (bit 6 of flags byte)
+      - id: reserved_flags
+        type: b6
+        doc: Remaining flag bits
+      - id: data
+        size: 3
+        doc: Remaining entry bytes
+  efdc_body:
+    doc: |
+      Effect definition count. The first byte contains the number of
+      LIST EfDf definitions inside LIST EfdG.
+    seq:
+      - id: count
+        type: u1
+        doc: Number of effect definitions
+  parn_body:
+    doc: |
+      Parameter count inside a LIST parT. Contains the number of tdmn/pard
+      parameter entries that follow.
+    seq:
+      - id: count
+        type: u4
+        doc: Number of parameters
   acer_body:
     doc: |
       Compensate for Scene-Referred Profiles setting in Project Settings.
@@ -1294,6 +1346,46 @@ types:
       - id: binary_data
         size-eos: true
         if: list_type == "btdk"
+  mkif_body:
+    doc: Mask info. Contains inverted flag, locked flag and mask mode.
+    seq:
+      - id: inverted
+        type: u1
+        doc: Whether the mask is inverted (1 = inverted, 0 = normal)
+      - id: locked
+        type: u1
+        doc: Whether the mask path is locked (1 = locked, 0 = unlocked)
+      - size: 4
+      - id: mode
+        type: u2
+        doc: Mask blending mode (0=None, 1=Add, 2=Subtract, 3=Intersect, 4=Darken, 5=Lighten, 6=Difference)
+  shph_body:
+    doc: |
+      Shape path header. Contains a closed/open flag and the bounding box
+      for the shape vertices.  Vertex coordinates in the associated ldat
+      are normalized to [0, 1] relative to this bounding box.
+    seq:
+      - size: 3
+      - type: b4  # skip bits 7-4
+      - id: open
+        type: b1  # bit 3 — true when path is open
+      - type: b3  # skip bits 2-0
+      - id: top_left_x
+        type: f4
+        doc: Bounding-box left edge (x minimum)
+      - id: top_left_y
+        type: f4
+        doc: Bounding-box top edge (y minimum)
+      - id: bottom_right_x
+        type: f4
+        doc: Bounding-box right edge (x maximum)
+      - id: bottom_right_y
+        type: f4
+        doc: Bounding-box bottom edge (y maximum)
+      - size: 4
+    instances:
+      closed:
+        value: 'not open'
   nmhd_body:
     seq:
       - size: 3

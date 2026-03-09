@@ -17,7 +17,7 @@ if typing.TYPE_CHECKING:
     from ..items.item import Item
 
 
-@dataclass
+@dataclass(eq=False)
 class AVLayer(Layer):
     """
     The `AVLayer` object provides an interface to those layers that contain
@@ -26,9 +26,9 @@ class AVLayer(Layer):
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         comp = app.project.compositions[0]
         layer = comp.file_layers[0]
         print(layer.source)

@@ -1352,6 +1352,47 @@ var AEP_EXPORT_AS_LIBRARY = true;
     }
 
     // =========================================================================
+    // Mask Model Samples
+    // Covers: PropertyBase.is_mask
+    // =========================================================================
+
+    function generateMaskSamples(outputPath) {
+        var folder = ensureFolder(outputPath + "/property");
+        var proj, comp, layer, maskGroup, mask, myShape;
+
+        // is_mask = true (single mask)
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 10, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 100, 100, 1);
+        maskGroup = layer.property("ADBE Mask Parade");
+        mask = maskGroup.addProperty("ADBE Mask Atom");
+        myShape = new Shape();
+        myShape.vertices = [[10, 10], [90, 10], [90, 90], [10, 90]];
+        myShape.closed = true;
+        mask.property("ADBE Mask Shape").setValue(myShape);
+        saveProject(proj, folder.fsName + "/is_mask_true.aep");
+
+        // is_mask with multiple masks
+        proj = createProject();
+        comp = proj.items.addComp("TestComp", 100, 100, 1, 10, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 100, 100, 1);
+        maskGroup = layer.property("ADBE Mask Parade");
+        mask = maskGroup.addProperty("ADBE Mask Atom");
+        myShape = new Shape();
+        myShape.vertices = [[10, 10], [50, 10], [50, 50], [10, 50]];
+        myShape.closed = true;
+        mask.property("ADBE Mask Shape").setValue(myShape);
+        mask = maskGroup.addProperty("ADBE Mask Atom");
+        myShape = new Shape();
+        myShape.vertices = [[50, 50], [90, 50], [90, 90], [50, 90]];
+        myShape.closed = true;
+        mask.property("ADBE Mask Shape").setValue(myShape);
+        saveProject(proj, folder.fsName + "/is_mask_multiple.aep");
+
+        $.writeln("Generated mask samples in: " + folder.fsName);
+    }
+
+    // =========================================================================
     // Property Model Samples
     // Covers: Property, PropertyGroup, keyframes, expressions
     // =========================================================================
@@ -2218,29 +2259,32 @@ var AEP_EXPORT_AS_LIBRARY = true;
         $.writeln("");
 
         try {
-            $.writeln("--- Project samples ---");
-            generateProjectSamples(OUTPUT_FOLDER);
+            // $.writeln("--- Project samples ---");
+            // generateProjectSamples(OUTPUT_FOLDER);
 
-            $.writeln("--- Composition samples ---");
-            generateCompositionSamples(OUTPUT_FOLDER);
+            // $.writeln("--- Composition samples ---");
+            // generateCompositionSamples(OUTPUT_FOLDER);
 
-            $.writeln("--- Layer samples ---");
-            generateLayerSamples(OUTPUT_FOLDER);
+            // $.writeln("--- Layer samples ---");
+            // generateLayerSamples(OUTPUT_FOLDER);
 
-            $.writeln("--- Footage samples ---");
-            generateFootageSamples(OUTPUT_FOLDER);
+            // $.writeln("--- Footage samples ---");
+            // generateFootageSamples(OUTPUT_FOLDER);
 
-            $.writeln("--- Folder samples ---");
-            generateFolderSamples(OUTPUT_FOLDER);
+            // $.writeln("--- Folder samples ---");
+            // generateFolderSamples(OUTPUT_FOLDER);
 
-            $.writeln("--- Marker samples ---");
-            generateMarkerSamples(OUTPUT_FOLDER);
+            // $.writeln("--- Marker samples ---");
+            // generateMarkerSamples(OUTPUT_FOLDER);
 
-            $.writeln("--- Property samples ---");
-            generatePropertySamples(OUTPUT_FOLDER);
+            $.writeln("--- Mask samples ---");
+            generateMaskSamples(OUTPUT_FOLDER);
 
-            $.writeln("--- RenderQueue samples ---");
-            generateRenderQueueSamples(OUTPUT_FOLDER);
+            // $.writeln("--- Property samples ---");
+            // generatePropertySamples(OUTPUT_FOLDER);
+
+            // $.writeln("--- RenderQueue samples ---");
+            // generateRenderQueueSamples(OUTPUT_FOLDER);
         } catch(e) {
             $.writeln("Error: " + e.toString());
             alert("Error generating samples:\n" + e.toString());

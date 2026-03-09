@@ -13,8 +13,19 @@ MATCH_NAME_TO_NICE_NAME = {
     "ADBE Time Remapping": "Time Remap",
     "ADBE MTrackers": "Motion Trackers",
     "ADBE Mask Parade": "Masks",
+    "ADBE Mask Atom": "Mask",
+    "ADBE Mask Shape": "Mask Path",
+    "ADBE Mask Feather": "Mask Feather",
+    "ADBE Mask Opacity": "Mask Opacity",
+    "ADBE Mask Offset": "Mask Expansion",
     "ADBE Effect Parade": "Effects",
+    "ADBE Effect Built In Params": "Compositing Options",
+    "ADBE Effect Mask Parade": "Masks",
+    "ADBE Effect Mask Opacity": "Effect Opacity",
+    "ADBE Force CPU GPU": "GPU Rendering",
     "ADBE Layer Overrides": "Essential Properties",
+    "ADBE Layer Styles": "Layer Styles",
+    "ADBE Data Group": "Data",
     # AV Layer > Transform
     "ADBE Transform Group": "Transform",
     "ADBE Anchor Point": "Anchor Point",
@@ -28,6 +39,7 @@ MATCH_NAME_TO_NICE_NAME = {
     "ADBE Rotate Y": "Y Rotation",
     "ADBE Rotate Z": "Z Rotation",
     "ADBE Opacity": "Opacity",
+    "ADBE Envir Appear in Reflect": "Appears in Reflections",
     # AV Layer > Audio
     "ADBE Audio Group": "Audio",
     "ADBE Audio Levels": "Audio Levels",
@@ -39,6 +51,7 @@ MATCH_NAME_TO_NICE_NAME = {
     "ADBE Bevel Depth": "Bevel Depth",
     "ADBE Hole Bevel Depth": "Hole Bevel Depth",
     "ADBE Extrsn Depth": "Extrusion Depth",
+    "ADBE Bevel Direction": "Bevel Direction",
     # 3D Layer > Materials
     "ADBE Material Options Group": "Material Options",
     "ADBE Light Transmission": "Light Transmission",
@@ -53,6 +66,7 @@ MATCH_NAME_TO_NICE_NAME = {
     "ADBE Transparency Coefficient": "Transparency",
     "ADBE Transp Rolloff": "Transparency Rolloff",
     "ADBE Index of Refraction": "Index of Refraction",
+    "ADBE Appears in Reflections": "Appears in Reflections",
     # Camera Layer > Camera
     "ADBE Camera Options Group": "Camera Options",
     "ADBE Camera Zoom": "Zoom",

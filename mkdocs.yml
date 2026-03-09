@@ -129,6 +129,7 @@ nav:
       - Property Base: api/properties/property_base.md
       - Property: api/properties/property.md
       - Property Group: api/properties/property_group.md
+      - Mask Property Group: api/properties/mask_property_group.md
       - Keyframe: api/properties/keyframe.md
       - Marker: api/properties/marker.md
     - Sources:

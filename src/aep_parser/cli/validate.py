@@ -33,6 +33,7 @@ from aep_parser import parse
 SKIP_FIELDS = {
     "containing_comp",
     "parent_folder",
+    "parent_property",
     "_parent",
     "_source",
     "parent",
@@ -54,6 +55,12 @@ SKIP_PROPERTIES = {
     "compositions",
     "folders",
     "footages",
+    # Layer @property accessors derived from Layer.properties — serialising
+    # them would duplicate data already present in the properties list.
+    "transform",
+    "effects",
+    "masks",
+    "text",
 }
 
 
@@ -264,6 +271,192 @@ def compare_layer(
             parsed_val = get_enum_value(parsed_layer.get(parsed_key))
             if not compare_values(exp_val, parsed_val):
                 result.add_diff(f"{path}.{exp_key}", exp_val, parsed_val, "layers")
+
+    # Compare all property groups via the properties list.
+    # Match by matchName for robustness against ordering differences,
+    # same strategy as compare_property_group uses for its children.
+    exp_properties = expected_layer.get("properties", [])
+    parsed_properties = parsed_layer.get("properties", [])
+
+    if len(exp_properties) != len(parsed_properties):
+        result.add_diff(
+            f"{path}.numProperties",
+            len(exp_properties),
+            len(parsed_properties),
+            "properties",
+        )
+
+    parsed_by_match_name: dict[str, Any] = {}
+    for p in parsed_properties:
+        mn = p.get("match_name", "")
+        if mn:
+            parsed_by_match_name[mn] = p
+
+    for i, exp_pg in enumerate(exp_properties):
+        exp_match_name = exp_pg.get("matchName", "")
+        match_name = exp_match_name or f"[{i}]"
+        child_path = f"{path}.properties[{match_name}]"
+
+        parsed_pg = parsed_by_match_name.get(exp_match_name)
+
+        if parsed_pg is None:
+            result.add_diff(child_path, "exists", "missing", "properties")
+            continue
+
+        compare_property_group(
+            exp_pg, parsed_pg, child_path, result
+        )
+
+
+def compare_property(
+    expected_prop: dict[str, Any],
+    parsed_prop: dict[str, Any],
+    path: str,
+    result: ValidationResult,
+) -> None:
+    """Compare a single property (leaf node).
+
+    Args:
+        expected_prop: Expected property from ExtendScript JSON.
+        parsed_prop: Parsed property from aep_parser.
+        path: Dotted path for error messages.
+        result: ValidationResult to accumulate differences.
+    """
+    property_mappings = {
+        "name": "name",
+        "matchName": "match_name",
+        "enabled": "enabled",
+        "expression": "expression",
+        "expressionEnabled": "expression_enabled",
+        "propertyValueType": "property_value_type",
+        "propertyDepth": "property_depth",
+        "dimensionsSeparated": "dimensions_separated",
+        "isSpatial": "is_spatial",
+        "elided": "elided",
+        "isEffect": "is_effect",
+        "isMask": "is_mask",
+        "isModified": "is_modified",
+        "selected": "selected",
+    }
+
+    for exp_key, parsed_key in property_mappings.items():
+        if exp_key in expected_prop:
+            exp_val = expected_prop[exp_key]
+            if isinstance(exp_val, dict) and exp_val.get("_undefined"):
+                continue
+            parsed_val = get_enum_value(parsed_prop.get(parsed_key))
+            if not compare_values(exp_val, parsed_val):
+                result.add_diff(f"{path}.{exp_key}", exp_val, parsed_val, "properties")
+
+    # Compare value
+    if "value" in expected_prop and parsed_prop.get("value") is not None:
+        exp_val = expected_prop["value"]
+        parsed_val = parsed_prop["value"]
+        if not isinstance(exp_val, dict) or not exp_val.get("_undefined"):
+            if not compare_values(exp_val, parsed_val):
+                result.add_diff(f"{path}.value", exp_val, parsed_val, "properties")
+
+    # Compare numKeys vs len(keyframes)
+    if "numKeys" in expected_prop:
+        exp_num_keys = expected_prop["numKeys"]
+        parsed_keyframes = parsed_prop.get("keyframes", [])
+        parsed_num_keys = len(parsed_keyframes) if parsed_keyframes else 0
+        if exp_num_keys != parsed_num_keys:
+            result.add_diff(
+                f"{path}.numKeys", exp_num_keys, parsed_num_keys, "properties"
+            )
+
+    # Compare min/max values
+    if "hasMin" in expected_prop and expected_prop["hasMin"]:
+        if "minValue" in expected_prop:
+            exp_min = expected_prop["minValue"]
+            parsed_min = parsed_prop.get("min_value")
+            if not compare_values(exp_min, parsed_min):
+                result.add_diff(f"{path}.minValue", exp_min, parsed_min, "properties")
+
+    if "hasMax" in expected_prop and expected_prop["hasMax"]:
+        if "maxValue" in expected_prop:
+            exp_max = expected_prop["maxValue"]
+            parsed_max = parsed_prop.get("max_value")
+            if not compare_values(exp_max, parsed_max):
+                result.add_diff(f"{path}.maxValue", exp_max, parsed_max, "properties")
+
+
+def compare_property_group(
+    expected_group: dict[str, Any],
+    parsed_group: dict[str, Any],
+    path: str,
+    result: ValidationResult,
+) -> None:
+    """Compare a property group (effects group, transform group, etc.).
+
+    Recursively compares nested properties and property groups.
+
+    Args:
+        expected_group: Expected property group from ExtendScript JSON.
+        parsed_group: Parsed property group from aep_parser.
+        path: Dotted path for error messages.
+        result: ValidationResult to accumulate differences.
+    """
+    group_mappings = {
+        "name": "name",
+        "matchName": "match_name",
+        "enabled": "enabled",
+        "elided": "elided",
+        "isEffect": "is_effect",
+        "isMask": "is_mask",
+        "isModified": "is_modified",
+        "propertyDepth": "property_depth",
+        "selected": "selected",
+        "maskMode": "mask_mode",
+        "inverted": "inverted",
+        "locked": "locked",
+    }
+
+    for exp_key, parsed_key in group_mappings.items():
+        if exp_key in expected_group:
+            exp_val = expected_group[exp_key]
+            if isinstance(exp_val, dict) and exp_val.get("_undefined"):
+                continue
+            parsed_val = get_enum_value(parsed_group.get(parsed_key))
+            if not compare_values(exp_val, parsed_val):
+                result.add_diff(f"{path}.{exp_key}", exp_val, parsed_val, "properties")
+
+    # Compare child properties
+    exp_props = expected_group.get("properties", [])
+    parsed_props = parsed_group.get("properties", [])
+
+    if len(exp_props) != len(parsed_props):
+        result.add_diff(
+            f"{path}.numProperties", len(exp_props), len(parsed_props), "properties"
+        )
+
+    # Match properties by matchName for robustness
+    parsed_by_match_name: dict[str, dict[str, Any]] = {}
+    for p in parsed_props:
+        mn = p.get("match_name", "")
+        if mn:
+            parsed_by_match_name[mn] = p
+
+    for i, exp_prop in enumerate(exp_props):
+        exp_match_name = exp_prop.get("matchName", "")
+        exp_name = exp_prop.get("name", f"[{i}]")
+        child_path = f"{path}.{exp_name}"
+
+        parsed_prop = parsed_by_match_name.get(exp_match_name)
+
+        if parsed_prop is None:
+            result.add_diff(child_path, "exists", "missing", "properties")
+            continue
+
+        # Determine if this is a property group or leaf property
+        exp_property_type = exp_prop.get("propertyType")
+        has_child_properties = "properties" in exp_prop
+
+        if has_child_properties or exp_property_type == "IndexedGroup":
+            compare_property_group(exp_prop, parsed_prop, child_path, result)
+        else:
+            compare_property(exp_prop, parsed_prop, child_path, result)
 
 
 def compare_comp_item(
@@ -655,6 +848,7 @@ def main(args: list[str] | None = None) -> int:
             "project",
             "composition",
             "layers",
+            "properties",
             "markers",
             "folders",
             "renderqueue",

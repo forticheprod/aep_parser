@@ -392,7 +392,12 @@ class Aep(KaitaiStruct):
             self.chunk_type = (self._io.read_bytes(4)).decode(u"ASCII")
             self.len_data = self._io.read_u4be()
             _on = self.chunk_type
-            if _on == u"LIST":
+            if _on == u"EfDC":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.EfdcBody(_io__raw_data, self, self._root)
+            elif _on == u"LIST":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
@@ -467,6 +472,11 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.DwgaBody(_io__raw_data, self, self._root)
+            elif _on == u"ewot":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.EwotBody(_io__raw_data, self, self._root)
             elif _on == u"fcid":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -537,6 +547,11 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.Lhd3Body(_io__raw_data, self, self._root)
+            elif _on == u"mkif":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.MkifBody(_io__raw_data, self, self._root)
             elif _on == u"nnhd":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -552,6 +567,11 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.PardBody(_io__raw_data, self, self._root)
+            elif _on == u"parn":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.ParnBody(_io__raw_data, self, self._root)
             elif _on == u"pdnm":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -562,6 +582,11 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+            elif _on == u"shph":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.ShphBody(_io__raw_data, self, self._root)
             elif _on == u"sspc":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -601,7 +626,10 @@ class Aep(KaitaiStruct):
         def _fetch_instances(self):
             pass
             _on = self.chunk_type
-            if _on == u"LIST":
+            if _on == u"EfDC":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"LIST":
                 pass
                 self.data._fetch_instances()
             elif _on == u"NmHd":
@@ -646,6 +674,9 @@ class Aep(KaitaiStruct):
             elif _on == u"dwga":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"ewot":
+                pass
+                self.data._fetch_instances()
             elif _on == u"fcid":
                 pass
                 self.data._fetch_instances()
@@ -688,6 +719,9 @@ class Aep(KaitaiStruct):
             elif _on == u"lhd3":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"mkif":
+                pass
+                self.data._fetch_instances()
             elif _on == u"nnhd":
                 pass
                 self.data._fetch_instances()
@@ -697,10 +731,16 @@ class Aep(KaitaiStruct):
             elif _on == u"pard":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"parn":
+                pass
+                self.data._fetch_instances()
             elif _on == u"pdnm":
                 pass
                 self.data._fetch_instances()
             elif _on == u"pjef":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"shph":
                 pass
                 self.data._fetch_instances()
             elif _on == u"sspc":
@@ -804,6 +844,72 @@ class Aep(KaitaiStruct):
 
             self._m_working_gamma = (2.4 if self.working_gamma_selector != 0 else 2.2)
             return getattr(self, '_m_working_gamma', None)
+
+
+    class EfdcBody(KaitaiStruct):
+        """Effect definition count. The first byte contains the number of
+        LIST EfDf definitions inside LIST EfdG.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.EfdcBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.count = self._io.read_u1()
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class EwotBody(KaitaiStruct):
+        """Effect workspace outline entries inside LIST Ewst.
+        Each entry is 4 bytes. The first byte contains flags:
+          - bit 7 (0x80): child property of an effect (not an effect group)
+          - bit 6 (0x40): selected
+        Entries without bit 7 are effect-group-level nodes.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.EwotBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.num_entries = self._io.read_u4be()
+            self.entries = []
+            for i in range(self.num_entries):
+                self.entries.append(Aep.EwotEntry(self._io, self, self._root))
+
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.entries)):
+                pass
+                self.entries[i]._fetch_instances()
+
+
+
+    class EwotEntry(KaitaiStruct):
+        """Single effect workspace outline entry."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.EwotEntry, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.is_child_property = self._io.read_bits_int_be(1) != 0
+            self.selected = self._io.read_bits_int_be(1) != 0
+            self.reserved_flags = self._io.read_bits_int_be(6)
+            self.data = self._io.read_bytes(3)
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class FcidBody(KaitaiStruct):
@@ -1525,6 +1631,25 @@ class Aep(KaitaiStruct):
 
 
 
+    class MkifBody(KaitaiStruct):
+        """Mask info. Contains inverted flag, locked flag and mask mode."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.MkifBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.inverted = self._io.read_u1()
+            self.locked = self._io.read_u1()
+            self._unnamed2 = self._io.read_bytes(4)
+            self.mode = self._io.read_u2be()
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class NmhdBody(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             super(Aep.NmhdBody, self).__init__(_io)
@@ -2148,6 +2273,24 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_last_value_z', None)
 
 
+    class ParnBody(KaitaiStruct):
+        """Parameter count inside a LIST parT. Contains the number of tdmn/pard
+        parameter entries that follow.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.ParnBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.count = self._io.read_u4be()
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class PngRoptData(KaitaiStruct):
         """PNG format-specific render options.
         Contains width, height, and bit depth at known offsets.
@@ -2456,6 +2599,41 @@ class Aep(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
+
+
+    class ShphBody(KaitaiStruct):
+        """Shape path header. Contains a closed/open flag and the bounding box
+        for the shape vertices.  Vertex coordinates in the associated ldat
+        are normalized to [0, 1] relative to this bounding box.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.ShphBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self._unnamed0 = self._io.read_bytes(3)
+            self._unnamed1 = self._io.read_bits_int_be(4)
+            self.open = self._io.read_bits_int_be(1) != 0
+            self._unnamed3 = self._io.read_bits_int_be(3)
+            self.top_left_x = self._io.read_f4be()
+            self.top_left_y = self._io.read_f4be()
+            self.bottom_right_x = self._io.read_f4be()
+            self.bottom_right_y = self._io.read_f4be()
+            self._unnamed8 = self._io.read_bytes(4)
+
+
+        def _fetch_instances(self):
+            pass
+
+        @property
+        def closed(self):
+            if hasattr(self, '_m_closed'):
+                return self._m_closed
+
+            self._m_closed = (not (self.open))
+            return getattr(self, '_m_closed', None)
 
 
     class SspcBody(KaitaiStruct):

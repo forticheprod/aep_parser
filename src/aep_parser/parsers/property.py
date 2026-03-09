@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import logging
+import struct
 from contextlib import suppress
 from typing import Any
 
@@ -10,6 +11,7 @@ from ..enums import (
     KeyframeInterpolationType,
     Label,
     PropertyControlType,
+    PropertyType,
     PropertyValueType,
 )
 from ..kaitai import Aep
@@ -23,8 +25,11 @@ from ..kaitai.utils import (
 )
 from ..models.properties.keyframe import Keyframe
 from ..models.properties.marker import MarkerValue
+from ..models.properties.mask_property_group import MaskPropertyGroup
 from ..models.properties.property import Property
 from ..models.properties.property_group import PropertyGroup
+from ..models.properties.shape_value import ShapeValue
+from .mappings import map_mask_mode
 from .match_names import MATCH_NAME_TO_NICE_NAME
 from .text import parse_btdk_cos
 from .utils import (
@@ -35,9 +40,29 @@ from .utils import (
 
 logger = logging.getLogger(__name__)
 
+# Match names whose binary values are stored as 0–1 fractions but
+# ExtendScript reports as 0–100 percentages.  Values (static + keyframe)
+# are multiplied by 100 after extraction from the binary.
+_PERCENT_MATCH_NAMES: set[str] = {
+    "ADBE Opacity",
+    "ADBE Scale",
+    "ADBE Mask Opacity",
+}
+
+# Match names that correspond to indexed groups in After Effects.
+INDEXED_GROUP_MATCH_NAMES = {
+    "ADBE Effect Parade",
+    "ADBE Mask Parade",
+    "ADBE Effect Mask Parade",
+}
+
 
 def parse_property_group(
-    tdgp_chunk: Aep.Chunk, group_match_name: str, time_scale: float
+    tdgp_chunk: Aep.Chunk,
+    group_match_name: str,
+    time_scale: float,
+    property_depth: int,
+    effect_param_defs: dict[str, dict[str, dict[str, Any]]],
 ) -> PropertyGroup:
     """
     Parse a property group.
@@ -51,65 +76,195 @@ def parse_property_group(
             regardless of the display name (the name attribute value) or any
             changes to the application. Unlike the display name, it is not
             localized. An indexed group
-            (`PropertyBase.property_type == Aep.PropertyType.indexed_group`)
+            (`PropertyBase.property_type == PropertyType.indexed_group`)
             may not have a name value, but always has a match_name value.
         time_scale: The time scale of the parent composition, used as a divisor
             for some frame values.
+        property_depth: The nesting depth of this group (0 = layer level).
+        effect_param_defs: Project-level effect parameter definitions, used as
+            fallback when layer-level parT chunks are missing.
     """
     name = MATCH_NAME_TO_NICE_NAME.get(group_match_name, group_match_name)
+    child_depth = property_depth + 1
 
     properties: list[Property | PropertyGroup] = []
     chunks_by_sub_prop = get_chunks_by_match_name(tdgp_chunk)
     for match_name, sub_prop_chunks in chunks_by_sub_prop.items():
-        first_chunk = sub_prop_chunks[0]
-        sub_prop: Property | PropertyGroup
-        if first_chunk.list_type == "tdgp":
-            sub_prop = parse_property_group(
-                tdgp_chunk=first_chunk,
-                group_match_name=match_name,
-                time_scale=time_scale,
+        # Find the first LIST chunk; non-LIST chunks (e.g. mkif for masks)
+        # are auxiliary data that we skip when determining the property type.
+        try:
+            first_chunk = find_by_type(
+                chunks=sub_prop_chunks, chunk_type="LIST"
             )
-        elif first_chunk.list_type == "sspc":
-            sub_prop = parse_effect(
-                sspc_chunk=first_chunk,
-                group_match_name=match_name,
-                time_scale=time_scale,
-            )
+        except ChunkNotFoundError:
+            continue
+        # Effects can share a match name when the same effect type is applied
+        # multiple times. Iterate all LIST chunks for sspc and tdgp; other
+        # types use the first chunk (additional chunks are auxiliary data).
+        if first_chunk.list_type == "sspc":
+            for chunk in filter_by_list_type(
+                chunks=sub_prop_chunks, list_type="sspc"
+            ):
+                sub_prop: Property | PropertyGroup = parse_effect(
+                    sspc_chunk=chunk,
+                    group_match_name=match_name,
+                    time_scale=time_scale,
+                    property_depth=child_depth,
+                    effect_param_defs=effect_param_defs,
+                )
+                properties.append(sub_prop)
+        elif first_chunk.list_type == "tdgp":
+            if match_name == "ADBE Mask Atom":
+                # Pair each mask tdgp chunk with its mkif (mask info) chunk
+                for tdgp_c, mkif_c in zip(
+                    filter_by_list_type(
+                        chunks=sub_prop_chunks, list_type="tdgp"
+                    ),
+                    filter_by_type(
+                        chunks=sub_prop_chunks, chunk_type="mkif"
+                    ),
+                ):
+                    sub_prop = _parse_mask_atom(
+                        tdgp_chunk=tdgp_c,
+                        mkif_chunk=mkif_c,
+                        time_scale=time_scale,
+                        property_depth=child_depth,
+                        effect_param_defs=effect_param_defs,
+                    )
+                    properties.append(sub_prop)
+                # Append 1-based index to mask names (e.g. "Mask 1", "Mask 2")
+                mask_count = 0
+                for p in properties:
+                    if isinstance(p, MaskPropertyGroup):
+                        mask_count += 1
+                        p.name = f"Mask {mask_count}"
+            else:
+                # Indexed groups (e.g. effects) can share a match name.
+                for tdgp_c in filter_by_list_type(
+                    chunks=sub_prop_chunks, list_type="tdgp"
+                ):
+                    sub_prop = parse_property_group(
+                        tdgp_chunk=tdgp_c,
+                        group_match_name=match_name,
+                        time_scale=time_scale,
+                        property_depth=child_depth,
+                        effect_param_defs=effect_param_defs,
+                    )
+                    properties.append(sub_prop)
         elif first_chunk.list_type == "tdbs":
             sub_prop = parse_property(
                 tdbs_chunk=first_chunk,
                 match_name=match_name,
                 time_scale=time_scale,
+                property_depth=child_depth,
             )
+            properties.append(sub_prop)
         elif first_chunk.list_type == "otst":
             sub_prop = parse_orientation(
                 otst_chunk=first_chunk,
                 match_name=match_name,
                 time_scale=time_scale,
+                property_depth=child_depth,
             )
+            properties.append(sub_prop)
         elif first_chunk.list_type == "btds":
             sub_prop = parse_text_document(
                 btds_chunk=first_chunk,
                 match_name=match_name,
                 time_scale=time_scale,
+                property_depth=child_depth,
             )
+            properties.append(sub_prop)
+        elif first_chunk.list_type == "om-s":
+            # TODO: temporarily disabled for debugging
+            pass
         else:
-            raise NotImplementedError(f"Cannot parse {first_chunk.list_type} property")
-        properties.append(sub_prop)
+            logger.warning(
+                "Skipping unsupported property list type '%s' "
+                "(match name '%s')",
+                first_chunk.list_type,
+                match_name,
+            )
+
+    # Try to read the group-level enabled flag from its tdsb chunk.
+    # Leaf properties always have a tdsb; groups may or may not.
+    group_enabled = True
+    with suppress(ChunkNotFoundError):
+        group_tdsb = find_by_type(chunks=tdgp_chunk.chunks, chunk_type="tdsb")
+        group_enabled = group_tdsb.data.enabled
 
     prop_group = PropertyGroup(
-        enabled=True,
-        is_effect=False,
+        enabled=group_enabled,
         match_name=group_match_name,
         name=name,
+        property_depth=property_depth,
         properties=properties,
     )
 
+    # Set parent reference on all children
+    for child in properties:
+        child.parent_property = prop_group
+
+    # Mark indexed groups
+    if group_match_name in INDEXED_GROUP_MATCH_NAMES:
+        prop_group.property_type = PropertyType.INDEXED_GROUP
+
+    # Mark special group types
+    if group_match_name == "ADBE Effect Mask Parade":
+        prop_group.elided = True
     return prop_group
 
 
+def _parse_mask_atom(
+    tdgp_chunk: Aep.Chunk,
+    mkif_chunk: Aep.Chunk,
+    time_scale: float,
+    property_depth: int,
+    effect_param_defs: dict[str, dict[str, dict[str, Any]]],
+) -> MaskPropertyGroup:
+    """Parse a mask atom into a MaskPropertyGroup.
+
+    Combines the child properties from the tdgp chunk with the mask-specific
+    attributes (inverted, locked, mask_mode) parsed from the mkif chunk.
+
+    Args:
+        tdgp_chunk: The tdgp chunk for this mask atom.
+        mkif_chunk: The mkif (mask info) chunk containing inverted, locked,
+            and mode.
+        time_scale: The time scale of the parent composition.
+        property_depth: The nesting depth of this group.
+        effect_param_defs: Project-level effect parameter definitions.
+    """
+    base = parse_property_group(
+        tdgp_chunk=tdgp_chunk,
+        group_match_name="ADBE Mask Atom",
+        time_scale=time_scale,
+        property_depth=property_depth,
+        effect_param_defs=effect_param_defs,
+    )
+    mask_group = MaskPropertyGroup(
+        enabled=base.enabled,
+        match_name=base.match_name,
+        name=base.name,
+        property_depth=base.property_depth,
+        properties=base.properties,
+        inverted=bool(mkif_chunk.inverted),
+        locked=bool(mkif_chunk.locked),
+        mask_mode=map_mask_mode(int(mkif_chunk.mode)),
+    )
+    mask_group.property_type = base.property_type
+    mask_group.is_mask = True
+    # Fix parent references so children point to the new mask_group
+    for child in mask_group.properties:
+        child.parent_property = mask_group
+    return mask_group
+
+
 def parse_orientation(
-    otst_chunk: Aep.Chunk, match_name: str, time_scale: float
+    otst_chunk: Aep.Chunk,
+    match_name: str,
+    time_scale: float,
+    property_depth: int,
 ) -> Property:
     """
     Parse an orientation property.
@@ -125,30 +280,179 @@ def parse_orientation(
             localized.
         time_scale: The time scale of the parent composition, used as a divisor
             for some frame values.
+        property_depth: The nesting depth of this property (0 = layer level).
     """
     tdbs_chunk = find_by_list_type(chunks=otst_chunk.chunks, list_type="tdbs")
     prop = parse_property(
         tdbs_chunk=tdbs_chunk,
         match_name=match_name,
         time_scale=time_scale,
+        property_depth=property_depth,
     )
-    # Override types for orientation
+    # Orientation uses an angle dial control.  ExtendScript reports
+    # propertyValueType as THREE_D_SPATIAL and isSpatial as True, even
+    # though the binary stores is_spatial=False.
     prop.property_control_type = PropertyControlType.ANGLE
-    prop.property_value_type = PropertyValueType.ORIENTATION
+    prop.property_value_type = PropertyValueType.THREE_D_SPATIAL
+    prop.is_spatial = True
 
-    # otky_chunk = find_by_list_type(
-    #     chunks=otst_chunk.chunks,
-    #     list_type="otky"
-    # )
-    # otda_chunks = filter_by_type(
-    #     chunks=otky_chunk.chunks,
-    #     chunk_type="otda"
-    # )
+    # The binary stores orientation as a 1-D scalar (single angle), but
+    # ExtendScript reports it as a 3-element array [x, y, z].  Convert
+    # the scalar value to match.
+    if prop.value is not None and not isinstance(prop.value, (list, tuple)):
+        prop.value = [prop.value, 0.0, 0.0]
+    prop.dimensions = 3
+    prop.vector = True
+
+    return prop
+
+
+def _parse_shape_shap(shap_chunk: Aep.Chunk) -> ShapeValue:
+    """Parse a single shape path from a ``shap`` LIST chunk.
+
+    Each ``shap`` LIST contains:
+    - ``shph`` chunk: shape header with closed flag and bounding box
+    - ``list`` LIST:  contains ``lhd3`` (point count/size) and ``ldat``
+      (raw normalized bezier points)
+
+    Points in ``ldat`` are stored as big-endian ``(f4 x, f4 y)`` pairs,
+    normalized to the ``[0, 1]`` range of the bounding box.  Every three
+    consecutive points form a cycle:
+    ``vertex, out_tangent, in_tangent_of_next_vertex``.
+
+    Args:
+        shap_chunk: A ``shap`` LIST chunk.
+
+    Returns:
+        A [ShapeValue][] with absolute coordinates and tangent offsets.
+    """
+    shph_chunk = find_by_type(chunks=shap_chunk.chunks, chunk_type="shph")
+    list_chunk = find_by_list_type(chunks=shap_chunk.chunks, list_type="list")
+
+    # Bounding box from shape header
+    tl_x = shph_chunk.top_left_x
+    tl_y = shph_chunk.top_left_y
+    br_x = shph_chunk.bottom_right_x
+    br_y = shph_chunk.bottom_right_y
+    closed = shph_chunk.closed
+
+    # Read raw bezier points from ldat
+    lhd3 = find_by_type(chunks=list_chunk.chunks, chunk_type="lhd3")
+    ldat = find_by_type(chunks=list_chunk.chunks, chunk_type="ldat")
+
+    point_count = lhd3.count
+    raw_bytes = ldat.items
+
+    # Parse (f4 x, f4 y) pairs — big-endian
+    points: list[tuple[float, float]] = []
+    for i in range(point_count):
+        offset = i * 8
+        px, py = struct.unpack_from(">ff", raw_bytes, offset)
+        points.append((px, py))
+
+    # De-interleave into vertex / out_tangent / in_tangent triples.
+    # Raw order per cycle of 3:  vertex, out_tangent, in_tangent_of_next
+    # Following python-lottie:
+    #   vertex      = points[i]
+    #   out_tangent = points[i + 1]
+    #   in_tangent  = points[(i - 1) % len(points)]
+    vertices: list[list[float]] = []
+    in_tangents: list[list[float]] = []
+    out_tangents: list[list[float]] = []
+
+    for i in range(0, len(points), 3):
+        vx = tl_x * (1 - points[i][0]) + br_x * points[i][0]
+        vy = tl_y * (1 - points[i][1]) + br_y * points[i][1]
+
+        ox = tl_x * (1 - points[i + 1][0]) + br_x * points[i + 1][0]
+        oy = tl_y * (1 - points[i + 1][1]) + br_y * points[i + 1][1]
+
+        in_idx = (i - 1) % len(points)
+        ix = tl_x * (1 - points[in_idx][0]) + br_x * points[in_idx][0]
+        iy = tl_y * (1 - points[in_idx][1]) + br_y * points[in_idx][1]
+
+        vertices.append([vx, vy])
+        # Tangents as offsets relative to vertex
+        in_tangents.append([ix - vx, iy - vy])
+        out_tangents.append([ox - vx, oy - vy])
+
+    return ShapeValue(
+        closed=closed,
+        vertices=vertices,
+        in_tangents=in_tangents,
+        out_tangents=out_tangents,
+    )
+
+
+def parse_shape(
+    oms_chunk: Aep.Chunk,
+    match_name: str,
+    time_scale: float,
+    property_depth: int,
+) -> Property:
+    """Parse a shape/mask-path property from an ``om-s`` LIST chunk.
+
+    An ``om-s`` LIST contains:
+    - ``tdbs`` LIST: standard property metadata (timing, keyframes, etc.)
+    - ``omks`` LIST: shape keyframe values (one ``shap`` per keyframe,
+      or one ``shap`` for static shapes)
+
+    Args:
+        oms_chunk: The ``om-s`` LIST chunk to parse.
+        match_name: The property match name.
+        time_scale: Time scale divisor of the parent composition.
+        property_depth: Nesting depth of this property.
+
+    Returns:
+        A [Property][] with ``property_value_type`` set to
+        [SHAPE][aep_parser.enums.PropertyValueType.SHAPE] and ``value``
+        set to a [ShapeValue][].
+    """
+    tdbs_chunk = find_by_list_type(chunks=oms_chunk.chunks, list_type="tdbs")
+    prop = parse_property(
+        tdbs_chunk=tdbs_chunk,
+        match_name=match_name,
+        time_scale=time_scale,
+        property_depth=property_depth,
+    )
+
+    prop.property_value_type = PropertyValueType.SHAPE
+    prop.is_spatial = True
+    # Shape properties always carry a value (from omks), even though
+    # tdb4 may report no_value=True (there is no cdat for shapes).
+    prop.no_value = False
+
+    # Collect shape values from omks → shap LISTs
+    try:
+        omks_chunk = find_by_list_type(
+            chunks=oms_chunk.chunks, list_type="omks"
+        )
+        shape_values: list[ShapeValue] = []
+        for shap_chunk in filter_by_list_type(
+            chunks=omks_chunk.chunks, list_type="shap"
+        ):
+            shape_values.append(_parse_shape_shap(shap_chunk))
+    except (ChunkNotFoundError, Exception):
+        logger.debug("Could not parse omks shape data for %s", match_name)
+        return prop
+
+    # Assign static value (first shape)
+    if shape_values:
+        prop.value = shape_values[0]
+
+    # Assign shape values to keyframes by index
+    for idx, kf in enumerate(prop.keyframes):
+        if idx < len(shape_values):
+            kf.value = shape_values[idx]
+
     return prop
 
 
 def parse_text_document(
-    btds_chunk: Aep.Chunk, match_name: str, time_scale: float
+    btds_chunk: Aep.Chunk,
+    match_name: str,
+    time_scale: float,
+    property_depth: int,
 ) -> Property:
     """
     Parse a text document property.
@@ -164,12 +468,14 @@ def parse_text_document(
             localized.
         time_scale: The time scale of the parent composition, used as a divisor
             for some frame values.
+        property_depth: The nesting depth of this property (0 = layer level).
     """
     tdbs_chunk = find_by_list_type(chunks=btds_chunk.chunks, list_type="tdbs")
     prop = parse_property(
         tdbs_chunk=tdbs_chunk,
         match_name=match_name,
         time_scale=time_scale,
+        property_depth=property_depth,
     )
 
     try:
@@ -283,6 +589,7 @@ def parse_property(
     tdbs_chunk: Aep.Chunk,
     match_name: str,
     time_scale: float,
+    property_depth: int,
 ) -> Property:
     """
     Parse a property.
@@ -298,6 +605,7 @@ def parse_property(
             localized.
         time_scale: The time scale of the parent composition, used as a divisor
             for some frame values.
+        property_depth: The nesting depth of this property (0 = layer level).
     """
     tdbs_child_chunks = tdbs_chunk.chunks
 
@@ -305,16 +613,26 @@ def parse_property(
 
     locked_ratio = tdsb_chunk.locked_ratio
     enabled = tdsb_chunk.enabled
-    dimensions_separated = tdsb_chunk.dimensions_separated
-
-    name = _get_user_defined_name(tdbs_chunk) or MATCH_NAME_TO_NICE_NAME.get(
-        match_name, match_name
+    # ExtendScript only reports dimensionsSeparated=True on the
+    # Position property ("ADBE Position") when separation is active.
+    # The binary stores the flag on many other properties, but
+    # ExtendScript ignores it for non-Position properties and for
+    # the individual dimension children ("ADBE Position_0" etc.).
+    is_position_parent = match_name == "ADBE Position"
+    dimensions_separated = (
+        tdsb_chunk.dimensions_separated if is_position_parent else False
     )
+
+    user_name = _get_user_defined_name(tdbs_chunk)
+    if user_name is not None:
+        name = user_name
+    else:
+        name = MATCH_NAME_TO_NICE_NAME.get(match_name, match_name)
 
     tdb4_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdb4")
 
     is_spatial = tdb4_chunk.is_spatial
-    expression_enabled = tdb4_chunk.expression_enabled
+    raw_expression_enabled = tdb4_chunk.expression_enabled
     animated = tdb4_chunk.animated
     dimensions = tdb4_chunk.dimensions
     integer = tdb4_chunk.integer
@@ -336,7 +654,14 @@ def parse_property(
 
     try:
         cdat_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="cdat")
-        value = cdat_chunk.value[:dimensions]
+        values = cdat_chunk.value[:dimensions]
+        # ExtendScript returns a scalar for 1D non-color properties
+        if not values:
+            value = None
+        elif dimensions == 1 and not color:
+            value = values[0]
+        else:
+            value = values
     except ChunkNotFoundError:
         value = None
 
@@ -346,7 +671,28 @@ def parse_property(
     except ChunkNotFoundError:
         expression = ""
 
+    # The binary stores expression_enabled=True on properties that inherit
+    # the flag from a sibling (e.g. when Position has an expression, the
+    # binary copies the flag to Orientation, X/Y Rotation, etc.).
+    # ExtendScript only reports True when the property actually has an
+    # expression string.  Separated-dimension children (X/Y/Z Position)
+    # also inherit the parent's flag.
+    expression_enabled = raw_expression_enabled and bool(expression)
+
     keyframes = _parse_keyframes(tdbs_child_chunks, time_scale, is_spatial)
+
+    # Convert 0–1 fraction to 0–100 percentage for properties that
+    # ExtendScript reports in percent (e.g. Opacity, Scale).
+    if match_name in _PERCENT_MATCH_NAMES:
+        if isinstance(value, (int, float)):
+            value = value * 100.0
+        elif isinstance(value, list):
+            value = [v * 100.0 for v in value]
+        for kf in keyframes:
+            if isinstance(kf.value, (int, float)):
+                kf.value = kf.value * 100.0
+            elif isinstance(kf.value, list):
+                kf.value = [v * 100.0 for v in kf.value]
 
     return Property(
         animated=animated,
@@ -364,6 +710,7 @@ def parse_property(
         name=name,
         no_value=no_value,
         property_control_type=property_control_type,
+        property_depth=property_depth,
         property_value_type=property_value_type,
         value=value,
         vector=vector,
@@ -391,13 +738,32 @@ def _parse_keyframes(
             continuous_bezier=kf.continuous_bezier,
             auto_bezier=kf.auto_bezier,
             roving_across_time=kf.roving_across_time,
+            value=_extract_keyframe_value(kf),
         )
         for kf in kf_items
     ]
     return keyframes
 
 
-def _parse_effect_param_defs(
+def _extract_keyframe_value(
+    kf: Aep.LdatItem,
+) -> list[float] | float | None:
+    """Extract the value from a keyframe's data payload.
+
+    Returns a scalar for 1-dimensional properties, a list for
+    multi-dimensional or color properties, and ``None`` when the
+    keyframe type carries no value (e.g. markers).
+    """
+    kf_data = kf.kf_data
+    if not hasattr(kf_data, "value"):
+        return None
+    values = list(kf_data.value)
+    if len(values) == 1:
+        return values[0]
+    return values
+
+
+def parse_effect_param_defs(
     sspc_child_chunks: list[Aep.Chunk],
 ) -> dict[str, dict[str, Any]]:
     """Parse effect parameter definitions from parT chunk.
@@ -451,6 +817,7 @@ def _parse_effect_properties(
     tdgp_chunk: Aep.Chunk,
     param_defs: dict[str, dict[str, Any]],
     time_scale: float,
+    child_depth: int,
 ) -> list[Property | PropertyGroup]:
     """Parse effect properties and merge with parameter definitions.
 
@@ -461,6 +828,7 @@ def _parse_effect_properties(
         tdgp_chunk: The tdgp chunk containing property data.
         param_defs: Parameter definitions to merge into properties.
         time_scale: The time scale of the parent composition.
+        child_depth: The property depth for parsed child properties.
 
     Returns:
         List of parsed and merged properties.
@@ -474,22 +842,34 @@ def _parse_effect_properties(
                 tdbs_chunk=first_chunk,
                 match_name=match_name,
                 time_scale=time_scale,
+                property_depth=child_depth,
             )
             if match_name in param_defs:
                 _merge_param_def(prop, param_defs[match_name])
             properties.append(prop)
         elif first_chunk.list_type == "tdgp":
-            # Encountered with "ADBE FreePin3" effect (Obsolete > Puppet)
-            pass
+            sub_group = parse_property_group(
+                tdgp_chunk=first_chunk,
+                group_match_name=match_name,
+                time_scale=time_scale,
+                property_depth=child_depth,
+                effect_param_defs={},
+            )
+            properties.append(sub_group)
         else:
             raise NotImplementedError(
                 f"Cannot parse parameter value : {first_chunk.list_type}"
             )
+
     return properties
 
 
 def parse_effect(
-    sspc_chunk: Aep.Chunk, group_match_name: str, time_scale: float
+    sspc_chunk: Aep.Chunk,
+    group_match_name: str,
+    time_scale: float,
+    property_depth: int,
+    effect_param_defs: dict[str, dict[str, dict[str, Any]]],
 ) -> PropertyGroup:
     """
     Parse an effect.
@@ -503,7 +883,7 @@ def parse_effect(
             regardless of the display name (the name attribute value) or any
             changes to the application. Unlike the display name, it is not
             localized. An indexed group (`PropertyBase.property_type ==
-            Aep.PropertyType.indexed_group`) may not have a name value, but
+            PropertyType.indexed_group`) may not have a name value, but
             always has a match_name value.
         time_scale: The time scale of the parent composition, used as a divisor
             for some frame values.
@@ -515,16 +895,34 @@ def parse_effect(
     tdgp_chunk = find_by_list_type(chunks=sspc_child_chunks, list_type="tdgp")
     name = _get_user_defined_name(tdgp_chunk) or str_contents(utf8_chunk)
 
-    param_defs = _parse_effect_param_defs(sspc_child_chunks)
-    properties = _parse_effect_properties(tdgp_chunk, param_defs, time_scale)
+    try:
+        param_defs = parse_effect_param_defs(sspc_child_chunks)
+    except ChunkNotFoundError:
+        # Layer-level sspc may lack parT when the same effect type is used
+        # more than once. Fall back to project-level EfdG definitions.
+        if group_match_name in effect_param_defs:
+            param_defs = effect_param_defs[group_match_name]
+        else:
+            param_defs = {}
+    properties = _parse_effect_properties(
+        tdgp_chunk, param_defs, time_scale, child_depth=property_depth + 1
+    )
 
-    return PropertyGroup(
+    effect_group = PropertyGroup(
         enabled=True,
-        is_effect=True,
         match_name=group_match_name,
         name=name,
+        property_depth=property_depth,
         properties=properties,
     )
+    effect_group.is_effect = True
+    effect_group.property_type = PropertyType.INDEXED_GROUP
+
+    # Set parent reference on all children
+    for child in properties:
+        child.parent_property = effect_group
+
+    return effect_group
 
 
 def _parse_effect_parameter_def(parameter_chunks: list[Aep.Chunk]) -> dict[str, Any]:
@@ -603,7 +1001,7 @@ def parse_markers(
             regardless of the display name (the name attribute value) or any
             changes to the application. Unlike the display name, it is not
             localized. An indexed group (`PropertyBase.property_type ==
-            Aep.PropertyType.indexed_group`) may not have a name value, but
+            PropertyType.indexed_group`) may not have a name value, but
             always has a match_name value.
         time_scale: The time scale of the parent composition, used as a divisor
             for some frame values.
@@ -615,6 +1013,7 @@ def parse_markers(
         tdbs_chunk=tdbs_chunk,
         match_name=group_match_name,
         time_scale=time_scale,
+        property_depth=1,
     )
     mrky_chunk = find_by_list_type(chunks=mrst_chunk.chunks, list_type="mrky")
     nmrd_chunks = filter_by_list_type(chunks=mrky_chunk.chunks, list_type="Nmrd")
@@ -670,11 +1069,15 @@ def parse_marker(
     )
 
 
-def _get_user_defined_name(root_chunk: Aep.Chunk) -> str:
-    """Get the user defined name of the property if there is one, else an empty string.
+def _get_user_defined_name(root_chunk: Aep.Chunk) -> str | None:
+    """Get the user defined name of the property if there is one, else None.
 
     Args:
         root_chunk (Aep.Chunk): The LIST chunk to parse.
+
+    Returns:
+        The user-defined name (possibly empty string), or None when
+        the property uses the default sentinel name.
     """
     tdsn_chunk = find_by_type(chunks=root_chunk.chunks, chunk_type="tdsn")
     utf8_chunk = tdsn_chunk.chunk
@@ -684,4 +1087,4 @@ def _get_user_defined_name(root_chunk: Aep.Chunk) -> str:
     # The default if there is not is "-_0_/-".
     if name != "-_0_/-":
         return name
-    return ""
+    return None

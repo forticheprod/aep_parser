@@ -24,9 +24,9 @@ class FontObject:
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         comp = app.project.compositions[0]
         font = comp.text_layers[0].text.source_text.value.font
         print(font.family_name)

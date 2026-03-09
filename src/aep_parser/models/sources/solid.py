@@ -12,10 +12,11 @@ class SolidSource(FootageSource):
 
     Example:
         ```python
-        import aep_parser
-        from aep_parser.models.sources.solid import SolidSource
+        from aep_parser import SolidSource, parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
+
+        app = parse("project.aep")
         footage = app.project.footages[0]
         if isinstance(footage.main_source, SolidSource):
             print(footage.main_source.color)

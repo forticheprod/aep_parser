@@ -276,32 +276,22 @@ var AepExport = AepExport || {};
      * Export effects from a layer.
      */
     function exportEffects(layer) {
-        var effects = [];
         var effectsGroup = layer.property("ADBE Effect Parade");
         if (!effectsGroup || effectsGroup.numProperties === 0) {
-            return effects;
+            return null;
         }
+        return exportPropertyGroup(effectsGroup, 0);
+    }
 
-        for (var i = 1; i <= effectsGroup.numProperties; i++) {
-            var effect = effectsGroup.property(i);
-            var effectData = getAllAttributes(effect);
-
-            // Export effect properties
-            effectData.properties = [];
-            for (var j = 1; j <= effect.numProperties; j++) {
-                var prop = effect.property(j);
-                if (prop.propertyType === PropertyType.PROPERTY) {
-                    effectData.properties.push(exportProperty(prop));
-                } else if (prop.propertyType === PropertyType.INDEXED_GROUP || 
-                           prop.propertyType === PropertyType.NAMED_GROUP) {
-                    effectData.properties.push(exportPropertyGroup(prop, 0));
-                }
-            }
-
-            effects.push(effectData);
+    /**
+     * Export masks from a layer.
+     */
+    function exportMasks(layer) {
+        var masksGroup = layer.property("ADBE Mask Parade");
+        if (!masksGroup || masksGroup.numProperties === 0) {
+            return null;
         }
-
-        return effects;
+        return exportPropertyGroup(masksGroup, 0);
     }
 
     /**
@@ -394,16 +384,19 @@ var AepExport = AepExport || {};
             result.markers = exportMarkers(layer.marker);
         }
 
-        // Export transform properties
-        var transform = exportTransform(layer);
-        if (transform) {
-            result.transform = transform;
-        }
-
-        // Export effects
-        var effects = exportEffects(layer);
-        if (effects.length > 0) {
-            result.effects = effects;
+        // Export all property groups as an ordered properties list.
+        // Mirrors Layer.properties in aep_parser (skipping the marker group).
+        result.properties = [];
+        for (var i = 1; i <= layer.numProperties; i++) {
+            var child = layer.property(i);
+            if (!child) continue;
+            // Markers are exported separately above
+            if (child.matchName === "ADBE Marker") continue;
+            if (child.propertyType === PropertyType.PROPERTY) {
+                result.properties.push(exportProperty(child));
+            } else {
+                result.properties.push(exportPropertyGroup(child, 1));
+            }
         }
 
         return result;

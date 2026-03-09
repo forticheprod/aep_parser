@@ -174,18 +174,11 @@ def build_layer_node(
     if include_properties:
         # Transform properties
         if layer.transform:
-            children.append(
-                {
-                    "type": "Transform",
-                    "name": "Transform",
-                    "attrs": {"properties": len(layer.transform)},
-                    "children": [build_property_node(p) for p in layer.transform],
-                }
-            )
+            children.append(build_property_group_node(layer.transform))
 
         # Effects
-        for effect in layer.effects:
-            children.append(build_property_group_node(effect))
+        if layer.effects:
+            children.append(build_property_group_node(layer.effects))
 
         # Text properties
         if isinstance(layer.text, PropertyGroup):

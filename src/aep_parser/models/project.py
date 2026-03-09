@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 from .items.composition import CompItem
 from .items.folder import FolderItem
@@ -38,9 +38,9 @@ class Project:
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         project = app.project
         print(project.file)
         for item in project:
@@ -190,6 +190,10 @@ class Project:
     Project panel, but not items contained inside other folders in the Project
     panel.
     """
+    _effect_param_defs: dict[str, dict[str, dict[str, Any]]] = field(
+        default_factory=dict, init=False, repr=False
+    )
+
     _layers_by_uid: dict[int, Layer] | None = field(
         default=None, init=False, repr=False
     )

@@ -76,6 +76,7 @@ mkdocs serve --strict
 - Use `pathlib` for file paths
 - Use f-strings for formatting
 - No spaces on empty lines
+- **No `struct` module** for binary parsing — all binary format decoding must be defined in `kaitai/aep.ksy` and accessed via Kaitai-generated attributes
 
 ### Adding New Parsed Data
 1. Find the chunk type in `kaitai/aep.ksy` or add new chunk definition
@@ -291,9 +292,6 @@ Configuration in `mkdocs.yml` enables:
    # My Module
    
    ::: aep_parser.models.my_module.MyClass
-       options:
-         show_root_heading: true
-         show_source: true
    ```
 3. Add page to navigation in `mkdocs.yml` under `nav:` section
 4. Build and verify: `mkdocs serve --strict`

@@ -14,9 +14,9 @@ class MarkerValue:
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         comp = app.project.compositions[0]
         marker = comp.markers[0]
         print(marker.comment)

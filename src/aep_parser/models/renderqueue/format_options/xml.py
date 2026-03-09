@@ -27,12 +27,9 @@ class XmlFormatOptions:
 
     Example:
         ```python
-        import aep_parser
-        from aep_parser.models.renderqueue.format_options.xml import (
-            XmlFormatOptions,
-        )
+        from aep_parser import XmlFormatOptions, parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         om = app.project.render_queue.items[0].output_modules[0]
         if isinstance(om.format_options, XmlFormatOptions):
             print(om.format_options.video_codec)

@@ -3,6 +3,8 @@ from __future__ import annotations
 import typing
 from dataclasses import dataclass
 
+from aep_parser.enums import PropertyType
+
 from .property_base import PropertyBase
 
 if typing.TYPE_CHECKING:
@@ -22,13 +24,14 @@ class PropertyGroup(PropertyBase):
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         comp = app.project.compositions[0]
         effects = comp.layers[0].effects
-        for effect in effects:
-            ...
+        if effects is not None:
+            for effect in effects:
+                ...
         ```
 
     Info:
@@ -37,24 +40,108 @@ class PropertyGroup(PropertyBase):
         `PropertyGroup`.
 
     Info:
-        `PropertyGroup` is a base class for `MaskPropertyGroup`.
+        `PropertyGroup` is a base class for [Layer][] and `MaskPropertyGroup`.
         `PropertyGroup` attributes and methods are available when working with
         layer or mask groups.
 
     See: https://ae-scripting.docsforadobe.dev/property/propertygroup/
     """
 
-    is_effect: bool
-    """When `True`, this property is an effect `PropertyGroup`."""
-
     properties: list[Property | PropertyGroup]
     """List of properties in this group."""
+
+    @property
+    def is_modified(self) -> bool:
+        """`True` if any child property is modified.
+
+        For indexed groups (such as Effects or Masks parades), the group
+        is considered modified when it has any children — adding items to
+        an indexed group is itself a modification.
+        """
+        if self.property_type == PropertyType.INDEXED_GROUP:
+            return len(self.properties) > 0
+        return any(child.is_modified for child in self.properties)
 
     def __iter__(self) -> typing.Iterator[Property | PropertyGroup]:
         """Return an iterator over the properties in this group."""
         return iter(self.properties)
 
-    def get_property(
+    def __len__(self) -> int:
+        """Return the number of child properties in this group."""
+        return len(self.properties)
+
+    def __getattr__(self, name: str) -> Property | PropertyGroup:
+        """Look up a child property by attribute access.
+
+        Converts the Python ``snake_case`` attribute name to match
+        against the lowered, underscore-separated display names of
+        child properties.  This allows natural syntax such as:
+
+        ```python
+        layer.transform.position.value
+        layer.transform.anchor_point.value
+        ```
+
+        Note:
+            Only invoked when normal attribute lookup has already
+            failed, so dataclass fields and ``@property`` descriptors
+            always take priority.
+        """
+        # Avoid infinite recursion during __init__ (before
+        # ``properties`` has been set on the instance).
+        try:
+            properties = object.__getattribute__(self, "properties")
+        except AttributeError:
+            raise AttributeError(name) from None
+        for prop in properties:
+            if prop.name.lower().replace(" ", "_") == name:
+                return prop
+        raise AttributeError(
+            f"'{type(self).__name__}' has no property '{name}'"
+        )
+
+    @property
+    def num_properties(self) -> int:
+        """The number of child properties in this group.
+
+        Equivalent to ExtendScript ``PropertyGroup.numProperties``.
+        """
+        return len(self.properties)
+
+    def __getitem__(self, key: int | str) -> Property | PropertyGroup:
+        """Look up a child property by index or name.
+
+        Supports both integer indices and string keys (display name or
+        match name), mirroring ExtendScript's ``property()`` accessor with
+        Python's ``[]`` operator.
+
+        Example:
+            ```python
+            layer["ADBE Transform Group"]["ADBE Position"]
+            layer["ADBE Masks"][0]
+            layer[0]
+            ```
+
+        Args:
+            key: An `int` index or a `str` display name / match name.
+
+        Raises:
+            KeyError: If the string key does not match any child.
+            IndexError: If the integer index is out of range.
+            TypeError: If *key* is neither `int` nor `str`.
+        """
+        if isinstance(key, int):
+            return self.properties[key]
+        if isinstance(key, str):
+            for prop in self.properties:
+                if prop.name == key or prop.match_name == key:
+                    return prop
+            raise KeyError(key)
+        raise TypeError(
+            f"Property key must be int or str, not {type(key).__name__}"
+        )
+
+    def property(
         self, index: int | None = None, name: str | None = None
     ) -> Property | PropertyGroup:
         """
@@ -70,9 +157,6 @@ class PropertyGroup(PropertyBase):
         if index is not None:
             return self.properties[index]
         elif name is not None:
-            for prop in self.properties:
-                if prop.name == name or prop.match_name == name:
-                    return prop
-            raise ValueError(f"No property found with name '{name}'")
+            return self[name]
         else:
             raise ValueError("Either index or name must be provided to get a property.")

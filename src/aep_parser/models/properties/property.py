@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import math
 import typing
 from dataclasses import dataclass
 
-from aep_parser.enums import PropertyControlType, PropertyValueType
+from aep_parser.enums import PropertyControlType, PropertyType, PropertyValueType
 
 from .property_base import PropertyBase
 
@@ -11,6 +12,25 @@ if typing.TYPE_CHECKING:
     from typing import Any
 
     from .keyframe import Keyframe
+
+
+def _values_equal(a: Any, b: Any) -> bool:
+    """Compare two property values with float tolerance.
+
+    Handles scalars, lists/tuples, booleans, and None.
+    Uses [math.isclose][] for numeric comparisons.
+    """
+    if a is None or b is None:
+        return a is b
+    if isinstance(a, bool) or isinstance(b, bool):
+        return bool(a == b)
+    if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
+        if len(a) != len(b):
+            return False
+        return all(_values_equal(x, y) for x, y in zip(a, b))
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return math.isclose(a, b, abs_tol=1e-6)
+    return bool(a == b)
 
 
 @dataclass
@@ -23,11 +43,11 @@ class Property(PropertyBase):
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         comp = app.project.compositions[0]
-        prop = comp.layers[0].transform.position
+        prop = comp.layers[0].transform.property(name="ADBE Position")
         print(prop.value)
         ```
 
@@ -113,9 +133,6 @@ class Property(PropertyBase):
     """When `True`, the property value is a vector."""
 
     # Set after initialization
-    elided: bool = False
-    """When `True`, the property is elided (hidden in the UI)."""
-
     default_value: Any = None
     """The default value of the property."""
 
@@ -143,6 +160,10 @@ class Property(PropertyBase):
     applies to dropdown menu properties of effects and layers, including
     custom strings in the Menu property of the Dropdown Menu Control.
     """
+
+    def __post_init__(self) -> None:
+        """Set the property type to PROPERTY."""
+        self.property_type = PropertyType.PROPERTY
 
     def get_separation_follower(self, dim: int) -> Property | None:
         """
@@ -179,6 +200,24 @@ class Property(PropertyBase):
         """
         index = self.nearest_key_index(time)
         return self.keyframes[index]
+
+    @property
+    def is_modified(self) -> bool:
+        """`True` if the property value differs from its default.
+
+        A property is considered modified when it has keyframes, has an
+        enabled expression, or when its current value differs from
+        `default_value`.
+        """
+        if self.animated:
+            return True
+        if self.expression and self.expression_enabled:
+            return True
+        if self.default_value is not None:
+            return not _values_equal(self.value, self.default_value)
+        if self.no_value:
+            return True
+        return False
 
     @property
     def is_dropdown_effect(self) -> bool:

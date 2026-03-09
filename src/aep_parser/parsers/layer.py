@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from typing import Any
 
 from ..enums import (
     Label,
@@ -10,6 +11,7 @@ from ..enums import (
     TrackMatteType,
 )
 from ..kaitai.utils import (
+    ChunkNotFoundError,
     find_by_list_type,
     find_by_type,
     str_contents,
@@ -26,6 +28,7 @@ from .mappings import (
 )
 from .property import (
     parse_markers,
+    parse_property,
     parse_property_group,
 )
 from .utils import (
@@ -43,26 +46,40 @@ if typing.TYPE_CHECKING:
     from ..models.properties.property_group import PropertyGroup
 
 
+# Maps layer_type.name (from ldta binary) to its ExtendScript match name.
+_LAYER_MATCH_NAMES: dict[str, str] = {
+    "footage": "ADBE AV Layer",
+    "shape": "ADBE AV Layer",
+    "text": "ADBE Text Layer",
+    "camera": "ADBE Camera Layer",
+    "light": "ADBE Light Layer",
+}
+
+
 def _parse_layer_property_groups(
-    child_chunks: list[Aep.Chunk], composition: CompItem
+    child_chunks: list[Aep.Chunk],
+    composition: CompItem,
+    effect_param_defs: dict[str, dict[str, dict[str, Any]]],
 ) -> tuple[
     list[Property | PropertyGroup],
-    list[Property | PropertyGroup],
-    PropertyGroup | None,
     list[MarkerValue],
     bool,
 ]:
     """Parse all property groups for a layer.
 
-    Extracts the transform stack, effects, text properties, markers, and
-    whether time remapping is enabled.
+    Iterates all named property groups in binary order and returns them as a
+    flat list. Markers are extracted separately. Time-remap state is returned
+    as a convenience flag for AVLayer.
 
     Args:
         child_chunks: The layer's child chunks.
         composition: The parent composition.
+        effect_param_defs: Project-level effect parameter definitions, used as
+            fallback when layer-level parT chunks are missing.
 
     Returns:
-        Tuple of (transform, effects, text, markers, time_remap_enabled).
+        Tuple of (properties, markers, time_remap_enabled) where *properties*
+        is an ordered list of all top-level [PropertyGroup][] objects.
     """
     root_tdgp_chunk = find_by_list_type(chunks=child_chunks, list_type="tdgp")
     tdgp_map = get_chunks_by_match_name(root_tdgp_chunk)
@@ -73,37 +90,8 @@ def _parse_layer_property_groups(
         property_has_keyframes(time_remap_props[0]) if time_remap_props else False
     )
 
-    transform_tdgp = tdgp_map.get("ADBE Transform Group", [])
-    transform = []
-    if transform_tdgp:
-        transform_prop = parse_property_group(
-            tdgp_chunk=transform_tdgp[0],
-            group_match_name="ADBE Transform Group",
-            time_scale=composition.time_scale,
-        )
-        transform = transform_prop.properties
-
-    effects_tdgp = tdgp_map.get("ADBE Effect Parade", [])
-    effects = []
-    if effects_tdgp:
-        effects_prop = parse_property_group(
-            tdgp_chunk=effects_tdgp[0],
-            group_match_name="ADBE Effect Parade",
-            time_scale=composition.time_scale,
-        )
-        effects = effects_prop.properties
-
-    text_tdgp = tdgp_map.get("ADBE Text Properties", [])
-    text = None
-    if text_tdgp:
-        text = parse_property_group(
-            tdgp_chunk=text_tdgp[0],
-            group_match_name="ADBE Text Properties",
-            time_scale=composition.time_scale,
-        )
-
     markers_mrst = tdgp_map.get("ADBE Marker", [])
-    markers = []
+    markers: list[MarkerValue] = []
     if markers_mrst:
         markers = parse_markers(
             mrst_chunk=markers_mrst[0],
@@ -112,10 +100,46 @@ def _parse_layer_property_groups(
             frame_rate=composition.frame_rate,
         )
 
-    return transform, effects, text, markers, time_remap_enabled
+    # Parse ALL property groups in binary order.
+    # Each entry whose first LIST chunk is a "tdgp" is a NamedGroup or
+    # IndexedGroup; other types (e.g. "tdb4" for Time Remap, "mrst" for
+    # markers) are skipped here — markers are handled above, and Property
+    # support at layer level can be added in a future iteration.
+    properties: list[Property | PropertyGroup] = []
+    for match_name, sub_chunks in tdgp_map.items():
+        if match_name == "ADBE Marker":
+            continue
+        try:
+            first_list = find_by_type(chunks=sub_chunks, chunk_type="LIST")
+        except ChunkNotFoundError:
+            continue
+        if first_list.list_type == "tdgp":
+            prop_group = parse_property_group(
+                tdgp_chunk=first_list,
+                group_match_name=match_name,
+                time_scale=composition.time_scale,
+                property_depth=1,
+                effect_param_defs=effect_param_defs,
+            )
+            properties.append(prop_group)
+        elif first_list.list_type == "tdbs":
+            # Leaf property at layer level (e.g. Time Remap)
+            prop = parse_property(
+                tdbs_chunk=first_list,
+                match_name=match_name,
+                time_scale=composition.time_scale,
+                property_depth=1,
+            )
+            properties.append(prop)
+
+    return properties, markers, time_remap_enabled
 
 
-def parse_layer(layer_chunk: Aep.Chunk, composition: CompItem) -> Layer:
+def parse_layer(
+    layer_chunk: Aep.Chunk,
+    composition: CompItem,
+    effect_param_defs: dict[str, dict[str, dict[str, Any]]],
+) -> Layer:
     """
     Parse a composition layer.
 
@@ -125,6 +149,8 @@ def parse_layer(layer_chunk: Aep.Chunk, composition: CompItem) -> Layer:
     Args:
         layer_chunk: The LIST chunk to parse.
         composition: The composition.
+        effect_param_defs: Project-level effect parameter definitions, used as
+            fallback when layer-level parT chunks are missing.
 
     Returns:
         An [AVLayer][] for most layers, or a [LightLayer][] for light layers.
@@ -149,11 +175,16 @@ def parse_layer(layer_chunk: Aep.Chunk, composition: CompItem) -> Layer:
     in_point = ldta_chunk.start_time + ldta_chunk.in_point * stretch_factor
     out_point = ldta_chunk.start_time + ldta_chunk.out_point * stretch_factor
 
-    transform, effects, text, markers, time_remap_enabled = (
-        _parse_layer_property_groups(child_chunks, composition)
+    properties, markers, time_remap_enabled = _parse_layer_property_groups(
+        child_chunks, composition, effect_param_defs
     )
 
     layer_attrs = {
+        "enabled": ldta_chunk.enabled,
+        "match_name": _LAYER_MATCH_NAMES.get(layer_type_name, "ADBE AV Layer"),
+        "name": name,
+        "property_depth": 0,
+        "properties": properties,
         "auto_orient": map_auto_orient_type(
             auto_orient_along_path=ldta_chunk.auto_orient_along_path,
             camera_or_poi_auto_orient=ldta_chunk.camera_or_poi_auto_orient,
@@ -162,8 +193,6 @@ def parse_layer(layer_chunk: Aep.Chunk, composition: CompItem) -> Layer:
         ),
         "comment": comment,
         "containing_comp": composition,
-        "effects": effects,
-        "enabled": ldta_chunk.enabled,
         "frame_in_point": round(in_point * composition.frame_rate),
         "frame_out_point": round(out_point * composition.frame_rate),
         "frame_start_time": round(ldta_chunk.start_time * composition.frame_rate),
@@ -173,7 +202,6 @@ def parse_layer(layer_chunk: Aep.Chunk, composition: CompItem) -> Layer:
         "layer_type": layer_type_name,
         "locked": ldta_chunk.locked,
         "markers": markers,
-        "name": name,
         "null_layer": ldta_chunk.null_layer,
         "out_point": out_point,
         "_parent_id": ldta_chunk.parent_id,
@@ -181,9 +209,7 @@ def parse_layer(layer_chunk: Aep.Chunk, composition: CompItem) -> Layer:
         "solo": ldta_chunk.solo,
         "start_time": ldta_chunk.start_time,
         "stretch": stretch,
-        "text": text,
         "time": 0,
-        "transform": transform,
     }
 
     av_layer_attrs = {

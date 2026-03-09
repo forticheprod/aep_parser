@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from typing import Any
 
 from ..enums import Label
 from ..kaitai.utils import (
@@ -25,6 +26,7 @@ def parse_composition(
     label: Label,
     parent_folder: FolderItem,
     comment: str,
+    effect_param_defs: dict[str, dict[str, dict[str, Any]]],
 ) -> CompItem:
     """
     Parse a composition item.
@@ -38,6 +40,8 @@ def parse_composition(
             preferences).
         parent_folder: The composition's parent folder.
         comment: The composition comment.
+        effect_param_defs: Project-level effect parameter definitions, used as
+            fallback when layer-level parT chunks are missing.
     """
     cdta_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     try:
@@ -101,10 +105,54 @@ def parse_composition(
         layer = parse_layer(
             layer_chunk=layer_chunk,
             composition=composition,
+            effect_param_defs=effect_param_defs,
         )
         composition.layers.append(layer)
 
+    # Apply effect selected states from Ewst/ewot chunks
+    selected_states = _parse_effect_selected(child_chunks)
+    effect_idx = 0
+    for layer in composition.layers:
+        if layer.effects is None:
+            continue
+        for effect in layer.effects:
+            if effect_idx < len(selected_states):
+                effect.selected = selected_states[effect_idx]
+            effect_idx += 1
+
     return composition
+
+
+def _parse_effect_selected(child_chunks: list[Aep.Chunk]) -> list[bool]:
+    """Parse effect selected states from LIST:Ewst / ewot chunks.
+
+    The ``ewot`` chunk inside ``LIST:Ewst`` stores per-property flags for
+    the effect workspace.  Each entry is 4 bytes: the first byte contains
+    flags where bit 6 (``0x40``) indicates *selected*.  Entries whose first
+    byte has bit 7 (``0x80``) set are child properties of an effect; entries
+    **without** bit 7 are effect-group-level entries.  By filtering to the
+    group-level entries and checking bit 6 we obtain a boolean per effect.
+
+    Args:
+        child_chunks: The composition item's child chunks.
+
+    Returns:
+        Ordered list of booleans, one per effect across all layers.
+    """
+    selected: list[bool] = []
+    ewst_chunks = filter_by_list_type(chunks=child_chunks, list_type="Ewst")
+    for ewst_chunk in ewst_chunks:
+        try:
+            ewot_chunk = find_by_type(chunks=ewst_chunk.chunks, chunk_type="ewot")
+        except ChunkNotFoundError:
+            continue
+
+        for entry in ewot_chunk.entries:
+            # Entries without is_child_property are effect group nodes
+            if not entry.is_child_property:
+                selected.append(entry.selected)
+
+    return selected
 
 
 def _get_markers(
@@ -126,6 +174,7 @@ def _get_markers(
     markers_layer = parse_layer(
         layer_chunk=markers_layer_chunk,
         composition=composition,
+        effect_param_defs={},
     )
 
     # Adjust marker frame_time from layer-relative to comp-relative time.

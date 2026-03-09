@@ -4,7 +4,6 @@ Output module settings are stored as an [OutputModuleSettings][aep_parser.models
 
 ::: aep_parser.models.settings.OutputModuleSettings
     options:
-      show_root_heading: true
       show_bases: false
 
 ## Available Keys

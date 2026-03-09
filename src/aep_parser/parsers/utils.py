@@ -52,7 +52,7 @@ def get_chunks_by_match_name(
         for chunk in root_chunk.chunks:
             if chunk.chunk_type == "tdmn":
                 match_name = str_contents(chunk)
-                if match_name in ("ADBE Group End", "ADBE Effect Built In Params"):
+                if match_name == "ADBE Group End":
                     skip_to_next_tdmn_flag = True
                 else:
                     skip_to_next_tdmn_flag = False

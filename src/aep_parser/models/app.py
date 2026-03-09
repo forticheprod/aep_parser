@@ -17,9 +17,9 @@ class App:
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         print(app.version)
         ```
 
