@@ -7,6 +7,7 @@ from aep_parser.enums import Label
 
 if typing.TYPE_CHECKING:
     from aep_parser.enums import KeyframeInterpolationType
+    from aep_parser.models.properties.shape_value import ShapeValue
 
 
 @dataclass
@@ -54,10 +55,11 @@ class Keyframe:
     a property cannot rove.
     """
 
-    value: list[float] | float | None
+    value: list[float] | float | ShapeValue | None
     """
     The value of the keyframe. For a 1D property (e.g. Opacity, Rotation),
     this is a single `float`. For a multi-dimensional property (e.g.
-    Position, Scale), this is a `list[float]`. For properties that carry no
+    Position, Scale), this is a `list[float]`. For shape/mask path
+    properties, this is a [ShapeValue][]. For properties that carry no
     value (e.g. markers), this is `None`.
     """

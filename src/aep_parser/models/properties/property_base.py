@@ -71,8 +71,8 @@ class PropertyBase(ABC):
         init=False, default=PropertyType.NAMED_GROUP
     )
     """
-    The type of this property. One of [PropertyType.PROPERTY][],
-    [PropertyType.NAMED_GROUP][], or [PropertyType.INDEXED_GROUP][].
+    The type of this property. One of `PropertyType.PROPERTY`,
+    `PropertyType.NAMED_GROUP`, or `PropertyType.INDEXED_GROUP`.
     """
 
     @property

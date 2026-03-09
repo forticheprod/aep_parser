@@ -170,7 +170,9 @@ class Layer(PropertyGroup):
         Scale, Rotation, etc.) are accessible via
         [properties][PropertyGroup.properties].
         """
-        return self["ADBE Transform Group"]
+        group = self["ADBE Transform Group"]
+        assert isinstance(group, PropertyGroup)
+        return group
 
     @property
     def effects(self) -> PropertyGroup | None:
@@ -186,7 +188,9 @@ class Layer(PropertyGroup):
             group = self["ADBE Effect Parade"]
         except KeyError:
             return None
-        return group if group.properties else None
+        if not isinstance(group, PropertyGroup) or not group.properties:
+            return None
+        return group
 
     @property
     def masks(self) -> PropertyGroup | None:
@@ -202,15 +206,20 @@ class Layer(PropertyGroup):
             group = self["ADBE Mask Parade"]
         except KeyError:
             return None
-        return group if group.properties else None
+        if not isinstance(group, PropertyGroup) or not group.properties:
+            return None
+        return group
 
     @property
     def text(self) -> PropertyGroup | None:
         """Contains a layer's text properties (if any)."""
         try:
-            return self["ADBE Text Properties"]
+            group = self["ADBE Text Properties"]
         except KeyError:
             return None
+        if isinstance(group, PropertyGroup):
+            return group
+        return None
 
     @property
     def parent(self) -> Layer | None:
@@ -226,7 +235,7 @@ class Layer(PropertyGroup):
 
         For this method to return ``True``, three conditions must be met:
 
-        1. The layer must be [enabled][].
+        1. The layer must be `enabled`.
         2. No other layer in the [containing_comp][] may be soloed unless
            this layer is also [solo][].
         3. *time* must fall between [in_point][] (inclusive) and

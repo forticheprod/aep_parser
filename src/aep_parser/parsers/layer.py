@@ -235,7 +235,7 @@ def parse_layer(
         "three_d_layer": ldta_chunk.three_d_layer,
         "time_remap_enabled": time_remap_enabled,
         "track_matte_type": TrackMatteType.from_binary(ldta_chunk.track_matte_type),
-        "_matte_layer_id": ldta_chunk.matte_layer_id or 0,
+        "_matte_layer_id": getattr(ldta_chunk, "matte_layer_id", 0) or 0,
     }
 
     if layer_type_name == "light":

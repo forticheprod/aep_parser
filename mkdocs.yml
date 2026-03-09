@@ -132,6 +132,7 @@ nav:
       - Mask Property Group: api/properties/mask_property_group.md
       - Keyframe: api/properties/keyframe.md
       - Marker: api/properties/marker.md
+      - Shape Value: api/properties/shape_value.md
     - Sources:
       - Footage Source: api/sources/footage_source.md
       - File Source: api/sources/file_source.md

@@ -815,7 +815,7 @@ def _extract_keyframe_value(
     kf_data = kf.kf_data
     if not hasattr(kf_data, "value"):
         return None
-    values = list(kf_data.value)
+    values: list[float] = list(kf_data.value)
     if len(values) == 1:
         return values[0]
     return values

@@ -90,7 +90,9 @@ class PropertyGroup(PropertyBase):
         # Avoid infinite recursion during __init__ (before
         # ``properties`` has been set on the instance).
         try:
-            properties = object.__getattribute__(self, "properties")
+            properties: list[Property | PropertyGroup] = (
+                object.__getattribute__(self, "properties")
+            )
         except AttributeError:
             raise AttributeError(name) from None
         for prop in properties:
