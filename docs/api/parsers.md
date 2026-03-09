@@ -50,7 +50,23 @@ This module contains the internal parsing functions that convert binary chunk da
     options:
       heading_level: 3
 
-::: aep_parser.parsers.property.parse_markers
+## Marker Parsers
+
+::: aep_parser.parsers.marker.parse_markers
+    options:
+      heading_level: 3
+
+::: aep_parser.parsers.marker.parse_marker
+    options:
+      heading_level: 3
+
+## Property Defaults
+
+::: aep_parser.parsers.defaults.set_transform_defaults
+    options:
+      heading_level: 3
+
+::: aep_parser.parsers.defaults.set_layer_property_defaults
     options:
       heading_level: 3
 

@@ -408,9 +408,13 @@ def compare_property_group(
         "isModified": "is_modified",
         "propertyDepth": "property_depth",
         "selected": "selected",
+        "color": "color",
+        "maskFeatherFalloff": "mask_feather_falloff",
         "maskMode": "mask_mode",
+        "maskMotionBlur": "mask_motion_blur",
         "inverted": "inverted",
         "locked": "locked",
+        "rotoBezier": "roto_bezier",
     }
 
     for exp_key, parsed_key in group_mappings.items():

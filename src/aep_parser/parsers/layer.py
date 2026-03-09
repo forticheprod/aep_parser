@@ -4,6 +4,7 @@ import typing
 from typing import Any
 
 from ..enums import (
+    BlendingMode,
     Label,
     LayerQuality,
     LayerSamplingQuality,
@@ -23,11 +24,10 @@ from ..models.layers.shape_layer import ShapeLayer
 from ..models.layers.text_layer import TextLayer
 from .mappings import (
     map_auto_orient_type,
-    map_blending_mode,
     map_frame_blending_type,
 )
+from .marker import parse_markers
 from .property import (
-    parse_markers,
     parse_property,
     parse_property_group,
 )
@@ -215,7 +215,7 @@ def parse_layer(
     av_layer_attrs = {
         "adjustment_layer": ldta_chunk.adjustment_layer,
         "audio_enabled": ldta_chunk.audio_enabled,
-        "blending_mode": map_blending_mode(ldta_chunk.blending_mode),
+        "blending_mode": BlendingMode.from_binary(ldta_chunk.blending_mode),
         "collapse_transformation": ldta_chunk.collapse_transformation,
         "effects_active": ldta_chunk.effects_active,
         "environment_layer": ldta_chunk.environment_layer,

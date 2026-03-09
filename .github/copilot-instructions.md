@@ -135,19 +135,26 @@ cdta_chunk.time_scale    # proxied from cdta_chunk.data.time_scale
 Keep this in mind when reading or writing parser code: any attribute access on a `Chunk` object may actually come from `chunk.data`.
 
 ### Value Mapping Pattern
-Binary values often differ from ExtendScript API values. Use mapping functions in `parsers/mappings.py` when this is the case:
+Binary values often differ from ExtendScript API values. When the mapping only
+depends on a single integer, add a `from_binary` classmethod directly on the
+enum in `enums/general.py` (or the relevant enum module):
 ```python
-from aep_parser.parsers.mappings import map_blending_mode, map_layer_quality
+from aep_parser.enums import BlendingMode, LayerQuality
 
-# Map binary value to enum
-blending_mode = map_blending_mode(raw_value)  # Returns BlendingMode enum
-quality = map_layer_quality(raw_value)        # Returns LayerQuality enum
+# Map binary value to enum via classmethod
+blending_mode = BlendingMode.from_binary(raw_value)
+quality = LayerQuality.from_binary(raw_value)
 ```
 
+When the mapping requires **multiple parameters** or extra context (e.g.
+`map_alpha_mode` needs both the raw value and a `has_alpha` flag), keep
+the mapping function in `parsers/mappings.py`.
+
 When adding new mappings:
-1. Add the enum to `models/enums.py` (matching ExtendScript values)
-2. Create `map_<name>()` function in `parsers/mappings.py`
-3. Use `.get(value, default)` for unknown values
+1. Add the enum to `enums/general.py` (matching ExtendScript values)
+2. If single-param: add a `from_binary(cls, value)` classmethod on the enum
+3. If multi-param: create `map_<name>()` function in `parsers/mappings.py`
+4. Use `.get(value, default)` for unknown values
 
 ## Testing
 - Tests use sample .aep files from `samples/` directory

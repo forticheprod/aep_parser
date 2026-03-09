@@ -10,14 +10,10 @@ from __future__ import annotations
 from ..enums import (
     AlphaMode,
     AutoOrientType,
-    BitsPerChannel,
-    BlendingMode,
     FastPreviewType,
     FieldSeparationType,
-    FootageTimecodeDisplayStartType,
     FrameBlendingType,
     GpuAccelType,
-    MaskMode,
     OutputAudio,
     ViewerType,
 )
@@ -48,106 +44,6 @@ def map_alpha_mode(alpha_mode_raw: int, has_alpha: bool) -> AlphaMode:
         raise ValueError(f"Unknown alpha_mode value: {alpha_mode_raw}") from None
 
 
-def map_bits_per_channel(bits_per_channel_raw: int) -> BitsPerChannel:
-    """
-    Map binary bits_per_channel value to ExtendScript BitsPerChannel enum.
-
-    Raises:
-        ValueError: If bits_per_channel_raw is not a recognized value.
-    """
-    mapping = {
-        0: BitsPerChannel.EIGHT,
-        1: BitsPerChannel.SIXTEEN,
-        2: BitsPerChannel.THIRTY_TWO,
-    }
-    try:
-        return mapping[bits_per_channel_raw]
-    except KeyError:
-        raise ValueError(
-            f"Unknown bits_per_channel value: {bits_per_channel_raw}"
-        ) from None
-
-
-def map_mask_mode(mask_mode_raw: int) -> MaskMode:
-    """
-    Map binary mask mode value to ExtendScript MaskMode enum.
-
-    Note: binary 4 = Darken and binary 5 = Lighten (swapped relative to
-    enum integer order where LIGHTEN = 6816 < DARKEN = 6817).
-
-    Raises:
-        ValueError: If mask_mode_raw is not a recognized value.
-    """
-    mapping = {
-        0: MaskMode.NONE,
-        1: MaskMode.ADD,
-        2: MaskMode.SUBTRACT,
-        3: MaskMode.INTERSECT,
-        4: MaskMode.DARKEN,
-        5: MaskMode.LIGHTEN,
-        6: MaskMode.DIFFERENCE,
-    }
-    try:
-        return mapping[mask_mode_raw]
-    except KeyError:
-        raise ValueError(
-            f"Unknown mask_mode value: {mask_mode_raw}"
-        ) from None
-
-
-def map_blending_mode(blending_mode_raw: int) -> BlendingMode:
-    """
-    Map binary blending_mode value to ExtendScript BlendingMode enum.
-
-    Raises:
-        ValueError: If blending_mode_raw is not a recognized value.
-    """
-    mapping = {
-        0: BlendingMode.NORMAL,  # cameras, lights, and null layers
-        2: BlendingMode.NORMAL,
-        3: BlendingMode.DISSOLVE,
-        4: BlendingMode.ADD,
-        5: BlendingMode.MULTIPLY,
-        6: BlendingMode.SCREEN,
-        7: BlendingMode.OVERLAY,
-        8: BlendingMode.SOFT_LIGHT,
-        9: BlendingMode.HARD_LIGHT,
-        10: BlendingMode.DARKEN,
-        11: BlendingMode.LIGHTEN,
-        12: BlendingMode.CLASSIC_DIFFERENCE,
-        13: BlendingMode.HUE,
-        14: BlendingMode.SATURATION,
-        15: BlendingMode.COLOR,
-        16: BlendingMode.LUMINOSITY,
-        17: BlendingMode.STENCIL_ALPHA,
-        18: BlendingMode.STENCIL_LUMA,
-        19: BlendingMode.SILHOUETE_ALPHA,
-        20: BlendingMode.SILHOUETTE_LUMA,
-        21: BlendingMode.LUMINESCENT_PREMUL,
-        22: BlendingMode.ALPHA_ADD,
-        23: BlendingMode.CLASSIC_COLOR_DODGE,
-        24: BlendingMode.CLASSIC_COLOR_BURN,
-        25: BlendingMode.EXCLUSION,
-        26: BlendingMode.DIFFERENCE,
-        27: BlendingMode.COLOR_DODGE,
-        28: BlendingMode.COLOR_BURN,
-        29: BlendingMode.LINEAR_DODGE,
-        30: BlendingMode.LINEAR_BURN,
-        31: BlendingMode.LINEAR_LIGHT,
-        32: BlendingMode.VIVID_LIGHT,
-        33: BlendingMode.PIN_LIGHT,
-        34: BlendingMode.HARD_MIX,
-        35: BlendingMode.LIGHTER_COLOR,
-        36: BlendingMode.DARKER_COLOR,
-        37: BlendingMode.SUBTRACT,
-        38: BlendingMode.DIVIDE,
-    }
-    try:
-        return mapping[blending_mode_raw]
-    except KeyError:
-        raise ValueError(f"Unknown blending_mode value: {blending_mode_raw}") from None
-
-
 def map_field_separation_type(
     field_separation_type_raw: int, field_order_raw: int
 ) -> FieldSeparationType:
@@ -162,27 +58,6 @@ def map_field_separation_type(
     if field_order_raw == 0:
         return FieldSeparationType.UPPER_FIELD_FIRST
     return FieldSeparationType.LOWER_FIELD_FIRST
-
-
-def map_footage_timecode_display_start_type(
-    ftcs_raw: int,
-) -> FootageTimecodeDisplayStartType:
-    """
-    Map binary value to ExtendScript FootageTimecodeDisplayStartType enum.
-
-    Raises:
-        ValueError: If ftcs_raw is not a recognized value.
-    """
-    mapping = {
-        0: FootageTimecodeDisplayStartType.FTCS_START_0,
-        1: FootageTimecodeDisplayStartType.FTCS_USE_SOURCE_MEDIA,
-    }
-    try:
-        return mapping[ftcs_raw]
-    except KeyError:
-        raise ValueError(
-            f"Unknown footage_timecode_display_start_type value: {ftcs_raw}"
-        ) from None
 
 
 def map_frame_blending_type(

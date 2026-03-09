@@ -46,26 +46,14 @@ class AVLayer(Layer):
     See: https://ae-scripting.docsforadobe.dev/layer/avlayer/
     """
 
-    blending_mode: BlendingMode
-    """The blending mode of the layer."""
-
-    frame_blending_type: FrameBlendingType
-    """The type of frame blending to perform when frame blending is enabled for the layer."""
-
-    quality: LayerQuality
-    """The layer's draft quality setting."""
-
-    sampling_quality: LayerSamplingQuality
-    """The layer's sampling method."""
-
-    track_matte_type: TrackMatteType
-    """Specifies the way the track matte is applied."""
-
     adjustment_layer: bool
     """When `True`, the layer is an adjustment layer."""
 
     audio_enabled: bool
     """When `True`, the layer's audio is enabled. This value corresponds to the audio toggle switch in the Timeline panel."""
+
+    blending_mode: BlendingMode
+    """The blending mode of the layer."""
 
     collapse_transformation: bool
     """`True` if collapse transformation is on for this layer."""
@@ -79,6 +67,9 @@ class AVLayer(Layer):
     frame_blending: bool
     """`True` if frame blending is enabled for this layer."""
 
+    frame_blending_type: FrameBlendingType
+    """The type of frame blending to perform when frame blending is enabled for the layer."""
+
     guide_layer: bool
     """`True` if the layer is a guide layer."""
 
@@ -88,11 +79,20 @@ class AVLayer(Layer):
     preserve_transparency: bool
     """`True` if preserve transparency is enabled for the layer."""
 
+    quality: LayerQuality
+    """The layer's draft quality setting."""
+
+    sampling_quality: LayerSamplingQuality
+    """The layer's sampling method."""
+
     three_d_layer: bool
     """`True` if this layer is a 3D layer."""
 
     time_remap_enabled: bool
     """`True` if time remapping is enabled for this layer."""
+
+    track_matte_type: TrackMatteType
+    """Specifies the way the track matte is applied."""
 
     _source_id: int
     """The ID of the source item for this layer. 0 for a text layer."""

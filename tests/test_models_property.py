@@ -9,7 +9,13 @@ import pytest
 from conftest import get_first_layer, get_sample_files, load_expected, parse_project
 
 from aep_parser import Project
-from aep_parser.enums import KeyframeInterpolationType, MaskMode, PropertyType
+from aep_parser.enums import (
+    KeyframeInterpolationType,
+    MaskFeatherFalloff,
+    MaskMode,
+    MaskMotionBlur,
+    PropertyType,
+)
 from aep_parser.models import MaskPropertyGroup
 
 if TYPE_CHECKING:
@@ -249,6 +255,105 @@ class TestPropertyDimensions:
                         assert prop["numKeys"] == 2
 
 
+LAYER_SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "layer"
+
+
+class TestOrientation:
+    """Tests for orientation property parsing (OTST chunks).
+
+    Orientation is stored in a special OTST chunk whose cdat uses
+    little-endian doubles (unlike the rest of the big-endian RIFX file).
+    """
+
+    def test_orientation_default(self) -> None:
+        """Default orientation [0, 0, 0] when no OTST chunk is present."""
+        layer = get_first_layer(
+            parse_project(LAYER_SAMPLES_DIR / "orientation_0.aep")
+        )
+        orientation = _find_property(layer, "ADBE Orientation")
+        assert orientation is not None
+        assert orientation.value == [0.0, 0.0, 0.0]
+        assert orientation.dimensions == 3
+
+    def test_orientation_x_only(self) -> None:
+        """Orientation with only X component set to 5."""
+        layer = get_first_layer(
+            parse_project(LAYER_SAMPLES_DIR / "orientation_5_0_0.aep")
+        )
+        orientation = _find_property(layer, "ADBE Orientation")
+        assert orientation is not None
+        assert orientation.value == [5.0, 0.0, 0.0]
+        assert orientation.dimensions == 3
+        assert orientation.is_spatial is True
+
+    def test_orientation_y_only(self) -> None:
+        """Orientation with only Y component set to 279."""
+        layer = get_first_layer(
+            parse_project(LAYER_SAMPLES_DIR / "orientation_0_279_0.aep")
+        )
+        orientation = _find_property(layer, "ADBE Orientation")
+        assert orientation is not None
+        assert orientation.value == [0.0, 279.0, 0.0]
+        assert orientation.dimensions == 3
+
+    def test_orientation_z_only(self) -> None:
+        """Orientation with only Z component set to 5."""
+        layer = get_first_layer(
+            parse_project(LAYER_SAMPLES_DIR / "orientation_0_0_5.aep")
+        )
+        orientation = _find_property(layer, "ADBE Orientation")
+        assert orientation is not None
+        assert orientation.value == [0.0, 0.0, 5.0]
+        assert orientation.dimensions == 3
+
+    def test_orientation_metadata(self) -> None:
+        """Orientation has correct property metadata."""
+        layer = get_first_layer(
+            parse_project(LAYER_SAMPLES_DIR / "orientation_5_0_0.aep")
+        )
+        orientation = _find_property(layer, "ADBE Orientation")
+        assert orientation is not None
+        assert orientation.name == "Orientation"
+        assert orientation.match_name == "ADBE Orientation"
+        assert orientation.is_spatial is True
+        assert orientation.vector is True
+        assert not orientation.animated
+
+    def test_orientation_animated_keyframe_values(self) -> None:
+        """Animated orientation keyframes carry 3-component values from otda."""
+        layer = get_first_layer(
+            parse_project(LAYER_SAMPLES_DIR / "orientation_with_keyframes.aep")
+        )
+        orientation = _find_property(layer, "ADBE Orientation")
+        assert orientation is not None
+        assert orientation.animated
+        assert len(orientation.keyframes) == 2
+        assert orientation.keyframes[0].value == [5.0, 0.0, 0.0]
+        assert orientation.keyframes[1].value == [0.0, 0.0, 0.0]
+
+    def test_orientation_animated_keyframe_times(self) -> None:
+        """Animated orientation keyframes have correct frame times."""
+        layer = get_first_layer(
+            parse_project(LAYER_SAMPLES_DIR / "orientation_with_keyframes.aep")
+        )
+        orientation = _find_property(layer, "ADBE Orientation")
+        assert orientation is not None
+        assert orientation.keyframes[0].frame_time == 0
+        assert orientation.keyframes[1].frame_time == 240
+
+    def test_orientation_animated_metadata(self) -> None:
+        """Animated orientation retains correct property metadata."""
+        layer = get_first_layer(
+            parse_project(LAYER_SAMPLES_DIR / "orientation_with_keyframes.aep")
+        )
+        orientation = _find_property(layer, "ADBE Orientation")
+        assert orientation is not None
+        assert orientation.dimensions == 3
+        assert orientation.is_spatial is True
+        assert orientation.vector is True
+        assert orientation.value is None
+
+
 class TestEffectProperties:
     """Tests for effect-related property samples."""
 
@@ -448,6 +553,121 @@ class TestMasks:
         assert isinstance(mask, MaskPropertyGroup)
         for child in mask.properties:
             assert child.parent_property is mask
+
+
+class TestMaskAttributes:
+    """Tests for MaskPropertyGroup attributes (color, featherFalloff, motionBlur, rotoBezier)."""
+
+    @staticmethod
+    def _get_mask(filename: str) -> MaskPropertyGroup:
+        """Parse a mask sample and return the first MaskPropertyGroup."""
+        project = parse_project(SAMPLES_DIR / filename)
+        layer = get_first_layer(project)
+        assert layer.masks is not None
+        mask = layer.masks.properties[0]
+        assert isinstance(mask, MaskPropertyGroup)
+        return mask
+
+    # --- color ---
+
+    def test_color_default(self) -> None:
+        """Default mask color is [30/255, 64/255, 30/255]."""
+        mask = self._get_mask("mask_add.aep")
+        assert len(mask.color) == 3
+        assert pytest.approx(mask.color, abs=1e-3) == [
+            30 / 255,
+            64 / 255,
+            30 / 255,
+        ]
+
+    def test_color_custom_1(self) -> None:
+        """Custom mask color [0.102, 0.2, 0.302] (26/255, 51/255, 77/255)."""
+        mask = self._get_mask("mask_color_0.102_0.2_0.302.aep")
+        assert pytest.approx(mask.color, abs=1e-3) == [
+            26 / 255,
+            51 / 255,
+            77 / 255,
+        ]
+
+    def test_color_custom_2(self) -> None:
+        """Custom mask color [0.2, 0.302, 0.4] (51/255, 77/255, 102/255)."""
+        mask = self._get_mask("mask_color_0.2_0.302_0.4.aep")
+        assert pytest.approx(mask.color, abs=1e-3) == [
+            51 / 255,
+            77 / 255,
+            102 / 255,
+        ]
+
+    # --- maskFeatherFalloff ---
+
+    def test_feather_falloff_smooth(self) -> None:
+        """Feather falloff Smooth is the default."""
+        mask = self._get_mask("mask_feather_falloff_smooth.aep")
+        assert mask.mask_feather_falloff == MaskFeatherFalloff.FFO_SMOOTH
+
+    def test_feather_falloff_linear(self) -> None:
+        """Feather falloff Linear."""
+        mask = self._get_mask("mask_feather_falloff_linear.aep")
+        assert mask.mask_feather_falloff == MaskFeatherFalloff.FFO_LINEAR
+
+    # --- maskMotionBlur ---
+
+    def test_motion_blur_same_as_layer(self) -> None:
+        """Motion blur Same as Layer is the default."""
+        mask = self._get_mask("mask_motion_blur_same_as_layer.aep")
+        assert mask.mask_motion_blur == MaskMotionBlur.SAME_AS_LAYER
+
+    def test_motion_blur_on(self) -> None:
+        """Motion blur On."""
+        mask = self._get_mask("mask_motion_blur_on.aep")
+        assert mask.mask_motion_blur == MaskMotionBlur.ON
+
+    def test_motion_blur_off(self) -> None:
+        """Motion blur Off."""
+        mask = self._get_mask("mask_motion_blur_off.aep")
+        assert mask.mask_motion_blur == MaskMotionBlur.OFF
+
+    # --- rotoBezier ---
+
+    def test_roto_bezier_default_false(self) -> None:
+        """Default mask has rotoBezier=False."""
+        mask = self._get_mask("mask_add.aep")
+        assert mask.roto_bezier is False
+
+    def test_roto_bezier_on(self) -> None:
+        """Mask with RotoBezier enabled."""
+        mask = self._get_mask("mask_rotobezier_on.aep")
+        assert mask.roto_bezier is True
+
+    # --- mask_mode (all modes via from_binary) ---
+
+    def test_mask_mode_none(self) -> None:
+        mask = self._get_mask("mask_none.aep")
+        assert mask.mask_mode == MaskMode.NONE
+
+    def test_mask_mode_add(self) -> None:
+        mask = self._get_mask("mask_add.aep")
+        assert mask.mask_mode == MaskMode.ADD
+
+    def test_mask_mode_subtract(self) -> None:
+        mask = self._get_mask("mask_subtract.aep")
+        assert mask.mask_mode == MaskMode.SUBTRACT
+
+    def test_mask_mode_intersect(self) -> None:
+        mask = self._get_mask("mask_intersect.aep")
+        assert mask.mask_mode == MaskMode.INTERSECT
+
+    def test_mask_mode_darken(self) -> None:
+        mask = self._get_mask("mask_darken.aep")
+        assert mask.mask_mode == MaskMode.DARKEN
+
+    def test_mask_mode_lighten(self) -> None:
+        mask = self._get_mask("mask_lighten.aep")
+        assert mask.mask_mode == MaskMode.LIGHTEN
+
+    def test_mask_mode_difference(self) -> None:
+        mask = self._get_mask("mask_difference.aep")
+        assert mask.mask_mode == MaskMode.DIFFERENCE
 
 
 class TestIsModified:

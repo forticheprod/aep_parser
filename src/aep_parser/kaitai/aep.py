@@ -562,6 +562,11 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.OptiBody(_io__raw_data, self, self._root)
+            elif _on == u"otda":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.CdatBody(_io__raw_data, self, self._root)
             elif _on == u"pard":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -726,6 +731,9 @@ class Aep(KaitaiStruct):
                 pass
                 self.data._fetch_instances()
             elif _on == u"opti":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"otda":
                 pass
                 self.data._fetch_instances()
             elif _on == u"pard":
@@ -1632,7 +1640,9 @@ class Aep(KaitaiStruct):
 
 
     class MkifBody(KaitaiStruct):
-        """Mask info. Contains inverted flag, locked flag and mask mode."""
+        """Mask info. Contains inverted flag, locked flag, mask mode,
+        motion blur, feather falloff and color.
+        """
         def __init__(self, _io, _parent=None, _root=None):
             super(Aep.MkifBody, self).__init__(_io)
             self._parent = _parent
@@ -1642,8 +1652,14 @@ class Aep(KaitaiStruct):
         def _read(self):
             self.inverted = self._io.read_u1()
             self.locked = self._io.read_u1()
-            self._unnamed2 = self._io.read_bytes(4)
+            self.mask_motion_blur = self._io.read_u1()
+            self.mask_feather_falloff = self._io.read_u1()
+            self._unnamed4 = self._io.read_bytes(2)
             self.mode = self._io.read_u2be()
+            self._unnamed6 = self._io.read_bytes(37)
+            self.color_red = self._io.read_u1()
+            self.color_green = self._io.read_u1()
+            self.color_blue = self._io.read_u1()
 
 
         def _fetch_instances(self):
@@ -2819,11 +2835,12 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self._unnamed0 = self._io.read_bytes(2)
-            self._unnamed1 = self._io.read_bits_int_be(3)
+            self.roto_bezier = self._io.read_u1()
+            self._unnamed1 = self._io.read_bytes(1)
+            self._unnamed2 = self._io.read_bits_int_be(3)
             self.locked_ratio = self._io.read_bits_int_be(1) != 0
-            self._unnamed3 = self._io.read_bits_int_be(4)
-            self._unnamed4 = self._io.read_bits_int_be(6)
+            self._unnamed4 = self._io.read_bits_int_be(4)
+            self._unnamed5 = self._io.read_bits_int_be(6)
             self.dimensions_separated = self._io.read_bits_int_be(1) != 0
             self.enabled = self._io.read_bits_int_be(1) != 0
 

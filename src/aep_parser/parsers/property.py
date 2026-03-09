@@ -24,18 +24,15 @@ from ..kaitai.utils import (
     str_contents,
 )
 from ..models.properties.keyframe import Keyframe
-from ..models.properties.marker import MarkerValue
 from ..models.properties.mask_property_group import MaskPropertyGroup
 from ..models.properties.property import Property
 from ..models.properties.property_group import PropertyGroup
 from ..models.properties.shape_value import ShapeValue
-from .mappings import map_mask_mode
 from .match_names import MATCH_NAME_TO_NICE_NAME
 from .text import parse_btdk_cos
 from .utils import (
     get_chunks_by_match_name,
     parse_ldat_items,
-    split_into_batches,
 )
 
 logger = logging.getLogger(__name__)
@@ -225,16 +222,19 @@ def _parse_mask_atom(
     """Parse a mask atom into a MaskPropertyGroup.
 
     Combines the child properties from the tdgp chunk with the mask-specific
-    attributes (inverted, locked, mask_mode) parsed from the mkif chunk.
+    attributes (inverted, locked, mask_mode, color, mask_feather_falloff,
+    mask_motion_blur) parsed from the mkif chunk, and the rotoBezier flag
+    from the ADBE Mask Shape tdsb chunk.
 
     Args:
         tdgp_chunk: The tdgp chunk for this mask atom.
-        mkif_chunk: The mkif (mask info) chunk containing inverted, locked,
-            and mode.
+        mkif_chunk: The mkif (mask info) chunk containing mask attributes.
         time_scale: The time scale of the parent composition.
         property_depth: The nesting depth of this group.
         effect_param_defs: Project-level effect parameter definitions.
     """
+    from ..enums import MaskFeatherFalloff, MaskMode, MaskMotionBlur
+
     base = parse_property_group(
         tdgp_chunk=tdgp_chunk,
         group_match_name="ADBE Mask Atom",
@@ -242,15 +242,47 @@ def _parse_mask_atom(
         property_depth=property_depth,
         effect_param_defs=effect_param_defs,
     )
+
+    # Extract rotoBezier from ADBE Mask Shape tdsb (byte 0).
+    roto_bezier = False
+    chunks_by_mn = get_chunks_by_match_name(tdgp_chunk)
+    mask_shape_chunks = chunks_by_mn.get("ADBE Mask Shape", [])
+    for chunk in mask_shape_chunks:
+        if (
+            chunk.chunk_type == "LIST"
+            and chunk.list_type == "om-s"
+        ):
+            with suppress(ChunkNotFoundError):
+                tdbs = find_by_list_type(
+                    chunks=chunk.chunks, list_type="tdbs"
+                )
+                tdsb = find_by_type(
+                    chunks=tdbs.chunks, chunk_type="tdsb"
+                )
+                roto_bezier = bool(tdsb.data.roto_bezier)
+            break
+
     mask_group = MaskPropertyGroup(
         enabled=base.enabled,
         match_name=base.match_name,
         name=base.name,
         property_depth=base.property_depth,
         properties=base.properties,
+        color=[
+            mkif_chunk.color_red / 255.0,
+            mkif_chunk.color_green / 255.0,
+            mkif_chunk.color_blue / 255.0,
+        ],
         inverted=bool(mkif_chunk.inverted),
         locked=bool(mkif_chunk.locked),
-        mask_mode=map_mask_mode(int(mkif_chunk.mode)),
+        mask_feather_falloff=MaskFeatherFalloff.from_binary(
+            int(mkif_chunk.mask_feather_falloff)
+        ),
+        mask_mode=MaskMode.from_binary(int(mkif_chunk.mode)),
+        mask_motion_blur=MaskMotionBlur.from_binary(
+            int(mkif_chunk.mask_motion_blur)
+        ),
+        roto_bezier=roto_bezier,
     )
     mask_group.property_type = base.property_type
     mask_group.is_mask = True
@@ -295,14 +327,40 @@ def parse_orientation(
     prop.property_control_type = PropertyControlType.ANGLE
     prop.property_value_type = PropertyValueType.THREE_D_SPATIAL
     prop.is_spatial = True
-
-    # The binary stores orientation as a 1-D scalar (single angle), but
-    # ExtendScript reports it as a 3-element array [x, y, z].  Convert
-    # the scalar value to match.
-    if prop.value is not None and not isinstance(prop.value, (list, tuple)):
-        prop.value = [prop.value, 0.0, 0.0]
     prop.dimensions = 3
     prop.vector = True
+
+    # The cdat inside OTST stores doubles as little-endian, unlike the
+    # rest of the big-endian RIFX file.  Re-read the raw bytes as LE.
+    try:
+        cdat_chunk = find_by_type(
+            chunks=tdbs_chunk.chunks, chunk_type="cdat"
+        )
+        n = cdat_chunk.len_data // 8
+        values = list(struct.unpack(f"<{n}d", cdat_chunk._raw_data))
+        while len(values) < 3:
+            values.append(0.0)
+        prop.value = values[:3]
+    except ChunkNotFoundError:
+        prop.value = None
+
+    # Animated orientation keyframes store their 3-component values
+    # in otky → otda chunks (big-endian, one otda per keyframe),
+    # a sibling of tdbs inside otst.  The standard _parse_keyframes()
+    # reads from tdbs which only has 1D orientation data, so we
+    # override each keyframe's value with the full 3D otda data.
+    try:
+        otky_chunk = find_by_list_type(
+            chunks=otst_chunk.chunks, list_type="otky"
+        )
+        otda_chunks = filter_by_type(
+            chunks=otky_chunk.chunks, chunk_type="otda"
+        )
+        for idx, kf in enumerate(prop.keyframes):
+            if idx < len(otda_chunks):
+                kf.value = list(otda_chunks[idx].value)
+    except ChunkNotFoundError:
+        pass
 
     return prop
 
@@ -984,89 +1042,6 @@ def _parse_effect_parameter_def(parameter_chunks: list[Aep.Chunk]) -> dict[str, 
             result["name"] = pdnm_data
 
     return result
-
-
-def parse_markers(
-    mrst_chunk: Aep.Chunk, group_match_name: str, time_scale: float, frame_rate: float
-) -> list[MarkerValue]:
-    """
-    Parse markers.
-
-    Args:
-        mrst_chunk: The MRST chunk to parse.
-        group_match_name: A special name for the property used to build unique
-            naming paths. The match name is not displayed, but you can refer
-            to it in scripts. Every property has a unique match-name
-            identifier. Match names are stable from version to version
-            regardless of the display name (the name attribute value) or any
-            changes to the application. Unlike the display name, it is not
-            localized. An indexed group (`PropertyBase.property_type ==
-            PropertyType.indexed_group`) may not have a name value, but
-            always has a match_name value.
-        time_scale: The time scale of the parent composition, used as a divisor
-            for some frame values.
-        frame_rate: The frame rate of the parent composition, used to compute
-            marker duration in seconds.
-    """
-    tdbs_chunk = find_by_list_type(chunks=mrst_chunk.chunks, list_type="tdbs")
-    marker_group = parse_property(
-        tdbs_chunk=tdbs_chunk,
-        match_name=group_match_name,
-        time_scale=time_scale,
-        property_depth=1,
-    )
-    mrky_chunk = find_by_list_type(chunks=mrst_chunk.chunks, list_type="mrky")
-    nmrd_chunks = filter_by_list_type(chunks=mrky_chunk.chunks, list_type="Nmrd")
-    markers = []
-    for i, nmrd_chunk in enumerate(nmrd_chunks):
-        frame_time = marker_group.keyframes[i].frame_time
-        marker = parse_marker(
-            nmrd_chunk=nmrd_chunk,
-            frame_rate=frame_rate,
-            frame_time=frame_time,
-        )
-        markers.append(marker)
-    return markers
-
-
-def parse_marker(
-    nmrd_chunk: Aep.Chunk, frame_rate: float, frame_time: int
-) -> MarkerValue:
-    """
-    Parse a marker.
-
-    Args:
-        nmrd_chunk: The NMRD chunk to parse.
-        frame_rate: The frame rate of the parent composition (unused but kept
-            for API consistency).
-        frame_time: The time of the marker, in frames.
-    """
-    nmhd_chunk = find_by_type(chunks=nmrd_chunk.chunks, chunk_type="NmHd")
-
-    utf8_chunks = filter_by_type(chunks=nmrd_chunk.chunks, chunk_type="Utf8")
-
-    # Marker duration from Kaitai instance (stored in 600ths of a second)
-    duration = nmhd_chunk.duration
-
-    # Parse cue point params
-    params = {}
-    for param_name, param_value in split_into_batches(utf8_chunks[5:], 2):
-        params[str_contents(param_name)] = str_contents(param_value)
-
-    return MarkerValue(
-        chapter=str_contents(utf8_chunks[1]),
-        comment=str_contents(utf8_chunks[0]),
-        cue_point_name=str_contents(utf8_chunks[4]),
-        duration=duration,
-        navigation=nmhd_chunk.navigation,
-        frame_target=str_contents(utf8_chunks[3]),
-        url=str_contents(utf8_chunks[2]),
-        label=Label(int(nmhd_chunk.label)),
-        protected_region=nmhd_chunk.protected_region,
-        params=params,
-        frame_duration=nmhd_chunk.frame_duration,
-        frame_time=frame_time,
-    )
 
 
 def _get_user_defined_name(root_chunk: Aep.Chunk) -> str | None:

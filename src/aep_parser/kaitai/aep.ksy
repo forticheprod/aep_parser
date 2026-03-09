@@ -44,6 +44,7 @@ types:
             '"tdsn"': child_utf8_body # User-defined name of a property. Contains a single utf-8 chunk but no list_type
             '"tdb4"': tdb4_body # Property metadata
             '"cdat"': cdat_body # Property value(s)
+            '"otda"': cdat_body # Orientation keyframe value(s) (3 big-endian doubles)
             '"pard"': pard_body # Property default values and ranges
             '"lhd3"': lhd3_body # Number of keyframes and keyframe size for a property
             '"ldta"': ldta_body # Layer data
@@ -1347,7 +1348,9 @@ types:
         size-eos: true
         if: list_type == "btdk"
   mkif_body:
-    doc: Mask info. Contains inverted flag, locked flag and mask mode.
+    doc: |
+      Mask info. Contains inverted flag, locked flag, mask mode,
+      motion blur, feather falloff and color.
     seq:
       - id: inverted
         type: u1
@@ -1355,10 +1358,27 @@ types:
       - id: locked
         type: u1
         doc: Whether the mask path is locked (1 = locked, 0 = unlocked)
-      - size: 4
+      - id: mask_motion_blur
+        type: u1
+        doc: Mask motion blur (0=Same as Layer, 1=Off, 2=On)
+      - id: mask_feather_falloff
+        type: u1
+        doc: Mask feather falloff (0=Smooth, 1=Linear)
+      - size: 2
       - id: mode
         type: u2
         doc: Mask blending mode (0=None, 1=Add, 2=Subtract, 3=Intersect, 4=Darken, 5=Lighten, 6=Difference)
+      - size: 37
+        doc: Unknown data (timestamps, hashes)
+      - id: color_red
+        type: u1
+        doc: Red component of mask color (0-255)
+      - id: color_green
+        type: u1
+        doc: Green component of mask color (0-255)
+      - id: color_blue
+        type: u1
+        doc: Blue component of mask color (0-255)
   shph_body:
     doc: |
       Shape path header. Contains a closed/open flag and the bounding box
@@ -1830,7 +1850,12 @@ types:
         value: 'not expression_disabled'
   tdsb_body:
     seq:
-      - size: 2   # skip first 2 bytes
+      - id: roto_bezier
+        type: u1
+        doc: |
+          RotoBezier flag for mask shape properties (byte 0).
+          1 = RotoBezier enabled. Always 0 for non-mask-shape properties.
+      - size: 1   # skip byte 1
       - type: b3  # skip first 3 bits
       - id: locked_ratio
         type: b1  # bit 4
