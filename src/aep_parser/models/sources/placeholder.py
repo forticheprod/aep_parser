@@ -16,8 +16,6 @@ class PlaceholderSource(FootageSource):
         from aep_parser import PlaceholderSource, parse
 
         app = parse("project.aep")
-
-        app = parse("project.aep")
         footage = app.project.footages[0]
         if isinstance(footage.main_source, PlaceholderSource):
             print(footage.main_source.width)

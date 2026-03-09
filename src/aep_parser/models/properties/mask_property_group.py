@@ -10,23 +10,36 @@ from .property_group import PropertyGroup
 class MaskPropertyGroup(PropertyGroup):
     """An individual mask applied to a layer.
 
-    The `MaskPropertyGroup` represents a single mask on a layer. It is a
-    child of the `Masks` [PropertyGroup][] (match name `ADBE Mask Parade`).
+    The `MaskPropertyGroup` object encapsulates mask attributes in a layer.
 
-    Mask atoms have all the standard [PropertyGroup][] attributes plus the
-    mask-specific fields below.
+    Info:
+        `MaskPropertyGroup` is a subclass of PropertyGroup object. All methods and
+        attributes of [PropertyBase][aep_parser.models.properties.property_base.PropertyBase]
+        object and [PropertyGroup][], in addition to those listed below, are available
+        when working with `MaskPropertyGroup`.
+
+    Example:
+        ```python
+        from aep_parser import parse
+
+        app = parse("project.aep")
+        comp = app.project.compositions[0]
+        layer = comp.layers[0]
+        mask = layer.masks[0]
+        print(mask.inverted)
+        ```
 
     See: https://ae-scripting.docsforadobe.dev/property/maskpropertygroup/
     """
 
     inverted: bool
     """
-    If `True`, the mask is inverted.
+    When `True`, the mask is inverted.
     """
 
     locked: bool
     """
-    If `True`, the mask path is locked and cannot be modified in the UI.
+    When `True`, the mask is locked and cannot be edited in the user interface.
     """
 
     mask_mode: MaskMode

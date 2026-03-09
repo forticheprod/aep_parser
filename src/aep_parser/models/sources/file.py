@@ -16,8 +16,6 @@ class FileSource(FootageSource):
         from aep_parser import FileSource, parse
 
         app = parse("project.aep")
-
-        app = parse("project.aep")
         footage = app.project.footages[0]
         if isinstance(footage.main_source, FileSource):
             print(footage.main_source.file)
