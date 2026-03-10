@@ -82,6 +82,7 @@ types:
             '"EfDC"': efdc_body # Effect definition count
             '"parn"': parn_body # Parameter count in a parT list
             '"ewot"': ewot_body # Effect workspace outline entries
+            '"otln"': otln_body # Comp panel outline entries (selection + collapsed state)
             _: ascii_body
       - id: padding
         size: 1
@@ -114,6 +115,38 @@ types:
       - id: reserved_flags
         type: b6
         doc: Remaining flag bits
+      - id: data
+        size: 3
+        doc: Remaining entry bytes
+  otln_body:
+    doc: |
+      Comp panel outline entries inside LIST FEE (composition timeline).
+      Each entry is 4 bytes. The first byte contains flags:
+        - bit 7 (0x80): collapsed in the timeline
+        - bit 6 (0x40): selected
+      Entries correspond 1:1 to layers and their property-tree nodes
+      in DFS order across all visible layers of the active composition.
+    seq:
+      - id: num_entries
+        type: u4
+        doc: Number of entries
+      - id: entries
+        type: otln_entry
+        repeat: expr
+        repeat-expr: num_entries
+        doc: Array of outline entries
+  otln_entry:
+    doc: Single comp panel outline entry.
+    seq:
+      - id: collapsed
+        type: b1
+        doc: When true, this node is collapsed in the comp timeline (bit 7 of flags byte)
+      - id: selected
+        type: b1
+        doc: When true, this entry is selected (bit 6 of flags byte)
+      - id: reserved_flags
+        type: b6
+        doc: Remaining flag bits (bit 5 = property, bit 3 = leaf, etc.)
       - id: data
         size: 3
         doc: Remaining entry bytes
@@ -1337,6 +1370,7 @@ types:
           item_type_raw == 4 and item_size == 64 ? ldat_item_type::no_value :
           item_type_raw == 4 and item_size == 48 ? ldat_item_type::one_d :
           item_type_raw == 4 and item_size == 16 ? ldat_item_type::marker :
+          item_type_raw == 4 and item_size == 8 ? ldat_item_type::shape :
           ldat_item_type::unknown
   list_body:
     seq:
@@ -1410,6 +1444,18 @@ types:
     instances:
       closed:
         value: 'not open'
+  shape_point:
+    doc: |
+      A single normalized bezier point in a shape path.
+      Coordinates are big-endian f4 values in the [0, 1] range,
+      relative to the bounding box defined in shph_body.
+    seq:
+      - id: x
+        type: f4
+        doc: Normalized X coordinate
+      - id: y
+        type: f4
+        doc: Normalized Y coordinate
   nmhd_body:
     seq:
       - size: 3

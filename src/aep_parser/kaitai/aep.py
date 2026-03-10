@@ -567,6 +567,11 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.CdatBody(_io__raw_data, self, self._root)
+            elif _on == u"otln":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.OtlnBody(_io__raw_data, self, self._root)
             elif _on == u"pard":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -734,6 +739,9 @@ class Aep(KaitaiStruct):
                 pass
                 self.data._fetch_instances()
             elif _on == u"otda":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"otln":
                 pass
                 self.data._fetch_instances()
             elif _on == u"pard":
@@ -1604,7 +1612,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_item_type'):
                 return self._m_item_type
 
-            self._m_item_type = (Aep.LdatItemType.lrdr if  ((self.item_type_raw == 1) and (self.item_size == 2246))  else (Aep.LdatItemType.litm if  ((self.item_type_raw == 1) and (self.item_size == 128))  else (Aep.LdatItemType.gide if  ((self.item_type_raw == 2) and (self.item_size == 1))  else (Aep.LdatItemType.color if  ((self.item_type_raw == 4) and (self.item_size == 152))  else (Aep.LdatItemType.three_d if  ((self.item_type_raw == 4) and (self.item_size == 128))  else (Aep.LdatItemType.two_d_spatial if  ((self.item_type_raw == 4) and (self.item_size == 104))  else (Aep.LdatItemType.two_d if  ((self.item_type_raw == 4) and (self.item_size == 88))  else (Aep.LdatItemType.orientation if  ((self.item_type_raw == 4) and (self.item_size == 80))  else (Aep.LdatItemType.no_value if  ((self.item_type_raw == 4) and (self.item_size == 64))  else (Aep.LdatItemType.one_d if  ((self.item_type_raw == 4) and (self.item_size == 48))  else (Aep.LdatItemType.marker if  ((self.item_type_raw == 4) and (self.item_size == 16))  else Aep.LdatItemType.unknown)))))))))))
+            self._m_item_type = (Aep.LdatItemType.lrdr if  ((self.item_type_raw == 1) and (self.item_size == 2246))  else (Aep.LdatItemType.litm if  ((self.item_type_raw == 1) and (self.item_size == 128))  else (Aep.LdatItemType.gide if  ((self.item_type_raw == 2) and (self.item_size == 1))  else (Aep.LdatItemType.color if  ((self.item_type_raw == 4) and (self.item_size == 152))  else (Aep.LdatItemType.three_d if  ((self.item_type_raw == 4) and (self.item_size == 128))  else (Aep.LdatItemType.two_d_spatial if  ((self.item_type_raw == 4) and (self.item_size == 104))  else (Aep.LdatItemType.two_d if  ((self.item_type_raw == 4) and (self.item_size == 88))  else (Aep.LdatItemType.orientation if  ((self.item_type_raw == 4) and (self.item_size == 80))  else (Aep.LdatItemType.no_value if  ((self.item_type_raw == 4) and (self.item_size == 64))  else (Aep.LdatItemType.one_d if  ((self.item_type_raw == 4) and (self.item_size == 48))  else (Aep.LdatItemType.marker if  ((self.item_type_raw == 4) and (self.item_size == 16))  else (Aep.LdatItemType.shape if  ((self.item_type_raw == 4) and (self.item_size == 8))  else Aep.LdatItemType.unknown))))))))))))
             return getattr(self, '_m_item_type', None)
 
 
@@ -2009,6 +2017,55 @@ class Aep(KaitaiStruct):
                 self._m_red = self.color[1]
 
             return getattr(self, '_m_red', None)
+
+
+    class OtlnBody(KaitaiStruct):
+        """Comp panel outline entries inside LIST FEE (composition timeline).
+        Each entry is 4 bytes. The first byte contains flags:
+          - bit 7 (0x80): collapsed in the timeline
+          - bit 6 (0x40): selected
+        Entries correspond 1:1 to layers and their property-tree nodes
+        in DFS order across all visible layers of the active composition.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.OtlnBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.num_entries = self._io.read_u4be()
+            self.entries = []
+            for i in range(self.num_entries):
+                self.entries.append(Aep.OtlnEntry(self._io, self, self._root))
+
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.entries)):
+                pass
+                self.entries[i]._fetch_instances()
+
+
+
+    class OtlnEntry(KaitaiStruct):
+        """Single comp panel outline entry."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.OtlnEntry, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.collapsed = self._io.read_bits_int_be(1) != 0
+            self.selected = self._io.read_bits_int_be(1) != 0
+            self.reserved_flags = self._io.read_bits_int_be(6)
+            self.data = self._io.read_bytes(3)
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class OutputModuleSettingsLdatBody(KaitaiStruct):
@@ -2618,6 +2675,26 @@ class Aep(KaitaiStruct):
             self.render = self._io.read_bits_int_be(1) != 0
             self._unnamed2 = self._io.read_bits_int_be(6)
             self._unnamed3 = self._io.read_bytes(3)
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class ShapePoint(KaitaiStruct):
+        """A single normalized bezier point in a shape path.
+        Coordinates are big-endian f4 values in the [0, 1] range,
+        relative to the bounding box defined in shph_body.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.ShapePoint, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.x = self._io.read_f4be()
+            self.y = self._io.read_f4be()
 
 
         def _fetch_instances(self):

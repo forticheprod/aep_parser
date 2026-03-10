@@ -282,9 +282,7 @@ def _parse_effect_definitions(
         effect_match_name = str_contents(tdmn_chunk)
 
         # Parse param defs from the sspc chunk
-        sspc_chunk = find_by_list_type(
-            chunks=efdf_child_chunks, list_type="sspc"
-        )
+        sspc_chunk = find_by_list_type(chunks=efdf_child_chunks, list_type="sspc")
         param_defs = parse_effect_param_defs(sspc_chunk.chunks)
         effect_defs[effect_match_name] = param_defs
 

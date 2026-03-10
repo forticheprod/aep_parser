@@ -59,17 +59,13 @@ class PropertyBase(ABC):
     is_mask: bool = field(init=False, default=False)
     """When `True`, this property is a mask [PropertyGroup][]."""
 
-    parent_property: PropertyGroup | None = field(
-        init=False, default=None, repr=False
-    )
+    parent_property: PropertyGroup | None = field(init=False, default=None, repr=False)
     """
     The parent [PropertyGroup][] of this property, or `None` for top-level
     layer property groups.
     """
 
-    property_type: PropertyType = field(
-        init=False, default=PropertyType.NAMED_GROUP
-    )
+    property_type: PropertyType = field(init=False, default=PropertyType.NAMED_GROUP)
     """
     The type of this property. One of `PropertyType.PROPERTY`,
     `PropertyType.NAMED_GROUP`, or `PropertyType.INDEXED_GROUP`.

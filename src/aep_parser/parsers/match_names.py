@@ -7,6 +7,8 @@ while display names are localized and may vary.
 See: https://ae-scripting.docsforadobe.dev/matchnames/layer/avlayer/
 """
 
+from __future__ import annotations
+
 MATCH_NAME_TO_NICE_NAME = {
     # AV Layer > Top-Level
     "ADBE Marker": "Marker",

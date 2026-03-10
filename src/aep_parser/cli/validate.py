@@ -61,6 +61,8 @@ SKIP_PROPERTIES = {
     "effects",
     "masks",
     "text",
+    # Duplicate: Property.separation_leader → Property
+    "separation_leader",
 }
 
 
@@ -303,9 +305,7 @@ def compare_layer(
             result.add_diff(child_path, "exists", "missing", "properties")
             continue
 
-        compare_property_group(
-            exp_pg, parsed_pg, child_path, result
-        )
+        compare_property_group(exp_pg, parsed_pg, child_path, result)
 
 
 def compare_property(
@@ -336,6 +336,8 @@ def compare_property(
         "isEffect": "is_effect",
         "isMask": "is_mask",
         "isModified": "is_modified",
+        "isSeparationLeader": "is_separation_leader",
+        "isSeparationFollower": "is_separation_follower",
         "selected": "selected",
     }
 
@@ -364,6 +366,15 @@ def compare_property(
         if exp_num_keys != parsed_num_keys:
             result.add_diff(
                 f"{path}.numKeys", exp_num_keys, parsed_num_keys, "properties"
+            )
+
+    # Compare separationDimension (only present on followers in JSON)
+    if "separationDimension" in expected_prop:
+        exp_dim = expected_prop["separationDimension"]
+        parsed_dim = parsed_prop.get("separation_dimension")
+        if not compare_values(exp_dim, parsed_dim):
+            result.add_diff(
+                f"{path}.separationDimension", exp_dim, parsed_dim, "properties"
             )
 
     # Compare min/max values

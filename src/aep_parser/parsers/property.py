@@ -90,18 +90,14 @@ def parse_property_group(
         # Find the first LIST chunk; non-LIST chunks (e.g. mkif for masks)
         # are auxiliary data that we skip when determining the property type.
         try:
-            first_chunk = find_by_type(
-                chunks=sub_prop_chunks, chunk_type="LIST"
-            )
+            first_chunk = find_by_type(chunks=sub_prop_chunks, chunk_type="LIST")
         except ChunkNotFoundError:
             continue
         # Effects can share a match name when the same effect type is applied
         # multiple times. Iterate all LIST chunks for sspc and tdgp; other
         # types use the first chunk (additional chunks are auxiliary data).
         if first_chunk.list_type == "sspc":
-            for chunk in filter_by_list_type(
-                chunks=sub_prop_chunks, list_type="sspc"
-            ):
+            for chunk in filter_by_list_type(chunks=sub_prop_chunks, list_type="sspc"):
                 sub_prop: Property | PropertyGroup = parse_effect(
                     sspc_chunk=chunk,
                     group_match_name=match_name,
@@ -114,12 +110,8 @@ def parse_property_group(
             if match_name == "ADBE Mask Atom":
                 # Pair each mask tdgp chunk with its mkif (mask info) chunk
                 for tdgp_c, mkif_c in zip(
-                    filter_by_list_type(
-                        chunks=sub_prop_chunks, list_type="tdgp"
-                    ),
-                    filter_by_type(
-                        chunks=sub_prop_chunks, chunk_type="mkif"
-                    ),
+                    filter_by_list_type(chunks=sub_prop_chunks, list_type="tdgp"),
+                    filter_by_type(chunks=sub_prop_chunks, chunk_type="mkif"),
                 ):
                     sub_prop = _parse_mask_atom(
                         tdgp_chunk=tdgp_c,
@@ -177,8 +169,7 @@ def parse_property_group(
             pass
         else:
             logger.warning(
-                "Skipping unsupported property list type '%s' "
-                "(match name '%s')",
+                "Skipping unsupported property list type '%s' (match name '%s')",
                 first_chunk.list_type,
                 match_name,
             )
@@ -248,17 +239,10 @@ def _parse_mask_atom(
     chunks_by_mn = get_chunks_by_match_name(tdgp_chunk)
     mask_shape_chunks = chunks_by_mn.get("ADBE Mask Shape", [])
     for chunk in mask_shape_chunks:
-        if (
-            chunk.chunk_type == "LIST"
-            and chunk.list_type == "om-s"
-        ):
+        if chunk.chunk_type == "LIST" and chunk.list_type == "om-s":
             with suppress(ChunkNotFoundError):
-                tdbs = find_by_list_type(
-                    chunks=chunk.chunks, list_type="tdbs"
-                )
-                tdsb = find_by_type(
-                    chunks=tdbs.chunks, chunk_type="tdsb"
-                )
+                tdbs = find_by_list_type(chunks=chunk.chunks, list_type="tdbs")
+                tdsb = find_by_type(chunks=tdbs.chunks, chunk_type="tdsb")
                 roto_bezier = bool(tdsb.data.roto_bezier)
             break
 
@@ -279,9 +263,7 @@ def _parse_mask_atom(
             int(mkif_chunk.mask_feather_falloff)
         ),
         mask_mode=MaskMode.from_binary(int(mkif_chunk.mode)),
-        mask_motion_blur=MaskMotionBlur.from_binary(
-            int(mkif_chunk.mask_motion_blur)
-        ),
+        mask_motion_blur=MaskMotionBlur.from_binary(int(mkif_chunk.mask_motion_blur)),
         roto_bezier=roto_bezier,
     )
     mask_group.property_type = base.property_type
@@ -333,9 +315,7 @@ def parse_orientation(
     # The cdat inside OTST stores doubles as little-endian, unlike the
     # rest of the big-endian RIFX file.  Re-read the raw bytes as LE.
     try:
-        cdat_chunk = find_by_type(
-            chunks=tdbs_chunk.chunks, chunk_type="cdat"
-        )
+        cdat_chunk = find_by_type(chunks=tdbs_chunk.chunks, chunk_type="cdat")
         n = cdat_chunk.len_data // 8
         values = list(struct.unpack(f"<{n}d", cdat_chunk._raw_data))
         while len(values) < 3:
@@ -350,12 +330,8 @@ def parse_orientation(
     # reads from tdbs which only has 1D orientation data, so we
     # override each keyframe's value with the full 3D otda data.
     try:
-        otky_chunk = find_by_list_type(
-            chunks=otst_chunk.chunks, list_type="otky"
-        )
-        otda_chunks = filter_by_type(
-            chunks=otky_chunk.chunks, chunk_type="otda"
-        )
+        otky_chunk = find_by_list_type(chunks=otst_chunk.chunks, list_type="otky")
+        otda_chunks = filter_by_type(chunks=otky_chunk.chunks, chunk_type="otda")
         for idx, kf in enumerate(prop.keyframes):
             if idx < len(otda_chunks):
                 kf.value = list(otda_chunks[idx].value)
@@ -394,19 +370,8 @@ def _parse_shape_shap(shap_chunk: Aep.Chunk) -> ShapeValue:
     br_y = shph_chunk.bottom_right_y
     closed = shph_chunk.closed
 
-    # Read raw bezier points from ldat
-    lhd3 = find_by_type(chunks=list_chunk.chunks, chunk_type="lhd3")
-    ldat = find_by_type(chunks=list_chunk.chunks, chunk_type="ldat")
-
-    point_count = lhd3.count
-    raw_bytes = ldat.items
-
-    # Parse (f4 x, f4 y) pairs — big-endian
-    points: list[tuple[float, float]] = []
-    for i in range(point_count):
-        offset = i * 8
-        px, py = struct.unpack_from(">ff", raw_bytes, offset)
-        points.append((px, py))
+    # Parse normalized bezier points via parse_ldat_items (ShapePoint)
+    points: list[Aep.ShapePoint] = parse_ldat_items(list_chunk)
 
     # De-interleave into vertex / out_tangent / in_tangent triples.
     # Raw order per cycle of 3:  vertex, out_tangent, in_tangent_of_next
@@ -419,15 +384,15 @@ def _parse_shape_shap(shap_chunk: Aep.Chunk) -> ShapeValue:
     out_tangents: list[list[float]] = []
 
     for i in range(0, len(points), 3):
-        vx = tl_x * (1 - points[i][0]) + br_x * points[i][0]
-        vy = tl_y * (1 - points[i][1]) + br_y * points[i][1]
+        vx = tl_x * (1 - points[i].x) + br_x * points[i].x
+        vy = tl_y * (1 - points[i].y) + br_y * points[i].y
 
-        ox = tl_x * (1 - points[i + 1][0]) + br_x * points[i + 1][0]
-        oy = tl_y * (1 - points[i + 1][1]) + br_y * points[i + 1][1]
+        ox = tl_x * (1 - points[i + 1].x) + br_x * points[i + 1].x
+        oy = tl_y * (1 - points[i + 1].y) + br_y * points[i + 1].y
 
         in_idx = (i - 1) % len(points)
-        ix = tl_x * (1 - points[in_idx][0]) + br_x * points[in_idx][0]
-        iy = tl_y * (1 - points[in_idx][1]) + br_y * points[in_idx][1]
+        ix = tl_x * (1 - points[in_idx].x) + br_x * points[in_idx].x
+        iy = tl_y * (1 - points[in_idx].y) + br_y * points[in_idx].y
 
         vertices.append([vx, vy])
         # Tangents as offsets relative to vertex
@@ -482,9 +447,7 @@ def parse_shape(
 
     # Collect shape values from omks → shap LISTs
     try:
-        omks_chunk = find_by_list_type(
-            chunks=oms_chunk.chunks, list_type="omks"
-        )
+        omks_chunk = find_by_list_type(chunks=oms_chunk.chunks, list_type="omks")
         shape_values: list[ShapeValue] = []
         for shap_chunk in filter_by_list_type(
             chunks=omks_chunk.chunks, list_type="shap"

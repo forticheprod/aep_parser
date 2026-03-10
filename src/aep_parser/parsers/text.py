@@ -1,8 +1,8 @@
 """Parse COS (Carousel Object Structure) text data into text models.
 
-Transforms the dict returned by :class:`~aep_parser.cos.CosParser` for a
-``btdk`` chunk into :class:`~aep_parser.models.text.TextDocument` and
-:class:`~aep_parser.models.text.FontObject` instances.
+Transforms the dict returned by [CosParser][aep_parser.cos.CosParser] for a
+``btdk`` chunk into [TextDocument][aep_parser.models.text.TextDocument] and
+[FontObject][aep_parser.models.text.FontObject] instances.
 
 The COS data layout follows the structure documented in the
 `lottie-docs AEP reference
@@ -157,7 +157,7 @@ def _parse_paragraph_style(
     ====  ==============================
 
     Returns:
-        Dict of keyword arguments suitable for :class:`TextDocument`.
+        Dict of keyword arguments suitable for [TextDocument][].
     """
     if not style or not isinstance(style, dict):
         return {}
@@ -291,7 +291,7 @@ def _parse_char_style(
         fonts: The parsed font list (used to resolve font index).
 
     Returns:
-        Dict of keyword arguments suitable for :class:`TextDocument`.
+        Dict of keyword arguments suitable for [TextDocument][].
     """
     if not style or not isinstance(style, dict):
         return {}
@@ -464,17 +464,17 @@ def parse_text_documents(
         entry["0"]["6"]["0"]         -> character style runs
 
     For each document the *first* character style and *first* paragraph
-    style are extracted and mapped onto :class:`TextDocument` attributes,
+    style are extracted and mapped onto [TextDocument][] attributes,
     matching the ExtendScript API semantics where most properties "only
     reflect the first character".
 
     Args:
         cos_data: The parsed COS dict from a ``btdk`` chunk.
-        fonts: The list of :class:`FontObject` parsed by
-            :func:`parse_fonts` (font indices reference this list).
+        fonts: The list of [FontObject][] parsed by
+            [parse_fonts][] (font indices reference this list).
 
     Returns:
-        List of :class:`TextDocument` instances (one per keyframe).
+        List of [TextDocument][] instances (one per keyframe).
     """
     doc_array = _g(cos_data, "1", "1")
     if not doc_array or not isinstance(doc_array, list):
@@ -521,16 +521,16 @@ def parse_btdk_cos(
     """Parse a btdk COS dict into text documents and fonts.
 
     This is the main entry point called by
-    :func:`~aep_parser.parsers.property.parse_text_document`.
+    [parse_text_document][aep_parser.parsers.property.parse_text_document].
 
     Args:
         cos_data: The parsed COS dict from a ``btdk`` chunk (the return
-            value of :meth:`~aep_parser.cos.CosParser.parse`).
+            value of [CosParser.parse][aep_parser.cos.CosParser.parse]).
 
     Returns:
         A tuple ``(text_documents, fonts)`` where *text_documents* is a
-        list of :class:`TextDocument` (one per keyframe) and *fonts* is
-        the list of :class:`FontObject` referenced by the documents.
+        list of [TextDocument][] (one per keyframe) and *fonts* is
+        the list of [FontObject][] referenced by the documents.
     """
     fonts = parse_fonts(cos_data)
     documents = parse_text_documents(cos_data, fonts)

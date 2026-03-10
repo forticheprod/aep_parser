@@ -18,7 +18,7 @@ from ..kaitai.utils import (
 if typing.TYPE_CHECKING:
     from typing import Iterator
 
-T = TypeVar("T", bytes, List[Any])
+T = TypeVar("T", bytes, List[Any])  # Cannot use list here because of py3.7, even with future
 
 
 def get_name(child_chunks: list[Aep.Chunk]) -> str:
@@ -129,12 +129,13 @@ def parse_ldat_items(
     Uses lhd3.item_type to determine the correct parser class:
     - lrdr: RenderSettingsLdatBody (2246 bytes per item)
     - litm: OutputModuleSettingsLdatBody (128 bytes per item)
+    - shape: ShapePoint (8 bytes per item)
     - keyframe types: LdatItem (variable size per item)
 
     Args:
         list_chunk: A LIST chunk containing lhd3 and ldat child chunks.
-        is_spatial: Whether the property is spatial (affects 3D type interpretation
-            for keyframe items).
+        is_spatial: Whether the property is spatial (affects 3D type
+            interpretation for keyframe items).
 
     Returns:
         List of parsed items (type depends on item_type).
@@ -160,6 +161,8 @@ def parse_ldat_items(
             item = Aep.RenderSettingsLdatBody(stream)
         elif item_type == Aep.LdatItemType.litm:
             item = Aep.OutputModuleSettingsLdatBody(stream)
+        elif item_type == Aep.LdatItemType.shape:
+            item = Aep.ShapePoint(stream)
         else:
             item = Aep.LdatItem(item_type=item_type, _io=stream)
         items.append(item)

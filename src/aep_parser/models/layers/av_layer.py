@@ -108,9 +108,7 @@ class AVLayer(Layer):
     _source: Item | None = field(default=None, init=False, repr=False)
 
     # Set after parsing - track matte references (not serialized)
-    _track_matte_layer: AVLayer | None = field(
-        default=None, init=False, repr=False
-    )
+    _track_matte_layer: AVLayer | None = field(default=None, init=False, repr=False)
     _is_track_matte: bool = field(default=False, init=False, repr=False)
 
     @property

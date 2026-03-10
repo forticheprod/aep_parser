@@ -824,6 +824,103 @@ class TestIsModified:
                     )
 
 
+class TestSeparation:
+    """Tests for separation leader/follower properties.
+
+    In After Effects, Position is a "separation leader" that can be
+    split into X/Y/Z Position "followers".  These roles are structural
+    and persist regardless of whether dimensions are currently separated.
+    """
+
+    def test_is_separation_leader(self) -> None:
+        """Position is always a separation leader."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "transform_separated.aep")
+        )
+        pos = _find_property(layer, "ADBE Position")
+        assert pos is not None
+        assert pos.is_separation_leader is True
+        assert pos.is_separation_follower is False
+        assert pos.separation_dimension is None
+
+    def test_is_separation_follower(self) -> None:
+        """Position_0/1/2 are always separation followers."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "transform_separated.aep")
+        )
+        for suffix, dim in [("_0", 0), ("_1", 1), ("_2", 2)]:
+            prop = _find_property(layer, f"ADBE Position{suffix}")
+            assert prop is not None, f"ADBE Position{suffix} not found"
+            assert prop.is_separation_follower is True
+            assert prop.is_separation_leader is False
+            assert prop.separation_dimension == dim
+
+    def test_get_separation_follower(self) -> None:
+        """Position.get_separation_follower(dim) returns the follower."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "transform_separated.aep")
+        )
+        pos = _find_property(layer, "ADBE Position")
+        assert pos is not None
+        for dim in range(3):
+            follower = pos.get_separation_follower(dim)
+            assert follower is not None, f"follower dim {dim} is None"
+            assert follower.match_name == f"ADBE Position_{dim}"
+
+    def test_separation_leader_back_reference(self) -> None:
+        """Follower.separation_leader returns the Position property."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "transform_separated.aep")
+        )
+        pos = _find_property(layer, "ADBE Position")
+        x_pos = _find_property(layer, "ADBE Position_0")
+        assert x_pos is not None
+        assert x_pos.separation_leader is pos
+
+    def test_before_separation_still_structural(self) -> None:
+        """Leader/follower roles hold even when never separated."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "before_separation.aep")
+        )
+        pos = _find_property(layer, "ADBE Position")
+        assert pos is not None
+        assert pos.is_separation_leader is True
+        assert pos.dimensions_separated is False
+
+        x_pos = _find_property(layer, "ADBE Position_0")
+        assert x_pos is not None
+        assert x_pos.is_separation_follower is True
+        assert x_pos.separation_dimension == 0
+
+    def test_non_position_not_separation(self) -> None:
+        """Opacity has neither leader nor follower role."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "transform_separated.aep")
+        )
+        opa = _find_property(layer, "ADBE Opacity")
+        assert opa is not None
+        assert opa.is_separation_leader is False
+        assert opa.is_separation_follower is False
+        assert opa.separation_dimension is None
+        assert opa.separation_leader is None
+        assert opa.get_separation_follower(0) is None
+
+    def test_unseparated_structural(self) -> None:
+        """Leader/follower roles hold after un-separating."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "transform_unseparated.aep")
+        )
+        pos = _find_property(layer, "ADBE Position")
+        assert pos is not None
+        assert pos.is_separation_leader is True
+        assert pos.dimensions_separated is False
+
+        y_pos = _find_property(layer, "ADBE Position_1")
+        assert y_pos is not None
+        assert y_pos.is_separation_follower is True
+        assert y_pos.separation_dimension == 1
+
+
 class TestTransformSynthesis:
     """Tests for synthesized transform properties.
 

@@ -55,7 +55,7 @@ Properties control layer appearance and behavior:
 
 Sources provide the content for footage items:
 
-- [Footage Source](sources/file_source.md) - Base class for sources
+- [Footage Source](sources/footage_source.md) - Base class for sources
 - [File Source](sources/file_source.md) - File-based sources
 - [Solid Source](sources/solid_source.md) - Solid color sources
 - [Placeholder Source](sources/placeholder_source.md) - Placeholder sources
