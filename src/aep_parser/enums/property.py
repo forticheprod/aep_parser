@@ -45,8 +45,8 @@ class PropertyValueType(IntEnum):
     ThreeD_SPATIAL = 6413
     ThreeD = 6414
     TwoD_SPATIAL = 6415
-    TWO_D = 6416
-    ONE_D = 6417
+    TwoD = 6416
+    OneD = 6417
     COLOR = 6418
     CUSTOM_VALUE = 6419
     MARKER = 6420

@@ -941,17 +941,17 @@ def _determine_property_types(
         property_value_type = PropertyValueType.COLOR
     elif integer:
         property_control_type = PropertyControlType.BOOLEAN
-        property_value_type = PropertyValueType.ONE_D
+        property_value_type = PropertyValueType.OneD
     elif vector:
         if dimensions == 1:
             property_control_type = PropertyControlType.SCALAR
-            property_value_type = PropertyValueType.ONE_D
+            property_value_type = PropertyValueType.OneD
         elif dimensions == 2:
             property_control_type = PropertyControlType.TWO_D
             property_value_type = (
                 PropertyValueType.TwoD_SPATIAL
                 if is_spatial
-                else PropertyValueType.TWO_D
+                else PropertyValueType.TwoD
             )
         elif dimensions == 3:
             property_control_type = PropertyControlType.THREE_D
