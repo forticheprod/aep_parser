@@ -136,6 +136,15 @@ class Property(PropertyBase):
     static value.
     """
 
+    units_text: str
+    """
+    The text description of the units in which the value is expressed.
+
+    Common values include `"pixels"`, `"degrees"`, `"percent"`,
+    `"seconds"`, and `"dB"`. An empty string indicates the property
+    has no specific unit.
+    """
+
     vector: bool
     """When `True`, the property value is a vector."""
 

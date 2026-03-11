@@ -5,8 +5,10 @@ This guide helps you understand the AEP Parser codebase and contribute new featu
 ## Quick Start
 
 1. **Fork and clone** the repository
-2. **Install with dev dependencies**: `pip install -e ".[dev]"`
-3. **Run tests**: `pytest`
+2. **Install with dev dependencies**:
+   - With uv (recommended): `uv sync --extra dev`
+   - With pip: `pip install -e ".[dev]"`
+3. **Run tests**: `uv run pytest` (or `pytest`)
 4. **Make your changes** following this guide
 5. **Submit a pull request**
 
@@ -60,13 +62,14 @@ AEP Parser transforms binary .aep files into typed Python objects through a thre
 git clone https://github.com/forticheprod/aep_parser.git
 cd aep_parser
 
-# Install with dev dependencies
-pip install -e ".[dev]"
+# Install with dev dependencies (pick one)
+uv sync --extra dev    # recommended
+pip install -e ".[dev]" # alternative
 
 # Verify installation
-pytest
-mypy src/aep_parser
-ruff check src/
+uv run pytest
+uv run mypy src/aep_parser
+uv run ruff check src/
 ```
 
 ### Tools and Scripts
@@ -393,16 +396,16 @@ python-lottie documentation for COS format details: [python-lottie COS documenta
 
 ```bash
 # Run all tests
-pytest
+uv run pytest
 
 # Run specific test file
-pytest tests/test_models_layer.py
+uv run pytest tests/test_models_layer.py
 
 # Run specific test
-pytest tests/test_models_layer.py::test_layer_motion_blur -v
+uv run pytest tests/test_models_layer.py::test_layer_motion_blur -v
 
 # Run with coverage
-pytest --cov=aep_parser --cov-report=html
+uv run pytest --cov=aep_parser --cov-report=html
 ```
 
 ### Test Structure
@@ -460,16 +463,16 @@ Use the JSX scripts to generate samples systematically.
 
 ```bash
 # Check code style
-ruff check src/
+uv run ruff check src/
 
 # Auto-fix issues
-ruff check --fix src/
+uv run ruff check --fix src/
 
 # Format code
-ruff format src/
+uv run ruff format src/
 
 # Type checking
-mypy src/aep_parser
+uv run mypy src/aep_parser
 ```
 
 **Note**: `kaitai/aep.py` is auto-generated and excluded from linting.
@@ -479,14 +482,15 @@ mypy src/aep_parser
 ### Building Documentation
 
 ```bash
-# Install docs dependencies
-pip install -e ".[docs]"
+# Install docs dependencies (pick one)
+uv sync --extra docs   # recommended
+pip install -e ".[docs]" # alternative
 
 # Build static site
-mkdocs build --strict
+uv run mkdocs build --strict
 
 # Serve with live reload
-mkdocs serve --strict
+uv run mkdocs serve --strict
 ```
 
 Documentation is auto-deployed to GitHub Pages when changes are pushed to `main`.

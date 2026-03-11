@@ -339,6 +339,7 @@ def compare_property(
         "isSeparationLeader": "is_separation_leader",
         "isSeparationFollower": "is_separation_follower",
         "selected": "selected",
+        "unitsText": "units_text",
     }
 
     for exp_key, parsed_key in property_mappings.items():

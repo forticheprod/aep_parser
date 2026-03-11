@@ -47,6 +47,7 @@ def parse_markers(
         match_name=group_match_name,
         time_scale=time_scale,
         property_depth=1,
+        frame_rate=frame_rate,
     )
     mrky_chunk = find_by_list_type(chunks=mrst_chunk.chunks, list_type="mrky")
     nmrd_chunks = filter_by_list_type(chunks=mrky_chunk.chunks, list_type="Nmrd")

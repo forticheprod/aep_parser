@@ -120,6 +120,7 @@ def _parse_layer_property_groups(
                 time_scale=composition.time_scale,
                 property_depth=1,
                 effect_param_defs=effect_param_defs,
+                frame_rate=composition.frame_rate,
             )
             properties.append(prop_group)
         elif first_list.list_type == "tdbs":
@@ -129,6 +130,7 @@ def _parse_layer_property_groups(
                 match_name=match_name,
                 time_scale=composition.time_scale,
                 property_depth=1,
+                frame_rate=composition.frame_rate,
             )
             properties.append(prop)
 

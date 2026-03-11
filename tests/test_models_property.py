@@ -105,7 +105,7 @@ class TestKeyframes:
         assert position.animated
         assert len(position.keyframes) == 2
         for kf in position.keyframes:
-            assert kf.keyframe_interpolation_type == KeyframeInterpolationType.LINEAR
+            assert kf.out_interpolation_type == KeyframeInterpolationType.LINEAR
         assert position.keyframes[0].value == [0.0, 50.0, 0.0]
         assert position.keyframes[1].value == [100.0, 50.0, 0.0]
 
@@ -117,7 +117,7 @@ class TestKeyframes:
         assert position.animated
         assert len(position.keyframes) == 2
         for kf in position.keyframes:
-            assert kf.keyframe_interpolation_type == KeyframeInterpolationType.BEZIER
+            assert kf.out_interpolation_type == KeyframeInterpolationType.BEZIER
         assert position.keyframes[0].value == [0.0, 50.0, 0.0]
         assert position.keyframes[1].value == [100.0, 50.0, 0.0]
 
@@ -129,7 +129,7 @@ class TestKeyframes:
         assert opacity.animated
         assert len(opacity.keyframes) == 3
         # Keyframe 2 (index 1) is HOLD
-        assert opacity.keyframes[1].keyframe_interpolation_type == KeyframeInterpolationType.HOLD
+        assert opacity.keyframes[1].out_interpolation_type == KeyframeInterpolationType.HOLD
         assert opacity.keyframes[0].value == 100.0
         assert opacity.keyframes[1].value == 0.0
         assert opacity.keyframes[2].value == 100.0
@@ -1050,3 +1050,480 @@ class TestTransformSynthesis:
         assert len(layer.transform.properties) == 12
         match_names = [p.match_name for p in layer.transform.properties]
         assert match_names == self._CANONICAL_ORDER
+
+
+LAYER_SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "layer"
+
+
+class TestUnitsText:
+    """Tests for Property.units_text.
+
+    The ``units_text`` attribute is determined by the property's ``match_name``
+    and returns one of ``"pixels"``, ``"degrees"``, ``"percent"``,
+    ``"seconds"``, ``"dB"``, or ``""`` (no unit).
+    """
+
+    # -- Transform properties ------------------------------------------------
+
+    def test_transform_pixels(self) -> None:
+        """Anchor Point and Position report 'pixels'."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "property_1D_opacity.aep")
+        )
+        anchor = _find_property(layer, "ADBE Anchor Point")
+        assert anchor is not None
+        assert anchor.units_text == "pixels"
+
+        position = _find_property(layer, "ADBE Position")
+        assert position is not None
+        assert position.units_text == "pixels"
+
+    def test_transform_percent(self) -> None:
+        """Scale and Opacity report 'percent'."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "property_1D_opacity.aep")
+        )
+        scale = _find_property(layer, "ADBE Scale")
+        assert scale is not None
+        assert scale.units_text == "percent"
+
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        assert opacity.units_text == "percent"
+
+    def test_transform_degrees(self) -> None:
+        """Rotation and Orientation report 'degrees'."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "property_rotation.aep")
+        )
+        rotate_z = _find_property(layer, "ADBE Rotate Z")
+        assert rotate_z is not None
+        assert rotate_z.units_text == "degrees"
+
+        orientation = _find_property(layer, "ADBE Orientation")
+        assert orientation is not None
+        assert orientation.units_text == "degrees"
+
+    def test_transform_no_unit(self) -> None:
+        """Appears in Reflections has empty units_text."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "property_1D_opacity.aep")
+        )
+        envir = _find_property(layer, "ADBE Envir Appear in Reflect")
+        assert envir is not None
+        assert envir.units_text == ""
+
+    # -- Separated position followers ----------------------------------------
+
+    def test_separation_followers_pixels(self) -> None:
+        """X/Y/Z Position followers report 'pixels'."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "transform_separated.aep")
+        )
+        for mn in ("ADBE Position_0", "ADBE Position_1"):
+            prop = _find_property(layer, mn)
+            assert prop is not None, f"{mn} missing"
+            assert prop.units_text == "pixels", f"{mn} wrong units"
+
+    # -- Mask properties -----------------------------------------------------
+
+    def test_mask_feather_pixels(self) -> None:
+        """Mask Feather reports 'pixels'."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "mask_add.aep")
+        )
+        assert layer.masks is not None
+        mask = layer.masks.properties[0]
+        # Mask children: [0]=Feather, [1]=Opacity, [2]=Expansion(Offset)
+        feather = mask.properties[0]
+        assert feather.match_name == "ADBE Mask Feather"
+        assert feather.units_text == "pixels"
+
+    def test_mask_opacity_percent(self) -> None:
+        """Mask Opacity reports 'percent'."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "mask_add.aep")
+        )
+        assert layer.masks is not None
+        mask = layer.masks.properties[0]
+        opacity = mask.properties[1]
+        assert opacity.match_name == "ADBE Mask Opacity"
+        assert opacity.units_text == "percent"
+
+    # -- Effect properties ---------------------------------------------------
+
+    def test_effect_mask_opacity_percent(self) -> None:
+        """Effect Mask Opacity (Compositing Options) reports 'percent'."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "effect_2dPoint.aep")
+        )
+        assert layer.effects is not None
+        effect = layer.effects.properties[0]
+        # Compositing Options group is the last child of an effect
+        comp_opts = None
+        for child in effect.properties:
+            if child.match_name == "ADBE Effect Built In Params":
+                comp_opts = child
+                break
+        assert comp_opts is not None
+        opacity = None
+        for child in comp_opts.properties:
+            if child.match_name == "ADBE Effect Mask Opacity":
+                opacity = child
+                break
+        assert opacity is not None
+        assert opacity.units_text == "percent"
+
+    def test_effect_property_no_unit(self) -> None:
+        """Gaussian Blur Blurriness has no units in the map → empty string."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "2_gaussian_20_30.aep")
+        )
+        assert layer.effects is not None
+        effect = layer.effects.properties[0]
+        blurriness = None
+        for child in effect.properties:
+            if child.match_name == "ADBE Gaussian Blur 2-0001":
+                blurriness = child
+                break
+        assert blurriness is not None
+        assert blurriness.units_text == ""
+
+    # -- Time Remapping ------------------------------------------------------
+
+    def test_time_remapping_seconds(self) -> None:
+        """Time Remapping reports 'seconds'."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_BEZIER.aep")
+        )
+        for prop_group in layer.properties:
+            if prop_group.match_name == "ADBE Time Remapping":
+                assert prop_group.units_text == "seconds"
+                return
+        pytest.skip("Time Remapping not found in this sample")
+
+    # -- Unknown match name --------------------------------------------------
+
+    def test_unknown_match_name_empty(self) -> None:
+        """Unknown match names default to empty string."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "property_1D_opacity.aep")
+        )
+        envir = _find_property(layer, "ADBE Envir Appear in Reflect")
+        assert envir is not None
+        assert envir.units_text == ""
+
+
+class TestKeyframeInterpolationTypes:
+    """Tests for in/out interpolation type fields on keyframes."""
+
+    def test_linear_in_out_match(self) -> None:
+        """LINEAR keyframes have matching in/out interpolation types."""
+        layer = get_first_layer(parse_project(SAMPLES_DIR / "keyframe_LINEAR.aep"))
+        position = _find_property(layer, "ADBE Position")
+        assert position is not None
+        for kf in position.keyframes:
+            assert kf.in_interpolation_type == KeyframeInterpolationType.LINEAR
+            assert kf.out_interpolation_type == KeyframeInterpolationType.LINEAR
+
+    def test_bezier_in_out_match(self) -> None:
+        """BEZIER keyframes have matching in/out interpolation types."""
+        layer = get_first_layer(parse_project(SAMPLES_DIR / "keyframe_BEZIER.aep"))
+        position = _find_property(layer, "ADBE Position")
+        assert position is not None
+        for kf in position.keyframes:
+            assert kf.in_interpolation_type == KeyframeInterpolationType.BEZIER
+            assert kf.out_interpolation_type == KeyframeInterpolationType.BEZIER
+
+    def test_mixed_interpolation(self) -> None:
+        """Mixed interpolation keyframes have different in/out types."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_mixed_interpolation.aep")
+        )
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        assert len(opacity.keyframes) == 4
+        # KF[0]: LINEAR in/out
+        assert opacity.keyframes[0].in_interpolation_type == KeyframeInterpolationType.LINEAR
+        assert opacity.keyframes[0].out_interpolation_type == KeyframeInterpolationType.LINEAR
+        # KF[1]: BEZIER in, HOLD out
+        assert opacity.keyframes[1].in_interpolation_type == KeyframeInterpolationType.BEZIER
+        assert opacity.keyframes[1].out_interpolation_type == KeyframeInterpolationType.HOLD
+        # KF[2]: HOLD in, LINEAR out
+        assert opacity.keyframes[2].in_interpolation_type == KeyframeInterpolationType.HOLD
+        assert opacity.keyframes[2].out_interpolation_type == KeyframeInterpolationType.LINEAR
+        # KF[3]: LINEAR in/out
+        assert opacity.keyframes[3].in_interpolation_type == KeyframeInterpolationType.LINEAR
+        assert opacity.keyframes[3].out_interpolation_type == KeyframeInterpolationType.LINEAR
+
+
+class TestTemporalEase:
+    """Tests for in/out temporal ease on keyframes."""
+
+    def test_bezier_ease_in_out_1d(self) -> None:
+        """1D Bezier ease has one KeyframeEase per keyframe."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_bezier_ease_in_out_1D.aep")
+        )
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        for kf in opacity.keyframes:
+            assert len(kf.in_temporal_ease) == 1
+            assert len(kf.out_temporal_ease) == 1
+
+    def test_bezier_ease_scale_multi_dim(self) -> None:
+        """Scale (3D) has three KeyframeEase per keyframe."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_bezier_ease_scale.aep")
+        )
+        scale = _find_property(layer, "ADBE Scale")
+        assert scale is not None
+        assert len(scale.keyframes) >= 2
+        for kf in scale.keyframes:
+            assert len(kf.in_temporal_ease) == 3
+            assert len(kf.out_temporal_ease) == 3
+
+    def test_bezier_ease_scale_influence_values(self) -> None:
+        """Scale ease-scale sample: KF0 out influence=75, KF1 in influence=75."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_bezier_ease_scale.aep")
+        )
+        scale = _find_property(layer, "ADBE Scale")
+        assert scale is not None
+        # KF0 out_ease all 75%
+        for ease in scale.keyframes[0].out_temporal_ease:
+            assert abs(ease.influence - 75.0) < 0.01
+        # KF1 in_ease all 75%
+        for ease in scale.keyframes[1].in_temporal_ease:
+            assert abs(ease.influence - 75.0) < 0.01
+
+    def test_bezier_nonzero_speed(self) -> None:
+        """Percent property speeds are scaled to match ExtendScript units."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_bezier_nonzero_speed.aep")
+        )
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        # KF0 out speed = 20 (%/sec), KF1 in speed = 15 (%/sec)
+        assert abs(opacity.keyframes[0].out_temporal_ease[0].speed - 20.0) < 0.1
+        assert abs(opacity.keyframes[1].in_temporal_ease[0].speed - 15.0) < 0.1
+
+    def test_bezier_asymmetric_ease(self) -> None:
+        """Asymmetric ease has different in/out influence values."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_bezier_asymmetric_ease_1D.aep")
+        )
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        # Should have at least 2 keyframes with different in/out
+        kf0 = opacity.keyframes[0]
+        assert len(kf0.in_temporal_ease) == 1
+        assert len(kf0.out_temporal_ease) == 1
+
+    def test_spatial_position_single_ease(self) -> None:
+        """Spatial properties (Position) always have 1 ease element."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_spatial_bezier_arc.aep")
+        )
+        position = _find_property(layer, "ADBE Position")
+        assert position is not None
+        for kf in position.keyframes:
+            assert len(kf.in_temporal_ease) == 1
+            assert len(kf.out_temporal_ease) == 1
+
+    def test_bounce_pattern_ease_count(self) -> None:
+        """Bounce pattern has 10 keyframes, each with ease data."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_bounce_pattern.aep")
+        )
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        assert len(opacity.keyframes) == 10
+        for kf in opacity.keyframes:
+            assert len(kf.in_temporal_ease) == 1
+            assert len(kf.out_temporal_ease) == 1
+
+
+class TestSpatialTangents:
+    """Tests for in/out spatial tangents on keyframes."""
+
+    def test_spatial_tangents_present(self) -> None:
+        """Spatial bezier arc has non-None tangent vectors."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_spatial_bezier_arc.aep")
+        )
+        position = _find_property(layer, "ADBE Position")
+        assert position is not None
+        for kf in position.keyframes:
+            assert kf.in_spatial_tangent is not None
+            assert kf.out_spatial_tangent is not None
+            assert len(kf.in_spatial_tangent) == 3  # x, y, z
+            assert len(kf.out_spatial_tangent) == 3
+
+    def test_spatial_tangent_values_arc(self) -> None:
+        """Spatial bezier arc: KF0 out tangent = [60, -80, 0]."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_spatial_bezier_arc.aep")
+        )
+        position = _find_property(layer, "ADBE Position")
+        assert position is not None
+        kf0 = position.keyframes[0]
+        assert kf0.out_spatial_tangent is not None
+        assert abs(kf0.out_spatial_tangent[0] - 60.0) < 0.01
+        assert abs(kf0.out_spatial_tangent[1] - (-80.0)) < 0.01
+        assert abs(kf0.out_spatial_tangent[2] - 0.0) < 0.01
+
+    def test_non_spatial_no_tangents(self) -> None:
+        """Non-spatial properties (Opacity) have None tangents."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_bezier_ease_in_out_1D.aep")
+        )
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        for kf in opacity.keyframes:
+            assert kf.in_spatial_tangent is None
+            assert kf.out_spatial_tangent is None
+
+    def test_3d_spatial_tangents(self) -> None:
+        """3D spatial bezier has 3-component tangent vectors."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_spatial_bezier_3D.aep")
+        )
+        position = _find_property(layer, "ADBE Position")
+        assert position is not None
+        for kf in position.keyframes:
+            assert kf.in_spatial_tangent is not None
+            assert kf.out_spatial_tangent is not None
+            assert len(kf.in_spatial_tangent) == 3
+            assert len(kf.out_spatial_tangent) == 3
+
+    def test_s_curve_spatial_tangents(self) -> None:
+        """S-curve: KF1 in tangent = [-40, -60, 0]."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_spatial_bezier_s_curve.aep")
+        )
+        position = _find_property(layer, "ADBE Position")
+        assert position is not None
+        kf1 = position.keyframes[1]
+        assert kf1.in_spatial_tangent is not None
+        assert abs(kf1.in_spatial_tangent[0] - (-40.0)) < 0.01
+        assert abs(kf1.in_spatial_tangent[1] - (-60.0)) < 0.01
+
+
+class TestLinearHoldEase:
+    """Tests for computed temporal ease on LINEAR and HOLD keyframes.
+
+    The binary stores zeros for LINEAR/HOLD ease but ExtendScript computes
+    and reports actual values: influence = 100/6 (≈16.667 %) and speed =
+    value_change / time_in_seconds.
+    """
+
+    DEFAULT_INFLUENCE = 100.0 / 6.0
+
+    def test_linear_position_out_speed(self) -> None:
+        """LINEAR position: KF0 out speed = distance / time."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_LINEAR.aep")
+        )
+        position = _find_property(layer, "ADBE Position")
+        assert position is not None
+        kf0 = position.keyframes[0]
+        # [0,50,0] → [100,50,0] over 5 seconds (120 frames @ 24fps)
+        # distance = 100, speed = 100/5 = 20
+        assert abs(kf0.out_temporal_ease[0].speed - 20.0) < 0.01
+        assert abs(kf0.out_temporal_ease[0].influence - self.DEFAULT_INFLUENCE) < 0.001
+
+    def test_linear_position_in_speed(self) -> None:
+        """LINEAR position: KF1 in speed = distance / time."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_LINEAR.aep")
+        )
+        position = _find_property(layer, "ADBE Position")
+        assert position is not None
+        kf1 = position.keyframes[1]
+        assert abs(kf1.in_temporal_ease[0].speed - 20.0) < 0.01
+        assert abs(kf1.in_temporal_ease[0].influence - self.DEFAULT_INFLUENCE) < 0.001
+
+    def test_linear_first_keyframe_in_speed_zero(self) -> None:
+        """First keyframe in a LINEAR property has in speed = 0."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_LINEAR.aep")
+        )
+        position = _find_property(layer, "ADBE Position")
+        assert position is not None
+        kf0 = position.keyframes[0]
+        assert abs(kf0.in_temporal_ease[0].speed) < 0.001
+        assert abs(kf0.in_temporal_ease[0].influence - self.DEFAULT_INFLUENCE) < 0.001
+
+    def test_linear_last_keyframe_out_speed_zero(self) -> None:
+        """Last keyframe in a LINEAR property has out speed = 0."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_LINEAR.aep")
+        )
+        position = _find_property(layer, "ADBE Position")
+        assert position is not None
+        kf_last = position.keyframes[-1]
+        assert abs(kf_last.out_temporal_ease[0].speed) < 0.001
+        assert abs(kf_last.out_temporal_ease[0].influence - self.DEFAULT_INFLUENCE) < 0.001
+
+    def test_mixed_linear_opacity_speed(self) -> None:
+        """Mixed interpolation: LINEAR opacity out speed = value_change / time."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_mixed_interpolation.aep")
+        )
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        # KF[0] (100%) → KF[1] (0%) over 3 sec (72 frames @ 24fps)
+        # speed = (0 - 100) / 3 = -33.333
+        kf0 = opacity.keyframes[0]
+        assert abs(kf0.out_temporal_ease[0].speed - (-100.0 / 3.0)) < 0.01
+        assert abs(kf0.out_temporal_ease[0].influence - self.DEFAULT_INFLUENCE) < 0.001
+
+    def test_mixed_hold_out_speed_zero(self) -> None:
+        """HOLD out keyframe has speed = 0 and influence = 100/6."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_mixed_interpolation.aep")
+        )
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        # KF[1]: BEZIER in, HOLD out
+        kf1 = opacity.keyframes[1]
+        assert abs(kf1.out_temporal_ease[0].speed) < 0.001
+        assert abs(kf1.out_temporal_ease[0].influence - self.DEFAULT_INFLUENCE) < 0.001
+
+    def test_mixed_hold_in_speed_zero(self) -> None:
+        """HOLD in keyframe has speed = 0 and influence = 100/6."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_mixed_interpolation.aep")
+        )
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        # KF[2]: HOLD in, LINEAR out
+        kf2 = opacity.keyframes[2]
+        assert abs(kf2.in_temporal_ease[0].speed) < 0.001
+        assert abs(kf2.in_temporal_ease[0].influence - self.DEFAULT_INFLUENCE) < 0.001
+
+    def test_mixed_linear_out_after_hold(self) -> None:
+        """LINEAR out after HOLD in computes speed from adjacent keyframes."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_mixed_interpolation.aep")
+        )
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        # KF[2] (100%) → KF[3] (50%) over 3 sec (72 frames @ 24fps)
+        # speed = (50 - 100) / 3 = -16.667
+        kf2 = opacity.keyframes[2]
+        assert abs(kf2.out_temporal_ease[0].speed - (-50.0 / 3.0)) < 0.01
+        assert abs(kf2.out_temporal_ease[0].influence - self.DEFAULT_INFLUENCE) < 0.001
+
+    def test_bezier_ease_unchanged(self) -> None:
+        """BEZIER keyframes retain their stored binary ease values."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "keyframe_mixed_interpolation.aep")
+        )
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        # KF[1]: BEZIER in — binary stores (speed=0, influence=0)
+        kf1 = opacity.keyframes[1]
+        assert abs(kf1.in_temporal_ease[0].speed) < 0.001
+        assert abs(kf1.in_temporal_ease[0].influence) < 0.001

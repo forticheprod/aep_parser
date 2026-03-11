@@ -90,16 +90,14 @@ plugins:
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
-  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.magiclink  # Auto-converts URLs to clickable links
-  - admonition
   - toc:
       permalink: true
 
@@ -131,6 +129,7 @@ nav:
       - Property Group: api/properties/property_group.md
       - Mask Property Group: api/properties/mask_property_group.md
       - Keyframe: api/properties/keyframe.md
+      - Keyframe Ease: api/properties/keyframe_ease.md
       - Marker: api/properties/marker.md
       - Shape Value: api/properties/shape_value.md
     - Sources:

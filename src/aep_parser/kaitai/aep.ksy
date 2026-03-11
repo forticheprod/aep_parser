@@ -37,52 +37,52 @@ types:
         type:
           switch-on: chunk_type
           cases:
-            '"LIST"': list_body # List of chunks
-            '"tdmn"': utf8_body # Property or parameter name
-            '"Utf8"': utf8_body # Contains text
-            '"tdsb"': tdsb_body # Transform property group flags
-            '"tdsn"': child_utf8_body # User-defined name of a property. Contains a single utf-8 chunk but no list_type
-            '"tdb4"': tdb4_body # Property metadata
-            '"cdat"': cdat_body # Property value(s)
-            '"otda"': cdat_body # Orientation keyframe value(s) (3 big-endian doubles)
-            '"pard"': pard_body # Property default values and ranges
-            '"lhd3"': lhd3_body # Number of keyframes and keyframe size for a property
-            '"ldta"': ldta_body # Layer data
-            '"pdnm"': child_utf8_body # Parameter control strings. Contains a single utf-8 chunk but no list_type
-            '"ldat"': ldat_body # Data of a keyframe
-            '"sspc"': sspc_body # Footage data
-            '"fnam"': child_utf8_body # Effect name. Contains a single utf-8 chunk but no list_type
-            '"idta"': idta_body # Item data
-            '"opti"': opti_body # Footage data
+            '"acer"': acer_body # Compensate for Scene-Referred Profiles setting
+            '"adfr"': adfr_body # Audio sample rate settings
             '"alas"': utf8_body # File footage data in json format as a string, contains file path
-            '"NmHd"': nmhd_body # Marker data
-            '"mkif"': mkif_body # Mask info
-            '"shph"': shph_body # Shape path header (bounding box + closed flag)
-            '"cdta"': cdta_body # Composition data
+            '"cdat"': cdat_body # Property value(s)
             '"cdrp"': cdrp_body # Composition drop frame
-            '"pjef"': utf8_body # Effect names
+            '"cdta"': cdta_body # Composition data
             '"cmta"': utf8_body # Comment data
+            '"dwga"': dwga_body # Working gamma setting
+            '"EfDC"': efdc_body # Effect definition count
+            '"ewot"': ewot_body # Effect workspace outline entries
+            '"fcid"': fcid_body # Active composition item ID
             '"fdta"': fdta_body # Folder data
-            '"RCom"': child_utf8_body # Render queue item comment. Contains a single utf-8 chunk
-            '"nnhd"': nnhd_body # Project data
+            '"fiac"': fiac_body # Viewer inner tab active flag
+            '"fips"': fips_body # Folder item panel settings (viewer state)
+            '"fitt"': fitt_body # Viewer inner tab type label
+            '"fivc"': fivc_body # Viewer inner view count
+            '"fivi"': fivi_body # Viewer inner active view index
+            '"fnam"': child_utf8_body # Effect name. Contains a single utf-8 chunk but no list_type
+            '"foac"': foac_body # Viewer outer tab active flag
             '"head"': head_body # Contains AE version and file revision
+            '"idta"': idta_body # Item data
+            '"ldat"': ldat_body # Data of a keyframe
+            '"ldta"': ldta_body # Layer data
+            '"lhd3"': lhd3_body # Number of keyframes and keyframe size for a property
+            '"LIST"': list_body # List of chunks
+            '"mkif"': mkif_body # Mask info
+            '"NmHd"': nmhd_body # Marker data
+            '"nnhd"': nnhd_body # Project data
+            '"opti"': opti_body # Footage data
+            '"otda"': cdat_body # Orientation keyframe value(s) (3 big-endian doubles)
+            '"otln"': otln_body # Comp panel outline entries (selection + collapsed state)
+            '"pard"': pard_body # Property default values and ranges
+            '"parn"': parn_body # Parameter count in a parT list
+            '"pdnm"': child_utf8_body # Parameter control strings. Contains a single utf-8 chunk but no list_type
+            '"pjef"': utf8_body # Effect names
+            '"RCom"': child_utf8_body # Render queue item comment. Contains a single utf-8 chunk
             '"Roou"': roou_body # Output module settings
             '"Ropt"': ropt_body # Format-specific render options
             '"Rout"': rout_body # Render queue item flags
-            '"acer"': acer_body # Compensate for Scene-Referred Profiles setting
-            '"adfr"': adfr_body # Audio sample rate settings
-            '"dwga"': dwga_body # Working gamma setting
-            '"fips"': fips_body # Folder item panel settings (viewer state)
-            '"fcid"': fcid_body # Active composition item ID
-            '"foac"': foac_body # Viewer outer tab active flag
-            '"fiac"': fiac_body # Viewer inner tab active flag
-            '"fitt"': fitt_body # Viewer inner tab type label
-            '"fivi"': fivi_body # Viewer inner active view index
-            '"fivc"': fivc_body # Viewer inner view count
-            '"EfDC"': efdc_body # Effect definition count
-            '"parn"': parn_body # Parameter count in a parT list
-            '"ewot"': ewot_body # Effect workspace outline entries
-            '"otln"': otln_body # Comp panel outline entries (selection + collapsed state)
+            '"shph"': shph_body # Shape path header (bounding box + closed flag)
+            '"sspc"': sspc_body # Footage data
+            '"tdb4"': tdb4_body # Property metadata
+            '"tdmn"': utf8_body # Property or parameter name
+            '"tdsb"': tdsb_body # Transform property group flags
+            '"tdsn"': child_utf8_body # User-defined name of a property. Contains a single utf-8 chunk but no list_type
+            '"Utf8"': utf8_body # Contains text
             _: ascii_body
       - id: padding
         size: 1
@@ -1099,9 +1099,19 @@ types:
           Keyframe time in time-scale units. Signed 16-bit; negative values
           occur for keyframes positioned before the layer's start (e.g.
           composition markers).
-      - size: 2
-      - id: keyframe_interpolation_type
+      - size: 1
+      - id: in_interpolation_type
         type: u1
+        doc: |
+          Incoming interpolation type (binary value).
+          Add 6611 to get the ExtendScript enum value:
+          1 → LINEAR (6612), 2 → BEZIER (6613), 3 → HOLD (6614).
+      - id: out_interpolation_type
+        type: u1
+        doc: |
+          Outgoing interpolation type (binary value).
+          Add 6611 to get the ExtendScript enum value:
+          1 → LINEAR (6612), 2 → BEZIER (6613), 3 → HOLD (6614).
       - id: label
         type: u1
         enum: label
@@ -1846,7 +1856,8 @@ types:
         doc: True if footage has an alpha channel (3 means no_alpha)
   tdb4_body:
     seq:
-      - size: 2
+      - id: magic
+        contents: [0xdb, 0x99]
       - id: dimensions
         type: u2
         doc: Number of values in a multi-dimensional
@@ -1863,7 +1874,11 @@ types:
         type: f8
         repeat: expr
         repeat-expr: 5
-        doc: Unknown f8 values (usually 0.0001, 1.0, 1.0, 1.0, 1.0)
+        doc: |
+          First float is a threshold (0.0001 for most properties, 0.0 for
+          some plugin spatial points). Second float encodes a comp aspect
+          ratio for spatial properties (e.g. 1.777778 = 16:9, 1.333333 =
+          4:3); 1.0 for non-spatial. Last three are always 1.0.
       # property_control_type - 4 bytes
       - size: 1
       - type: b7  # skip bits 7-1
@@ -1884,11 +1899,8 @@ types:
         type: u1
       - size: 15
         doc: Unknown bytes and flags
-      - id: unknown_floats_2
-        type: f8
-        repeat: expr
-        repeat-expr: 4
-        doc: Unknown f8 values (usually 0.0, sometimes 0.333)
+      - size: 32
+        doc: Reserved — always zero across all known property types.
       - size: 3
       - type: b7  # skip first 7 bits
       - id: expression_disabled

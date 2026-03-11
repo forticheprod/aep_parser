@@ -14,6 +14,7 @@ from .layers.shape_layer import ShapeLayer
 from .layers.text_layer import TextLayer
 from .project import Project
 from .properties.keyframe import Keyframe
+from .properties.keyframe_ease import KeyframeEase
 from .properties.marker import MarkerValue
 from .properties.mask_property_group import MaskPropertyGroup
 from .properties.property import Property
@@ -57,6 +58,7 @@ __all__ = [
     "Item",
     "JpegFormatOptions",
     "Keyframe",
+    "KeyframeEase",
     "Layer",
     "LightLayer",
     "MarkerValue",

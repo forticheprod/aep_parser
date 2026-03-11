@@ -42,9 +42,9 @@ class PropertyValueType(IntEnum):
 
     UNKNOWN = 0
     NO_VALUE = 6412
-    THREE_D_SPATIAL = 6413
-    THREE_D = 6414
-    TWO_D_SPATIAL = 6415
+    ThreeD_SPATIAL = 6413
+    ThreeD = 6414
+    TwoD_SPATIAL = 6415
     TWO_D = 6416
     ONE_D = 6417
     COLOR = 6418

@@ -8,9 +8,17 @@ AEP Parser is a Python library that parses Adobe After Effects project files (.a
 
 ## Installation
 
-```bash
-pip install aep-parser
-```
+=== "uv"
+
+    ```bash
+    uv add aep-parser
+    ```
+
+=== "pip"
+
+    ```bash
+    pip install aep-parser
+    ```
 
 ## Quick Start
 

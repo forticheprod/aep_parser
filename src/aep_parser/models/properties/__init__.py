@@ -1,6 +1,7 @@
 """Property models."""
 
 from .keyframe import Keyframe
+from .keyframe_ease import KeyframeEase
 from .marker import MarkerValue
 from .mask_property_group import MaskPropertyGroup
 from .property import Property
@@ -10,6 +11,7 @@ from .shape_value import ShapeValue
 
 __all__ = [
     "Keyframe",
+    "KeyframeEase",
     "MarkerValue",
     "MaskPropertyGroup",
     "Property",

@@ -1383,14 +1383,15 @@ class Aep(KaitaiStruct):
         def _read(self):
             self._unnamed0 = self._io.read_bytes(1)
             self.time_raw = self._io.read_s2be()
-            self._unnamed2 = self._io.read_bytes(2)
-            self.keyframe_interpolation_type = self._io.read_u1()
+            self._unnamed2 = self._io.read_bytes(1)
+            self.in_interpolation_type = self._io.read_u1()
+            self.out_interpolation_type = self._io.read_u1()
             self.label = KaitaiStream.resolve_enum(Aep.Label, self._io.read_u1())
-            self._unnamed5 = self._io.read_bits_int_be(2)
+            self._unnamed6 = self._io.read_bits_int_be(2)
             self.roving_across_time = self._io.read_bits_int_be(1) != 0
             self.auto_bezier = self._io.read_bits_int_be(1) != 0
             self.continuous_bezier = self._io.read_bits_int_be(1) != 0
-            self._unnamed9 = self._io.read_bits_int_be(3)
+            self._unnamed10 = self._io.read_bits_int_be(3)
             _on = self.item_type
             if _on == Aep.LdatItemType.color:
                 pass
@@ -2859,7 +2860,9 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self._unnamed0 = self._io.read_bytes(2)
+            self.magic = self._io.read_bytes(2)
+            if not self.magic == b"\xDB\x99":
+                raise kaitaistruct.ValidationNotEqualError(b"\xDB\x99", self.magic, self._io, u"/types/tdb4_body/seq/0")
             self.dimensions = self._io.read_u2be()
             self._unnamed2 = self._io.read_bytes(1)
             self._unnamed3 = self._io.read_bits_int_be(4)
@@ -2883,10 +2886,7 @@ class Aep(KaitaiStruct):
             self._unnamed18 = self._io.read_bytes(8)
             self.animated = self._io.read_u1()
             self._unnamed20 = self._io.read_bytes(15)
-            self.unknown_floats_2 = []
-            for i in range(4):
-                self.unknown_floats_2.append(self._io.read_f8be())
-
+            self._unnamed21 = self._io.read_bytes(32)
             self._unnamed22 = self._io.read_bytes(3)
             self._unnamed23 = self._io.read_bits_int_be(7)
             self.expression_disabled = self._io.read_bits_int_be(1) != 0
@@ -2896,9 +2896,6 @@ class Aep(KaitaiStruct):
         def _fetch_instances(self):
             pass
             for i in range(len(self.unknown_floats)):
-                pass
-
-            for i in range(len(self.unknown_floats_2)):
                 pass
 
 

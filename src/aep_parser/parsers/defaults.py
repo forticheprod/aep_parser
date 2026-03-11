@@ -28,6 +28,7 @@ from ..models.layers.av_layer import AVLayer
 from ..models.layers.layer import Layer
 from ..models.properties.property import Property
 from ..models.properties.property_group import PropertyGroup
+from .property import _UNITS_TEXT_MAP
 
 
 class _TransformSpec(NamedTuple):
@@ -45,17 +46,17 @@ class _TransformSpec(NamedTuple):
 # computed from layer/comp dimensions; all others use a fixed default.
 _TRANSFORM_SPECS: list[_TransformSpec] = [
     _TransformSpec(
-        "ADBE Anchor Point", "Anchor Point", 3, True, PropertyValueType.THREE_D_SPATIAL
+        "ADBE Anchor Point", "Anchor Point", 3, True, PropertyValueType.ThreeD_SPATIAL
     ),
     _TransformSpec(
-        "ADBE Position", "Position", 3, True, PropertyValueType.THREE_D_SPATIAL
+        "ADBE Position", "Position", 3, True, PropertyValueType.ThreeD_SPATIAL
     ),
     _TransformSpec("ADBE Position_0", "X Position", 1, False, PropertyValueType.ONE_D),
     _TransformSpec("ADBE Position_1", "Y Position", 1, False, PropertyValueType.ONE_D),
     _TransformSpec("ADBE Position_2", "Z Position", 1, False, PropertyValueType.ONE_D),
-    _TransformSpec("ADBE Scale", "Scale", 3, False, PropertyValueType.THREE_D),
+    _TransformSpec("ADBE Scale", "Scale", 3, False, PropertyValueType.ThreeD),
     _TransformSpec(
-        "ADBE Orientation", "Orientation", 3, True, PropertyValueType.THREE_D_SPATIAL
+        "ADBE Orientation", "Orientation", 3, True, PropertyValueType.ThreeD_SPATIAL
     ),
     _TransformSpec("ADBE Rotate X", "X Rotation", 1, False, PropertyValueType.ONE_D),
     _TransformSpec("ADBE Rotate Y", "Y Rotation", 1, False, PropertyValueType.ONE_D),
@@ -118,6 +119,7 @@ def _synthesize_property(
         property_control_type=PropertyControlType.UNKNOWN,
         property_depth=2,
         property_value_type=spec.property_value_type,
+        units_text=_UNITS_TEXT_MAP.get(spec.match_name, ""),
         value=value,
         vector=spec.dimensions > 1,
     )
@@ -180,7 +182,7 @@ def set_transform_defaults(layer: Layer) -> None:
             ):
                 prop.value = prop.value + [100.0]
                 prop.dimensions = 3
-                prop.property_value_type = PropertyValueType.THREE_D
+                prop.property_value_type = PropertyValueType.ThreeD
                 for kf in prop.keyframes:
                     if isinstance(kf.value, list) and len(kf.value) == 2:
                         kf.value = kf.value + [100.0]
@@ -1304,7 +1306,7 @@ _GRADIENT_OVERLAY_SPECS: list[_PropSpec] = [
         "gradientFill/offset",
         "Offset",
         [0.0, 0.0],
-        PropertyValueType.TWO_D_SPATIAL,
+        PropertyValueType.TwoD_SPATIAL,
         dimensions=2,
         is_spatial=True,
     ),
@@ -1347,7 +1349,7 @@ _PATTERN_OVERLAY_SPECS: list[_PropSpec] = [
         "patternFill/phase",
         "Offset",
         [0.0, 0.0],
-        PropertyValueType.TWO_D_SPATIAL,
+        PropertyValueType.TwoD_SPATIAL,
         dimensions=2,
         is_spatial=True,
     ),
@@ -1494,6 +1496,7 @@ def _make_property_from_spec(
         property_control_type=PropertyControlType.UNKNOWN,
         property_depth=property_depth,
         property_value_type=spec.pvt,
+        units_text=_UNITS_TEXT_MAP.get(spec.match_name, ""),
         value=spec.value,
         vector=spec.dimensions > 1,
     )

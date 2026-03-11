@@ -208,17 +208,21 @@ var AepExport = AepExport || {};
                 kf.roving = prop.keyRoving(i);
             } catch (e) {}
 
-            // Get temporal ease
+            // Get temporal ease — explicitly access speed and influence
+            // (getAllAttributes uses for..in which may not enumerate native object properties)
             kf.inTemporalEase = [];
             kf.outTemporalEase = [];
             var inEase = prop.keyInTemporalEase(i);
             var outEase = prop.keyOutTemporalEase(i);
             for (var j = 0; j < inEase.length; j++) {
-                kf.inTemporalEase.push(getAllAttributes(inEase[j]));
-                kf.outTemporalEase.push(getAllAttributes(outEase[j]));
+                kf.inTemporalEase.push({speed: inEase[j].speed, influence: inEase[j].influence});
+                kf.outTemporalEase.push({speed: outEase[j].speed, influence: outEase[j].influence});
             }
             kf.temporalAutoBezier = prop.keyTemporalAutoBezier(i);
             kf.temporalContinuous = prop.keyTemporalContinuous(i);
+
+            // Keyframe label (AE 22.6+)
+            try { kf.label = prop.keyLabel(i); } catch (e) {}
 
             keyframes.push(kf);
         }
@@ -232,6 +236,24 @@ var AepExport = AepExport || {};
     function exportProperty(prop) {
         var result = getAllAttributes(prop);
         result.propertyType = "Property";
+
+        // Explicitly export attributes needed for value_at_time() that
+        // getAllAttributes may miss (native getters not enumerable via for..in)
+        try { result.propertyValueType = prop.propertyValueType; } catch (e) {}
+        try { result.isSpatial = prop.isSpatial; } catch (e) {}
+        try { result.canVaryOverTime = prop.canVaryOverTime; } catch (e) {}
+        try { result.isSeparationLeader = prop.isSeparationLeader; } catch (e) {}
+        try { result.isSeparationFollower = prop.isSeparationFollower; } catch (e) {}
+        try { result.dimensionsSeparated = prop.dimensionsSeparated; } catch (e) {}
+        try { result.separationDimension = prop.separationDimension; } catch (e) {}
+        try { result.numKeys = prop.numKeys; } catch (e) {}
+        try { result.hasMin = prop.hasMin; } catch (e) {}
+        try { result.hasMax = prop.hasMax; } catch (e) {}
+        try { if (prop.hasMin) result.minValue = prop.minValue; } catch (e) {}
+        try { if (prop.hasMax) result.maxValue = prop.maxValue; } catch (e) {}
+        try { result.unitsText = prop.unitsText; } catch (e) {}
+        try { result.expression = prop.expression; } catch (e) {}
+        try { result.expressionEnabled = prop.expressionEnabled; } catch (e) {}
 
         // Get keyframes
         if (prop.numKeys > 0) {
