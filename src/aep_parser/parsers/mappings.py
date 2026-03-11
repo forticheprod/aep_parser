@@ -341,7 +341,7 @@ def map_output_color_space(
         "483c65ee9357334b8c5b2bfba0cdda90": "Viper FilmStream Daylight Log (by Adobe)",
         "479c5332bef3da7df6f539b4eca88b1b": "Viper FilmStream Tungsten Log (by Adobe)",
         "317695890d09f64fe3486ac9b7449879": "Wide Gamut RGB",
-        # WCS (Windows Color System) CDMP profiles — no ICC files on disk,
+        # WCS (Windows Color System) CDMP profiles - no ICC files on disk,
         # Adobe Color Engine generates ICC wrappers at runtime.
         "cdbb342d1814a8f7eb3763b3e7fb57c4": "* wscRGB",
         "d5d94ab6e28455295be53988bae5d16e": "* wsRGB",

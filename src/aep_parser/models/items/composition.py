@@ -18,6 +18,7 @@ from .footage import FootageItem
 if typing.TYPE_CHECKING:
     from ..layers.layer import Layer
     from ..properties.marker import MarkerValue
+    from ..properties.property import Property
 
 
 @dataclass(eq=False)
@@ -93,8 +94,13 @@ class CompItem(AVItem):
     layers: list[Layer]
     """All the [Layer][] objects for layers in this composition."""
 
-    markers: list[MarkerValue]
-    """All the composition's markers."""
+    marker_property: Property | None
+    """The composition's marker property.
+
+    A [Property][aep_parser.models.properties.property.Property] with
+    ``match_name="ADBE Marker"`` whose keyframes hold marker values.
+    `None` when the composition has no markers.
+    """
 
     motion_blur: bool
     """
@@ -205,6 +211,23 @@ class CompItem(AVItem):
     _solo_layers: list[Layer] | None = field(default=None, init=False, repr=False)
 
     @property
+    def markers(self) -> list[MarkerValue]:
+        """A flat list of [MarkerValue][] objects for this composition.
+
+        Shortcut for accessing marker data without navigating the property
+        tree.  Returns an empty list when the composition has no markers.
+
+        Example:
+            ```python
+            for marker in comp.markers:
+                print(marker.comment)
+            ```
+        """
+        if self.marker_property is None:
+            return []
+        return self.marker_property.keyframes
+
+    @property
     def work_area_start(self) -> float:
         """The work area start time relative to composition start."""
         return self.in_point - self.display_start_time
@@ -227,6 +250,15 @@ class CompItem(AVItem):
     def __iter__(self) -> typing.Iterator[Layer]:
         """Return an iterator over the composition's layers."""
         return iter(self.layers)
+
+    def num_layers(self) -> int:
+        """
+        Return the number of layers in the composition.
+
+        Note:
+             Equivalent to `len(comp.layers)`
+        """
+        return len(self.layers)
 
     def layer(
         self,

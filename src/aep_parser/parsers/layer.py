@@ -62,7 +62,7 @@ def _parse_layer_property_groups(
     effect_param_defs: dict[str, dict[str, dict[str, Any]]],
 ) -> tuple[
     list[Property | PropertyGroup],
-    list[MarkerValue],
+    Property | None,
     bool,
 ]:
     """Parse all property groups for a layer.
@@ -78,8 +78,9 @@ def _parse_layer_property_groups(
             fallback when layer-level parT chunks are missing.
 
     Returns:
-        Tuple of (properties, markers, time_remap_enabled) where *properties*
-        is an ordered list of all top-level [PropertyGroup][] objects.
+        Tuple of (properties, marker_property, time_remap_enabled) where
+        *properties* is an ordered list of all top-level [PropertyGroup][]
+        objects.
     """
     root_tdgp_chunk = find_by_list_type(chunks=child_chunks, list_type="tdgp")
     tdgp_map = get_chunks_by_match_name(root_tdgp_chunk)
@@ -91,11 +92,10 @@ def _parse_layer_property_groups(
     )
 
     markers_mrst = tdgp_map.get("ADBE Marker", [])
-    markers: list[MarkerValue] = []
+    marker_property: Property | None = None
     if markers_mrst:
-        markers = parse_markers(
+        marker_property = parse_markers(
             mrst_chunk=markers_mrst[0],
-            group_match_name="ADBE Marker",
             time_scale=composition.time_scale,
             frame_rate=composition.frame_rate,
         )
@@ -103,7 +103,7 @@ def _parse_layer_property_groups(
     # Parse ALL property groups in binary order.
     # Each entry whose first LIST chunk is a "tdgp" is a NamedGroup or
     # IndexedGroup; other types (e.g. "tdb4" for Time Remap, "mrst" for
-    # markers) are skipped here — markers are handled above, and Property
+    # markers) are skipped here - markers are handled above, and Property
     # support at layer level can be added in a future iteration.
     properties: list[Property | PropertyGroup] = []
     for match_name, sub_chunks in tdgp_map.items():
@@ -134,7 +134,7 @@ def _parse_layer_property_groups(
             )
             properties.append(prop)
 
-    return properties, markers, time_remap_enabled
+    return properties, marker_property, time_remap_enabled
 
 
 def parse_layer(
@@ -177,8 +177,8 @@ def parse_layer(
     in_point = ldta_chunk.start_time + ldta_chunk.in_point * stretch_factor
     out_point = ldta_chunk.start_time + ldta_chunk.out_point * stretch_factor
 
-    properties, markers, time_remap_enabled = _parse_layer_property_groups(
-        child_chunks, composition, effect_param_defs
+    properties, marker_property, time_remap_enabled = (
+        _parse_layer_property_groups(child_chunks, composition, effect_param_defs)
     )
 
     layer_attrs = {
@@ -203,7 +203,7 @@ def parse_layer(
         "label": Label(int(ldta_chunk.label)),
         "layer_type": layer_type_name,
         "locked": ldta_chunk.locked,
-        "markers": markers,
+        "marker": marker_property,
         "null_layer": ldta_chunk.null_layer,
         "out_point": out_point,
         "_parent_id": ldta_chunk.parent_id,
@@ -240,16 +240,19 @@ def parse_layer(
         "_matte_layer_id": getattr(ldta_chunk, "matte_layer_id", 0) or 0,
     }
 
+    layer: Layer
     if layer_type_name == "light":
-        return LightLayer(
+        layer = LightLayer(
             **layer_attrs,
             light_type=LightType.from_binary(ldta_chunk.light_type),
         )
     elif layer_type_name == "camera":
-        return CameraLayer(**layer_attrs)
+        layer = CameraLayer(**layer_attrs)
     elif layer_type_name == "shape":
-        return ShapeLayer(**layer_attrs, **av_layer_attrs)
+        layer = ShapeLayer(**layer_attrs, **av_layer_attrs)
     elif layer_type_name == "text":
-        return TextLayer(**layer_attrs, **av_layer_attrs)
+        layer = TextLayer(**layer_attrs, **av_layer_attrs)
     else:
-        return AVLayer(**layer_attrs, **av_layer_attrs)
+        layer = AVLayer(**layer_attrs, **av_layer_attrs)
+
+    return layer

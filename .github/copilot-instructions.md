@@ -1,7 +1,7 @@
 # AEP Parser - AI Coding Agent Instructions
 
 ## Project Overview
-A Python library for parsing Adobe After Effects project files (.aep). The binary RIFX format is decoded using [Kaitai Struct](https://kaitai.io/), then transformed into typed Python dataclasses representing the AE object model (App → Project → Items → Layers → Properties).
+A Python library for parsing Adobe After Effects project files (.aep). The binary RIFX format is decoded using [Kaitai Struct](https://kaitai.io/), then transformed into typed Python dataclasses representing the AE object model (Application → Project → Items → Layers → Properties).
 
 ## Architecture
 
@@ -17,10 +17,10 @@ A Python library for parsing Adobe After Effects project files (.aep). The binar
   - `utils.py` - Chunk filtering helpers (`find_by_type`, `filter_by_list_type`)
 - **`src/aep_parser/__init__.py`** - Public API entry point: `parse()`
 - **`src/aep_parser/parsers/`** - Transform raw chunks into models
-  - `app.py`, `project.py`, `mappings.py`, `match_names.py`, `render_queue.py`, ...
+  - `application.py`, `project.py`, `mappings.py`, `match_names.py`, `render_queue.py`, ...
   - Pattern: Each parser receives chunks + context, returns a model instance
 - **`src/aep_parser/models/`** - Typed dataclasses mirroring AE's object model
-  - `app.py`, `items/`, `layers/`, `properties/`, `sources/`, `renderqueue/`, ...
+  - `application.py`, `items/`, `layers/`, `properties/`, `sources/`, `renderqueue/`, ...
 - **`src/aep_parser/enums/`** - Enumerations matching ExtendScript values (`general.py`, `property.py`, `render_settings.py`, ...)
 - **`src/aep_parser/resolvers/`** - Business logic for computing derived values (e.g. `output.py` resolves render filenames, dimensions, timecodes)
 - **`src/aep_parser/cli/`** - `visualize.py`, `validate.py`, `compare.py`
@@ -40,7 +40,7 @@ uv run mkdocs build --strict         # Build documentation
 uv run mkdocs serve --strict         # Serve documentation locally (with live reload)
 ```
 
-JSX scripts run in After Effects via VS Code debugger — see `.vscode/launch.json`.
+JSX scripts run in After Effects via VS Code debugger - see `.vscode/launch.json`.
 
 ## Code Conventions
 
@@ -51,7 +51,7 @@ JSX scripts run in After Effects via VS Code debugger — see `.vscode/launch.js
 - PEP8 naming: snake_case for functions/variables, PascalCase for classes
 - Use `pathlib` for file paths, f-strings for formatting
 - No spaces on empty lines
-- **No `struct` module** — all binary decoding must be in `kaitai/aep.ksy`
+- **No `struct` module** - all binary decoding must be in `kaitai/aep.ksy`
 
 ### Adding New Parsed Data
 1. Find/add chunk type in `kaitai/aep.ksy`
@@ -90,7 +90,7 @@ layer_chunks = filter_by_list_type(chunks=comp_chunks, list_type="Layr")
 ### Chunk Attribute Proxy (`__getattr__` override)
 `aep_optimized.py` monkey-patches `Aep.Chunk.__getattr__` so attribute access on a chunk delegates to `chunk.data` when not found on the chunk itself:
 ```python
-chunk.list_type          # shorter — uses __getattr__ proxy
+chunk.list_type          # shorter - uses __getattr__ proxy
 chunk.data.list_type     # equivalent explicit access
 cdta_chunk.time_scale    # proxied from cdta_chunk.data.time_scale
 ```
@@ -120,12 +120,12 @@ When modifying `aep.ksy`, regenerate:
 ```powershell
 kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_parser/kaitai/aep.ksy
 ```
-No manual edits needed after regeneration — `aep_optimized.py` applies optimizations automatically.
+No manual edits needed after regeneration - `aep_optimized.py` applies optimizations automatically.
 
 **Integer division pitfall:** Kaitai's `/` on two integers compiles to `//` (floor division). Multiply one operand by `1.0` for true division: `value: 'dividend * 1.0 / divisor'`.
 
 ## Important Notes
-- `kaitai/aep.py` is **auto-generated** — edit `aep.ksy` and regenerate
+- `kaitai/aep.py` is **auto-generated** - edit `aep.ksy` and regenerate
 - Run python code through a temporary file, not `python.exe -c`
 - Python 3.7+ compatibility (no walrus operator, no match/case, union types via annotations)
 - Model docstrings should reference [AE Scripting Guide](https://ae-scripting.docsforadobe.dev/)
@@ -133,9 +133,9 @@ No manual edits needed after regeneration — `aep_optimized.py` applies optimiz
 ## CLI Tools
 Installed via `uv sync --extra dev`. Also invocable as `uv run python -m aep_parser.cli.{visualize,validate,compare}`.
 
-- **`aep-visualize`** — Tree visualization of a parsed project
-- **`aep-validate`** — Compare parsed output against ExtendScript JSON. **Use after any parsing change.**
-- **`aep-compare`** — Binary chunk diff between `.aep` files. **Use to investigate unknown fields.**
+- **`aep-visualize`** - Tree visualization of a parsed project
+- **`aep-validate`** - Compare parsed output against ExtendScript JSON. **Use after any parsing change.**
+- **`aep-compare`** - Binary chunk diff between `.aep` files. **Use to investigate unknown fields.**
 
 ```powershell
 aep-visualize samples/models/composition/bgColor_custom.aep

@@ -1,6 +1,6 @@
 """Data models for After Effects project structure."""
 
-from .app import App
+from .application import Application
 from .items.av_item import AVItem
 from .items.composition import CompItem
 from .items.folder import FolderItem
@@ -44,7 +44,7 @@ from .text import (
 from .viewer import View, Viewer, ViewOptions
 
 __all__ = [
-    "App",
+    "Application",
     "AVItem",
     "AVLayer",
     "CameraLayer",

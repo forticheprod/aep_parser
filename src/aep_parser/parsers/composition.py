@@ -17,6 +17,7 @@ if typing.TYPE_CHECKING:
     from ..kaitai import Aep
     from ..models.items.folder import FolderItem
     from ..models.properties.marker import MarkerValue
+    from ..models.properties.property import Property
 
 
 def parse_composition(
@@ -73,7 +74,7 @@ def parse_composition(
         frame_blending=cdta_chunk.frame_blending,
         hide_shy_layers=cdta_chunk.hide_shy_layers,
         layers=[],
-        markers=[],
+        marker_property=None,
         motion_blur=cdta_chunk.motion_blur,
         motion_blur_adaptive_sample_limit=cdta_chunk.motion_blur_adaptive_sample_limit,
         motion_blur_samples_per_frame=cdta_chunk.motion_blur_samples_per_frame,
@@ -94,7 +95,7 @@ def parse_composition(
         drop_frame=drop_frame,
     )
 
-    composition.markers = _get_markers(
+    composition.marker_property = _get_markers(
         child_chunks=child_chunks,
         composition=composition,
     )
@@ -157,7 +158,7 @@ def _parse_effect_selected(child_chunks: list[Aep.Chunk]) -> list[bool]:
 
 def _get_markers(
     child_chunks: list[Aep.Chunk], composition: CompItem
-) -> list[MarkerValue]:
+) -> Property | None:
     """
     Get the composition markers.
 
@@ -176,11 +177,13 @@ def _get_markers(
         composition=composition,
         effect_param_defs={},
     )
+    if markers_layer.marker is None:
+        return None
 
     # Adjust marker frame_time from layer-relative to comp-relative time.
     # Binary keyframe times are relative to the SecL layer's own timeline,
     # but ExtendScript reports marker times in composition time.
-    for marker in markers_layer.markers:
-        marker.frame_time += markers_layer.frame_start_time
+    for marker_value in markers_layer.marker.keyframes:
+        marker_value.value.frame_time += markers_layer.frame_start_time
 
-    return markers_layer.markers
+    return markers_layer.marker

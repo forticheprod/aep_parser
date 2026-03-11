@@ -29,7 +29,7 @@ AEP Parser transforms binary .aep files into typed Python objects through a thre
 
 **Stage 2: Data Transformation (Parsers)**
 - `src/aep_parser/parsers/` - Transform raw chunks into model instances
-- Entry point: `parse()` in `parsers/app.py`
+- Entry point: `parse()` in `parsers/application.py`
 - Pattern: Each parser receives chunks + context, returns a model instance
 
 **Stage 3: Data Models**
@@ -51,7 +51,7 @@ AEP Parser transforms binary .aep files into typed Python objects through a thre
 - `find_by_list_type()` - Find a LIST chunk by its list_type
 - `filter_by_type()` - Get all chunks of a given type
 
-**Chunk attribute proxy**: `aep_optimized.py` monkey-patches `Aep.Chunk.__getattr__` so that attribute access on a chunk transparently delegates to `chunk.data` when the attribute is not found on the chunk itself. This means you can write `chunk.list_type` instead of `chunk.data.list_type`, and `cdta_chunk.time_scale` instead of `cdta_chunk.data.time_scale`. Keep this in mind when reading parser code — any attribute on a `Chunk` may actually come from its `.data`.
+**Chunk attribute proxy**: `aep_optimized.py` monkey-patches `Aep.Chunk.__getattr__` so that attribute access on a chunk transparently delegates to `chunk.data` when the attribute is not found on the chunk itself. This means you can write `chunk.list_type` instead of `chunk.data.list_type`, and `cdta_chunk.time_scale` instead of `cdta_chunk.data.time_scale`. Keep this in mind when reading parser code - any attribute on a `Chunk` may actually come from its `.data`.
 
 ## Development Workflow
 
@@ -220,9 +220,9 @@ kaitai-struct-compiler --target python \
 > compiles to Python's `//` (floor division). To get true (float) division,
 > multiply one operand by `1.0`:
 > ```yaml
-> # Wrong — truncates to integer (e.g. 3 / 4 = 0)
+> # Wrong - truncates to integer (e.g. 3 / 4 = 0)
 > value: 'pixel_ratio_width / pixel_ratio_height'
-> # Correct — produces float (e.g. 3 * 1.0 / 4 = 0.75)
+> # Correct - produces float (e.g. 3 * 1.0 / 4 = 0.75)
 > value: 'pixel_ratio_width * 1.0 / pixel_ratio_height'
 > ```
 
@@ -508,13 +508,13 @@ def parse_layer(chunk: Aep.Chunk) -> Layer:
 
 ### Cross-Referencing in Docstrings
 
-Use mkdocstrings [scoped cross-references](https://mkdocstrings.github.io/python/usage/configuration/docstrings/#scoped_crossrefs) to link to other classes, functions, or attributes. Do **not** use Sphinx-style `:class:`, `:func:`, or `:meth:` notation — mkdocs does not interpret it.
+Use mkdocstrings [scoped cross-references](https://mkdocstrings.github.io/python/usage/configuration/docstrings/#scoped_crossrefs) to link to other classes, functions, or attributes. Do **not** use Sphinx-style `:class:`, `:func:`, or `:meth:` notation - mkdocs does not interpret it.
 
 ```python
-# Short form — resolved via scoped cross-references (sibling/parent lookup)
+# Short form - resolved via scoped cross-references (sibling/parent lookup)
 """The [CompItem][] that contains this layer."""
 
-# Explicit path — for cross-module or ambiguous references
+# Explicit path - for cross-module or ambiguous references
 """See [FileSource.missing_footage_path][aep_parser.models.sources.file.FileSource.missing_footage_path]."""
 
 # ✗ Don't use Sphinx-style notation

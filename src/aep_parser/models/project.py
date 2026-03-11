@@ -210,6 +210,15 @@ class Project:
         """Return an iterator over the project's items."""
         return iter(self.items.values())
 
+    def num_items(self) -> int:
+        """
+        Return the number of items in the project.
+
+        Note:
+            Equivalent to `len(project.items)`
+        """
+        return len(self.items)
+
     def layer_by_id(self, layer_id: int) -> Layer:
         """Get a layer by its unique ID."""
         if self._layers_by_uid is None:

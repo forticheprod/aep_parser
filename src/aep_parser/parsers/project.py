@@ -28,7 +28,7 @@ from ..kaitai.utils import (
 from ..models.layers.av_layer import AVLayer
 from ..models.project import Project
 from ..utils import deprecated
-from .app import parse_app
+from .application import parse_app
 from .defaults import set_layer_property_defaults, set_transform_defaults
 from .item import parse_folder
 from .mappings import map_gpu_accel_type
@@ -37,7 +37,7 @@ from .render_queue import parse_render_queue
 
 
 @deprecated(
-    "Use aep_parser.parse() instead, which returns an App object. "
+    "Use aep_parser.parse() instead, which returns an Application object. "
     "Access the project via app.project."
 )
 def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
@@ -45,7 +45,7 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
 
     Warning: Deprecated
         Use [aep_parser.parse][] instead which returns an
-        [App][aep_parser.models.app.App] instance.  Access the project
+        [Application][aep_parser.models.application.Application] instance.  Access the project
         via ``app.project``.
 
     Args:
@@ -185,7 +185,7 @@ def _clamp_layer_times(
     since time-remapped layers have arbitrary time mapping.
 
     Note: ``collapse_transformation`` (continuously rasterise) does **not**
-    prevent clamping — AE still clamps ``outPoint`` to the source duration.
+    prevent clamping - AE still clamps ``outPoint`` to the source duration.
 
     Args:
         layer: The layer whose timing may need clamping.
@@ -203,7 +203,7 @@ def _clamp_layer_times(
         return
 
     # Skip layers with time_remap_enabled (time remap has arbitrary mapping)
-    # Note: collapse_transformation does NOT skip clamping — AE still clamps
+    # Note: collapse_transformation does NOT skip clamping - AE still clamps
     if getattr(layer, "time_remap_enabled", False):
         return
 

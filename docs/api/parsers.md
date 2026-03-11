@@ -8,7 +8,7 @@ This module contains the internal parsing functions that convert binary chunk da
     options:
       heading_level: 3
 
-::: aep_parser.parsers.app.parse_app
+::: aep_parser.parsers.application.parse_app
     options:
       heading_level: 3
 

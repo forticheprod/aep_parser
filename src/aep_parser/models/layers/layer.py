@@ -12,6 +12,7 @@ if typing.TYPE_CHECKING:
 
     from ..items.composition import CompItem
     from ..properties.marker import MarkerValue
+    from ..properties.property import Property
 
 
 @dataclass(eq=False)
@@ -96,8 +97,13 @@ class Layer(PropertyGroup):
     the Layer panel.
     """
 
-    markers: list[MarkerValue]
-    """Contains a layer's markers."""
+    marker: Property | None
+    """The layer's marker property.
+
+    A [Property][aep_parser.models.properties.property.Property] with
+    ``match_name="ADBE Marker"`` whose keyframes hold marker values.
+    `None` when the layer has no markers.
+    """
 
     null_layer: bool
     """When `True`, the layer was created as a null object."""
@@ -159,6 +165,23 @@ class Layer(PropertyGroup):
         [active_at_time][] at [time][].
         """
         return self.active_at_time(self.time)
+
+    @property
+    def markers(self) -> list[MarkerValue]:
+        """A flat list of [MarkerValue][] objects for this layer.
+
+        Shortcut for accessing marker data without navigating the property
+        tree. Returns an empty list when the layer has no markers.
+
+        Example:
+            ```python
+            for marker in layer.markers:
+                print(marker.comment)
+            ```
+        """
+        if self.marker is None:
+            return []
+        return [kf.value for kf in self.marker.keyframes]
 
     @property
     def transform(self) -> PropertyGroup:

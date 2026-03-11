@@ -15,52 +15,45 @@ from ..kaitai.utils import (
     str_contents,
 )
 from ..models.properties.marker import MarkerValue
+from ..models.properties.property import Property
 from .property import parse_property
 from .utils import split_into_batches
 
 
 def parse_markers(
-    mrst_chunk: Aep.Chunk, group_match_name: str, time_scale: float, frame_rate: float
-) -> list[MarkerValue]:
+    mrst_chunk: Aep.Chunk, time_scale: float, frame_rate: float
+) -> Property:
     """
-    Parse markers.
+    Parse markers from an MRST chunk.
+
+    Returns the underlying [Property][] (the ``tdbs`` inside the
+    ``mrst`` chunk, with keyframes holding marker values).
 
     Args:
         mrst_chunk: The MRST chunk to parse.
-        group_match_name: A special name for the property used to build unique
-            naming paths. The match name is not displayed, but you can refer
-            to it in scripts. Every property has a unique match-name
-            identifier. Match names are stable from version to version
-            regardless of the display name (the name attribute value) or any
-            changes to the application. Unlike the display name, it is not
-            localized. An indexed group (`PropertyBase.property_type ==
-            PropertyType.indexed_group`) may not have a name value, but
-            always has a match_name value.
         time_scale: The time scale of the parent composition, used as a divisor
             for some frame values.
         frame_rate: The frame rate of the parent composition, used to compute
             marker duration in seconds.
     """
     tdbs_chunk = find_by_list_type(chunks=mrst_chunk.chunks, list_type="tdbs")
-    marker_group = parse_property(
+    marker_prop = parse_property(
         tdbs_chunk=tdbs_chunk,
-        match_name=group_match_name,
+        match_name="ADBE Marker",
         time_scale=time_scale,
         property_depth=1,
         frame_rate=frame_rate,
     )
     mrky_chunk = find_by_list_type(chunks=mrst_chunk.chunks, list_type="mrky")
     nmrd_chunks = filter_by_list_type(chunks=mrky_chunk.chunks, list_type="Nmrd")
-    markers = []
     for i, nmrd_chunk in enumerate(nmrd_chunks):
-        frame_time = marker_group.keyframes[i].frame_time
-        marker = parse_marker(
+        frame_time = marker_prop.keyframes[i].frame_time
+        marker_prop.keyframes[i].value = parse_marker(
             nmrd_chunk=nmrd_chunk,
             frame_rate=frame_rate,
             frame_time=frame_time,
         )
-        markers.append(marker)
-    return markers
+    return marker_prop
 
 
 def parse_marker(

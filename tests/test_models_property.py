@@ -33,6 +33,16 @@ def _find_property(layer, match_name: str) -> Property | None:
     return None
 
 
+def _get_json_transform_properties(expected: dict) -> list[dict]:
+    """Extract transform properties from the expected JSON structure."""
+    for item in expected["items"]:
+        if "layers" in item:
+            for group in item["layers"][0]["properties"]:
+                if group.get("matchName") == "ADBE Transform Group":
+                    return group["properties"]
+    return []
+
+
 @pytest.mark.parametrize("sample_name", get_sample_files(SAMPLES_DIR))
 def test_parse_property_sample(sample_name: str) -> None:
     """Each property sample can be parsed without error."""
@@ -53,12 +63,10 @@ class TestExpressions:
         assert position.expression_enabled is True
         assert position.expression == "wiggle(2, 50)"
         # Verify against JSON
-        for item in expected["items"]:
-            if "layers" in item:
-                for prop in item["layers"][0]["transform"]["properties"]:
-                    if prop["matchName"] == "ADBE Position":
-                        assert prop["expressionEnabled"] is True
-                        assert prop["expression"] == "wiggle(2, 50)"
+        for prop in _get_json_transform_properties(expected):
+            if prop["matchName"] == "ADBE Position":
+                assert prop["expressionEnabled"] is True
+                assert prop["expression"] == "wiggle(2, 50)"
 
     def test_expression_disabled(self) -> None:
         """Opacity has expression '50' but expression is disabled."""
@@ -69,13 +77,11 @@ class TestExpressions:
         assert opacity.expression_enabled is False
         assert opacity.expression == "50"
         # Value should be the static value, not the expression result
-        for item in expected["items"]:
-            if "layers" in item:
-                for prop in item["layers"][0]["transform"]["properties"]:
-                    if prop["matchName"] == "ADBE Opacity":
-                        assert prop["expressionEnabled"] is False
-                        assert prop["expression"] == "50"
-                        assert prop["value"] == 100
+        for prop in _get_json_transform_properties(expected):
+            if prop["matchName"] == "ADBE Opacity":
+                assert prop["expressionEnabled"] is False
+                assert prop["expression"] == "50"
+                assert prop["value"] == 100
 
     def test_expression_time(self) -> None:
         """Rotation has expression 'time * 36' and is enabled."""
@@ -86,12 +92,10 @@ class TestExpressions:
         assert rotation.expression_enabled is True
         assert rotation.expression == "time * 36"
         # Verify against JSON
-        for item in expected["items"]:
-            if "layers" in item:
-                for prop in item["layers"][0]["transform"]["properties"]:
-                    if prop["matchName"] == "ADBE Rotate Z":
-                        assert prop["expressionEnabled"] is True
-                        assert prop["expression"] == "time * 36"
+        for prop in _get_json_transform_properties(expected):
+            if prop["matchName"] == "ADBE Rotate Z":
+                assert prop["expressionEnabled"] is True
+                assert prop["expression"] == "time * 36"
 
 
 class TestKeyframes:
@@ -233,11 +237,9 @@ class TestPropertyDimensions:
         assert rotation.animated
         assert len(rotation.keyframes) == 2
         # Verify against JSON
-        for item in expected["items"]:
-            if "layers" in item:
-                for prop in item["layers"][0]["transform"]["properties"]:
-                    if prop["matchName"] == "ADBE Rotate Z":
-                        assert prop["numKeys"] == 2
+        for prop in _get_json_transform_properties(expected):
+            if prop["matchName"] == "ADBE Rotate Z":
+                assert prop["numKeys"] == 2
 
     def test_property_scale(self) -> None:
         """Scale has 2 keyframes."""
@@ -248,11 +250,9 @@ class TestPropertyDimensions:
         assert scale.animated
         assert len(scale.keyframes) == 2
         # Verify against JSON
-        for item in expected["items"]:
-            if "layers" in item:
-                for prop in item["layers"][0]["transform"]["properties"]:
-                    if prop["matchName"] == "ADBE Scale":
-                        assert prop["numKeys"] == 2
+        for prop in _get_json_transform_properties(expected):
+            if prop["matchName"] == "ADBE Scale":
+                assert prop["numKeys"] == 2
 
 
 LAYER_SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "layer"
@@ -1523,7 +1523,7 @@ class TestLinearHoldEase:
         )
         opacity = _find_property(layer, "ADBE Opacity")
         assert opacity is not None
-        # KF[1]: BEZIER in — binary stores (speed=0, influence=0)
+        # KF[1]: BEZIER in - binary stores (speed=0, influence=0)
         kf1 = opacity.keyframes[1]
         assert abs(kf1.in_temporal_ease[0].speed) < 0.001
         assert abs(kf1.in_temporal_ease[0].influence) < 0.001

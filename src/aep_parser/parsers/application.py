@@ -8,7 +8,7 @@ from ..kaitai.utils import (
     find_by_list_type,
     find_by_type,
 )
-from ..models.app import App
+from ..models.application import Application
 from ..models.project import Project
 from .views import parse_viewers
 
@@ -16,8 +16,8 @@ if TYPE_CHECKING:
     from ..kaitai import Aep
 
 
-def parse_app(aep: Aep, project: Project) -> App:
-    """Build an [App][] from the parsed RIFX data and project.
+def parse_app(aep: Aep, project: Project) -> Application:
+    """Build an [Application][] from the parsed RIFX data and project.
 
     Args:
         aep: The parsed Kaitai RIFX structure.
@@ -41,7 +41,7 @@ def parse_app(aep: Aep, project: Project) -> App:
     active_viewers = [v for v in viewers if v.active]
     active_viewer = active_viewers[0] if active_viewers else None
 
-    return App(
+    return Application(
         version=version,
         build_number=build_number,
         project=project,

@@ -11,8 +11,8 @@ This module contains all the logic for:
 
 The two public entry points are:
 
-* [set_transform_defaults][] — called once per layer to fill transform.
-* [set_layer_property_defaults][] — called once per layer for everything else.
+* [set_transform_defaults][] - called once per layer to fill transform.
+* [set_layer_property_defaults][] - called once per layer for everything else.
 """
 
 from __future__ import annotations
@@ -240,7 +240,7 @@ def set_transform_defaults(layer: Layer) -> None:
     if not is_3d:
         rotate_z = existing.get("ADBE Rotate Z")
         if rotate_z is None:
-            # Must be a synthesized property — find it in ordered list
+            # Must be a synthesized property - find it in ordered list
             for p in ordered:
                 if p.match_name == "ADBE Rotate Z":
                     rotate_z = p
@@ -440,7 +440,7 @@ _MATERIAL_SPECS: list[_PropSpec] = [
         "ADBE Ambient Coefficient",
         "Ambient",
         100.0,
-        PropertyValueType.OneD
+        PropertyValueType.OneD,
         min_value=0,
         max_value=100,
     ),
@@ -786,9 +786,7 @@ _INNER_SHADOW_SPECS: list[_PropSpec] = [
         min_value=0,
         max_value=1,
     ),
-    _PropSpec(
-        "innerShadow/localLightingAngle", "Angle", 120.0, PropertyValueType.OneD
-    ),
+    _PropSpec("innerShadow/localLightingAngle", "Angle", 120.0, PropertyValueType.OneD),
     _PropSpec(
         "innerShadow/distance",
         "Distance",
@@ -1090,9 +1088,7 @@ _BEVEL_EMBOSS_SPECS: list[_PropSpec] = [
         min_value=0,
         max_value=1,
     ),
-    _PropSpec(
-        "bevelEmboss/localLightingAngle", "Angle", 120.0, PropertyValueType.OneD
-    ),
+    _PropSpec("bevelEmboss/localLightingAngle", "Angle", 120.0, PropertyValueType.OneD),
     _PropSpec(
         "bevelEmboss/localLightingAltitude", "Altitude", 30.0, PropertyValueType.OneD
     ),

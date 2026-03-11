@@ -33,3 +33,12 @@ class RenderQueue:
 
     def __iter__(self) -> typing.Iterator[RenderQueueItem]:
         return iter(self.items)
+
+    def num_items(self) -> int:
+        """
+        Return the number of items in the render queue.
+
+        Note:
+            Equivalent to `len(render_queue.items)`
+        """
+        return len(self.items)

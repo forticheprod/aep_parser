@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import typing
 from dataclasses import dataclass
+from typing import cast
 
 from aep_parser.enums import PropertyControlType, PropertyType, PropertyValueType
 
@@ -10,6 +11,11 @@ from .property_base import PropertyBase
 
 if typing.TYPE_CHECKING:
     from typing import Any
+
+    from aep_parser.enums import KeyframeInterpolationType, Label
+    from aep_parser.models.properties.keyframe_ease import KeyframeEase
+    from aep_parser.models.properties.shape_value import ShapeValue
+    from aep_parser.models.text.text_document import TextDocument
 
     from .keyframe import Keyframe
 
@@ -235,7 +241,7 @@ class Property(PropertyBase):
         parent = self.parent_property
         if parent is None or not hasattr(parent, "properties"):
             return None
-        return parent.property(_SEPARATION_LEADER)
+        return cast("Property | None", parent.property(name=_SEPARATION_LEADER))
 
     def get_separation_follower(self, dim: int) -> Property | None:
         """
@@ -256,7 +262,7 @@ class Property(PropertyBase):
         if dim < 0 or dim >= len(_SEPARATION_FOLLOWERS):
             raise ValueError(f"{dim} must be ")
         match_name = _SEPARATION_FOLLOWERS[dim]
-        return parent.property(match_name)
+        return cast("Property | None", parent.property(name=match_name))
 
     def nearest_key_index(self, time: float) -> int:
         """
@@ -281,6 +287,216 @@ class Property(PropertyBase):
         """
         index = self.nearest_key_index(time)
         return self.keyframes[index]
+
+    def key_in_interpolation_type(
+        self, key_index: int
+    ) -> KeyframeInterpolationType:
+        """Returns the "in" interpolation type for the specified
+        keyframe.
+
+        Note:
+            Equivalent to `self.keyframes[key_index].in_interpolation_type`.
+
+        Args:
+            key_index: The index for the keyframe.
+        """
+        return self.keyframes[key_index].in_interpolation_type
+
+    def key_in_spatial_tangent(
+        self, key_index: int
+    ) -> list[float] | None:
+        """Returns the incoming spatial tangent for the specified
+        keyframe, if the named property is spatial (that is, the
+        value type is `TwoD_SPATIAL` or `ThreeD_SPATIAL`).
+
+        Note:
+            Equivalent to `self.keyframes[key_index].in_spatial_tangent`.
+
+        Args:
+            key_index: The index for the keyframe.
+        """
+        return self.keyframes[key_index].in_spatial_tangent
+
+    def key_in_temporal_ease(
+        self, key_index: int
+    ) -> list[KeyframeEase]:
+        """Returns the incoming temporal ease for the specified
+        keyframe.
+
+        Note:
+            Equivalent to `self.keyframes[key_index].in_temporal_ease`.
+
+        Args:
+            key_index: The index for the keyframe.
+        """
+        return self.keyframes[key_index].in_temporal_ease
+
+    def key_label(self, key_index: int) -> Label:
+        """Returns the label color for the specified keyframe.
+        Colors are represented by their number (0 for None, or 1
+        to 16 for one of the preset colors in the Labels
+        preferences).
+
+        Note:
+            Equivalent to `self.keyframes[key_index].label`.
+
+        Args:
+            key_index: The index for the keyframe.
+        """
+        return self.keyframes[key_index].label
+
+    def key_out_interpolation_type(
+        self, key_index: int
+    ) -> KeyframeInterpolationType:
+        """Returns the outgoing interpolation type for the specified
+        keyframe.
+
+        Note:
+            Equivalent to
+            `self.keyframes[key_index].out_interpolation_type`.
+
+        Args:
+            key_index: The index for the keyframe.
+        """
+        return self.keyframes[key_index].out_interpolation_type
+
+    def key_out_spatial_tangent(
+        self, key_index: int
+    ) -> list[float] | None:
+        """Returns the outgoing spatial tangent for the specified
+        keyframe.
+
+        Note:
+            Equivalent to
+            `self.keyframes[key_index].out_spatial_tangent`.
+
+        Args:
+            key_index: The index for the keyframe.
+        """
+        return self.keyframes[key_index].out_spatial_tangent
+
+    def key_out_temporal_ease(
+        self, key_index: int
+    ) -> list[KeyframeEase]:
+        """Returns the outgoing temporal ease for the specified
+        keyframe.
+
+        Note:
+            Equivalent to
+            `self.keyframes[key_index].out_temporal_ease`.
+
+        Args:
+            key_index: The index for the keyframe.
+        """
+        return self.keyframes[key_index].out_temporal_ease
+
+    def key_roving(self, key_index: int) -> bool:
+        """Returns `True` if the specified keyframe is roving.
+        The first and last keyframe in a property cannot rove.
+
+        Note:
+            Equivalent to `self.keyframes[key_index].roving`.
+
+        Args:
+            key_index: The index for the keyframe.
+        """
+        return self.keyframes[key_index].roving
+
+    def key_spatial_auto_bezier(self, key_index: int) -> bool:
+        """Returns `True` if the specified keyframe has spatial
+        auto-Bezier interpolation. This type of interpolation
+        affects this keyframe only if `key_spatial_continuous` is
+        also `True`.
+
+        Note:
+            Equivalent to
+            `self.keyframes[key_index].spatial_auto_bezier`.
+
+        Args:
+            key_index: The index for the keyframe.
+        """
+        return self.keyframes[key_index].spatial_auto_bezier
+
+    def key_spatial_continuous(self, key_index: int) -> bool:
+        """Returns `True` if the specified keyframe has spatial
+        continuity.
+
+        Note:
+            Equivalent to
+            `self.keyframes[key_index].spatial_continuous`.
+
+        Args:
+            key_index: The index for the keyframe.
+        """
+        return self.keyframes[key_index].spatial_continuous
+
+    def key_temporal_auto_bezier(self, key_index: int) -> bool:
+        """Returns `True` if the specified keyframe has temporal
+        auto-Bezier interpolation. Temporal auto-Bezier
+        interpolation affects this keyframe only if the keyframe
+        interpolation type is `KeyframeInterpolationType.BEZIER`
+        for both `key_in_interpolation_type` and
+        `key_out_interpolation_type`.
+
+        Note:
+            Equivalent to
+            `self.keyframes[key_index].temporal_auto_bezier`.
+
+        Args:
+            key_index: The index for the keyframe.
+        """
+        return self.keyframes[key_index].temporal_auto_bezier
+
+    def key_temporal_continuous(self, key_index: int) -> bool:
+        """Returns `True` if the specified keyframe has temporal
+        continuity. Temporal continuity affects this keyframe only
+        if the keyframe interpolation type is
+        `KeyframeInterpolationType.BEZIER` for both
+        `key_in_interpolation_type` and
+        `key_out_interpolation_type`.
+
+        Note:
+            Equivalent to
+            `self.keyframes[key_index].temporal_continuous`.
+
+        Args:
+            key_index: The index for the keyframe.
+        """
+        return self.keyframes[key_index].temporal_continuous
+
+    def key_time(self, key_index: int) -> float:
+        """Returns the time at which the specified keyframe occurs.
+
+        Note:
+            Equivalent to `self.keyframes[key_index].time`.
+
+        Args:
+            key_index: The index for the keyframe.
+        """
+        return self.keyframes[key_index].time
+
+    def key_value(
+        self, key_index: int
+    ) -> list[float] | float | ShapeValue | TextDocument | None:
+        """Returns the current value of the specified keyframe.
+
+        Note:
+            Equivalent to `self.keyframes[key_index].value`.
+
+        Args:
+            key_index: The index for the keyframe.
+        """
+        return self.keyframes[key_index].value
+
+    @property
+    def num_keys(self) -> int:
+        """The number of keyframes in the named property.
+        If the value is 0, the property is not being keyframed.
+
+        Note:
+            Equivalent to `len(self.keyframes)`.
+        """
+        return len(self.keyframes)
 
     @property
     def is_modified(self) -> bool:

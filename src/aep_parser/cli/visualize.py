@@ -26,7 +26,7 @@ from typing import Any, Generator, TextIO
 
 from aep_parser import parse
 
-from ..models.app import App
+from ..models.application import Application
 from ..models.items.composition import CompItem
 from ..models.items.folder import FolderItem
 from ..models.items.footage import FootageItem
@@ -40,7 +40,7 @@ from ..models.properties.property_group import PropertyGroup
 # =============================================================================
 
 
-def build_project_node(app: App, include_properties: bool = True) -> dict[str, Any]:
+def build_project_node(app: Application, include_properties: bool = True) -> dict[str, Any]:
     """Build the root project node."""
     project = app.project
     attrs: dict[str, Any] = {

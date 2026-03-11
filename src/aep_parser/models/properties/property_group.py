@@ -55,7 +55,7 @@ class PropertyGroup(PropertyBase):
         """`True` if any child property is modified.
 
         For indexed groups (such as Effects or Masks parades), the group
-        is considered modified when it has any children — adding items to
+        is considered modified when it has any children - adding items to
         an indexed group is itself a modification.
         """
         if self.property_type == PropertyType.INDEXED_GROUP:

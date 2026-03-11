@@ -1116,11 +1116,11 @@ types:
         type: u1
         enum: label
       - type: b2  # skip first 2 bits
-      - id: roving_across_time
+      - id: roving
         type: b1  # bit 5
-      - id: auto_bezier
+      - id: temporal_auto_bezier
         type: b1  # bit 4
-      - id: continuous_bezier
+      - id: temporal_continuous
         type: b1  # bit 3
       - type: b3  # skip remaining 3 bits
       - id: kf_data
@@ -1180,7 +1180,17 @@ types:
       - id: num_value
         type: u1
     seq:
-      - type: u8
+      - size: 3
+        doc: Unknown bytes (always 0x000000).
+      - type: b6
+      - id: spatial_auto_bezier
+        type: b1
+        doc: Spatial auto-Bezier flag.
+      - id: spatial_continuous
+        type: b1
+        doc: Spatial continuity flag.
+      - size: 4
+        doc: Unknown bytes (always 0x00000000).
       - type: f8
       - id: in_speed
         type: f8
@@ -1194,11 +1204,11 @@ types:
         type: f8
         repeat: expr
         repeat-expr: num_value
-      - id: tan_in
+      - id: in_spatial_tangents
         type: f8
         repeat: expr
         repeat-expr: num_value
-      - id: tan_out
+      - id: out_spatial_tangents
         type: f8
         repeat: expr
         repeat-expr: num_value
@@ -1436,7 +1446,7 @@ types:
       - size: 3
       - type: b4  # skip bits 7-4
       - id: open
-        type: b1  # bit 3 — true when path is open
+        type: b1  # bit 3 - true when path is open
       - type: b3  # skip bits 2-0
       - id: top_left_x
         type: f4
@@ -1900,7 +1910,7 @@ types:
       - size: 15
         doc: Unknown bytes and flags
       - size: 32
-        doc: Reserved — always zero across all known property types.
+        doc: Reserved - always zero across all known property types.
       - size: 3
       - type: b7  # skip first 7 bits
       - id: expression_disabled

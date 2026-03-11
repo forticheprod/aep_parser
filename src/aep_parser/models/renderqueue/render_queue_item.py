@@ -119,6 +119,15 @@ class RenderQueueItem:
     of After Effects.
     """
 
+    def num_output_modules(self) -> int:
+        """
+        Return the number of output modules for this render queue item.
+
+        Note:
+            Equivalent to `len(item.output_modules)`
+        """
+        return len(self.output_modules)
+
     @property
     def time_span_start(self) -> float:
         """

@@ -39,6 +39,10 @@ SKIP_FIELDS = {
     "parent",
     "comp",
     "post_render_target_comp",
+    # Internal marker property (Property with keyframes); the validated
+    # ``markers`` list is derived from it via @property.
+    "marker",
+    "marker_property",
 }
 
 # @property attributes that return complex/duplicate data and should not be
@@ -55,7 +59,7 @@ SKIP_PROPERTIES = {
     "compositions",
     "folders",
     "footages",
-    # Layer @property accessors derived from Layer.properties — serialising
+    # Layer @property accessors derived from Layer.properties - serialising
     # them would duplicate data already present in the properties list.
     "transform",
     "effects",

@@ -18,7 +18,9 @@ from ..kaitai.utils import (
 if typing.TYPE_CHECKING:
     from typing import Iterator
 
-T = TypeVar("T", bytes, List[Any])  # Cannot use list here because of py3.7, even with future
+T = TypeVar(
+    "T", bytes, List[Any]
+)  # Cannot use list here because of py3.7, even with future
 
 
 def get_name(child_chunks: list[Aep.Chunk]) -> str:

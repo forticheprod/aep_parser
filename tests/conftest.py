@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from aep_parser import App, Project
+from aep_parser import Application, Project
 from aep_parser import parse as _parse_aep
 
 if TYPE_CHECKING:
@@ -27,8 +27,8 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
     return _parse_aep(aep_file_path).project
 
 
-def parse_app(aep_file_path: str | os.PathLike[str]) -> App:
-    """Parse an AEP file and return the App object."""
+def parse_app(aep_file_path: str | os.PathLike[str]) -> Application:
+    """Parse an AEP file and return the Application object."""
     return _parse_aep(aep_file_path)
 
 

@@ -1309,8 +1309,12 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self._unnamed0 = self._io.read_u8be()
-            self._unnamed1 = self._io.read_f8be()
+            self._unnamed0 = self._io.read_bytes(3)
+            self._unnamed1 = self._io.read_bits_int_be(6)
+            self.spatial_auto_bezier = self._io.read_bits_int_be(1) != 0
+            self.spatial_continuous = self._io.read_bits_int_be(1) != 0
+            self._unnamed4 = self._io.read_bytes(4)
+            self._unnamed5 = self._io.read_f8be()
             self.in_speed = self._io.read_f8be()
             self.in_influence = self._io.read_f8be()
             self.out_speed = self._io.read_f8be()
@@ -1319,13 +1323,13 @@ class Aep(KaitaiStruct):
             for i in range(self.num_value):
                 self.value.append(self._io.read_f8be())
 
-            self.tan_in = []
+            self.in_spatial_tangents = []
             for i in range(self.num_value):
-                self.tan_in.append(self._io.read_f8be())
+                self.in_spatial_tangents.append(self._io.read_f8be())
 
-            self.tan_out = []
+            self.out_spatial_tangents = []
             for i in range(self.num_value):
-                self.tan_out.append(self._io.read_f8be())
+                self.out_spatial_tangents.append(self._io.read_f8be())
 
 
 
@@ -1334,10 +1338,10 @@ class Aep(KaitaiStruct):
             for i in range(len(self.value)):
                 pass
 
-            for i in range(len(self.tan_in)):
+            for i in range(len(self.in_spatial_tangents)):
                 pass
 
-            for i in range(len(self.tan_out)):
+            for i in range(len(self.out_spatial_tangents)):
                 pass
 
 
@@ -1388,9 +1392,9 @@ class Aep(KaitaiStruct):
             self.out_interpolation_type = self._io.read_u1()
             self.label = KaitaiStream.resolve_enum(Aep.Label, self._io.read_u1())
             self._unnamed6 = self._io.read_bits_int_be(2)
-            self.roving_across_time = self._io.read_bits_int_be(1) != 0
-            self.auto_bezier = self._io.read_bits_int_be(1) != 0
-            self.continuous_bezier = self._io.read_bits_int_be(1) != 0
+            self.roving = self._io.read_bits_int_be(1) != 0
+            self.temporal_auto_bezier = self._io.read_bits_int_be(1) != 0
+            self.temporal_continuous = self._io.read_bits_int_be(1) != 0
             self._unnamed10 = self._io.read_bits_int_be(3)
             _on = self.item_type
             if _on == Aep.LdatItemType.color:

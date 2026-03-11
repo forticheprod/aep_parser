@@ -208,7 +208,7 @@ var AepExport = AepExport || {};
                 kf.roving = prop.keyRoving(i);
             } catch (e) {}
 
-            // Get temporal ease — explicitly access speed and influence
+            // Get temporal ease - explicitly access speed and influence
             // (getAllAttributes uses for..in which may not enumerate native object properties)
             kf.inTemporalEase = [];
             kf.outTemporalEase = [];

@@ -12,9 +12,9 @@ The primary function you'll use is [`parse()`](parsers.md#main-parser).
 
 Internal parsing functions for converting binary data to Python objects.
 
-### [App](app.md)
+### [Application](application.md)
 
-The top-level `App` dataclass representing the After Effects application.
+The top-level `Application` dataclass representing the After Effects application.
 
 ### [Project](project.md)
 

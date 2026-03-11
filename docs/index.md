@@ -56,7 +56,7 @@ for item in project:
 An After Effects project has a hierarchical structure:
 
 ```
-App
+Application
 ├── Viewer
 │   └── View
 │       └── ViewOptions
@@ -84,7 +84,7 @@ App
 
 The library provides dataclasses that mirror After Effects' object model:
 
-- `App`: Application-level object (version, build number, active viewer)
+- `Application`: Application-level object (version, build number, active viewer)
 - `Viewer`, `View`, `ViewOptions`: Viewer panels and view settings
 - `Project`: Root project object
 - `CompItem`, `FootageItem`, `FolderItem`: Project items

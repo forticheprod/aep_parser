@@ -412,18 +412,14 @@ def parse_property_group(
         # Find the first LIST chunk; non-LIST chunks (e.g. mkif for masks)
         # are auxiliary data that we skip when determining the property type.
         try:
-            first_chunk = find_by_type(
-                chunks=sub_prop_chunks, chunk_type="LIST"
-            )
+            first_chunk = find_by_type(chunks=sub_prop_chunks, chunk_type="LIST")
         except ChunkNotFoundError:
             continue
         # Effects can share a match name when the same effect type is applied
         # multiple times. Iterate all LIST chunks for sspc and tdgp; other
         # types use the first chunk (additional chunks are auxiliary data).
         if first_chunk.list_type == "sspc":
-            for chunk in filter_by_list_type(
-                chunks=sub_prop_chunks, list_type="sspc"
-            ):
+            for chunk in filter_by_list_type(chunks=sub_prop_chunks, list_type="sspc"):
                 sub_prop: Property | PropertyGroup = parse_effect(
                     sspc_chunk=chunk,
                     group_match_name=match_name,
@@ -437,12 +433,8 @@ def parse_property_group(
             if match_name == "ADBE Mask Atom":
                 # Pair each mask tdgp chunk with its mkif (mask info) chunk
                 for tdgp_c, mkif_c in zip(
-                    filter_by_list_type(
-                        chunks=sub_prop_chunks, list_type="tdgp"
-                    ),
-                    filter_by_type(
-                        chunks=sub_prop_chunks, chunk_type="mkif"
-                    ),
+                    filter_by_list_type(chunks=sub_prop_chunks, list_type="tdgp"),
+                    filter_by_type(chunks=sub_prop_chunks, chunk_type="mkif"),
                 ):
                     sub_prop = _parse_mask_atom(
                         tdgp_chunk=tdgp_c,
@@ -505,8 +497,7 @@ def parse_property_group(
             pass
         else:
             logger.warning(
-                "Skipping unsupported property list type '%s' "
-                "(match name '%s')",
+                "Skipping unsupported property list type '%s' (match name '%s')",
                 first_chunk.list_type,
                 match_name,
             )
@@ -579,17 +570,10 @@ def _parse_mask_atom(
     chunks_by_mn = get_chunks_by_match_name(tdgp_chunk)
     mask_shape_chunks = chunks_by_mn.get("ADBE Mask Shape", [])
     for chunk in mask_shape_chunks:
-        if (
-            chunk.chunk_type == "LIST"
-            and chunk.list_type == "om-s"
-        ):
+        if chunk.chunk_type == "LIST" and chunk.list_type == "om-s":
             with suppress(ChunkNotFoundError):
-                tdbs = find_by_list_type(
-                    chunks=chunk.chunks, list_type="tdbs"
-                )
-                tdsb = find_by_type(
-                    chunks=tdbs.chunks, chunk_type="tdsb"
-                )
+                tdbs = find_by_list_type(chunks=chunk.chunks, list_type="tdbs")
+                tdsb = find_by_type(chunks=tdbs.chunks, chunk_type="tdsb")
                 roto_bezier = bool(tdsb.data.roto_bezier)
             break
 
@@ -610,9 +594,7 @@ def _parse_mask_atom(
             int(mkif_chunk.mask_feather_falloff)
         ),
         mask_mode=MaskMode.from_binary(int(mkif_chunk.mode)),
-        mask_motion_blur=MaskMotionBlur.from_binary(
-            int(mkif_chunk.mask_motion_blur)
-        ),
+        mask_motion_blur=MaskMotionBlur.from_binary(int(mkif_chunk.mask_motion_blur)),
         roto_bezier=roto_bezier,
     )
     mask_group.property_type = base.property_type
@@ -667,9 +649,7 @@ def parse_orientation(
     # The cdat inside OTST stores doubles as little-endian, unlike the
     # rest of the big-endian RIFX file.  Re-read the raw bytes as LE.
     try:
-        cdat_chunk = find_by_type(
-            chunks=tdbs_chunk.chunks, chunk_type="cdat"
-        )
+        cdat_chunk = find_by_type(chunks=tdbs_chunk.chunks, chunk_type="cdat")
         n = cdat_chunk.len_data // 8
         values = list(struct.unpack(f"<{n}d", cdat_chunk._raw_data))
         while len(values) < 3:
@@ -684,18 +664,12 @@ def parse_orientation(
     # reads from tdbs which only has 1D orientation data, so we
     # override each keyframe's value with the full 3D otda data.
     try:
-        otky_chunk = find_by_list_type(
-            chunks=otst_chunk.chunks, list_type="otky"
-        )
-        otda_chunks = filter_by_type(
-            chunks=otky_chunk.chunks, chunk_type="otda"
-        )
+        otky_chunk = find_by_list_type(chunks=otst_chunk.chunks, list_type="otky")
+        otda_chunks = filter_by_type(chunks=otky_chunk.chunks, chunk_type="otda")
         for idx, kf in enumerate(prop.keyframes):
             if idx < len(otda_chunks):
                 n = otda_chunks[idx].len_data // 8
-                kf.value = list(
-                    struct.unpack(f">{n}d", otda_chunks[idx]._raw_data)
-                )
+                kf.value = list(struct.unpack(f">{n}d", otda_chunks[idx]._raw_data))
     except ChunkNotFoundError:
         pass
 
@@ -738,7 +712,7 @@ def _parse_shape_shap(shap_chunk: Aep.Chunk) -> ShapeValue:
     point_count = lhd3.count
     raw_bytes = ldat.items
 
-    # Parse (f4 x, f4 y) pairs — big-endian
+    # Parse (f4 x, f4 y) pairs - big-endian
     points: list[tuple[float, float]] = []
     for i in range(point_count):
         offset = i * 8
@@ -822,9 +796,7 @@ def parse_shape(
 
     # Collect shape values from omks → shap LISTs
     try:
-        omks_chunk = find_by_list_type(
-            chunks=oms_chunk.chunks, list_type="omks"
-        )
+        omks_chunk = find_by_list_type(chunks=oms_chunk.chunks, list_type="omks")
         shape_values: list[ShapeValue] = []
         for shap_chunk in filter_by_list_type(
             chunks=omks_chunk.chunks, list_type="shap"
@@ -949,9 +921,7 @@ def _determine_property_types(
         elif dimensions == 2:
             property_control_type = PropertyControlType.TWO_D
             property_value_type = (
-                PropertyValueType.TwoD_SPATIAL
-                if is_spatial
-                else PropertyValueType.TwoD
+                PropertyValueType.TwoD_SPATIAL if is_spatial else PropertyValueType.TwoD
             )
         elif dimensions == 3:
             property_control_type = PropertyControlType.THREE_D
@@ -1160,11 +1130,12 @@ def _parse_keyframes(
         kf_data = kf.kf_data
         in_ease, out_ease = _extract_temporal_ease(kf_data)
         in_tangent, out_tangent = _extract_spatial_tangents(kf_data)
+        spatial_ab = getattr(kf_data, "spatial_auto_bezier", False)
+        spatial_c = getattr(kf_data, "spatial_continuous", False)
         keyframes.append(
             Keyframe(
-                auto_bezier=kf.auto_bezier,
-                continuous_bezier=kf.continuous_bezier,
                 frame_time=round(kf.time_raw / time_scale),
+                time=round(kf.time_raw / time_scale) / frame_rate,
                 in_interpolation_type=KeyframeInterpolationType.from_binary(
                     kf.in_interpolation_type
                 ),
@@ -1172,7 +1143,11 @@ def _parse_keyframes(
                     kf.out_interpolation_type
                 ),
                 label=Label(int(kf.label)),
-                roving_across_time=kf.roving_across_time,
+                roving=kf.roving,
+                spatial_auto_bezier=spatial_ab,
+                spatial_continuous=spatial_c,
+                temporal_auto_bezier=kf.temporal_auto_bezier,
+                temporal_continuous=kf.temporal_continuous,
                 value=_extract_keyframe_value(kf),
                 in_temporal_ease=in_ease,
                 out_temporal_ease=out_ease,
@@ -1184,13 +1159,13 @@ def _parse_keyframes(
 
 
 def _extract_temporal_ease(
-    kf_data: object,
+    kf_data: Any,
 ) -> tuple[list[KeyframeEase], list[KeyframeEase]]:
     """Extract in/out temporal ease from a keyframe data payload.
 
     Returns:
         A ``(in_ease, out_ease)`` tuple.  Each element is a list of
-        [KeyframeEase][] objects — one per dimension for
+        [KeyframeEase][] objects - one per dimension for
         multi-dimensional properties, or a single element for scalar /
         spatial types.  Returns ``([], [])`` when the keyframe type
         carries no ease data (e.g. markers).
@@ -1226,7 +1201,7 @@ def _extract_temporal_ease(
 
 
 def _extract_spatial_tangents(
-    kf_data: object,
+    kf_data: Any,
 ) -> tuple[list[float] | None, list[float] | None]:
     """Extract in/out spatial tangent vectors from a keyframe data payload.
 
@@ -1235,8 +1210,8 @@ def _extract_spatial_tangents(
         (one per dimension) for spatial keyframe types (``kf_position``),
         or ``None`` for non-spatial types.
     """
-    if hasattr(kf_data, "tan_in"):
-        return list(kf_data.tan_in), list(kf_data.tan_out)
+    if hasattr(kf_data, "in_spatial_tangents"):
+        return kf_data.in_spatial_tangents, kf_data.out_spatial_tangents
     return None, None
 
 
@@ -1252,7 +1227,7 @@ def _extract_keyframe_value(
     kf_data = kf.kf_data
     if not hasattr(kf_data, "value"):
         return None
-    values = list(kf_data.value)
+    values: list[float] = list(kf_data.value)
     if len(values) == 1:
         return values[0]
     return values
@@ -1299,14 +1274,10 @@ def _segment_speed(
 
     if isinstance(val_a, list) and isinstance(val_b, list):
         if is_spatial:
-            distance = math.sqrt(
-                sum((b - a) ** 2 for a, b in zip(val_a, val_b))
-            )
+            distance = math.sqrt(sum((b - a) ** 2 for a, b in zip(val_a, val_b)))
             return [distance / time_seconds]
         else:
-            return [
-                (b - a) / time_seconds for a, b in zip(val_a, val_b)
-            ]
+            return [(b - a) / time_seconds for a, b in zip(val_a, val_b)]
 
     return [0.0]
 

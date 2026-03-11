@@ -76,10 +76,10 @@ The tool reports:
 
 Inspects and compares After Effects project files (.aep or .aepx) at the binary chunk level. Supports four modes:
 
-- **Compare** — diff two files byte-by-byte
-- **Multi** — diff three or more files simultaneously (first file is the reference)
-- **List** — print a tree of all chunks and their sizes in a single file
-- **Dump** — hex-dump a specific chunk from a single file
+- **Compare** - diff two files byte-by-byte
+- **Multi** - diff three or more files simultaneously (first file is the reference)
+- **List** - print a tree of all chunks and their sizes in a single file
+- **Dump** - hex-dump a specific chunk from a single file
 
 ### Usage
 

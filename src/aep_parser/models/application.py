@@ -9,9 +9,9 @@ if typing.TYPE_CHECKING:
 
 
 @dataclass
-class App:
+class Application:
     """
-    The `App` object represents the After Effects application. Attributes
+    The `Application` object represents the After Effects application. Attributes
     provide access to the project and application-level settings parsed from
     the binary file.
 

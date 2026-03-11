@@ -19,9 +19,9 @@ Text documents
 ``data["1"]["1"]`` is an array of text documents (one per keyframe).  Inside
 each document:
 
-* ``doc["0"]["0"]`` — the text string
-* ``doc["0"]["5"]["0"]`` — array of paragraph style runs
-* ``doc["0"]["6"]["0"]`` — array of character style runs
+* ``doc["0"]["0"]`` - the text string
+* ``doc["0"]["5"]["0"]`` - array of paragraph style runs
+* ``doc["0"]["6"]["0"]`` - array of character style runs
 
 Default styles live at ``data["1"]["2"]`` (character) and
 ``data["1"]["3"]`` (paragraph).
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Helper — safe nested dict/list access
+# Helper - safe nested dict/list access
 # ---------------------------------------------------------------------------
 
 
@@ -190,12 +190,12 @@ def _parse_paragraph_style(
     if isinstance(space_after, (int, float)):
         result["space_after"] = float(space_after)
 
-    # Auto leading (key 6 — int acting as bool)
+    # Auto leading (key 6 - int acting as bool)
     auto_leading = style.get("6")
     if isinstance(auto_leading, (int, bool)):
         result["auto_leading"] = bool(auto_leading)
 
-    # Leading type (key 8 — maps to LeadingType enum)
+    # Leading type (key 8 - maps to LeadingType enum)
     leading_type_val = style.get("8")
     if isinstance(leading_type_val, int):
         try:
@@ -298,7 +298,7 @@ def _parse_char_style(
 
     result: dict[str, Any] = {}
 
-    # Font (key 0 — index into the font array)
+    # Font (key 0 - index into the font array)
     font_idx = style.get("0")
     if isinstance(font_idx, int) and 0 <= font_idx < len(fonts):
         font_obj = fonts[font_idx]
@@ -319,7 +319,7 @@ def _parse_char_style(
     if isinstance(faux_italic, (bool, int)):
         result["faux_italic"] = bool(faux_italic)
 
-    # Apply fill (key 56 — near stroke keys 53/54/57/58)
+    # Apply fill (key 56 - near stroke keys 53/54/57/58)
     apply_fill = style.get("56")
     if isinstance(apply_fill, (bool, int)):
         result["apply_fill"] = bool(apply_fill)
@@ -405,7 +405,7 @@ def _parse_char_style(
     if stroke_color is not None:
         result["stroke_color"] = stroke_color
 
-    # Apply stroke (key 57 — "Stroke enabled")
+    # Apply stroke (key 57 - "Stroke enabled")
     apply_stroke_val = style.get("57")
     if isinstance(apply_stroke_val, (bool, int)):
         result["apply_stroke"] = bool(apply_stroke_val)

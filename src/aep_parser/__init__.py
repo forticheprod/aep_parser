@@ -103,7 +103,7 @@ from .enums import (
 )
 from .kaitai import Aep
 from .models import (
-    App,
+    Application,
     AVItem,
     AVLayer,
     CameraLayer,
@@ -145,7 +145,7 @@ from .models import (
     ViewOptions,
     XmlFormatOptions,
 )
-from .parsers.app import parse_app
+from .parsers.application import parse_app
 from .parsers.project import _parse_project, parse_project
 
 try:
@@ -156,7 +156,7 @@ except PackageNotFoundError:
 __all__ = [
     "__version__",
     "AlphaMode",
-    "App",
+    "Application",
     "AudioBitDepth",
     "AudioChannels",
     "AudioSampleRate",
@@ -288,12 +288,12 @@ __all__ = [
 ]
 
 
-def parse(aep_file_path: str | os.PathLike[str]) -> App:
-    """Parse an After Effects (.aep) project file and return an [App][] instance.
+def parse(aep_file_path: str | os.PathLike[str]) -> Application:
+    """Parse an After Effects (.aep) project file and return an [Application][] instance.
 
     This is the main entry point for the library. It parses the binary
-    RIFX data and returns an [App][] object whose
-    [project][aep_parser.models.app.App.project] attribute
+    RIFX data and returns an [Application][] object whose
+    [project][aep_parser.models.application.Application.project] attribute
     holds the full project tree.
 
     Args:
