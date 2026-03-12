@@ -1,0 +1,97 @@
+Validating: 29.97_fps_time_scale_3.125.aep
+Expected:   29.97_fps_time_scale_3.125.json
+Parsing: 29.97_fps_time_scale_3.125.aep
+
+=== Comparing Project Properties ===
+
+=== Comparing Compositions ===
+  e204_s015_p500_lignes (id=155): 87 differences
+  e204_s015_p500_lignes (id=11516): 87 differences
+  e204_s015_p500__compo__r011 Precomp (id=281855): 59 differences
+  e204_s010_full (id=12173): 2 differences
+  e204_s010_p005_precomp (id=2767): 9 differences
+
+=== Comparing Folder Hierarchy ===
+
+=== Comparing Footage Items ===
+  cailtyn_lines_01.png (id=80): OK
+  cailtyn_lines_02.png (id=82): OK
+  cailtyn_lines_03.png (id=83): OK
+  cailtyn_lines_04.png (id=84): OK
+  cailtyn_lines_05.png (id=85): OK
+  cailtyn_lines_06.png (id=86): OK
+  cailtyn_lines_07.png (id=87): OK
+  cailtyn_lines_08.png (id=89): OK
+  cailtyn_lines_12.png (id=278576): OK
+  cailtyn_lines.jpg (id=77): 1 differences
+  cailtyn_lines_01.jpg (id=79): 1 differences
+  cailtyn_lines_02.jpg (id=81): 1 differences
+  e204_s015_p500_footage (id=11515): 2 differences
+  e204_s015_p500__compo__r011.[0101-0118].exr (id=281716): 2 differences
+  e204_s015_p502__final_compo__p001.[0101-0123].exr (id=280065): 2 differences
+  Light Gray Solid 1 (id=281868): 1 differences
+  CAM SCALE (id=279258): 1 differences
+
+=== Comparing Render Queue ===
+
+============================================================
+TOTAL DIFFERENCES FOUND: 257
+
+Differences by category:
+  footage: 11
+  markers: 3
+  project: 2
+  properties: 241
+
+All differences:
+  Project.workingSpace: expected 'sRGB IEC61966-2.1', got 'None'
+  Project.linearizeWorkingSpace: expected True, got False
+  Comp[e204_s015_p500_lignes].layers[0].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[0].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[0].Effects.Transform.numProperties: expected 13, got 5
+  Comp[e204_s015_p500_lignes].layers[0].Effects.Transform.Position.value: expected [1243.8459797328, 480.69317996513], got [1178.0, 501.0]
+  Comp[e204_s015_p500_lignes].layers[0].Effects.Transform.Uniform Scale: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].Effects.Transform.Scale Height.minValue: expected -30000, got -200
+  Comp[e204_s015_p500_lignes].layers[0].Effects.Transform.Scale Height.maxValue: expected 30000, got 200
+  Comp[e204_s015_p500_lignes].layers[0].Effects.Transform.Scale Width: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].Effects.Transform.Skew: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].Effects.Transform.Skew Axis: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].Effects.Transform.Rotation: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].Effects.Transform.Opacity: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].Effects.Transform.Use CompositionÔÇÖs Shutter Angle: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].Effects.Transform.Shutter Angle: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[0].Effects.Transform.Sampling: expected 'exists', got 'missing'
+  Comp[e204_s015_p500_lignes].layers[1].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[1].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[2].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[2].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[3].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[3].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[4].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[4].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[5].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[5].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[6].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[6].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[7].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[7].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[8].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[8].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[9].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[9].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[10].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[10].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[11].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[11].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[12].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[12].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[13].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[13].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[14].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[14].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[15].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[15].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[16].Time Remap.minValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[16].Time Remap.maxValue: expected 0, got None
+  Comp[e204_s015_p500_lignes].layers[17].Time Remap.minValue: expected 0, got None
+  ... and 207 more

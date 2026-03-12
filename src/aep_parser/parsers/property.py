@@ -911,10 +911,10 @@ def _determine_property_types(
     if color:
         property_control_type = PropertyControlType.COLOR
         property_value_type = PropertyValueType.COLOR
-    elif integer:
+    elif integer and dimensions <= 1:
         property_control_type = PropertyControlType.BOOLEAN
         property_value_type = PropertyValueType.OneD
-    elif vector:
+    elif vector or (integer and dimensions > 1):
         if dimensions == 1:
             property_control_type = PropertyControlType.SCALAR
             property_value_type = PropertyValueType.OneD
@@ -1495,12 +1495,18 @@ def parse_effect(
     try:
         param_defs = parse_effect_param_defs(sspc_child_chunks)
     except ChunkNotFoundError:
-        # Layer-level sspc may lack parT when the same effect type is used
-        # more than once. Fall back to project-level EfdG definitions.
-        if group_match_name in effect_param_defs:
-            param_defs = effect_param_defs[group_match_name]
-        else:
-            param_defs = {}
+        param_defs = {}
+
+    # Layer-level sspc may have an empty parT when the same effect type
+    # is used more than once (AE doesn't duplicate the data).  Fall back
+    # to previously cached or project-level EfdG definitions.
+    if not param_defs and group_match_name in effect_param_defs:
+        param_defs = effect_param_defs[group_match_name]
+
+    # Cache successful parT parsing so later instances of the same
+    # effect can reuse the definitions.
+    if param_defs and group_match_name not in effect_param_defs:
+        effect_param_defs[group_match_name] = param_defs
     properties = _parse_effect_properties(
         tdgp_chunk,
         param_defs,
@@ -1571,9 +1577,28 @@ def _parse_effect_parameter_def(parameter_chunks: list[Aep.Chunk]) -> dict[str, 
             pard_chunk.last_value_y,
             pard_chunk.last_value_z,
         ]
+        result["property_value_type"] = PropertyValueType.ThreeD_SPATIAL
 
     elif control_type == PropertyControlType.TWO_D:
         result["last_value"] = [pard_chunk.last_value_x, pard_chunk.last_value_y]
+        result["property_value_type"] = PropertyValueType.TwoD_SPATIAL
+
+    elif control_type == PropertyControlType.LAYER:
+        result["property_value_type"] = PropertyValueType.LAYER_INDEX
+
+    elif control_type == PropertyControlType.MASK:
+        result["property_value_type"] = PropertyValueType.MASK_INDEX
+
+    elif control_type == PropertyControlType.CURVE:
+        result["property_value_type"] = PropertyValueType.CUSTOM_VALUE
+
+    elif control_type in (
+        PropertyControlType.GROUP,
+        PropertyControlType.UNKNOWN,
+        PropertyControlType.UNKNOWN_14,
+        PropertyControlType.PAINT_GROUP,
+    ):
+        result["property_value_type"] = PropertyValueType.NO_VALUE
 
     with suppress(ChunkNotFoundError):
         pdnm_chunk = find_by_type(chunks=parameter_chunks, chunk_type="pdnm")

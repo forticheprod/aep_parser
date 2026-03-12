@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import typing
 from typing import Any
 
@@ -71,20 +72,73 @@ def _offset_keyframe_times(
 ) -> None:
     """Offset all keyframe times by *start_time* (layer → comp time).
 
-    Recursively walks the property tree and shifts ``time`` / ``frame_time``
-    on every keyframe so that they are expressed in composition time rather
-    than layer-relative time.
+    Recursively walks the property tree and shifts ``frame_time`` on every
+    keyframe, then recomputes ``time`` from the new frame number so that
+    both fields are expressed in composition time.  Recomputing ``time``
+    from the integer ``frame_time`` avoids precision loss when *start_time*
+    does not sit on an exact frame boundary.
     """
     frame_offset = round(start_time * frame_rate)
     for prop in properties:
         if hasattr(prop, "keyframes") and prop.keyframes:
             for kf in prop.keyframes:
                 kf.frame_time += frame_offset
-                kf.time += start_time
+                kf.time = kf.frame_time / frame_rate
                 if kf.value is not None and hasattr(kf.value, "frame_time"):
                     kf.value.frame_time += frame_offset
         if hasattr(prop, "properties") and prop.properties:
             _offset_keyframe_times(prop.properties, start_time, frame_rate)
+
+
+def _scale_effect_point_speeds(
+    keyframes: list[Any],
+    scale: list[float],
+) -> None:
+    """Scale temporal ease speeds after denormalizing 2D effect point values.
+
+    The binary stores speed in normalized (0-1) units per second.
+    ExtendScript reports speed in pixel units per second.  The scale
+    factor depends on the direction of motion between adjacent keyframes:
+
+        factor = |delta_pixel| / |delta_normalized|
+
+    For BEZIER keyframes the stored speed is already non-zero and just
+    needs rescaling.  LINEAR/HOLD speeds are computed later by
+    ``_compute_linear_hold_ease`` which already sees pixel values, so
+    they don't need adjustment here.
+    """
+    n = len(keyframes)
+    for i, kf in enumerate(keyframes):
+        # Compute direction factor from adjacent keyframe values.
+        # Outgoing side uses direction towards next keyframe;
+        # incoming side uses direction from previous keyframe.
+        for ease_list, other_idx in [
+            (kf.out_temporal_ease, i + 1),
+            (kf.in_temporal_ease, i - 1),
+        ]:
+            if not ease_list or other_idx < 0 or other_idx >= n:
+                continue
+            other_kf = keyframes[other_idx]
+            val_a = kf.value
+            val_b = other_kf.value
+            if (
+                not isinstance(val_a, list)
+                or not isinstance(val_b, list)
+                or len(val_a) < 2
+                or len(val_b) < 2
+            ):
+                continue
+            # Both values are already in pixel coords at this point.
+            # Compute pixel-space delta and normalized-space delta.
+            delta_px = [b - a for a, b in zip(val_a, val_b)]
+            delta_norm = [d / s if s else 0.0 for d, s in zip(delta_px, scale)]
+            dist_px = math.sqrt(sum(d * d for d in delta_px))
+            dist_norm = math.sqrt(sum(d * d for d in delta_norm))
+            if dist_norm == 0:
+                continue
+            factor = dist_px / dist_norm
+            for ease in ease_list:
+                ease.speed *= factor
 
 
 def _denormalize_effect_points(
@@ -99,6 +153,11 @@ def _denormalize_effect_points(
     store 2D values as fractions of composition dimensions.  ExtendScript
     reports them as absolute pixel coordinates.  This function multiplies
     static values and keyframe values by ``[width, height]``.
+
+    Temporal ease speeds for spatial 2D effect properties are also
+    scaled.  The binary stores speed in normalized units/second;
+    ExtendScript reports pixels/second.  The scale factor depends on
+    the direction of motion between adjacent keyframes.
     """
     scale = [float(width), float(height)]
     for prop in properties:
@@ -118,6 +177,7 @@ def _denormalize_effect_points(
                     kf.value = [
                         v * s for v, s in zip(kf.value, scale)
                     ]
+            _scale_effect_point_speeds(prop.keyframes, scale)
         if hasattr(prop, "properties") and prop.properties:
             _denormalize_effect_points(
                 prop.properties, width, height, child_in_effect
