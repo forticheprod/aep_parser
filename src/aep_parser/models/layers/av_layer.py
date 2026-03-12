@@ -89,9 +89,6 @@ class AVLayer(Layer):
     three_d_layer: bool
     """`True` if this layer is a 3D layer."""
 
-    time_remap_enabled: bool
-    """`True` if time remapping is enabled for this layer."""
-
     track_matte_type: TrackMatteType
     """Specifies the way the track matte is applied."""
 
@@ -115,6 +112,15 @@ class AVLayer(Layer):
     def source(self) -> Item | None:
         """The source item for this layer. `None` for a text layer."""
         return self._source
+
+    @property
+    def time_remap_enabled(self) -> bool:
+        """`True` if time remapping is enabled for this layer."""
+        try:
+            prop = self["ADBE Time Remapping"]
+        except KeyError:
+            return False
+        return bool(prop.animated)
 
     @source.setter
     def source(self, value: Item) -> None:

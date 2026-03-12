@@ -231,6 +231,30 @@ var AepExport = AepExport || {};
     }
 
     /**
+     * Export a TextDocument value object.
+     * Uses getAllAttributes as a base, then explicitly adds properties that
+     * may not be enumerable via for..in (native getters).
+     */
+    function exportTextDocument(textDoc) {
+        var result = getAllAttributes(textDoc);
+
+        // Color & stroke
+        try { result.strokeColor = textDoc.strokeColor; } catch (e) {}
+
+        // Text box
+        try { result.boxTextSize = textDoc.boxTextSize; } catch (e) {}
+        try { result.boxTextPos = textDoc.boxTextPos; } catch (e) {}
+        try { result.boxVerticalAlignment = textDoc.boxVerticalAlignment; } catch (e) {}
+        try { result.boxAutoFitPolicy = textDoc.boxAutoFitPolicy; } catch (e) {}
+        try { result.boxFirstBaselineAlignment = textDoc.boxFirstBaselineAlignment; } catch (e) {}
+        try { result.boxFirstBaselineAlignmentMinimum = textDoc.boxFirstBaselineAlignmentMinimum; } catch (e) {}
+        try { result.boxInsetSpacing = textDoc.boxInsetSpacing; } catch (e) {}
+        try { result.boxOverflow = textDoc.boxOverflow; } catch (e) {}
+
+        return result;
+    }
+
+    /**
      * Export a single property (not a group).
      */
     function exportProperty(prop) {
@@ -254,6 +278,16 @@ var AepExport = AepExport || {};
         try { result.unitsText = prop.unitsText; } catch (e) {}
         try { result.expression = prop.expression; } catch (e) {}
         try { result.expressionEnabled = prop.expressionEnabled; } catch (e) {}
+
+        // Export TextDocument value for text properties (propertyValueType 6424)
+        try {
+            if (prop.propertyValueType === PropertyValueType.TEXT_DOCUMENT) {
+                var textDoc = prop.value;
+                if (textDoc) {
+                    result.textDocument = exportTextDocument(textDoc);
+                }
+            }
+        } catch (e) {}
 
         // Get keyframes
         if (prop.numKeys > 0) {

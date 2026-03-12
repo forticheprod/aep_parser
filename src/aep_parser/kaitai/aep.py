@@ -40,7 +40,7 @@ class Aep(KaitaiStruct):
         dark_green = 16
 
     class LayerType(IntEnum):
-        footage = 0
+        avlayer = 0
         light = 1
         camera = 2
         text = 3

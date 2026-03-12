@@ -59,6 +59,8 @@ MATCH_NAME_TO_NICE_NAME = {
     "ADBE Light Transmission": "Light Transmission",
     "ADBE Ambient Coefficient": "Ambient",
     "ADBE Diffuse Coefficient": "Diffuse",
+    "ADBE Accepts Shadows": "Accepts Shadows",
+    "ADBE Accepts Lights": "Accepts Lights",
     "ADBE Specular Coefficient": "Specular Intensity",
     "ADBE Shininess Coefficient": "Specular Shininess",
     "ADBE Metal Coefficient": "Metal",
@@ -69,6 +71,7 @@ MATCH_NAME_TO_NICE_NAME = {
     "ADBE Transp Rolloff": "Transparency Rolloff",
     "ADBE Index of Refraction": "Index of Refraction",
     "ADBE Appears in Reflections": "Appears in Reflections",
+    "ADBE Casts Shadows": "Casts Shadows",
     # Camera Layer > Camera
     "ADBE Camera Options Group": "Camera Options",
     "ADBE Camera Zoom": "Zoom",

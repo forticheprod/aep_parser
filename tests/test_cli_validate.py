@@ -186,7 +186,7 @@ class TestCompareLayer:
                     parsed_layers = parsed_comps[0].get("layers", [])
                     if parsed_layers:
                         result = ValidationResult()
-                        compare_layer(exp_layer, parsed_layers[0], "Layer[0]", 30.0, result)
+                        compare_layer(exp_layer, parsed_layers[0], "Layer[0]", 30.0, 24.0, result)
                         assert isinstance(result, ValidationResult)
 
 

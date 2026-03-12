@@ -213,7 +213,7 @@ class TestLayerTypes:
 
     def test_type_camera(self) -> None:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "type_camera.aep"))
-        assert layer.layer_type == "camera"
+        assert layer.layer_type == "CameraLayer"
         assert isinstance(layer, CameraLayer)
 
     def test_type_null(self) -> None:
@@ -225,12 +225,12 @@ class TestLayerTypes:
 
     def test_type_shape(self) -> None:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "type_shape.aep"))
-        assert layer.layer_type == "shape"
+        assert layer.layer_type == "Layer"
         assert isinstance(layer, ShapeLayer)
 
     def test_type_text(self) -> None:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "type_text.aep"))
-        assert layer.layer_type == "text"
+        assert layer.layer_type == "Layer"
         assert isinstance(layer, TextLayer)
 
 

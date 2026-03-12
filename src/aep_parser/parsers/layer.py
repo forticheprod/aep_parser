@@ -9,6 +9,7 @@ from ..enums import (
     LayerQuality,
     LayerSamplingQuality,
     LightType,
+    PropertyControlType,
     TrackMatteType,
 )
 from ..kaitai.utils import (
@@ -34,7 +35,6 @@ from .property import (
 from .utils import (
     get_chunks_by_match_name,
     get_comment,
-    property_has_keyframes,
 )
 
 if typing.TYPE_CHECKING:
@@ -47,12 +47,81 @@ if typing.TYPE_CHECKING:
 
 # Maps layer_type.name (from ldta binary) to its ExtendScript match name.
 _LAYER_MATCH_NAMES: dict[str, str] = {
-    "footage": "ADBE AV Layer",
+    "avlayer": "ADBE AV Layer",
     "shape": "ADBE AV Layer",
     "text": "ADBE Text Layer",
     "camera": "ADBE Camera Layer",
     "light": "ADBE Light Layer",
 }
+
+# Maps raw binary layer type name to ExtendScript layerType string.
+_LAYER_TYPE_NAMES: dict[str, str] = {
+    "avlayer": "AVLayer",
+    "shape": "Layer",
+    "text": "Layer",
+    "camera": "CameraLayer",
+    "light": "LightLayer",
+}
+
+
+def _offset_keyframe_times(
+    properties: list[Property | PropertyGroup],
+    start_time: float,
+    frame_rate: float,
+) -> None:
+    """Offset all keyframe times by *start_time* (layer → comp time).
+
+    Recursively walks the property tree and shifts ``time`` / ``frame_time``
+    on every keyframe so that they are expressed in composition time rather
+    than layer-relative time.
+    """
+    frame_offset = round(start_time * frame_rate)
+    for prop in properties:
+        if hasattr(prop, "keyframes") and prop.keyframes:
+            for kf in prop.keyframes:
+                kf.frame_time += frame_offset
+                kf.time += start_time
+                if kf.value is not None and hasattr(kf.value, "frame_time"):
+                    kf.value.frame_time += frame_offset
+        if hasattr(prop, "properties") and prop.properties:
+            _offset_keyframe_times(prop.properties, start_time, frame_rate)
+
+
+def _denormalize_effect_points(
+    properties: list[Property | PropertyGroup],
+    width: int,
+    height: int,
+    in_effect: bool = False,
+) -> None:
+    """Scale normalized 0-1 effect point values to pixel coordinates.
+
+    Effect point properties (PropertyControlType.TWO_D) inside effects
+    store 2D values as fractions of composition dimensions.  ExtendScript
+    reports them as absolute pixel coordinates.  This function multiplies
+    static values and keyframe values by ``[width, height]``.
+    """
+    scale = [float(width), float(height)]
+    for prop in properties:
+        is_effect = getattr(prop, "is_effect", False)
+        child_in_effect = in_effect or is_effect
+        if (
+            child_in_effect
+            and hasattr(prop, "property_control_type")
+            and prop.property_control_type == PropertyControlType.TWO_D
+        ):
+            if isinstance(prop.value, list) and len(prop.value) >= 2:
+                prop.value = [
+                    v * s for v, s in zip(prop.value, scale)
+                ]
+            for kf in prop.keyframes:
+                if isinstance(kf.value, list) and len(kf.value) >= 2:
+                    kf.value = [
+                        v * s for v, s in zip(kf.value, scale)
+                    ]
+        if hasattr(prop, "properties") and prop.properties:
+            _denormalize_effect_points(
+                prop.properties, width, height, child_in_effect
+            )
 
 
 def _parse_layer_property_groups(
@@ -62,13 +131,11 @@ def _parse_layer_property_groups(
 ) -> tuple[
     list[Property | PropertyGroup],
     Property | None,
-    bool,
 ]:
     """Parse all property groups for a layer.
 
     Iterates all named property groups in binary order and returns them as a
-    flat list. Markers are extracted separately. Time-remap state is returned
-    as a convenience flag for AVLayer.
+    flat list. Markers are extracted separately.
 
     Args:
         child_chunks: The layer's child chunks.
@@ -77,18 +144,11 @@ def _parse_layer_property_groups(
             fallback when layer-level parT chunks are missing.
 
     Returns:
-        Tuple of (properties, marker_property, time_remap_enabled) where
-        *properties* is an ordered list of all top-level [PropertyGroup][]
-        objects.
+        Tuple of (properties, marker_property) where *properties* is an
+        ordered list of all top-level [PropertyGroup][] objects.
     """
     root_tdgp_chunk = find_by_list_type(chunks=child_chunks, list_type="tdgp")
     tdgp_map = get_chunks_by_match_name(root_tdgp_chunk)
-
-    # Time remap is enabled when "ADBE Time Remapping" property has keyframes
-    time_remap_props = tdgp_map.get("ADBE Time Remapping", [])
-    time_remap_enabled = (
-        property_has_keyframes(time_remap_props[0]) if time_remap_props else False
-    )
 
     markers_mrst = tdgp_map.get("ADBE Marker", [])
     marker_property: Property | None = None
@@ -133,7 +193,7 @@ def _parse_layer_property_groups(
             )
             properties.append(prop)
 
-    return properties, marker_property, time_remap_enabled
+    return properties, marker_property
 
 
 def parse_layer(
@@ -176,9 +236,22 @@ def parse_layer(
     in_point = ldta_chunk.start_time + ldta_chunk.in_point * stretch_factor
     out_point = ldta_chunk.start_time + ldta_chunk.out_point * stretch_factor
 
-    properties, marker_property, time_remap_enabled = _parse_layer_property_groups(
+    properties, marker_property = _parse_layer_property_groups(
         child_chunks, composition, effect_param_defs
     )
+
+    # Adjust keyframe times from layer-relative to composition-relative
+    # time.  Binary keyframe times are stored relative to the layer;
+    # ExtendScript reports them in comp time.
+    start_time: float = ldta_chunk.start_time
+    if start_time != 0.0:
+        all_props: list[Property | PropertyGroup] = list(properties)
+        if marker_property is not None:
+            all_props.append(marker_property)
+        _offset_keyframe_times(all_props, start_time, composition.frame_rate)
+
+    # Denormalize effect point values from 0-1 fractions to pixel coordinates.
+    _denormalize_effect_points(properties, composition.width, composition.height)
 
     layer_attrs = {
         "enabled": ldta_chunk.enabled,
@@ -200,7 +273,7 @@ def parse_layer(
         "id": ldta_chunk.layer_id,
         "in_point": in_point,
         "label": Label(int(ldta_chunk.label)),
-        "layer_type": layer_type_name,
+        "layer_type": _LAYER_TYPE_NAMES.get(layer_type_name, "AVLayer"),
         "locked": ldta_chunk.locked,
         "marker": marker_property,
         "null_layer": ldta_chunk.null_layer,
@@ -234,7 +307,6 @@ def parse_layer(
         ),
         "_source_id": ldta_chunk.source_id,
         "three_d_layer": ldta_chunk.three_d_layer,
-        "time_remap_enabled": time_remap_enabled,
         "track_matte_type": TrackMatteType.from_binary(ldta_chunk.track_matte_type),
         "_matte_layer_id": getattr(ldta_chunk, "matte_layer_id", 0) or 0,
     }

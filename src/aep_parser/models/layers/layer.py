@@ -90,7 +90,8 @@ class Layer(PropertyGroup):
     """
 
     layer_type: str
-    """The type of layer (footage, light, camera, text, shape)."""
+    """The type of layer. Matches ExtendScript `layerType` values:
+    ``"AVLayer"``, ``"LightLayer"``, ``"CameraLayer"``, or ``"Layer"``."""
 
     locked: bool
     """

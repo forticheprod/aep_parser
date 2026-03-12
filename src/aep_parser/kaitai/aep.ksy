@@ -1953,7 +1953,7 @@ enums:
     2: placeholder
     9: solid
   layer_type:
-    0: footage
+    0: avlayer
     1: light
     2: camera
     3: text
