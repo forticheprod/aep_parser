@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import typing
 from dataclasses import dataclass, field
+from typing import cast
 
 from aep_parser.enums import Label
 
+from ..properties.marker import MarkerValue
 from ..properties.property_group import PropertyGroup
 
 if typing.TYPE_CHECKING:
     from aep_parser.enums import AutoOrientType
 
     from ..items.composition import CompItem
-    from ..properties.marker import MarkerValue
     from ..properties.property import Property
 
 
@@ -181,7 +182,10 @@ class Layer(PropertyGroup):
         """
         if self.marker is None:
             return []
-        return [kf.value for kf in self.marker.keyframes]
+        return cast(
+            list[MarkerValue],
+            [kf.value for kf in self.marker.keyframes],
+        )
 
     @property
     def transform(self) -> PropertyGroup:

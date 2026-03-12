@@ -14,7 +14,8 @@ if typing.TYPE_CHECKING:
 
     from aep_parser.enums import KeyframeInterpolationType, Label
     from aep_parser.models.properties.keyframe_ease import KeyframeEase
-    from aep_parser.models.properties.shape_value import ShapeValue
+    from aep_parser.models.properties.marker import MarkerValue
+    from aep_parser.models.properties.shape import Shape
     from aep_parser.models.text.text_document import TextDocument
 
     from .keyframe import Keyframe
@@ -288,9 +289,7 @@ class Property(PropertyBase):
         index = self.nearest_key_index(time)
         return self.keyframes[index]
 
-    def key_in_interpolation_type(
-        self, key_index: int
-    ) -> KeyframeInterpolationType:
+    def key_in_interpolation_type(self, key_index: int) -> KeyframeInterpolationType:
         """Returns the "in" interpolation type for the specified
         keyframe.
 
@@ -302,9 +301,7 @@ class Property(PropertyBase):
         """
         return self.keyframes[key_index].in_interpolation_type
 
-    def key_in_spatial_tangent(
-        self, key_index: int
-    ) -> list[float] | None:
+    def key_in_spatial_tangent(self, key_index: int) -> list[float] | None:
         """Returns the incoming spatial tangent for the specified
         keyframe, if the named property is spatial (that is, the
         value type is `TwoD_SPATIAL` or `ThreeD_SPATIAL`).
@@ -317,9 +314,7 @@ class Property(PropertyBase):
         """
         return self.keyframes[key_index].in_spatial_tangent
 
-    def key_in_temporal_ease(
-        self, key_index: int
-    ) -> list[KeyframeEase]:
+    def key_in_temporal_ease(self, key_index: int) -> list[KeyframeEase]:
         """Returns the incoming temporal ease for the specified
         keyframe.
 
@@ -345,9 +340,7 @@ class Property(PropertyBase):
         """
         return self.keyframes[key_index].label
 
-    def key_out_interpolation_type(
-        self, key_index: int
-    ) -> KeyframeInterpolationType:
+    def key_out_interpolation_type(self, key_index: int) -> KeyframeInterpolationType:
         """Returns the outgoing interpolation type for the specified
         keyframe.
 
@@ -360,9 +353,7 @@ class Property(PropertyBase):
         """
         return self.keyframes[key_index].out_interpolation_type
 
-    def key_out_spatial_tangent(
-        self, key_index: int
-    ) -> list[float] | None:
+    def key_out_spatial_tangent(self, key_index: int) -> list[float] | None:
         """Returns the outgoing spatial tangent for the specified
         keyframe.
 
@@ -375,9 +366,7 @@ class Property(PropertyBase):
         """
         return self.keyframes[key_index].out_spatial_tangent
 
-    def key_out_temporal_ease(
-        self, key_index: int
-    ) -> list[KeyframeEase]:
+    def key_out_temporal_ease(self, key_index: int) -> list[KeyframeEase]:
         """Returns the outgoing temporal ease for the specified
         keyframe.
 
@@ -477,7 +466,7 @@ class Property(PropertyBase):
 
     def key_value(
         self, key_index: int
-    ) -> list[float] | float | ShapeValue | TextDocument | None:
+    ) -> list[float] | float | MarkerValue | Shape | TextDocument | None:
         """Returns the current value of the specified keyframe.
 
         Note:

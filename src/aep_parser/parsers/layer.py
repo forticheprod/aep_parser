@@ -41,7 +41,6 @@ if typing.TYPE_CHECKING:
     from ..kaitai import Aep
     from ..models.items.composition import CompItem
     from ..models.layers.layer import Layer
-    from ..models.properties.marker import MarkerValue
     from ..models.properties.property import Property
     from ..models.properties.property_group import PropertyGroup
 
@@ -177,8 +176,8 @@ def parse_layer(
     in_point = ldta_chunk.start_time + ldta_chunk.in_point * stretch_factor
     out_point = ldta_chunk.start_time + ldta_chunk.out_point * stretch_factor
 
-    properties, marker_property, time_remap_enabled = (
-        _parse_layer_property_groups(child_chunks, composition, effect_param_defs)
+    properties, marker_property, time_remap_enabled = _parse_layer_property_groups(
+        child_chunks, composition, effect_param_defs
     )
 
     layer_attrs = {

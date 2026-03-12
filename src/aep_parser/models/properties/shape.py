@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class ShapeValue:
+class Shape:
     """
     The Shape object encapsulates information describing a shape in a shape layer, or
     the outline shape of a Mask. It is the value of the "Mask Path" AE properties, and

@@ -29,7 +29,7 @@ from ..models.properties.keyframe_ease import KeyframeEase
 from ..models.properties.mask_property_group import MaskPropertyGroup
 from ..models.properties.property import Property
 from ..models.properties.property_group import PropertyGroup
-from ..models.properties.shape_value import ShapeValue
+from ..models.properties.shape import Shape
 from .match_names import MATCH_NAME_TO_NICE_NAME
 from .text import parse_btdk_cos
 from .utils import (
@@ -676,7 +676,7 @@ def parse_orientation(
     return prop
 
 
-def _parse_shape_shap(shap_chunk: Aep.Chunk) -> ShapeValue:
+def _parse_shape_shap(shap_chunk: Aep.Chunk) -> Shape:
     """Parse a single shape path from a ``shap`` LIST chunk.
 
     Each ``shap`` LIST contains:
@@ -693,7 +693,7 @@ def _parse_shape_shap(shap_chunk: Aep.Chunk) -> ShapeValue:
         shap_chunk: A ``shap`` LIST chunk.
 
     Returns:
-        A [ShapeValue][] with absolute coordinates and tangent offsets.
+        A [Shape][] with absolute coordinates and tangent offsets.
     """
     shph_chunk = find_by_type(chunks=shap_chunk.chunks, chunk_type="shph")
     list_chunk = find_by_list_type(chunks=shap_chunk.chunks, list_type="list")
@@ -745,7 +745,7 @@ def _parse_shape_shap(shap_chunk: Aep.Chunk) -> ShapeValue:
         in_tangents.append([ix - vx, iy - vy])
         out_tangents.append([ox - vx, oy - vy])
 
-    return ShapeValue(
+    return Shape(
         closed=closed,
         vertices=vertices,
         in_tangents=in_tangents,
@@ -777,7 +777,7 @@ def parse_shape(
     Returns:
         A [Property][] with ``property_value_type`` set to
         [SHAPE][aep_parser.enums.PropertyValueType.SHAPE] and ``value``
-        set to a [ShapeValue][].
+        set to a [Shape][].
     """
     tdbs_chunk = find_by_list_type(chunks=oms_chunk.chunks, list_type="tdbs")
     prop = parse_property(
@@ -797,7 +797,7 @@ def parse_shape(
     # Collect shape values from omks → shap LISTs
     try:
         omks_chunk = find_by_list_type(chunks=oms_chunk.chunks, list_type="omks")
-        shape_values: list[ShapeValue] = []
+        shape_values: list[Shape] = []
         for shap_chunk in filter_by_list_type(
             chunks=omks_chunk.chunks, list_type="shap"
         ):
@@ -1263,7 +1263,7 @@ def _segment_speed(
     val_a = kf_a.value
     val_b = kf_b.value
 
-    # Non-numeric values (None, ShapeValue) cannot produce a speed.
+    # Non-numeric values (None, Shape) cannot produce a speed.
     if not isinstance(val_a, (int, float, list)):
         return [0.0]
     if not isinstance(val_b, (int, float, list)):

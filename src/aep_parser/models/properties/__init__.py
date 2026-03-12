@@ -7,7 +7,7 @@ from .mask_property_group import MaskPropertyGroup
 from .property import Property
 from .property_base import PropertyBase
 from .property_group import PropertyGroup
-from .shape_value import ShapeValue
+from .shape import Shape
 
 __all__ = [
     "Keyframe",
@@ -17,5 +17,5 @@ __all__ = [
     "Property",
     "PropertyBase",
     "PropertyGroup",
-    "ShapeValue",
+    "Shape",
 ]

@@ -40,7 +40,9 @@ from ..models.properties.property_group import PropertyGroup
 # =============================================================================
 
 
-def build_project_node(app: Application, include_properties: bool = True) -> dict[str, Any]:
+def build_project_node(
+    app: Application, include_properties: bool = True
+) -> dict[str, Any]:
     """Build the root project node."""
     project = app.project
     attrs: dict[str, Any] = {

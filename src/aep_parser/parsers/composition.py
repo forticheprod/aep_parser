@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import typing
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from aep_parser.models.properties.marker import MarkerValue
 
 from ..enums import Label
 from ..kaitai.utils import (
@@ -183,7 +186,8 @@ def _get_markers(
     # Adjust marker frame_time from layer-relative to comp-relative time.
     # Binary keyframe times are relative to the SecL layer's own timeline,
     # but ExtendScript reports marker times in composition time.
-    for marker_value in markers_layer.marker.keyframes:
-        marker_value.value.frame_time += markers_layer.frame_start_time
+    for marker_kf in markers_layer.marker.keyframes:
+        marker_val: MarkerValue = marker_kf.value  # type: ignore[assignment]
+        marker_val.frame_time += markers_layer.frame_start_time
 
     return markers_layer.marker

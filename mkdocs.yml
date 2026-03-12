@@ -134,7 +134,7 @@ nav:
       - Keyframe: api/properties/keyframe.md
       - Keyframe Ease: api/properties/keyframe_ease.md
       - Marker: api/properties/marker.md
-      - Shape Value: api/properties/shape_value.md
+      - Shape: api/properties/shape.md
     - Text:
       - Text Document: api/text/text_document.md
       - Font Object: api/text/font_object.md

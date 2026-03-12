@@ -9,6 +9,7 @@ from ..layers.camera_layer import CameraLayer
 from ..layers.light_layer import LightLayer
 from ..layers.shape_layer import ShapeLayer
 from ..layers.text_layer import TextLayer
+from ..properties.marker import MarkerValue
 from ..sources.file import FileSource
 from ..sources.placeholder import PlaceholderSource
 from ..sources.solid import SolidSource
@@ -17,7 +18,6 @@ from .footage import FootageItem
 
 if typing.TYPE_CHECKING:
     from ..layers.layer import Layer
-    from ..properties.marker import MarkerValue
     from ..properties.property import Property
 
 
@@ -225,7 +225,10 @@ class CompItem(AVItem):
         """
         if self.marker_property is None:
             return []
-        return self.marker_property.keyframes
+        return cast(
+            list[MarkerValue],
+            [kf.value for kf in self.marker_property.keyframes],
+        )
 
     @property
     def work_area_start(self) -> float:

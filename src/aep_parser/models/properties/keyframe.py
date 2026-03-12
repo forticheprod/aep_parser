@@ -8,7 +8,8 @@ from aep_parser.enums import Label
 if typing.TYPE_CHECKING:
     from aep_parser.enums import KeyframeInterpolationType
     from aep_parser.models.properties.keyframe_ease import KeyframeEase
-    from aep_parser.models.properties.shape_value import ShapeValue
+    from aep_parser.models.properties.marker import MarkerValue
+    from aep_parser.models.properties.shape import Shape
     from aep_parser.models.text.text_document import TextDocument
 
 
@@ -137,11 +138,12 @@ class Keyframe:
     time: float
     """Time of the keyframe, in seconds."""
 
-    value: list[float] | float | ShapeValue | TextDocument | None
+    value: list[float] | float | MarkerValue | Shape | TextDocument | None
     """
     The value of the keyframe. For a 1D property (e.g. Opacity, Rotation), this
     is a single `float`. For a multi-dimensional property (e.g. Position,
     Scale), this is a `list[float]`. For shape/mask path properties, this is a
-    [ShapeValue][]. For text properties, this is a [TextDocument][]. For
-    properties that carry no value (e.g. markers), this is `None`.
+    [Shape][]. For text properties, this is a [TextDocument][]. For marker
+    properties, this is a [MarkerValue][]. For properties that carry no value,
+    this is `None`.
     """

@@ -212,6 +212,11 @@ def compare_marker(
         "chapter": "chapter",
         "url": "url",
         "duration": "duration",
+        "label": "label",
+        "cuePointName": "cue_point_name",
+        "frameTarget": "frame_target",
+        "protectedRegion": "protected_region",
+        "eventCuePoint": "event_cue_point",
     }
 
     for exp_key, parsed_key in marker_mappings.items():
@@ -229,6 +234,7 @@ def compare_layer(
     parsed_layer: dict[str, Any],
     path: str,
     comp_duration: float,
+    frame_rate: float,
     result: ValidationResult,
 ) -> None:
     """Compare layer properties."""
@@ -310,6 +316,19 @@ def compare_layer(
             continue
 
         compare_property_group(exp_pg, parsed_pg, child_path, result)
+
+    # Compare markers
+    exp_markers = expected_layer.get("markers", [])
+    parsed_markers = parsed_layer.get("markers", [])
+    if len(exp_markers) != len(parsed_markers):
+        result.add_diff(
+            f"{path}.numMarkers", len(exp_markers), len(parsed_markers), "markers"
+        )
+
+    for i, (exp_marker, parsed_marker) in enumerate(zip(exp_markers, parsed_markers)):
+        compare_marker(
+            exp_marker, parsed_marker, f"{path}.markers[{i}]", frame_rate, result
+        )
 
 
 def compare_property(
@@ -529,9 +548,15 @@ def compare_comp_item(
 
     # Compare each layer
     comp_duration = expected_item.get("duration", 60.0)
+    frame_rate = expected_item.get("frameRate", 24.0)
     for i, (exp_layer, parsed_layer) in enumerate(zip(exp_layers, parsed_layers)):
         compare_layer(
-            exp_layer, parsed_layer, f"{path}.layers[{i}]", comp_duration, result
+            exp_layer,
+            parsed_layer,
+            f"{path}.layers[{i}]",
+            comp_duration,
+            frame_rate,
+            result,
         )
 
     # Compare markers
