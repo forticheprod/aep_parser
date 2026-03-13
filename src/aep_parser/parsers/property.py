@@ -54,6 +54,7 @@ def parse_property_group(
     property_depth: int,
     effect_param_defs: dict[str, dict[str, dict[str, Any]]],
     frame_rate: float,
+    comp_size: tuple[int, int],
 ) -> PropertyGroup:
     """
     Parse a property group.
@@ -100,6 +101,7 @@ def parse_property_group(
                     property_depth=child_depth,
                     effect_param_defs=effect_param_defs,
                     frame_rate=frame_rate,
+                    comp_size=comp_size,
                 )
                 properties.append(sub_prop)
         elif first_chunk.list_type == "tdgp":
@@ -116,6 +118,7 @@ def parse_property_group(
                         property_depth=child_depth,
                         effect_param_defs=effect_param_defs,
                         frame_rate=frame_rate,
+                        comp_size=comp_size,
                     )
                     properties.append(sub_prop)
                 # Append 1-based index to mask names (e.g. "Mask 1", "Mask 2")
@@ -136,6 +139,7 @@ def parse_property_group(
                         property_depth=child_depth,
                         effect_param_defs=effect_param_defs,
                         frame_rate=frame_rate,
+                        comp_size=comp_size,
                     )
                     properties.append(sub_prop)
         elif first_chunk.list_type == "tdbs":
@@ -172,6 +176,7 @@ def parse_property_group(
                 time_scale=time_scale,
                 property_depth=child_depth,
                 frame_rate=frame_rate,
+                comp_size=comp_size,
             )
             properties.append(sub_prop)
         else:
@@ -217,6 +222,7 @@ def _parse_mask_atom(
     property_depth: int,
     effect_param_defs: dict[str, dict[str, dict[str, Any]]],
     frame_rate: float,
+    comp_size: tuple[int, int],
 ) -> MaskPropertyGroup:
     """Parse a mask atom into a MaskPropertyGroup.
 
@@ -242,6 +248,7 @@ def _parse_mask_atom(
         property_depth=property_depth,
         effect_param_defs=effect_param_defs,
         frame_rate=frame_rate,
+        comp_size=comp_size,
     )
 
     # Extract rotoBezier from ADBE Mask Shape tdsb (byte 0).
@@ -355,7 +362,11 @@ def parse_orientation(
     return prop
 
 
-def _parse_shape_shap(shap_chunk: Aep.Chunk) -> Shape:
+def _parse_shape_shap(
+    shap_chunk: Aep.Chunk,
+    comp_size: tuple[int, int],
+    is_mask_shape: bool,
+) -> Shape:
     """Parse a single shape path from a ``shap`` LIST chunk.
 
     Each ``shap`` LIST contains:
@@ -368,8 +379,15 @@ def _parse_shape_shap(shap_chunk: Aep.Chunk) -> Shape:
     consecutive points form a cycle:
     ``vertex, out_tangent, in_tangent_of_next_vertex``.
 
+    Mask shapes use a normalized ``[0, 1]`` bounding box, so the
+    resulting coordinates must be scaled by ``comp_size`` to get pixel
+    values.  Shape-layer paths already have a pixel bounding box.
+
     Args:
         shap_chunk: A ``shap`` LIST chunk.
+        comp_size: ``(width, height)`` of the containing composition,
+            used for denormalizing mask shapes.
+        is_mask_shape: Whether this shape belongs to a mask property.
 
     Returns:
         A [Shape][] with absolute coordinates and tangent offsets.
@@ -424,6 +442,13 @@ def _parse_shape_shap(shap_chunk: Aep.Chunk) -> Shape:
         in_tangents.append([ix - vx, iy - vy])
         out_tangents.append([ox - vx, oy - vy])
 
+    # Mask shapes use a [0, 1] bounding box; scale to pixel coordinates.
+    if is_mask_shape:
+        w, h = float(comp_size[0]), float(comp_size[1])
+        vertices = [[x * w, y * h] for x, y in vertices]
+        in_tangents = [[x * w, y * h] for x, y in in_tangents]
+        out_tangents = [[x * w, y * h] for x, y in out_tangents]
+
     return Shape(
         closed=closed,
         vertices=vertices,
@@ -469,6 +494,7 @@ def parse_shape(
     time_scale: float,
     property_depth: int,
     frame_rate: float,
+    comp_size: tuple[int, int],
 ) -> Property:
     """Parse a shape/mask-path property from an ``om-s`` LIST chunk.
 
@@ -508,10 +534,13 @@ def parse_shape(
     try:
         omks_chunk = find_by_list_type(chunks=oms_chunk.chunks, list_type="omks")
         shape_values: list[Shape] = []
+        is_mask = match_name == "ADBE Mask Shape"
         for shap_chunk in filter_by_list_type(
             chunks=omks_chunk.chunks, list_type="shap"
         ):
-            shape_values.append(_parse_shape_shap(shap_chunk))
+            shape_values.append(
+                _parse_shape_shap(shap_chunk, comp_size, is_mask)
+            )
     except (ChunkNotFoundError, Exception):
         logger.debug("Could not parse omks shape data for %s", match_name)
         return prop
@@ -746,6 +775,7 @@ def _parse_effect_properties(
     time_scale: float,
     child_depth: int,
     frame_rate: float,
+    comp_size: tuple[int, int],
 ) -> list[Property | PropertyGroup]:
     """Parse effect properties and merge with parameter definitions.
 
@@ -790,6 +820,7 @@ def _parse_effect_properties(
                 property_depth=child_depth,
                 effect_param_defs={},
                 frame_rate=frame_rate,
+                comp_size=comp_size,
             )
             properties.append(sub_group)
         else:
@@ -817,6 +848,7 @@ def parse_effect(
     property_depth: int,
     effect_param_defs: dict[str, dict[str, dict[str, Any]]],
     frame_rate: float,
+    comp_size: tuple[int, int],
 ) -> PropertyGroup:
     """
     Parse an effect.
@@ -867,6 +899,7 @@ def parse_effect(
         time_scale,
         child_depth=property_depth + 1,
         frame_rate=frame_rate,
+        comp_size=comp_size,
     )
 
     effect_group = PropertyGroup(

@@ -232,6 +232,7 @@ def _parse_layer_property_groups(
                 property_depth=1,
                 effect_param_defs=effect_param_defs,
                 frame_rate=composition.frame_rate,
+                comp_size=(composition.width, composition.height),
             )
             properties.append(prop_group)
         elif first_list.list_type == "tdbs":

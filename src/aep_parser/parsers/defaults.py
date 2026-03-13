@@ -149,24 +149,23 @@ def set_transform_defaults(layer: Layer) -> None:
     if transform is None:
         return
 
-    # Determine spatial center. For AVLayers with a linked source, width
-    # and height come from the source; otherwise fall back to comp dims.
+    # Anchor Point is relative to the layer itself (source dimensions),
+    # while Position is relative to the containing composition.
+    comp_w = float(layer.containing_comp.width)
+    comp_h = float(layer.containing_comp.height)
     if isinstance(layer, AVLayer):
-        w = float(layer.width)
-        h = float(layer.height)
+        anchor_w = float(layer.width)
+        anchor_h = float(layer.height)
     else:
-        w = float(layer.containing_comp.width)
-        h = float(layer.containing_comp.height)
-
-    center_x = w / 2.0
-    center_y = h / 2.0
+        anchor_w = comp_w
+        anchor_h = comp_h
 
     # Spatial defaults depend on layer dimensions.
     spatial_defaults: dict[str, Any] = {
-        "ADBE Anchor Point": [center_x, center_y, 0.0],
-        "ADBE Position": [center_x, center_y, 0.0],
-        "ADBE Position_0": center_x,
-        "ADBE Position_1": center_y,
+        "ADBE Anchor Point": [anchor_w / 2.0, anchor_h / 2.0, 0.0],
+        "ADBE Position": [comp_w / 2.0, comp_h / 2.0, 0.0],
+        "ADBE Position_0": comp_w / 2.0,
+        "ADBE Position_1": comp_h / 2.0,
     }
 
     # --- Phase 1: set default_value on properties parsed from binary --------

@@ -1332,10 +1332,10 @@ def print_results(
 
     if verbose and filtered_diffs:
         print("\nAll differences:")
-        for d in filtered_diffs[:50]:  # Limit output
+        for d in filtered_diffs[:200]:  # Limit output
             print(f"  {d}")
-        if len(filtered_diffs) > 50:
-            print(f"  ... and {len(filtered_diffs) - 50} more")
+        if len(filtered_diffs) > 200:
+            print(f"  ... and {len(filtered_diffs) - 200} more")
 
 
 def main(args: list[str] | None = None) -> int:

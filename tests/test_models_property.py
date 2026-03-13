@@ -1550,7 +1550,7 @@ class TestShapeValue:
         shape = _get_mask_shape(layer).value
         assert shape.closed is True
         assert len(shape.vertices) == 4
-        assert shape.vertices == [[0.25, 0.25], [0.25, 0.75], [0.75, 0.75], [0.75, 0.25]]
+        assert shape.vertices == [[100.0, 100.0], [100.0, 300.0], [300.0, 300.0], [300.0, 100.0]]
 
     def test_closed_square_tangents_zero(self) -> None:
         """Closed square mask has zero tangents (straight line segments)."""
@@ -1632,8 +1632,8 @@ class TestShapeValue:
         assert len(prop.keyframes) == 2
         kf0 = prop.keyframes[0].value
         kf1 = prop.keyframes[1].value
-        assert kf0.vertices == [[0.25, 0.25], [0.25, 0.75], [0.75, 0.75], [0.75, 0.25]]
-        assert kf1.vertices == [[0.375, 0.375], [0.375, 0.625], [0.625, 0.625], [0.625, 0.375]]
+        assert kf0.vertices == [[100.0, 100.0], [100.0, 300.0], [300.0, 300.0], [300.0, 100.0]]
+        assert kf1.vertices == [[150.0, 150.0], [150.0, 250.0], [250.0, 250.0], [250.0, 150.0]]
 
     def test_many_points_seg_locs(self) -> None:
         """300-vertex mask with feather seg_locs >255 proves u4le field width."""
