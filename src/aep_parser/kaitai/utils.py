@@ -174,3 +174,70 @@ def str_contents(chunk: Aep.Chunk) -> str:
     """Return the string contents of a chunk whose chunk_type is Utf8."""
     text: str = chunk.contents
     return text.rstrip("\x00")
+
+
+def chunk_tree(
+    chunks: list[Aep.Chunk],
+    depth: int = -1,
+    indent: int = 0,
+) -> str:
+    """Return a text tree representation of chunks for debugging.
+
+    Args:
+        chunks: List of chunks to visualize.
+        depth: Max depth to recurse (-1 for unlimited).
+        indent: Current indentation level (used internally).
+
+    Example::
+
+        >>> print(chunk_tree(root.chunks, depth=2))
+        LIST:Fold (12345 B)
+          tdsn (4 B)
+          Utf8 (12 B)
+          LIST:Layr (8000 B)
+            ...
+    """
+    lines: list[str] = []
+    prefix = "  " * indent
+    for chunk in chunks:
+        if chunk.chunk_type == "LIST":
+            label = f"LIST:{chunk.list_type}"
+            lines.append(f"{prefix}{label} ({chunk.len_data} B)")
+            if depth != 0 and hasattr(chunk.data, "chunks"):
+                lines.append(chunk_tree(chunk.data.chunks, depth - 1, indent + 1))
+        else:
+            lines.append(f"{prefix}{chunk.chunk_type} ({chunk.len_data} B)")
+    return "\n".join(lines)
+
+
+def recursive_find(
+    chunks: list[Aep.Chunk],
+    chunk_type: str | None = None,
+    list_type: str | None = None,
+) -> list[Aep.Chunk]:
+    """Recursively search the chunk tree for matching chunks.
+
+    At least one of *chunk_type* or *list_type* must be given.
+
+    Args:
+        chunks: List of chunks to search.
+        chunk_type: Match chunks with this chunk_type (e.g. ``"cdta"``).
+        list_type: Match LIST chunks with this list_type (e.g. ``"Layr"``).
+            When provided, only LIST chunks are matched.
+
+    Returns:
+        All matching chunks across the entire tree, in DFS order.
+    """
+    if chunk_type is None and list_type is None:
+        raise ValueError("At least one of chunk_type or list_type is required")
+    results: list[Aep.Chunk] = []
+    for chunk in chunks:
+        if list_type is not None:
+            if chunk.chunk_type == "LIST" and chunk.list_type == list_type:
+                results.append(chunk)
+        elif chunk.chunk_type == chunk_type:
+            results.append(chunk)
+        # Recurse into LIST children
+        if chunk.chunk_type == "LIST" and hasattr(chunk.data, "chunks"):
+            results.extend(recursive_find(chunk.data.chunks, chunk_type, list_type))
+    return results

@@ -29,10 +29,8 @@ from .mappings import (
     map_frame_blending_type,
 )
 from .marker import parse_markers
-from .property import (
-    parse_property,
-    parse_property_group,
-)
+from .property import parse_property_group
+from .property_value import parse_property
 from .utils import (
     get_chunks_by_match_name,
     get_comment,
@@ -70,7 +68,7 @@ def _offset_keyframe_times(
     start_time: float,
     frame_rate: float,
 ) -> None:
-    """Offset all keyframe times by *start_time* (layer → comp time).
+    """Offset all keyframe times by *start_time* (layer > comp time).
 
     Recursively walks the property tree and shifts ``frame_time`` on every
     keyframe, then recomputes ``time`` from the new frame number so that
@@ -169,19 +167,13 @@ def _denormalize_effect_points(
             and prop.property_control_type == PropertyControlType.TWO_D
         ):
             if isinstance(prop.value, list) and len(prop.value) >= 2:
-                prop.value = [
-                    v * s for v, s in zip(prop.value, scale)
-                ]
+                prop.value = [v * s for v, s in zip(prop.value, scale)]
             for kf in prop.keyframes:
                 if isinstance(kf.value, list) and len(kf.value) >= 2:
-                    kf.value = [
-                        v * s for v, s in zip(kf.value, scale)
-                    ]
+                    kf.value = [v * s for v, s in zip(kf.value, scale)]
             _scale_effect_point_speeds(prop.keyframes, scale)
         if hasattr(prop, "properties") and prop.properties:
-            _denormalize_effect_points(
-                prop.properties, width, height, child_in_effect
-            )
+            _denormalize_effect_points(prop.properties, width, height, child_in_effect)
 
 
 def _parse_layer_property_groups(

@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import typing
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from aep_parser.models.properties.marker import MarkerValue
+from typing import Any
 
 from ..enums import Label
 from ..kaitai.utils import (
@@ -19,7 +16,6 @@ from .layer import parse_layer
 if typing.TYPE_CHECKING:
     from ..kaitai import Aep
     from ..models.items.folder import FolderItem
-    from ..models.properties.marker import MarkerValue
     from ..models.properties.property import Property
 
 
@@ -165,10 +161,8 @@ def _get_markers(
     """
     Get the composition markers.
 
-    Marker keyframe times in the binary format are stored relative to the
-    hidden marker layer's (SecL) own start time. They must be offset by the
-    layer's start_time to obtain composition time, which is what ExtendScript
-    reports via ``marker.time``.
+    Marker keyframe times in the binary format are stored in absolute
+    composition time (not relative to the SecL layer's start time).
 
     Args:
         child_chunks: child chunks of the composition LIST chunk.
@@ -182,12 +176,5 @@ def _get_markers(
     )
     if markers_layer.marker is None:
         return None
-
-    # Adjust marker frame_time from layer-relative to comp-relative time.
-    # Binary keyframe times are relative to the SecL layer's own timeline,
-    # but ExtendScript reports marker times in composition time.
-    for marker_kf in markers_layer.marker.keyframes:
-        marker_val: MarkerValue = marker_kf.value  # type: ignore[assignment]
-        marker_val.frame_time += markers_layer.frame_start_time
 
     return markers_layer.marker

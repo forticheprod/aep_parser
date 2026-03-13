@@ -1,7 +1,0 @@
-Comp: e204_s015_p500_lignes fps=29.9700012207031 dur=33.4000667334001
-
-  Layer[0]: CAM SCALE type=AVLayer in=-0.2002002002002 start=6.79087420754087
-    effects count: 0
-
-  Layer[1]: cailtyn_lines_07.png type=AVLayer in=14.2809476142809 start=-3585.41875208542
-    effects count: 0

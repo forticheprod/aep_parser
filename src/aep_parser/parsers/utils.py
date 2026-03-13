@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import struct
 import typing
 from io import BytesIO
 from typing import Any, List, TypeVar
@@ -170,3 +171,40 @@ def parse_ldat_items(
         items.append(item)
 
     return items
+
+
+def read_tdum(
+    chunks: list[Aep.Chunk],
+    chunk_type: str,
+    color: bool,
+    integer: bool,
+    dimensions: int,
+) -> Any:
+    """Decode a tdum (min) or tduM (max) chunk from a tdbs LIST.
+
+    Returns the decoded scalar/list value, or ``None`` when the chunk is
+    absent.  The binary encoding depends on the property type:
+
+    * Scalar: float64 (8 bytes)
+    * Color: float32×4 RGBA (16 bytes)
+    * Position: float64×dimensions (16 bytes for 2-D)
+    * Vector: float64×dimensions (up to 32 bytes for 4-D)
+    * Enum (integer flag): uint32 (4 bytes)
+    """
+    try:
+        chunk = find_by_type(chunks=chunks, chunk_type=chunk_type)
+    except ChunkNotFoundError:
+        return None
+    raw = chunk.data.data
+    size = len(raw)
+    if color and size == 16:
+        return list(struct.unpack(">4f", raw))
+    if integer and size == 4:
+        return struct.unpack(">I", raw)[0]
+    if size == 8:
+        return struct.unpack(">d", raw)[0]
+    if size == 16:
+        return list(struct.unpack(">2d", raw))
+    if size == 32:
+        return list(struct.unpack(">4d", raw))
+    return struct.unpack(">d", raw[:8])[0]

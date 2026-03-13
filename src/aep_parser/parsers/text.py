@@ -393,13 +393,13 @@ def _parse_char_style(
     if isinstance(tsume, (int, float)):
         result["tsume"] = float(tsume)
 
-    # Fill color (key 53 → SimplePaint with ARGB)
+    # Fill color (key 53 > SimplePaint with ARGB)
     fill_paint = style.get("53")
     fill_color = _parse_color(fill_paint)
     if fill_color is not None:
         result["fill_color"] = fill_color
 
-    # Stroke color (key 54 → SimplePaint with ARGB)
+    # Stroke color (key 54 > SimplePaint with ARGB)
     stroke_paint = style.get("54")
     stroke_color = _parse_color(stroke_paint)
     if stroke_color is not None:
@@ -492,11 +492,11 @@ def parse_text_documents(
         # Start with text
         kwargs: dict[str, Any] = {"text": text}
 
-        # First character style → most TextDocument char-level attributes
+        # First character style > most TextDocument char-level attributes
         char_style = _get_first_char_style(doc_entry)
         kwargs.update(_parse_char_style(char_style, fonts))
 
-        # First paragraph style → paragraph-level attributes
+        # First paragraph style > paragraph-level attributes
         para_style = _get_first_para_style(doc_entry)
         kwargs.update(_parse_paragraph_style(para_style))
 

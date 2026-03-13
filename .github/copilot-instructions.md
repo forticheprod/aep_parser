@@ -1,13 +1,13 @@
 # AEP Parser - AI Coding Agent Instructions
 
 ## Project Overview
-A Python library for parsing Adobe After Effects project files (.aep). The binary RIFX format is decoded using [Kaitai Struct](https://kaitai.io/), then transformed into typed Python dataclasses representing the AE object model (Application → Project → Items → Layers → Properties).
+A Python library for parsing Adobe After Effects project files (.aep). The binary RIFX format is decoded using [Kaitai Struct](https://kaitai.io/), then transformed into typed Python dataclasses representing the AE object model (Application > Project > Items > Layers > Properties).
 
 ## Architecture
 
 ### Data Flow
 ```
-.aep file → Kaitai (kaitai/aep.ksy) → Raw chunks → Parsers → Model dataclasses
+.aep file > Kaitai (kaitai/aep.ksy) > Raw chunks > Parsers > Model dataclasses
 ```
 
 ### Key Directories
@@ -86,6 +86,8 @@ ldta_chunk = find_by_type(chunks=child_chunks, chunk_type="ldta")
 fold_chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")
 layer_chunks = filter_by_list_type(chunks=comp_chunks, list_type="Layr")
 ```
+
+For debugging, `chunk_tree(chunks, depth)` prints the chunk hierarchy and `recursive_find(chunks, chunk_type, list_type)` searches the entire tree recursively.
 
 ### Chunk Attribute Proxy (`__getattr__` override)
 `aep_optimized.py` monkey-patches `Aep.Chunk.__getattr__` so attribute access on a chunk delegates to `chunk.data` when not found on the chunk itself:

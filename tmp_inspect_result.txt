@@ -1,8 +1,0 @@
-Comp: e204_s015_p500_lignes
-  frameRate: 29.9700012207031
-  displayStartTime: 0
-  duration: 33.4000667334001
-  Layer: CAM SCALE
-    inPoint: -0.2002002002002
-    outPoint: 16.9158742075409
-    startTime: 6.79087420754087

@@ -19,7 +19,7 @@ This guide helps you understand the AEP Parser codebase and contribute new featu
 AEP Parser transforms binary .aep files into typed Python objects through a three-stage pipeline:
 
 ```
-.aep file → Kaitai Parser → Raw Chunks → Parsers → Model Dataclasses
+.aep file > Kaitai Parser > Raw Chunks > Parsers > Model Dataclasses
 ```
 
 **Stage 1: Binary Parsing (Kaitai)**
@@ -113,7 +113,7 @@ Located in `scripts/jsx/`, these scripts help generate test samples and validate
 
 1. Open After Effects
 2. Open your .aep file
-3. File → Scripts → Run Script File → `export_project_json.jsx`
+3. File > Scripts > Run Script File > `export_project_json.jsx`
 4. A `.json` file is saved next to the .aep file
 
 This JSON serves as "ground truth" for validating the Python parser.
@@ -322,7 +322,7 @@ Convert byte values to binary to identify the bit:
 Add bit fields to `aep.ksy`:
 
 ```yaml
-# Read individual bits (from MSB to LSB: 7→0)
+# Read individual bits (from MSB to LSB: 7>0)
 - id: preserve_nested_resolution
   type: b1  # bit 7
 - type: b1  # skip bit 6

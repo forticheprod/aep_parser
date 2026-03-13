@@ -28,7 +28,7 @@ from ..models.layers.av_layer import AVLayer
 from ..models.layers.layer import Layer
 from ..models.properties.property import Property
 from ..models.properties.property_group import PropertyGroup
-from .property import _UNITS_TEXT_MAP
+from .property_value import _UNITS_TEXT_MAP
 
 
 class _TransformSpec(NamedTuple):
@@ -71,7 +71,7 @@ _TRANSFORM_SPECS: list[_TransformSpec] = [
     ),
 ]
 
-# Map of match_name → fixed default for standard transform properties.
+# Map of match_name > fixed default for standard transform properties.
 # Position and Anchor Point defaults depend on layer/comp dimensions and
 # are handled separately.
 _TRANSFORM_FIXED_DEFAULTS: dict[str, Any] = {
@@ -291,9 +291,10 @@ _PROPERTY_MIN_MAX: dict[str, tuple[float, float]] = {
 def _apply_min_max_defaults(group: PropertyGroup) -> None:
     """Set ``min_value`` / ``max_value`` on properties with known bounds.
 
-    ExtendScript exposes fixed min/max on certain standard properties that
-    are not stored in the binary.  This function walks all children of
-    *group* and applies ``_PROPERTY_MIN_MAX`` where applicable.
+    ExtendScript exposes fixed min/max on certain standard properties whose
+    binary bounds (``tdum``/``tduM`` chunks) may differ from the values
+    reported by ExtendScript.  This function walks all children of *group*
+    and applies ``_PROPERTY_MIN_MAX`` overrides unconditionally.
 
     Args:
         group: The property group whose children should be updated.
@@ -302,10 +303,8 @@ def _apply_min_max_defaults(group: PropertyGroup) -> None:
         if isinstance(child, Property):
             bounds = _PROPERTY_MIN_MAX.get(child.match_name)
             if bounds is not None:
-                if child.min_value is None:
-                    child.min_value = bounds[0]
-                if child.max_value is None:
-                    child.max_value = bounds[1]
+                child.min_value = bounds[0]
+                child.max_value = bounds[1]
         elif isinstance(child, PropertyGroup):
             _apply_min_max_defaults(child)
 

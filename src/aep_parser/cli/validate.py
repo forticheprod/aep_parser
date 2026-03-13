@@ -26,9 +26,9 @@ from aep_parser import parse
 # Fields to skip to avoid circular references.
 # Back-references: containing_comp, parent_folder, parent (OutputModule),
 #   _parent (Layer).
-# Cross-references that re-enter the object graph: _source (AVLayer → Item),
-#   comp (RenderQueueItem → CompItem),
-#   post_render_target_comp (OutputModule → CompItem).
+# Cross-references that re-enter the object graph: _source (AVLayer > Item),
+#   comp (RenderQueueItem > CompItem),
+#   post_render_target_comp (OutputModule > CompItem).
 # The non-circular ID fields (source_id, parent_id) are still serialized.
 SKIP_FIELDS = {
     "containing_comp",
@@ -43,6 +43,9 @@ SKIP_FIELDS = {
     # ``markers`` list is derived from it via @property.
     "marker",
     "marker_property",
+    # Raw feather point objects; the validated arrays are derived via
+    # Shape @property getters (feather_seg_locs, feather_radii, etc.).
+    "feather_points",
 }
 
 # @property attributes that return complex/duplicate data and should not be
@@ -51,9 +54,9 @@ SKIP_PROPERTIES = {
     "composition_layers",
     "footage_layers",
     "selected_layers",
-    # Circular: AVLayer.source → Item → layers → AVLayer…
+    # Circular: AVLayer.source > Item > layers > AVLayer…
     "source",
-    # Circular: AVItem.used_in → list[CompItem] → layers → source → AVItem…
+    # Circular: AVItem.used_in > list[CompItem] > layers > source > AVItem…
     "used_in",
     # Duplicate/circular: Project re-serialises items already in `items` field
     "compositions",
@@ -65,7 +68,7 @@ SKIP_PROPERTIES = {
     "effects",
     "masks",
     "text",
-    # Duplicate: Property.separation_leader → Property
+    # Duplicate: Property.separation_leader > Property
     "separation_leader",
 }
 
@@ -479,6 +482,47 @@ def compare_property(
                 result,
             )
 
+    # Compare Shape value
+    if "shapeValue" in expected_prop:
+        parsed_value = parsed_prop.get("value")
+        if isinstance(parsed_value, dict):
+            compare_shape_value(
+                expected_prop["shapeValue"],
+                parsed_value,
+                f"{path}.shapeValue",
+                result,
+            )
+
+
+def compare_shape_value(
+    expected_shape: dict[str, Any],
+    parsed_shape: dict[str, Any],
+    path: str,
+    result: ValidationResult,
+) -> None:
+    """Compare a Shape value (mask path or shape layer path).
+
+    Args:
+        expected_shape: Expected shape from ExtendScript JSON.
+        parsed_shape: Parsed shape dict from aep_parser.
+        path: Dotted path for error messages.
+        result: ValidationResult to accumulate differences.
+    """
+    shape_mappings: dict[str, str] = {
+        "closed": "closed",
+        "vertices": "vertices",
+        "inTangents": "in_tangents",
+        "outTangents": "out_tangents",
+        "featherSegLocs": "feather_seg_locs",
+        "featherRelSegLocs": "feather_rel_seg_locs",
+        "featherRadii": "feather_radii",
+        "featherTypes": "feather_types",
+        "featherInterps": "feather_interps",
+        "featherTensions": "feather_tensions",
+        "featherRelCornerAngles": "feather_rel_corner_angles",
+    }
+    _compare_fields(expected_shape, parsed_shape, shape_mappings, path, "shape", result)
+
 
 def compare_keyframe(
     expected_kf: dict[str, Any],
@@ -505,7 +549,11 @@ def compare_keyframe(
     if "value" in expected_kf and parsed_kf.get("value") is not None:
         exp_val = expected_kf["value"]
         parsed_val = parsed_kf["value"]
-        if not isinstance(exp_val, dict) or not exp_val.get("_undefined"):
+        if isinstance(exp_val, dict) and "vertices" in exp_val:
+            # Shape keyframe value — compare as shape
+            if isinstance(parsed_val, dict):
+                compare_shape_value(exp_val, parsed_val, f"{path}.value", result)
+        elif not isinstance(exp_val, dict) or not exp_val.get("_undefined"):
             if not compare_values(exp_val, parsed_val):
                 result.add_diff(f"{path}.value", exp_val, parsed_val, "keyframes")
 

@@ -28,7 +28,7 @@ class SolidSource(FootageSource):
     """
 
     color: list[float]
-    """The solid color (RGBA)."""
+    """The solid color (RGB)."""
 
     @property
     def is_solid(self) -> bool:

@@ -16,7 +16,7 @@ Always consult the ExtendScript scripting guide for accurate docstrings, types, 
 ## Architecture
 
 ```
-.aep file → Kaitai (kaitai/aep.ksy) → Raw chunks → Parsers → Model dataclasses
+.aep file > Kaitai (kaitai/aep.ksy) > Raw chunks > Parsers > Model dataclasses
 ```
 
 - **`src/aep_parser/kaitai/aep.ksy`** — Binary schema (Kaitai Struct). All binary decoding lives here. Never use the `struct` module.
@@ -99,6 +99,8 @@ uv run aep-validate sample.aep sample.json --verbose
 from aep_parser.kaitai.utils import find_by_type, find_by_list_type, filter_by_type
 ldta_chunk = find_by_type(chunks=child_chunks, chunk_type="ldta")
 ```
+
+`chunk_tree(chunks, depth)` prints the chunk hierarchy; `recursive_find(chunks, chunk_type, list_type)` searches the tree recursively.
 
 Chunk attribute proxy: `chunk.field` delegates to `chunk.data.field` via `__getattr__`.
 

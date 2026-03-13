@@ -198,6 +198,13 @@ var AepExport = AepExport || {};
                 outInterpolationType: prop.keyOutInterpolationType(i)
             };
 
+            // Shape keyframe values are Shape objects — export them explicitly
+            try {
+                if (prop.propertyValueType === PropertyValueType.SHAPE) {
+                    kf.value = exportShape(prop.keyValue(i));
+                }
+            } catch (e) {}
+
             // Spatial tangents only exist for spatial properties (e.g. Position)
             // and throw on non-spatial ones (e.g. Opacity, Rotation)
             try {
@@ -255,6 +262,31 @@ var AepExport = AepExport || {};
     }
 
     /**
+     * Export a Shape object (mask path or shape layer path).
+     * Extracts core path data and variable-width feather point attributes.
+     */
+    function exportShape(shape) {
+        var result = {};
+
+        // Core path attributes
+        try { result.closed = shape.closed; } catch (e) {}
+        try { result.vertices = shape.vertices; } catch (e) {}
+        try { result.inTangents = shape.inTangents; } catch (e) {}
+        try { result.outTangents = shape.outTangents; } catch (e) {}
+
+        // Variable-width mask feather point attributes
+        try { result.featherSegLocs = shape.featherSegLocs; } catch (e) {}
+        try { result.featherRelSegLocs = shape.featherRelSegLocs; } catch (e) {}
+        try { result.featherRadii = shape.featherRadii; } catch (e) {}
+        try { result.featherTypes = shape.featherTypes; } catch (e) {}
+        try { result.featherInterps = shape.featherInterps; } catch (e) {}
+        try { result.featherTensions = shape.featherTensions; } catch (e) {}
+        try { result.featherRelCornerAngles = shape.featherRelCornerAngles; } catch (e) {}
+
+        return result;
+    }
+
+    /**
      * Export a single property (not a group).
      */
     function exportProperty(prop) {
@@ -285,6 +317,16 @@ var AepExport = AepExport || {};
                 var textDoc = prop.value;
                 if (textDoc) {
                     result.textDocument = exportTextDocument(textDoc);
+                }
+            }
+        } catch (e) {}
+
+        // Export Shape value for shape/mask path properties (propertyValueType 6423)
+        try {
+            if (prop.propertyValueType === PropertyValueType.SHAPE) {
+                var shapeVal = prop.value;
+                if (shapeVal) {
+                    result.shapeValue = exportShape(shapeVal);
                 }
             }
         } catch (e) {}

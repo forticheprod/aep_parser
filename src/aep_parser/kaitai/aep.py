@@ -522,6 +522,11 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.FoacBody(_io__raw_data, self, self._root)
+            elif _on == u"fth5":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.Fth5Body(_io__raw_data, self, self._root)
             elif _on == u"head":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -622,6 +627,16 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.ChildUtf8Body(_io__raw_data, self, self._root)
+            elif _on == u"tduM":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.TdumBody(_io__raw_data, self, self._root)
+            elif _on == u"tdum":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.TdumBody(_io__raw_data, self, self._root)
             else:
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -714,6 +729,9 @@ class Aep(KaitaiStruct):
             elif _on == u"foac":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"fth5":
+                pass
+                self.data._fetch_instances()
             elif _on == u"head":
                 pass
                 self.data._fetch_instances()
@@ -772,6 +790,12 @@ class Aep(KaitaiStruct):
                 pass
                 self.data._fetch_instances()
             elif _on == u"tdsn":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"tduM":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"tdum":
                 pass
                 self.data._fetch_instances()
             else:
@@ -961,6 +985,30 @@ class Aep(KaitaiStruct):
             pass
 
 
+    class FeatherPoint(KaitaiStruct):
+        """A single variable-width mask feather point (32 bytes).
+        The feather type (inner/outer) is derived from the sign of the radius:
+        negative radius = inner feather (type 1), positive = outer (type 0).
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.FeatherPoint, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.seg_loc = self._io.read_u4le()
+            self.interp_raw = self._io.read_u4le()
+            self.rel_seg_loc = self._io.read_f8be()
+            self.radius = self._io.read_f8be()
+            self.corner_angle = self._io.read_f4be()
+            self.tension = self._io.read_f4be()
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class FiacBody(KaitaiStruct):
         """Viewer inner tab active flag. When non-zero, the inner tab
         (e.g. Composition, Layer, Footage) is focused.
@@ -1104,6 +1152,38 @@ class Aep(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
+
+
+    class Fth5Body(KaitaiStruct):
+        """Variable-width mask feather points.  Each feather point is 32 bytes.
+        Feather points can be placed anywhere along a closed mask path to vary
+        the feather radius at different positions.  The number of points is
+        determined by the chunk size divided by 32.
+        
+        Integer fields use little-endian byte order despite the big-endian
+        RIFX container (similar to OTST cdat).  Float fields remain big-endian.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.Fth5Body, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.points = []
+            i = 0
+            while not self._io.is_eof():
+                self.points.append(Aep.FeatherPoint(self._io, self, self._root))
+                i += 1
+
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.points)):
+                pass
+                self.points[i]._fetch_instances()
+
 
 
     class HeadBody(KaitaiStruct):
@@ -1978,17 +2058,6 @@ class Aep(KaitaiStruct):
             if self.asset_type == u"8BPS":
                 pass
 
-
-        @property
-        def alpha(self):
-            if hasattr(self, '_m_alpha'):
-                return self._m_alpha
-
-            if self.asset_type == u"Soli":
-                pass
-                self._m_alpha = self.color[0]
-
-            return getattr(self, '_m_alpha', None)
 
         @property
         def blue(self):
@@ -2928,6 +2997,32 @@ class Aep(KaitaiStruct):
             self._unnamed5 = self._io.read_bits_int_be(6)
             self.dimensions_separated = self._io.read_bits_int_be(1) != 0
             self.enabled = self._io.read_bits_int_be(1) != 0
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class TdumBody(KaitaiStruct):
+        """Property stored min or max value inside a tdbs LIST.
+        Used for both tdum (min) and tduM (max) chunks.
+        When both tdum and tduM are zero, the property is unconstrained
+        (no min/max). Otherwise, tdum is the minimum and tduM the maximum.
+        The encoding depends on the property type:
+          Scalar:   float64      (8 bytes)
+          Color:    float32[4]   (16 bytes, RGBA)
+          Position: float64[2]   (16 bytes)
+          Vector:   float64[4]   (32 bytes)
+          Enum:     uint32       (4 bytes)
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.TdumBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.data = self._io.read_bytes_full()
 
 
         def _fetch_instances(self):

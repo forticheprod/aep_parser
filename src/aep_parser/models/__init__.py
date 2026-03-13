@@ -20,6 +20,7 @@ from .properties.mask_property_group import MaskPropertyGroup
 from .properties.property import Property
 from .properties.property_base import PropertyBase
 from .properties.property_group import PropertyGroup
+from .properties.shape import FeatherPoint, Shape
 from .renderqueue.format_options import (
     CineonFormatOptions,
     JpegFormatOptions,
@@ -50,6 +51,7 @@ __all__ = [
     "CameraLayer",
     "CineonFormatOptions",
     "CompItem",
+    "FeatherPoint",
     "FileSource",
     "FolderItem",
     "FontObject",
@@ -75,6 +77,7 @@ __all__ = [
     "RenderQueue",
     "RenderQueueItem",
     "RenderSettings",
+    "Shape",
     "ShapeLayer",
     "SolidSource",
     "TargaFormatOptions",

@@ -67,9 +67,11 @@ def parse_footage(
             sspc_chunk.field_separation_type_raw,
             sspc_chunk.field_order,
         ),
-        "high_quality_field_separation": sspc_chunk.high_quality_field_separation != 0,
+        "high_quality_field_separation": sspc_chunk.high_quality_field_separation % 2
+        != 0,
         "loop": sspc_chunk.loop,
-        "conform_frame_rate": sspc_chunk.conform_frame_rate,
+        "conform_frame_rate": sspc_chunk.conform_frame_rate
+        or (sspc_chunk.frame_rate_base if sspc_chunk.frame_padding > 0 else 0),
         "is_still": sspc_chunk.duration == 0,
         # premul_color: RGB bytes (0-255) converted to floats (0.0-1.0)
         "premul_color": [
@@ -87,7 +89,7 @@ def parse_footage(
     elif asset_type == "Soli":
         asset_type = "solid"
         item_name = opti_chunk.solid_name
-        color = [opti_chunk.red, opti_chunk.green, opti_chunk.blue, opti_chunk.alpha]
+        color = [opti_chunk.red, opti_chunk.green, opti_chunk.blue]
         main_source = SolidSource(color=color, **source_attrs)
     else:
         asset_type = "file"
@@ -99,7 +101,7 @@ def parse_footage(
 
         # If start frame or end frame is undefined, derive from StVc filenames.
         # The frame number is always the last digit group in each filename
-        # (e.g. "render.0101.exr" → 101).
+        # (e.g. "render.0101.exr" > 101).
         if UNDEFINED_FRAME in (start_frame, end_frame) and file_source.file_names:
             first_match = re.search(r"(\d+)\D*$", file_source.file_names[0])
             last_match = re.search(r"(\d+)\D*$", file_source.file_names[-1])
@@ -107,29 +109,43 @@ def parse_footage(
                 start_frame = int(first_match.group(1))
                 end_frame = int(last_match.group(1))
 
-        # AE stores the full file path in the Utf8 chunk but displays only
-        # the filename.  Strip to basename so the item name matches AE's UI.
-        if item_name and ("/" in item_name or "\\" in item_name):
-            item_name = ""
-
-        if not item_name:
-            if not source_attrs["is_still"] and file_source.target_is_folder:
-                item_name = _build_sequence_name(
-                    pin_child_chunks,
-                    start_frame,
-                    end_frame,
-                    frame_padding=sspc_chunk.frame_padding,
+        # Old-format AE files lack the StVc LIST that stores per-frame
+        # filenames for image sequences.  Construct the first-frame path
+        # from the Utf8 prefix/extension chunks stored before opti.
+        if (
+            not file_source.file_names
+            and sspc_chunk.frame_padding > 0
+            and start_frame != UNDEFINED_FRAME
+        ):
+            try:
+                utf8_before_opti = find_chunks_before(
+                    chunks=pin_child_chunks,
+                    chunk_type="Utf8",
+                    before_type="opti",
                 )
-            if not item_name:
-                # PureWindowsPath handles both / and \ separators,
-                # unlike PurePosixPath which only splits on /.
-                basename = PureWindowsPath(file_source.file).name
-                # For PSD footage, prepend the PSD group/folder name
-                psd_group = getattr(opti_chunk, "psd_group_name", "")
-                if psd_group:
-                    item_name = f"{psd_group}/{basename}"
-                else:
-                    item_name = basename
+            except ChunkNotFoundError:
+                utf8_before_opti = []
+            if len(utf8_before_opti) >= 2:
+                prefix = str_contents(utf8_before_opti[-2])
+                extension = str_contents(utf8_before_opti[-1])
+                if prefix or extension:
+                    first_frame = (
+                        f"{prefix}{start_frame:0{sspc_chunk.frame_padding}d}{extension}"
+                    )
+                    file_source.file = str(
+                        PurePosixPath(file_source.file) / first_frame
+                    )
+
+        item_name = _resolve_file_footage_name(
+            item_name=item_name,
+            file_source=file_source,
+            is_still=source_attrs["is_still"],
+            start_frame=start_frame,
+            end_frame=end_frame,
+            frame_padding=sspc_chunk.frame_padding,
+            pin_child_chunks=pin_child_chunks,
+            psd_group=getattr(opti_chunk, "psd_group_name", ""),
+        )
 
         if sspc_chunk.footage_missing_at_save:
             file_source.missing_footage_path = file_source.file
@@ -190,6 +206,56 @@ def _parse_file_source(
         **source_attrs,
     )
     return file_source
+
+
+def _resolve_file_footage_name(
+    item_name: str,
+    file_source: FileSource,
+    is_still: bool,
+    start_frame: int,
+    end_frame: int,
+    frame_padding: int,
+    pin_child_chunks: list[Aep.Chunk],
+    psd_group: str,
+) -> str:
+    """Resolve the display name for a file-type footage item.
+
+    AE stores the full file path in the Utf8 chunk but displays only
+    the filename. This function strips paths and builds sequence names
+    (e.g. ``render.[0001-0700].exr``) when appropriate.
+
+    Args:
+        item_name: The raw item name from the binary.
+        file_source: The parsed file source.
+        is_still: Whether the footage is a still image.
+        start_frame: The first frame number.
+        end_frame: The last frame number.
+        frame_padding: Zero-padding width for frame numbers.
+        pin_child_chunks: The Pin chunk's child chunks.
+        psd_group: PSD group/folder name (empty string if not PSD).
+    """
+    # Strip to basename so the item name matches AE's UI.
+    if item_name and ("/" in item_name or "\\" in item_name):
+        item_name = ""
+
+    if not item_name:
+        if not is_still and file_source.target_is_folder:
+            item_name = _build_sequence_name(
+                pin_child_chunks,
+                start_frame,
+                end_frame,
+                frame_padding=frame_padding,
+            )
+        if not item_name:
+            # PureWindowsPath handles both / and \ separators,
+            # unlike PurePosixPath which only splits on /.
+            basename = PureWindowsPath(file_source.file).name
+            if psd_group:
+                item_name = f"{psd_group}/{basename}"
+            else:
+                item_name = basename
+
+    return item_name
 
 
 def _parse_psd_attributes(opti_chunk: Aep.OptiBody) -> dict[str, object]:

@@ -2,7 +2,50 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+
+@dataclass
+class FeatherPoint:
+    """A single variable-width mask feather point.
+
+    Feather points can be placed anywhere along a closed mask path to vary
+    the feather radius at different positions. Reference a specific feather
+    point by the number of the mask path segment (portion of the path
+    between adjacent vertices) where it appears.
+
+    Tip:
+        The feather points on a mask are listed in an array in the order
+        that they were created.
+    """
+
+    seg_loc: int
+    """Mask path segment number where this feather point is located
+    (0-based, segments are portions of the path between vertices)."""
+
+    rel_seg_loc: float
+    """Relative position on the segment, from 0.0 (at the starting
+    vertex) to 1.0 (at the next vertex)."""
+
+    radius: float
+    """Feather radius (amount). Negative values indicate inner feather
+    points; positive values indicate outer feather."""
+
+    type: int
+    """Feather point direction: 0 (outer feather point) or
+    1 (inner feather point)."""
+
+    interp: int
+    """Radius interpolation type: 0 for non-Hold feather points,
+    1 for Hold feather points."""
+
+    tension: float
+    """Feather tension amount, from 0.0 (0%) to 1.0 (100%)."""
+
+    rel_corner_angle: float
+    """Relative angle percentage between the two normals on either side
+    of a curved outer feather boundary at a corner on a mask path.
+    The angle value is 0% for feather points not at corners."""
 
 
 @dataclass
@@ -95,3 +138,87 @@ class Shape:
     If the shape is in a roto_bezier mask, all tangent values are ignored and the
     tangents are automatically calculated.
     """
+
+    feather_points: list[FeatherPoint] = field(default_factory=list)
+    """List of variable-width mask feather points."""
+
+    @property
+    def feather_seg_locs(self) -> list[int]:
+        """An array containing each feather point's mask path segment
+        number (section of the mask path between vertices, numbered
+        starting at 0).
+
+        Note:
+            Equivalent to
+            `[pt.seg_loc for pt in self.feather_points]`.
+        """
+        return [pt.seg_loc for pt in self.feather_points]
+
+    @property
+    def feather_rel_seg_locs(self) -> list[float]:
+        """An array containing each feather point's relative position,
+        from 0 to 1, on its mask path segment.
+
+        Note:
+            Equivalent to
+            `[pt.rel_seg_loc for pt in self.feather_points]`.
+        """
+        return [pt.rel_seg_loc for pt in self.feather_points]
+
+    @property
+    def feather_radii(self) -> list[float]:
+        """An array containing each feather point's radius (feather
+        amount); inner feather points have negative values.
+
+        Note:
+            Equivalent to
+            `[pt.radius for pt in self.feather_points]`.
+        """
+        return [pt.radius for pt in self.feather_points]
+
+    @property
+    def feather_types(self) -> list[int]:
+        """An array containing each feather point's direction, either
+        0 (outer feather point) or 1 (inner feather point).
+
+        Note:
+            Equivalent to
+            `[pt.type for pt in self.feather_points]`.
+        """
+        return [pt.type for pt in self.feather_points]
+
+    @property
+    def feather_interps(self) -> list[int]:
+        """An array containing each feather point's radius
+        interpolation type (0 for non-Hold feather points, 1 for Hold
+        feather points).
+
+        Note:
+            Equivalent to
+            `[pt.interp for pt in self.feather_points]`.
+        """
+        return [pt.interp for pt in self.feather_points]
+
+    @property
+    def feather_tensions(self) -> list[float]:
+        """An array containing each feather point's tension amount,
+        from 0.0 (0% tension) to 1.0 (100% tension).
+
+        Note:
+            Equivalent to
+            `[pt.tension for pt in self.feather_points]`.
+        """
+        return [pt.tension for pt in self.feather_points]
+
+    @property
+    def feather_rel_corner_angles(self) -> list[float]:
+        """An array containing each feather point's relative angle
+        percentage between the two normals on either side of a curved
+        outer feather boundary at a corner on a mask path. The angle
+        value is 0% for feather points not at corners.
+
+        Note:
+            Equivalent to
+            `[pt.rel_corner_angle for pt in self.feather_points]`.
+        """
+        return [pt.rel_corner_angle for pt in self.feather_points]

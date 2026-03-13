@@ -323,6 +323,7 @@ class GpuAccelType(IntEnum):
     METAL = 1814
     VULKAN = 1815
     SOFTWARE = 1816
+    DIRECTX = 1817
 
 
 class ImportAsType(IntEnum):

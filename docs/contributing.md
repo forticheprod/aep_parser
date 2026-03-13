@@ -26,7 +26,7 @@ See the full [Contributing Guide](https://github.com/forticheprod/aep_parser/blo
 
 The contributing guide covers:
 
-- **Architecture** - Three-stage pipeline: Kaitai → Parsers → Models
+- **Architecture** - Three-stage pipeline: Kaitai > Parsers > Models
 - **Development** - CLI tools, debugging tips, After Effects JSX scripts
 - **Adding Features** - New attributes, layer types, boolean flags
 - **Testing** - Running tests, creating samples

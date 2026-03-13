@@ -191,7 +191,7 @@ class TestPropertyDimensions:
     """Tests for property value types and dimensions."""
 
     def test_property_1D_opacity(self) -> None:
-        """Opacity is a 1D property with 2 keyframes going 0→100."""
+        """Opacity is a 1D property with 2 keyframes going 0>100."""
         layer = get_first_layer(parse_project(SAMPLES_DIR / "property_1D_opacity.aep"))
         opacity = _find_property(layer, "ADBE Opacity")
         assert opacity is not None
@@ -228,7 +228,7 @@ class TestPropertyDimensions:
         assert len(position.keyframes) == 2
 
     def test_property_rotation(self) -> None:
-        """Rotation is a 1D property with 2 keyframes going 0→360."""
+        """Rotation is a 1D property with 2 keyframes going 0>360."""
         expected = load_expected(SAMPLES_DIR, "property_rotation")
         layer = get_first_layer(parse_project(SAMPLES_DIR / "property_rotation.aep"))
         rotation = _find_property(layer, "ADBE Rotate Z")
@@ -714,7 +714,7 @@ class TestIsModified:
             parse_project(SAMPLES_DIR / "is_modified_false.aep")
         )
         assert layer.transform is not None
-        # X/Y Position are moved → at least one child is modified
+        # X/Y Position are moved > at least one child is modified
         assert layer.transform.is_modified is True
 
     def test_effect_parade_indexed_group_with_children(self) -> None:
@@ -1175,7 +1175,7 @@ class TestUnitsText:
         assert opacity.units_text == "percent"
 
     def test_effect_property_no_unit(self) -> None:
-        """Gaussian Blur Blurriness has no units in the map → empty string."""
+        """Gaussian Blur Blurriness has no units in the map > empty string."""
         layer = get_first_layer(
             parse_project(SAMPLES_DIR / "2_gaussian_20_30.aep")
         )
@@ -1428,7 +1428,7 @@ class TestLinearHoldEase:
         position = _find_property(layer, "ADBE Position")
         assert position is not None
         kf0 = position.keyframes[0]
-        # [0,50,0] → [100,50,0] over 5 seconds (120 frames @ 24fps)
+        # [0,50,0] > [100,50,0] over 5 seconds (120 frames @ 24fps)
         # distance = 100, speed = 100/5 = 20
         assert abs(kf0.out_temporal_ease[0].speed - 20.0) < 0.01
         assert abs(kf0.out_temporal_ease[0].influence - self.DEFAULT_INFLUENCE) < 0.001
@@ -1473,7 +1473,7 @@ class TestLinearHoldEase:
         )
         opacity = _find_property(layer, "ADBE Opacity")
         assert opacity is not None
-        # KF[0] (100%) → KF[1] (0%) over 3 sec (72 frames @ 24fps)
+        # KF[0] (100%) > KF[1] (0%) over 3 sec (72 frames @ 24fps)
         # speed = (0 - 100) / 3 = -33.333
         kf0 = opacity.keyframes[0]
         assert abs(kf0.out_temporal_ease[0].speed - (-100.0 / 3.0)) < 0.01
@@ -1510,7 +1510,7 @@ class TestLinearHoldEase:
         )
         opacity = _find_property(layer, "ADBE Opacity")
         assert opacity is not None
-        # KF[2] (100%) → KF[3] (50%) over 3 sec (72 frames @ 24fps)
+        # KF[2] (100%) > KF[3] (50%) over 3 sec (72 frames @ 24fps)
         # speed = (50 - 100) / 3 = -16.667
         kf2 = opacity.keyframes[2]
         assert abs(kf2.out_temporal_ease[0].speed - (-50.0 / 3.0)) < 0.01
@@ -1527,3 +1527,120 @@ class TestLinearHoldEase:
         kf1 = opacity.keyframes[1]
         assert abs(kf1.in_temporal_ease[0].speed) < 0.001
         assert abs(kf1.in_temporal_ease[0].influence) < 0.001
+
+
+def _get_mask_shape(layer) -> Property:  # type: ignore[type-arg]
+    """Return the ``ADBE Mask Shape`` property from the first mask."""
+    assert layer.masks is not None
+    mask = layer.masks.properties[0]
+    for prop in mask.properties:
+        if prop.match_name == "ADBE Mask Shape":
+            return prop
+    raise AssertionError("ADBE Mask Shape not found")
+
+
+class TestShapeValue:
+    """Tests for Shape value parsing (vertices, tangents, feather)."""
+
+    def test_closed_square_vertices(self) -> None:
+        """Closed square mask has 4 vertices at the expected positions."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "shape_closed_square.aep")
+        )
+        shape = _get_mask_shape(layer).value
+        assert shape.closed is True
+        assert len(shape.vertices) == 4
+        assert shape.vertices == [[0.25, 0.25], [0.25, 0.75], [0.75, 0.75], [0.75, 0.25]]
+
+    def test_closed_square_tangents_zero(self) -> None:
+        """Closed square mask has zero tangents (straight line segments)."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "shape_closed_square.aep")
+        )
+        shape = _get_mask_shape(layer).value
+        for t in shape.in_tangents + shape.out_tangents:
+            assert t == [0, 0]
+
+    def test_closed_square_no_feather(self) -> None:
+        """Closed square mask has empty feather arrays."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "shape_closed_square.aep")
+        )
+        shape = _get_mask_shape(layer).value
+        assert shape.feather_seg_locs == []
+        assert shape.feather_radii == []
+        assert shape.feather_types == []
+        assert shape.feather_interps == []
+        assert shape.feather_tensions == []
+        assert shape.feather_rel_seg_locs == []
+        assert shape.feather_rel_corner_angles == []
+
+    def test_closed_oval_tangents(self) -> None:
+        """Closed oval mask has non-zero tangents."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "shape_closed_oval.aep")
+        )
+        shape = _get_mask_shape(layer).value
+        assert shape.closed is True
+        assert len(shape.vertices) == 4
+        # Tangents should be non-zero (bezier curves)
+        for t in shape.in_tangents + shape.out_tangents:
+            assert t != [0, 0]
+
+    def test_open_path(self) -> None:
+        """Open path mask has closed=False."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "shape_open.aep")
+        )
+        shape = _get_mask_shape(layer).value
+        assert shape.closed is False
+        assert len(shape.vertices) == 4
+
+    def test_feather_points(self) -> None:
+        """Feather points mask has 2 outer feather points at segments 1 and 2."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "shape_feather_points.aep")
+        )
+        shape = _get_mask_shape(layer).value
+        assert shape.feather_seg_locs == [1, 2]
+        assert shape.feather_rel_seg_locs == [0.15, 0.5]
+        assert shape.feather_radii == [30.0, 100.0]
+        assert shape.feather_types == [0, 0]
+        assert shape.feather_interps == [0, 0]
+        assert shape.feather_tensions == [0.0, 0.0]
+        assert shape.feather_rel_corner_angles == [0.0, 0.0]
+
+    def test_feather_inner_hold(self) -> None:
+        """Feather with inner/outer types and hold/non-hold interpolation."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "shape_feather_inner_hold.aep")
+        )
+        shape = _get_mask_shape(layer).value
+        assert shape.feather_seg_locs == [0, 1, 2, 3]
+        assert shape.feather_radii == [50.0, -30.0, 80.0, -20.0]
+        assert shape.feather_types == [0, 1, 0, 1]
+        assert shape.feather_interps == [0, 0, 1, 1]
+        assert shape.feather_tensions == [0.0, 0.5, 1.0, 0.25]
+        assert shape.feather_rel_corner_angles == [0.0, 0.0, 0.0, 0.0]
+
+    def test_animated_keyframes(self) -> None:
+        """Animated mask shape has 2 keyframes with different vertices."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "shape_animated.aep")
+        )
+        prop = _get_mask_shape(layer)
+        assert len(prop.keyframes) == 2
+        kf0 = prop.keyframes[0].value
+        kf1 = prop.keyframes[1].value
+        assert kf0.vertices == [[0.25, 0.25], [0.25, 0.75], [0.75, 0.75], [0.75, 0.25]]
+        assert kf1.vertices == [[0.375, 0.375], [0.375, 0.625], [0.625, 0.625], [0.625, 0.375]]
+
+    def test_many_points_seg_locs(self) -> None:
+        """300-vertex mask with feather seg_locs >255 proves u4le field width."""
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "shape_many_points.aep")
+        )
+        shape = _get_mask_shape(layer).value
+        assert len(shape.vertices) == 300
+        assert shape.feather_seg_locs == [0, 128, 255, 256, 270, 299]
+        assert shape.feather_radii == [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]

@@ -16,7 +16,7 @@ from ..kaitai.utils import (
 )
 from ..models.properties.marker import MarkerValue
 from ..models.properties.property import Property
-from .property import parse_property
+from .property_value import parse_property
 from .utils import split_into_batches
 
 

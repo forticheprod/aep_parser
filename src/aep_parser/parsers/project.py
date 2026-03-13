@@ -103,7 +103,7 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
         frames_count_type=FramesCountType.from_binary(nnhd_chunk.frames_count_type),
         frames_use_feet_frames=nnhd_chunk.frames_use_feet_frames,
         linear_blending=any(c.chunk_type == "lnrb" for c in root_chunks),
-        linearize_working_space=nnhd_chunk.linearize_working_space,
+        linearize_working_space=any(c.chunk_type == "lnrp" for c in root_chunks),
         working_gamma=dwga_chunk.working_gamma,
         working_space=_get_working_space(root_chunks),
         display_color_space=_get_display_color_space(root_chunks),
@@ -349,6 +349,9 @@ def _get_working_space(root_chunks: list[Aep.Chunk]) -> str:
             profile_data = json.loads(utf8_content)
             base_profile = profile_data.get("baseColorProfile", {})
             return str(base_profile.get("colorProfileName", "None"))
+    # Old AE format (no pcms chunk) defaults to sRGB
+    if not any(c.chunk_type == "pcms" for c in root_chunks):
+        return "sRGB IEC61966-2.1"
     return "None"
 
 

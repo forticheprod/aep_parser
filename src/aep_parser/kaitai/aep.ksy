@@ -76,10 +76,13 @@ types:
             '"Roou"': roou_body # Output module settings
             '"Ropt"': ropt_body # Format-specific render options
             '"Rout"': rout_body # Render queue item flags
+            '"fth5"': fth5_body # Variable-width mask feather points
             '"shph"': shph_body # Shape path header (bounding box + closed flag)
             '"sspc"': sspc_body # Footage data
             '"tdb4"': tdb4_body # Property metadata
             '"tdmn"': utf8_body # Property or parameter name
+            '"tdum"': tdum_body # Property minimum value (stored min)
+            '"tduM"': tdum_body # Property maximum value (stored max)
             '"tdsb"': tdsb_body # Transform property group flags
             '"tdsn"': child_utf8_body # User-defined name of a property. Contains a single utf-8 chunk but no list_type
             '"Utf8"': utf8_body # Contains text
@@ -1105,13 +1108,13 @@ types:
         doc: |
           Incoming interpolation type (binary value).
           Add 6611 to get the ExtendScript enum value:
-          1 → LINEAR (6612), 2 → BEZIER (6613), 3 → HOLD (6614).
+          1 > LINEAR (6612), 2 > BEZIER (6613), 3 > HOLD (6614).
       - id: out_interpolation_type
         type: u1
         doc: |
           Outgoing interpolation type (binary value).
           Add 6611 to get the ExtendScript enum value:
-          1 → LINEAR (6612), 2 → BEZIER (6613), 3 → HOLD (6614).
+          1 > LINEAR (6612), 2 > BEZIER (6613), 3 > HOLD (6614).
       - id: label
         type: u1
         enum: label
@@ -1437,6 +1440,53 @@ types:
       - id: color_blue
         type: u1
         doc: Blue component of mask color (0-255)
+  fth5_body:
+    doc: |
+      Variable-width mask feather points.  Each feather point is 32 bytes.
+      Feather points can be placed anywhere along a closed mask path to vary
+      the feather radius at different positions.  The number of points is
+      determined by the chunk size divided by 32.
+
+      Integer fields use little-endian byte order despite the big-endian
+      RIFX container (similar to OTST cdat).  Float fields remain big-endian.
+    seq:
+      - id: points
+        type: feather_point
+        repeat: eos
+  feather_point:
+    doc: |
+      A single variable-width mask feather point (32 bytes).
+      The feather type (inner/outer) is derived from the sign of the radius:
+      negative radius = inner feather (type 1), positive = outer (type 0).
+    seq:
+      - id: seg_loc
+        type: u4le
+        doc: |
+          Mask path segment number where this feather point is located
+          (0-based, segments are portions of the path between vertices).
+      - id: interp_raw
+        type: u4le
+        doc: |
+          Feather radius interpolation type.
+          0 = non-Hold, 2 = Hold.  Mapped to 0/1 in ExtendScript.
+      - id: rel_seg_loc
+        type: f8
+        doc: |
+          Relative position on the segment, from 0.0 (at the starting
+          vertex) to 1.0 (at the next vertex).
+      - id: radius
+        type: f8
+        doc: |
+          Feather radius (amount).  Negative values indicate inner
+          feather points; positive values indicate outer feather.
+      - id: corner_angle
+        type: f4
+        doc: |
+          Relative angle percentage between the two normals at a
+          corner (0 to 100).  0 for non-corner feather points.
+      - id: tension
+        type: f4
+        doc: Feather tension amount, from 0.0 (0%) to 1.0 (100%).
   shph_body:
     doc: |
       Shape path header. Contains a closed/open flag and the bounding box
@@ -1655,9 +1705,6 @@ types:
       blue:
         value: 'color[3]'
         if: asset_type == "Soli"
-      alpha:
-        value: 'color[0]'
-        if: asset_type == "Soli"
   pard_body:
     seq:
       - size: 15
@@ -1864,6 +1911,21 @@ types:
       has_alpha:
         value: alpha_mode_raw != 3
         doc: True if footage has an alpha channel (3 means no_alpha)
+  tdum_body:
+    doc: |
+      Property stored min or max value inside a tdbs LIST.
+      Used for both tdum (min) and tduM (max) chunks.
+      When both tdum and tduM are zero, the property is unconstrained
+      (no min/max). Otherwise, tdum is the minimum and tduM the maximum.
+      The encoding depends on the property type:
+        Scalar:   float64      (8 bytes)
+        Color:    float32[4]   (16 bytes, RGBA)
+        Position: float64[2]   (16 bytes)
+        Vector:   float64[4]   (32 bytes)
+        Enum:     uint32       (4 bytes)
+    seq:
+      - id: data
+        size-eos: true
   tdb4_body:
     seq:
       - id: magic

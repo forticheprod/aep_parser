@@ -1939,6 +1939,152 @@ var AEP_EXPORT_AS_LIBRARY = true;
     }
 
     // =========================================================================
+    // Shape / Mask Path Samples
+    // Covers: Shape.closed, vertices, inTangents, outTangents,
+    //   featherSegLocs, featherRelSegLocs, featherRadii, featherTypes,
+    //   featherInterps, featherTensions, featherRelCornerAngles
+    // =========================================================================
+
+    function generateShapeSamples(outputPath) {
+        var folder = ensureFolder(outputPath + "/property");
+        var proj, comp, layer, maskGroup, mask, myShape, prop;
+
+        // --- Mask shapes ---
+
+        // Closed square mask (straight segments, no tangents)
+        proj = createProject("shape_closed_square");
+        comp = proj.items.addComp("TestComp", 400, 400, 1, 10, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 400, 400, 1);
+        maskGroup = layer.property("ADBE Mask Parade");
+        mask = maskGroup.addProperty("ADBE Mask Atom");
+        myShape = new Shape();
+        myShape.vertices = [[100, 100], [100, 300], [300, 300], [300, 100]];
+        myShape.closed = true;
+        mask.property("ADBE Mask Shape").setValue(myShape);
+        saveProject(proj, folder.fsName);
+
+        // Closed oval mask (curved bezier tangents)
+        proj = createProject("shape_closed_oval");
+        comp = proj.items.addComp("TestComp", 400, 400, 1, 10, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 400, 400, 1);
+        maskGroup = layer.property("ADBE Mask Parade");
+        mask = maskGroup.addProperty("ADBE Mask Atom");
+        myShape = new Shape();
+        myShape.vertices = [[200, 50], [100, 200], [200, 350], [300, 200]];
+        myShape.inTangents = [[55.23, 0], [0, -55.23], [-55.23, 0], [0, 55.23]];
+        myShape.outTangents = [[-55.23, 0], [0, 55.23], [55.23, 0], [0, -55.23]];
+        myShape.closed = true;
+        mask.property("ADBE Mask Shape").setValue(myShape);
+        saveProject(proj, folder.fsName);
+
+        // Open mask (not closed)
+        proj = createProject("shape_open");
+        comp = proj.items.addComp("TestComp", 400, 400, 1, 10, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 400, 400, 1);
+        maskGroup = layer.property("ADBE Mask Parade");
+        mask = maskGroup.addProperty("ADBE Mask Atom");
+        myShape = new Shape();
+        myShape.vertices = [[50, 200], [150, 50], [250, 350], [350, 200]];
+        myShape.inTangents = [[0, 0], [-30, 40], [-30, -40], [0, 0]];
+        myShape.outTangents = [[30, -40], [30, 40], [30, -40], [0, 0]];
+        myShape.closed = false;
+        mask.property("ADBE Mask Shape").setValue(myShape);
+        saveProject(proj, folder.fsName);
+
+        // Mask with variable-width feather points
+        proj = createProject("shape_feather_points");
+        comp = proj.items.addComp("TestComp", 400, 400, 1, 10, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 400, 400, 1);
+        maskGroup = layer.property("ADBE Mask Parade");
+        mask = maskGroup.addProperty("ADBE Mask Atom");
+        myShape = new Shape();
+        myShape.vertices = [[100, 100], [100, 300], [300, 300], [300, 100]];
+        myShape.closed = true;
+        myShape.featherSegLocs = [1, 2];
+        myShape.featherRelSegLocs = [0.15, 0.5];
+        myShape.featherRadii = [30, 100];
+        mask.property("ADBE Mask Shape").setValue(myShape);
+        saveProject(proj, folder.fsName);
+
+        // Mask with feather points including inner feather and hold interpolation
+        proj = createProject("shape_feather_inner_hold");
+        comp = proj.items.addComp("TestComp", 400, 400, 1, 10, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 400, 400, 1);
+        maskGroup = layer.property("ADBE Mask Parade");
+        mask = maskGroup.addProperty("ADBE Mask Atom");
+        myShape = new Shape();
+        myShape.vertices = [[100, 100], [100, 300], [300, 300], [300, 100]];
+        myShape.closed = true;
+        myShape.featherSegLocs = [0, 1, 2, 3];
+        myShape.featherRelSegLocs = [0.5, 0.5, 0.5, 0.5];
+        myShape.featherRadii = [50, -30, 80, -20];
+        myShape.featherTypes = [0, 1, 0, 1];
+        myShape.featherInterps = [0, 0, 1, 1];
+        myShape.featherTensions = [0, 0.5, 1.0, 0.25];
+        mask.property("ADBE Mask Shape").setValue(myShape);
+        saveProject(proj, folder.fsName);
+
+        // Animated mask shape (two keyframes)
+        proj = createProject("shape_animated");
+        comp = proj.items.addComp("TestComp", 400, 400, 1, 10, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 400, 400, 1);
+        maskGroup = layer.property("ADBE Mask Parade");
+        mask = maskGroup.addProperty("ADBE Mask Atom");
+        var shape1 = new Shape();
+        shape1.vertices = [[100, 100], [100, 300], [300, 300], [300, 100]];
+        shape1.closed = true;
+        var shape2 = new Shape();
+        shape2.vertices = [[150, 150], [150, 250], [250, 250], [250, 150]];
+        shape2.closed = true;
+        prop = mask.property("ADBE Mask Shape");
+        prop.setValueAtTime(0, shape1);
+        prop.setValueAtTime(5, shape2);
+        saveProject(proj, folder.fsName);
+
+        // Mask with many vertices (>255) to verify seg_loc field width
+        proj = createProject("shape_many_points");
+        comp = proj.items.addComp("TestComp", 4000, 4000, 1, 10, 24);
+        layer = comp.layers.addSolid([0.5, 0.5, 0.5], "TestLayer", 4000, 4000, 1);
+        maskGroup = layer.property("ADBE Mask Parade");
+        mask = maskGroup.addProperty("ADBE Mask Atom");
+        myShape = new Shape();
+        var verts = [];
+        var numVerts = 300;
+        var cx = 2000, cy = 2000, r = 1500;
+        for (var i = 0; i < numVerts; i++) {
+            var angle = (i / numVerts) * 2 * Math.PI;
+            verts.push([cx + r * Math.cos(angle), cy + r * Math.sin(angle)]);
+        }
+        myShape.vertices = verts;
+        myShape.closed = true;
+        // Place feather points on segments beyond index 255
+        myShape.featherSegLocs = [0, 128, 255, 256, 270, 299];
+        myShape.featherRelSegLocs = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
+        myShape.featherRadii = [10, 20, 30, 40, 50, 60];
+        mask.property("ADBE Mask Shape").setValue(myShape);
+        saveProject(proj, folder.fsName);
+
+        // --- Shape layer path ---
+
+        // Shape layer with a rectangle path
+        proj = createProject("shape_layer_path");
+        comp = proj.items.addComp("TestComp", 400, 400, 1, 10, 24);
+        var shapeLayer = comp.layers.addShape();
+        var contents = shapeLayer.property("ADBE Root Vectors Group");
+        var shapeGroup = contents.addProperty("ADBE Vector Group");
+        var vectors = shapeGroup.property("ADBE Vectors Group");
+        var pathProp = vectors.addProperty("ADBE Vector Shape - Group");
+        var path = pathProp.property("ADBE Vector Shape");
+        myShape = new Shape();
+        myShape.vertices = [[50, 50], [50, 350], [350, 350], [350, 50]];
+        myShape.closed = true;
+        path.setValue(myShape);
+        saveProject(proj, folder.fsName);
+
+        $.writeln("Generated shape samples in: " + folder.fsName);
+    }
+
+    // =========================================================================
     // RenderQueue Model Samples
     // Covers: RenderQueue, RenderQueueItem, OutputModule
     // Generates all render_queue *.aep samples
@@ -2679,8 +2825,11 @@ var AEP_EXPORT_AS_LIBRARY = true;
             // $.writeln("--- Mask samples ---");
             // generateMaskSamples(OUTPUT_FOLDER);
 
-            $.writeln("--- Property samples ---");
-            generatePropertySamples(OUTPUT_FOLDER);
+            // $.writeln("--- Property samples ---");
+            // generatePropertySamples(OUTPUT_FOLDER);
+
+            $.writeln("--- Shape samples ---");
+            generateShapeSamples(OUTPUT_FOLDER);
 
             // $.writeln("--- RenderQueue samples ---");
             // generateRenderQueueSamples(OUTPUT_FOLDER);

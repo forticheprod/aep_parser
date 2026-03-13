@@ -7,9 +7,10 @@ from .mask_property_group import MaskPropertyGroup
 from .property import Property
 from .property_base import PropertyBase
 from .property_group import PropertyGroup
-from .shape import Shape
+from .shape import FeatherPoint, Shape
 
 __all__ = [
+    "FeatherPoint",
     "Keyframe",
     "KeyframeEase",
     "MarkerValue",
