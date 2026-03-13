@@ -14,9 +14,9 @@ class ViewOptions:
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         options = app.active_viewer.views[0].options
         print(options.zoom)
         ```

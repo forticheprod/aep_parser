@@ -9,6 +9,7 @@ from ..layers.camera_layer import CameraLayer
 from ..layers.light_layer import LightLayer
 from ..layers.shape_layer import ShapeLayer
 from ..layers.text_layer import TextLayer
+from ..properties.marker import MarkerValue
 from ..sources.file import FileSource
 from ..sources.placeholder import PlaceholderSource
 from ..sources.solid import SolidSource
@@ -17,7 +18,7 @@ from .footage import FootageItem
 
 if typing.TYPE_CHECKING:
     from ..layers.layer import Layer
-    from ..properties.marker import MarkerValue
+    from ..properties.property import Property
 
 
 @dataclass(eq=False)
@@ -28,9 +29,9 @@ class CompItem(AVItem):
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         comp = app.project.compositions[0]
         print(comp.frame_rate)
         for layer in comp:
@@ -93,8 +94,13 @@ class CompItem(AVItem):
     layers: list[Layer]
     """All the [Layer][] objects for layers in this composition."""
 
-    markers: list[MarkerValue]
-    """All the composition's markers."""
+    marker_property: Property | None
+    """The composition's marker property.
+
+    A [Property][aep_parser.models.properties.property.Property] with
+    ``match_name="ADBE Marker"`` whose keyframes hold marker values.
+    `None` when the composition has no markers.
+    """
 
     motion_blur: bool
     """
@@ -205,6 +211,26 @@ class CompItem(AVItem):
     _solo_layers: list[Layer] | None = field(default=None, init=False, repr=False)
 
     @property
+    def markers(self) -> list[MarkerValue]:
+        """A flat list of [MarkerValue][] objects for this composition.
+
+        Shortcut for accessing marker data without navigating the property
+        tree.  Returns an empty list when the composition has no markers.
+
+        Example:
+            ```python
+            for marker in comp.markers:
+                print(marker.comment)
+            ```
+        """
+        if self.marker_property is None:
+            return []
+        return cast(
+            list[MarkerValue],
+            [kf.value for kf in self.marker_property.keyframes],
+        )
+
+    @property
     def work_area_start(self) -> float:
         """The work area start time relative to composition start."""
         return self.in_point - self.display_start_time
@@ -227,6 +253,15 @@ class CompItem(AVItem):
     def __iter__(self) -> typing.Iterator[Layer]:
         """Return an iterator over the composition's layers."""
         return iter(self.layers)
+
+    def num_layers(self) -> int:
+        """
+        Return the number of layers in the composition.
+
+        Note:
+             Equivalent to `len(comp.layers)`
+        """
+        return len(self.layers)
 
     def layer(
         self,

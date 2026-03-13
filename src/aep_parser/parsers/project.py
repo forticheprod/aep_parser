@@ -4,10 +4,13 @@ import contextlib
 import json
 import os
 import xml.etree.ElementTree as ET
+from typing import Any
 
 from ..enums import (
+    BitsPerChannel,
     ColorManagementSystem,
     FeetFramesFilmType,
+    FootageTimecodeDisplayStartType,
     FramesCountType,
     Label,
     LutInterpolationMethod,
@@ -16,6 +19,7 @@ from ..enums import (
 from ..kaitai import Aep
 from ..kaitai.utils import (
     ChunkNotFoundError,
+    filter_by_list_type,
     filter_by_type,
     find_by_list_type,
     find_by_type,
@@ -24,18 +28,16 @@ from ..kaitai.utils import (
 from ..models.layers.av_layer import AVLayer
 from ..models.project import Project
 from ..utils import deprecated
-from .app import parse_app
+from .application import parse_app
+from .defaults import set_layer_property_defaults, set_transform_defaults
 from .item import parse_folder
-from .mappings import (
-    map_bits_per_channel,
-    map_footage_timecode_display_start_type,
-    map_gpu_accel_type,
-)
+from .mappings import map_gpu_accel_type
+from .property import parse_effect_param_defs
 from .render_queue import parse_render_queue
 
 
 @deprecated(
-    "Use aep_parser.parse() instead, which returns an App object. "
+    "Use aep_parser.parse() instead, which returns an Application object. "
     "Access the project via app.project."
 )
 def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
@@ -43,7 +45,7 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
 
     Warning: Deprecated
         Use [aep_parser.parse][] instead which returns an
-        [App][aep_parser.models.app.App] instance.  Access the project
+        [Application][aep_parser.models.application.Application] instance.  Access the project
         via ``app.project``.
 
     Args:
@@ -76,7 +78,7 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
     color_profile = _get_color_profile_settings(root_chunks)
 
     project = Project(
-        bits_per_channel=map_bits_per_channel(nnhd_chunk.bits_per_channel),
+        bits_per_channel=BitsPerChannel.from_binary(nnhd_chunk.bits_per_channel),
         revision=head_chunk.file_revision,
         color_management_system=ColorManagementSystem(
             int(color_profile["colorManagementSystem"])
@@ -94,14 +96,14 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
         ),
         ocio_configuration_file=str(color_profile["ocioConfigurationFile"]),
         file=file_path,
-        footage_timecode_display_start_type=map_footage_timecode_display_start_type(
+        footage_timecode_display_start_type=FootageTimecodeDisplayStartType.from_binary(
             nnhd_chunk.footage_timecode_display_start_type
         ),
         frame_rate=nnhd_chunk.frame_rate,
         frames_count_type=FramesCountType.from_binary(nnhd_chunk.frames_count_type),
         frames_use_feet_frames=nnhd_chunk.frames_use_feet_frames,
         linear_blending=any(c.chunk_type == "lnrb" for c in root_chunks),
-        linearize_working_space=nnhd_chunk.linearize_working_space,
+        linearize_working_space=any(c.chunk_type == "lnrp" for c in root_chunks),
         working_gamma=dwga_chunk.working_gamma,
         working_space=_get_working_space(root_chunks),
         display_color_space=_get_display_color_space(root_chunks),
@@ -115,6 +117,8 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
         transparency_grid_thumbnails=bool(nnhd_chunk.transparency_grid_thumbnails),
         xmp_packet=xmp_packet,
     )
+
+    project._effect_param_defs = _parse_effect_definitions(root_chunks)
 
     root_folder = parse_folder(
         is_root=True,
@@ -151,8 +155,15 @@ def _link_layers(project: Project) -> None:
                     _clamp_layer_times(layer, source, composition)
                     if hasattr(source, "_used_in"):
                         source._used_in.add(composition)
+            if isinstance(layer, AVLayer) and layer._matte_layer_id != 0:
+                matte = layers_by_id.get(layer._matte_layer_id)
+                if isinstance(matte, AVLayer):
+                    layer._track_matte_layer = matte
+                    matte._is_track_matte = True
             if layer._parent_id != 0:
                 layer.parent = layers_by_id.get(layer._parent_id)
+            set_transform_defaults(layer)
+            set_layer_property_defaults(layer)
 
 
 def _clamp_layer_times(
@@ -174,7 +185,7 @@ def _clamp_layer_times(
     since time-remapped layers have arbitrary time mapping.
 
     Note: ``collapse_transformation`` (continuously rasterise) does **not**
-    prevent clamping — AE still clamps ``outPoint`` to the source duration.
+    prevent clamping - AE still clamps ``outPoint`` to the source duration.
 
     Args:
         layer: The layer whose timing may need clamping.
@@ -192,7 +203,7 @@ def _clamp_layer_times(
         return
 
     # Skip layers with time_remap_enabled (time remap has arbitrary mapping)
-    # Note: collapse_transformation does NOT skip clamping — AE still clamps
+    # Note: collapse_transformation does NOT skip clamping - AE still clamps
     if getattr(layer, "time_remap_enabled", False):
         return
 
@@ -238,6 +249,44 @@ def _get_expression_engine(root_chunks: list[Aep.Chunk]) -> str:
         return str_contents(utf8_chunk)
     except ChunkNotFoundError:
         return "extendscript"
+
+
+def _parse_effect_definitions(
+    root_chunks: list[Aep.Chunk],
+) -> dict[str, dict[str, dict[str, Any]]]:
+    """Parse project-level effect definitions from LIST:EfdG.
+
+    EfdG contains parameter definitions for every effect type used in the
+    project. Unlike layer-level sspc chunks, the EfdG definitions always
+    include a parT chunk.
+
+    Args:
+        root_chunks: The root chunks of the AEP file.
+
+    Returns:
+        Dict mapping effect match names to their parameter definitions
+        (effect_match_name -> param_match_name -> param_def dict).
+    """
+    try:
+        efdg_chunk = find_by_list_type(chunks=root_chunks, list_type="EfdG")
+    except ChunkNotFoundError:
+        return {}
+
+    effect_defs: dict[str, dict[str, dict[str, Any]]] = {}
+    efdf_chunks = filter_by_list_type(chunks=efdg_chunk.chunks, list_type="EfDf")
+
+    for efdf_chunk in efdf_chunks:
+        efdf_child_chunks = efdf_chunk.chunks
+        # First tdmn in EfDf contains the effect match name
+        tdmn_chunk = find_by_type(chunks=efdf_child_chunks, chunk_type="tdmn")
+        effect_match_name = str_contents(tdmn_chunk)
+
+        # Parse param defs from the sspc chunk
+        sspc_chunk = find_by_list_type(chunks=efdf_child_chunks, list_type="sspc")
+        param_defs = parse_effect_param_defs(sspc_chunk.chunks)
+        effect_defs[effect_match_name] = param_defs
+
+    return effect_defs
 
 
 def _get_effect_names(root_chunks: list[Aep.Chunk]) -> list[str]:
@@ -300,6 +349,9 @@ def _get_working_space(root_chunks: list[Aep.Chunk]) -> str:
             profile_data = json.loads(utf8_content)
             base_profile = profile_data.get("baseColorProfile", {})
             return str(base_profile.get("colorProfileName", "None"))
+    # Old AE format (no pcms chunk) defaults to sRGB
+    if not any(c.chunk_type == "pcms" for c in root_chunks):
+        return "sRGB IEC61966-2.1"
     return "None"
 
 

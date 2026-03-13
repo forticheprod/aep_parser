@@ -198,6 +198,13 @@ var AepExport = AepExport || {};
                 outInterpolationType: prop.keyOutInterpolationType(i)
             };
 
+            // Shape keyframe values are Shape objects — export them explicitly
+            try {
+                if (prop.propertyValueType === PropertyValueType.SHAPE) {
+                    kf.value = exportShape(prop.keyValue(i));
+                }
+            } catch (e) {}
+
             // Spatial tangents only exist for spatial properties (e.g. Position)
             // and throw on non-spatial ones (e.g. Opacity, Rotation)
             try {
@@ -208,17 +215,21 @@ var AepExport = AepExport || {};
                 kf.roving = prop.keyRoving(i);
             } catch (e) {}
 
-            // Get temporal ease
+            // Get temporal ease - explicitly access speed and influence
+            // (getAllAttributes uses for..in which may not enumerate native object properties)
             kf.inTemporalEase = [];
             kf.outTemporalEase = [];
             var inEase = prop.keyInTemporalEase(i);
             var outEase = prop.keyOutTemporalEase(i);
             for (var j = 0; j < inEase.length; j++) {
-                kf.inTemporalEase.push(getAllAttributes(inEase[j]));
-                kf.outTemporalEase.push(getAllAttributes(outEase[j]));
+                kf.inTemporalEase.push({speed: inEase[j].speed, influence: inEase[j].influence});
+                kf.outTemporalEase.push({speed: outEase[j].speed, influence: outEase[j].influence});
             }
             kf.temporalAutoBezier = prop.keyTemporalAutoBezier(i);
             kf.temporalContinuous = prop.keyTemporalContinuous(i);
+
+            // Keyframe label (AE 22.6+)
+            try { kf.label = prop.keyLabel(i); } catch (e) {}
 
             keyframes.push(kf);
         }
@@ -227,11 +238,98 @@ var AepExport = AepExport || {};
     }
 
     /**
+     * Export a TextDocument value object.
+     * Uses getAllAttributes as a base, then explicitly adds properties that
+     * may not be enumerable via for..in (native getters).
+     */
+    function exportTextDocument(textDoc) {
+        var result = getAllAttributes(textDoc);
+
+        // Color & stroke
+        try { result.strokeColor = textDoc.strokeColor; } catch (e) {}
+
+        // Text box
+        try { result.boxTextSize = textDoc.boxTextSize; } catch (e) {}
+        try { result.boxTextPos = textDoc.boxTextPos; } catch (e) {}
+        try { result.boxVerticalAlignment = textDoc.boxVerticalAlignment; } catch (e) {}
+        try { result.boxAutoFitPolicy = textDoc.boxAutoFitPolicy; } catch (e) {}
+        try { result.boxFirstBaselineAlignment = textDoc.boxFirstBaselineAlignment; } catch (e) {}
+        try { result.boxFirstBaselineAlignmentMinimum = textDoc.boxFirstBaselineAlignmentMinimum; } catch (e) {}
+        try { result.boxInsetSpacing = textDoc.boxInsetSpacing; } catch (e) {}
+        try { result.boxOverflow = textDoc.boxOverflow; } catch (e) {}
+
+        return result;
+    }
+
+    /**
+     * Export a Shape object (mask path or shape layer path).
+     * Extracts core path data and variable-width feather point attributes.
+     */
+    function exportShape(shape) {
+        var result = {};
+
+        // Core path attributes
+        try { result.closed = shape.closed; } catch (e) {}
+        try { result.vertices = shape.vertices; } catch (e) {}
+        try { result.inTangents = shape.inTangents; } catch (e) {}
+        try { result.outTangents = shape.outTangents; } catch (e) {}
+
+        // Variable-width mask feather point attributes
+        try { result.featherSegLocs = shape.featherSegLocs; } catch (e) {}
+        try { result.featherRelSegLocs = shape.featherRelSegLocs; } catch (e) {}
+        try { result.featherRadii = shape.featherRadii; } catch (e) {}
+        try { result.featherTypes = shape.featherTypes; } catch (e) {}
+        try { result.featherInterps = shape.featherInterps; } catch (e) {}
+        try { result.featherTensions = shape.featherTensions; } catch (e) {}
+        try { result.featherRelCornerAngles = shape.featherRelCornerAngles; } catch (e) {}
+
+        return result;
+    }
+
+    /**
      * Export a single property (not a group).
      */
     function exportProperty(prop) {
         var result = getAllAttributes(prop);
         result.propertyType = "Property";
+
+        // Explicitly export attributes needed for value_at_time() that
+        // getAllAttributes may miss (native getters not enumerable via for..in)
+        try { result.propertyValueType = prop.propertyValueType; } catch (e) {}
+        try { result.isSpatial = prop.isSpatial; } catch (e) {}
+        try { result.canVaryOverTime = prop.canVaryOverTime; } catch (e) {}
+        try { result.isSeparationLeader = prop.isSeparationLeader; } catch (e) {}
+        try { result.isSeparationFollower = prop.isSeparationFollower; } catch (e) {}
+        try { result.dimensionsSeparated = prop.dimensionsSeparated; } catch (e) {}
+        try { result.separationDimension = prop.separationDimension; } catch (e) {}
+        try { result.numKeys = prop.numKeys; } catch (e) {}
+        try { result.hasMin = prop.hasMin; } catch (e) {}
+        try { result.hasMax = prop.hasMax; } catch (e) {}
+        try { if (prop.hasMin) result.minValue = prop.minValue; } catch (e) {}
+        try { if (prop.hasMax) result.maxValue = prop.maxValue; } catch (e) {}
+        try { result.unitsText = prop.unitsText; } catch (e) {}
+        try { result.expression = prop.expression; } catch (e) {}
+        try { result.expressionEnabled = prop.expressionEnabled; } catch (e) {}
+
+        // Export TextDocument value for text properties (propertyValueType 6424)
+        try {
+            if (prop.propertyValueType === PropertyValueType.TEXT_DOCUMENT) {
+                var textDoc = prop.value;
+                if (textDoc) {
+                    result.textDocument = exportTextDocument(textDoc);
+                }
+            }
+        } catch (e) {}
+
+        // Export Shape value for shape/mask path properties (propertyValueType 6423)
+        try {
+            if (prop.propertyValueType === PropertyValueType.SHAPE) {
+                var shapeVal = prop.value;
+                if (shapeVal) {
+                    result.shapeValue = exportShape(shapeVal);
+                }
+            }
+        } catch (e) {}
 
         // Get keyframes
         if (prop.numKeys > 0) {
@@ -276,32 +374,22 @@ var AepExport = AepExport || {};
      * Export effects from a layer.
      */
     function exportEffects(layer) {
-        var effects = [];
         var effectsGroup = layer.property("ADBE Effect Parade");
         if (!effectsGroup || effectsGroup.numProperties === 0) {
-            return effects;
+            return null;
         }
+        return exportPropertyGroup(effectsGroup, 0);
+    }
 
-        for (var i = 1; i <= effectsGroup.numProperties; i++) {
-            var effect = effectsGroup.property(i);
-            var effectData = getAllAttributes(effect);
-
-            // Export effect properties
-            effectData.properties = [];
-            for (var j = 1; j <= effect.numProperties; j++) {
-                var prop = effect.property(j);
-                if (prop.propertyType === PropertyType.PROPERTY) {
-                    effectData.properties.push(exportProperty(prop));
-                } else if (prop.propertyType === PropertyType.INDEXED_GROUP || 
-                           prop.propertyType === PropertyType.NAMED_GROUP) {
-                    effectData.properties.push(exportPropertyGroup(prop, 0));
-                }
-            }
-
-            effects.push(effectData);
+    /**
+     * Export masks from a layer.
+     */
+    function exportMasks(layer) {
+        var masksGroup = layer.property("ADBE Mask Parade");
+        if (!masksGroup || masksGroup.numProperties === 0) {
+            return null;
         }
-
-        return effects;
+        return exportPropertyGroup(masksGroup, 0);
     }
 
     /**
@@ -394,16 +482,19 @@ var AepExport = AepExport || {};
             result.markers = exportMarkers(layer.marker);
         }
 
-        // Export transform properties
-        var transform = exportTransform(layer);
-        if (transform) {
-            result.transform = transform;
-        }
-
-        // Export effects
-        var effects = exportEffects(layer);
-        if (effects.length > 0) {
-            result.effects = effects;
+        // Export all property groups as an ordered properties list.
+        // Mirrors Layer.properties in aep_parser (skipping the marker group).
+        result.properties = [];
+        for (var i = 1; i <= layer.numProperties; i++) {
+            var child = layer.property(i);
+            if (!child) continue;
+            // Markers are exported separately above
+            if (child.matchName === "ADBE Marker") continue;
+            if (child.propertyType === PropertyType.PROPERTY) {
+                result.properties.push(exportProperty(child));
+            } else {
+                result.properties.push(exportPropertyGroup(child, 1));
+            }
         }
 
         return result;

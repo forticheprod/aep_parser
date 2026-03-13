@@ -26,18 +26,26 @@ from aep_parser import parse
 # Fields to skip to avoid circular references.
 # Back-references: containing_comp, parent_folder, parent (OutputModule),
 #   _parent (Layer).
-# Cross-references that re-enter the object graph: _source (AVLayer → Item),
-#   comp (RenderQueueItem → CompItem),
-#   post_render_target_comp (OutputModule → CompItem).
+# Cross-references that re-enter the object graph: _source (AVLayer > Item),
+#   comp (RenderQueueItem > CompItem),
+#   post_render_target_comp (OutputModule > CompItem).
 # The non-circular ID fields (source_id, parent_id) are still serialized.
 SKIP_FIELDS = {
     "containing_comp",
     "parent_folder",
+    "parent_property",
     "_parent",
     "_source",
     "parent",
     "comp",
     "post_render_target_comp",
+    # Internal marker property (Property with keyframes); the validated
+    # ``markers`` list is derived from it via @property.
+    "marker",
+    "marker_property",
+    # Raw feather point objects; the validated arrays are derived via
+    # Shape @property getters (feather_seg_locs, feather_radii, etc.).
+    "feather_points",
 }
 
 # @property attributes that return complex/duplicate data and should not be
@@ -46,14 +54,22 @@ SKIP_PROPERTIES = {
     "composition_layers",
     "footage_layers",
     "selected_layers",
-    # Circular: AVLayer.source → Item → layers → AVLayer…
+    # Circular: AVLayer.source > Item > layers > AVLayer…
     "source",
-    # Circular: AVItem.used_in → list[CompItem] → layers → source → AVItem…
+    # Circular: AVItem.used_in > list[CompItem] > layers > source > AVItem…
     "used_in",
     # Duplicate/circular: Project re-serialises items already in `items` field
     "compositions",
     "folders",
     "footages",
+    # Layer @property accessors derived from Layer.properties - serialising
+    # them would duplicate data already present in the properties list.
+    "transform",
+    "effects",
+    "masks",
+    "text",
+    # Duplicate: Property.separation_leader > Property
+    "separation_leader",
 }
 
 
@@ -148,6 +164,92 @@ class ValidationResult:
         return len(self.differences)
 
 
+def _compare_fields(
+    expected: dict[str, Any],
+    parsed: dict[str, Any],
+    mappings: dict[str, str],
+    path: str,
+    category: str,
+    result: ValidationResult,
+) -> None:
+    """Compare mapped fields between expected and parsed dicts.
+
+    For each mapping entry, looks up the expected JSON key in *expected*
+    and the corresponding parsed key in *parsed*, skipping undefined values,
+    and records a diff when they don't match.
+    """
+    for exp_key, parsed_key in mappings.items():
+        if exp_key in expected:
+            exp_val = expected[exp_key]
+            if isinstance(exp_val, dict) and exp_val.get("_undefined"):
+                continue
+            parsed_val = get_enum_value(parsed.get(parsed_key))
+            if not compare_values(exp_val, parsed_val):
+                result.add_diff(f"{path}.{exp_key}", exp_val, parsed_val, category)
+
+
+def _compare_markers(
+    expected_markers: list[dict[str, Any]],
+    parsed_markers: list[dict[str, Any]],
+    path: str,
+    frame_rate: float,
+    result: ValidationResult,
+) -> None:
+    """Compare a list of markers (used by both layers and compositions)."""
+    if len(expected_markers) != len(parsed_markers):
+        result.add_diff(
+            f"{path}.numMarkers",
+            len(expected_markers),
+            len(parsed_markers),
+            "markers",
+        )
+    for i, (exp_marker, parsed_marker) in enumerate(
+        zip(expected_markers, parsed_markers)
+    ):
+        compare_marker(
+            exp_marker, parsed_marker, f"{path}.markers[{i}]", frame_rate, result
+        )
+
+
+def _compare_children_by_match_name(
+    expected_props: list[dict[str, Any]],
+    parsed_props: list[dict[str, Any]],
+    path: str,
+    result: ValidationResult,
+) -> None:
+    """Match expected/parsed property children by matchName, then recurse."""
+    if len(expected_props) != len(parsed_props):
+        result.add_diff(
+            f"{path}.numProperties",
+            len(expected_props),
+            len(parsed_props),
+            "properties",
+        )
+
+    parsed_by_match_name: dict[str, dict[str, Any]] = {}
+    for p in parsed_props:
+        mn = p.get("match_name", "")
+        if mn:
+            parsed_by_match_name[mn] = p
+
+    for i, exp_prop in enumerate(expected_props):
+        exp_match_name = exp_prop.get("matchName", "")
+        exp_name = exp_prop.get("name", f"[{i}]")
+        child_path = f"{path}.{exp_name}"
+
+        parsed_prop = parsed_by_match_name.get(exp_match_name)
+        if parsed_prop is None:
+            result.add_diff(child_path, "exists", "missing", "properties")
+            continue
+
+        has_child_properties = "properties" in exp_prop
+        exp_property_type = exp_prop.get("propertyType")
+        if has_child_properties or exp_property_type == "IndexedGroup":
+            compare_property_group(exp_prop, parsed_prop, child_path, result)
+        else:
+            compare_property(exp_prop, parsed_prop, child_path, result)
+
+
 def compare_project_level(
     expected: dict[str, Any], parsed: dict[str, Any], result: ValidationResult
 ) -> None:
@@ -162,16 +264,14 @@ def compare_project_level(
         "timeDisplayType": "time_display_type",
         "footageTimecodeDisplayStartType": "footage_timecode_display_start_type",
         "expressionEngine": "expression_engine",
+        "linearBlending": "linear_blending",
+        "workingSpace": "working_space",
+        "linearizeWorkingSpace": "linearize_working_space",
+        "workingGamma": "working_gamma",
+        "gpuAccelType": "gpu_accel_type",
     }
 
-    for exp_key, parsed_key in mappings.items():
-        if exp_key in expected:
-            exp_val = expected[exp_key]
-            if isinstance(exp_val, dict) and exp_val.get("_undefined"):
-                continue
-            parsed_val = get_enum_value(parsed.get(parsed_key))
-            if not compare_values(exp_val, parsed_val):
-                result.add_diff(f"Project.{exp_key}", exp_val, parsed_val, "project")
+    _compare_fields(expected, parsed, mappings, "Project", "project", result)
 
 
 def compare_marker(
@@ -199,16 +299,16 @@ def compare_marker(
         "chapter": "chapter",
         "url": "url",
         "duration": "duration",
+        "label": "label",
+        "cuePointName": "cue_point_name",
+        "frameTarget": "frame_target",
+        "protectedRegion": "protected_region",
+        "eventCuePoint": "event_cue_point",
     }
 
-    for exp_key, parsed_key in marker_mappings.items():
-        if exp_key in expected_marker:
-            exp_val = expected_marker[exp_key]
-            if isinstance(exp_val, dict) and exp_val.get("_undefined"):
-                continue
-            parsed_val = parsed_marker.get(parsed_key)
-            if not compare_values(exp_val, parsed_val):
-                result.add_diff(f"{path}.{exp_key}", exp_val, parsed_val, "markers")
+    _compare_fields(
+        expected_marker, parsed_marker, marker_mappings, path, "markers", result
+    )
 
 
 def compare_layer(
@@ -216,6 +316,7 @@ def compare_layer(
     parsed_layer: dict[str, Any],
     path: str,
     comp_duration: float,
+    frame_rate: float,
     result: ValidationResult,
 ) -> None:
     """Compare layer properties."""
@@ -234,6 +335,12 @@ def compare_layer(
         "shy": "shy",
         "solo": "solo",
         "isNameSet": "is_name_set",
+        "autoOrient": "auto_orient",
+        "matchName": "match_name",
+        "layerType": "layer_type",
+        "hasTrackMatte": "has_track_matte",
+        "isTrackMatte": "is_track_matte",
+        "isNameFromSource": "is_name_from_source",
         # AVLayer specific
         "adjustmentLayer": "adjustment_layer",
         "audioEnabled": "audio_enabled",
@@ -256,14 +363,398 @@ def compare_layer(
         "sourceId": "_source_id",
     }
 
-    for exp_key, parsed_key in layer_mappings.items():
-        if exp_key in expected_layer:
-            exp_val = expected_layer[exp_key]
-            if isinstance(exp_val, dict) and exp_val.get("_undefined"):
-                continue
-            parsed_val = get_enum_value(parsed_layer.get(parsed_key))
+    _compare_fields(
+        expected_layer, parsed_layer, layer_mappings, path, "layers", result
+    )
+
+    # Compare all property groups via the properties list.
+    _compare_children_by_match_name(
+        expected_layer.get("properties", []),
+        parsed_layer.get("properties", []),
+        path,
+        result,
+    )
+
+    # Compare markers
+    _compare_markers(
+        expected_layer.get("markers", []),
+        parsed_layer.get("markers", []),
+        path,
+        frame_rate,
+        result,
+    )
+
+
+def compare_property(
+    expected_prop: dict[str, Any],
+    parsed_prop: dict[str, Any],
+    path: str,
+    result: ValidationResult,
+) -> None:
+    """Compare a single property (leaf node).
+
+    Args:
+        expected_prop: Expected property from ExtendScript JSON.
+        parsed_prop: Parsed property from aep_parser.
+        path: Dotted path for error messages.
+        result: ValidationResult to accumulate differences.
+    """
+    property_mappings = {
+        "name": "name",
+        "matchName": "match_name",
+        "enabled": "enabled",
+        "expression": "expression",
+        "expressionEnabled": "expression_enabled",
+        "propertyValueType": "property_value_type",
+        "propertyDepth": "property_depth",
+        "dimensionsSeparated": "dimensions_separated",
+        "isSpatial": "is_spatial",
+        "elided": "elided",
+        "isEffect": "is_effect",
+        "isMask": "is_mask",
+        "isModified": "is_modified",
+        "isSeparationLeader": "is_separation_leader",
+        "isSeparationFollower": "is_separation_follower",
+        "selected": "selected",
+        "unitsText": "units_text",
+    }
+
+    _compare_fields(
+        expected_prop, parsed_prop, property_mappings, path, "properties", result
+    )
+
+    # Compare value
+    if "value" in expected_prop:
+        exp_val = expected_prop["value"]
+        parsed_val = parsed_prop.get("value")
+        if not isinstance(exp_val, dict) or not exp_val.get("_undefined"):
+            if parsed_val is None:
+                result.add_diff(f"{path}.value", exp_val, parsed_val, "properties")
+            elif not compare_values(exp_val, parsed_val):
+                result.add_diff(f"{path}.value", exp_val, parsed_val, "properties")
+
+    # Compare numKeys vs len(keyframes)
+    if "numKeys" in expected_prop:
+        exp_num_keys = expected_prop["numKeys"]
+        parsed_keyframes = parsed_prop.get("keyframes", [])
+        parsed_num_keys = len(parsed_keyframes) if parsed_keyframes else 0
+        if exp_num_keys != parsed_num_keys:
+            result.add_diff(
+                f"{path}.numKeys", exp_num_keys, parsed_num_keys, "properties"
+            )
+
+    # Compare individual keyframes
+    exp_keyframes = expected_prop.get("keyframes", [])
+    parsed_keyframes = parsed_prop.get("keyframes", [])
+    for ki, (exp_kf, parsed_kf) in enumerate(zip(exp_keyframes, parsed_keyframes)):
+        compare_keyframe(exp_kf, parsed_kf, f"{path}.keyframes[{ki}]", result)
+
+    # Compare separationDimension (only present on followers in JSON)
+    if "separationDimension" in expected_prop:
+        exp_dim = expected_prop["separationDimension"]
+        parsed_dim = parsed_prop.get("separation_dimension")
+        if not compare_values(exp_dim, parsed_dim):
+            result.add_diff(
+                f"{path}.separationDimension", exp_dim, parsed_dim, "properties"
+            )
+
+    # Compare min/max values
+    if "hasMin" in expected_prop and expected_prop["hasMin"]:
+        if "minValue" in expected_prop:
+            exp_min = expected_prop["minValue"]
+            parsed_min = parsed_prop.get("min_value")
+            if not compare_values(exp_min, parsed_min):
+                result.add_diff(f"{path}.minValue", exp_min, parsed_min, "properties")
+
+    if "hasMax" in expected_prop and expected_prop["hasMax"]:
+        if "maxValue" in expected_prop:
+            exp_max = expected_prop["maxValue"]
+            parsed_max = parsed_prop.get("max_value")
+            if not compare_values(exp_max, parsed_max):
+                result.add_diff(f"{path}.maxValue", exp_max, parsed_max, "properties")
+
+    # Compare TextDocument value
+    if "textDocument" in expected_prop:
+        parsed_value = parsed_prop.get("value")
+        if isinstance(parsed_value, dict):
+            compare_text_document(
+                expected_prop["textDocument"],
+                parsed_value,
+                f"{path}.textDocument",
+                result,
+            )
+
+    # Compare Shape value
+    if "shapeValue" in expected_prop:
+        parsed_value = parsed_prop.get("value")
+        if isinstance(parsed_value, dict):
+            compare_shape_value(
+                expected_prop["shapeValue"],
+                parsed_value,
+                f"{path}.shapeValue",
+                result,
+            )
+
+
+def compare_shape_value(
+    expected_shape: dict[str, Any],
+    parsed_shape: dict[str, Any],
+    path: str,
+    result: ValidationResult,
+) -> None:
+    """Compare a Shape value (mask path or shape layer path).
+
+    Args:
+        expected_shape: Expected shape from ExtendScript JSON.
+        parsed_shape: Parsed shape dict from aep_parser.
+        path: Dotted path for error messages.
+        result: ValidationResult to accumulate differences.
+    """
+    shape_mappings: dict[str, str] = {
+        "closed": "closed",
+        "vertices": "vertices",
+        "inTangents": "in_tangents",
+        "outTangents": "out_tangents",
+        "featherSegLocs": "feather_seg_locs",
+        "featherRelSegLocs": "feather_rel_seg_locs",
+        "featherRadii": "feather_radii",
+        "featherTypes": "feather_types",
+        "featherInterps": "feather_interps",
+        "featherTensions": "feather_tensions",
+        "featherRelCornerAngles": "feather_rel_corner_angles",
+    }
+    _compare_fields(expected_shape, parsed_shape, shape_mappings, path, "shape", result)
+
+
+def compare_keyframe(
+    expected_kf: dict[str, Any],
+    parsed_kf: dict[str, Any],
+    path: str,
+    result: ValidationResult,
+) -> None:
+    """Compare a single keyframe's attributes.
+
+    Args:
+        expected_kf: Expected keyframe from ExtendScript JSON.
+        parsed_kf: Parsed keyframe from aep_parser.
+        path: Dotted path for error messages.
+        result: ValidationResult to accumulate differences.
+    """
+    # Compare time
+    if "time" in expected_kf:
+        exp_time = expected_kf["time"]
+        parsed_time = parsed_kf.get("time")
+        if not compare_values(exp_time, parsed_time):
+            result.add_diff(f"{path}.time", exp_time, parsed_time, "keyframes")
+
+    # Compare value
+    if "value" in expected_kf and parsed_kf.get("value") is not None:
+        exp_val = expected_kf["value"]
+        parsed_val = parsed_kf["value"]
+        if isinstance(exp_val, dict) and "vertices" in exp_val:
+            # Shape keyframe value — compare as shape
+            if isinstance(parsed_val, dict):
+                compare_shape_value(exp_val, parsed_val, f"{path}.value", result)
+        elif not isinstance(exp_val, dict) or not exp_val.get("_undefined"):
             if not compare_values(exp_val, parsed_val):
-                result.add_diff(f"{path}.{exp_key}", exp_val, parsed_val, "layers")
+                result.add_diff(f"{path}.value", exp_val, parsed_val, "keyframes")
+
+    # Compare interpolation types and boolean flags
+    kf_mappings = {
+        "inInterpolationType": "in_interpolation_type",
+        "outInterpolationType": "out_interpolation_type",
+        "temporalAutoBezier": "temporal_auto_bezier",
+        "temporalContinuous": "temporal_continuous",
+        "spatialAutoBezier": "spatial_auto_bezier",
+        "spatialContinuous": "spatial_continuous",
+        "roving": "roving",
+        "label": "label",
+    }
+
+    _compare_fields(expected_kf, parsed_kf, kf_mappings, path, "keyframes", result)
+
+    # Compare spatial tangents
+    for tangent_key, parsed_key in [
+        ("inSpatialTangent", "in_spatial_tangent"),
+        ("outSpatialTangent", "out_spatial_tangent"),
+    ]:
+        if tangent_key in expected_kf:
+            exp_val = expected_kf[tangent_key]
+            parsed_val = parsed_kf.get(parsed_key)
+            if not compare_values(exp_val, parsed_val):
+                result.add_diff(
+                    f"{path}.{tangent_key}", exp_val, parsed_val, "keyframes"
+                )
+
+    # Compare temporal ease
+    for ease_key, parsed_key in [
+        ("inTemporalEase", "in_temporal_ease"),
+        ("outTemporalEase", "out_temporal_ease"),
+    ]:
+        if ease_key in expected_kf:
+            exp_ease = expected_kf[ease_key]
+            parsed_ease = parsed_kf.get(parsed_key, [])
+            if len(exp_ease) != len(parsed_ease):
+                result.add_diff(
+                    f"{path}.{ease_key}.length",
+                    len(exp_ease),
+                    len(parsed_ease),
+                    "keyframes",
+                )
+            for ei, (exp_e, parsed_e) in enumerate(zip(exp_ease, parsed_ease)):
+                exp_speed = exp_e.get("speed") if isinstance(exp_e, dict) else None
+                exp_influence = (
+                    exp_e.get("influence") if isinstance(exp_e, dict) else None
+                )
+                parsed_speed = (
+                    parsed_e.get("speed") if isinstance(parsed_e, dict) else None
+                )
+                parsed_influence = (
+                    parsed_e.get("influence") if isinstance(parsed_e, dict) else None
+                )
+                if not compare_values(exp_speed, parsed_speed):
+                    result.add_diff(
+                        f"{path}.{ease_key}[{ei}].speed",
+                        exp_speed,
+                        parsed_speed,
+                        "keyframes",
+                    )
+                if not compare_values(exp_influence, parsed_influence):
+                    result.add_diff(
+                        f"{path}.{ease_key}[{ei}].influence",
+                        exp_influence,
+                        parsed_influence,
+                        "keyframes",
+                    )
+
+
+def compare_text_document(
+    expected_doc: dict[str, Any],
+    parsed_doc: dict[str, Any],
+    path: str,
+    result: ValidationResult,
+) -> None:
+    """Compare TextDocument properties.
+
+    Args:
+        expected_doc: Expected TextDocument from ExtendScript JSON.
+        parsed_doc: Parsed TextDocument from aep_parser.
+        path: Dotted path for error messages.
+        result: ValidationResult to accumulate differences.
+    """
+    text_mappings = {
+        "text": "text",
+        "font": "font",
+        "fontSize": "font_size",
+        "fontFamily": "font_family",
+        "fontStyle": "font_style",
+        "fontLocation": "font_location",
+        "fauxBold": "faux_bold",
+        "fauxItalic": "faux_italic",
+        "autoKernType": "auto_kern_type",
+        "kerning": "kerning",
+        "tracking": "tracking",
+        "leading": "leading",
+        "leadingType": "leading_type",
+        "autoLeading": "auto_leading",
+        "baselineShift": "baseline_shift",
+        "horizontalScale": "horizontal_scale",
+        "verticalScale": "vertical_scale",
+        "tsume": "tsume",
+        "allCaps": "all_caps",
+        "smallCaps": "small_caps",
+        "superscript": "superscript",
+        "subscript": "subscript",
+        "fontBaselineOption": "font_baseline_option",
+        "fontCapsOption": "font_caps_option",
+        "baselineDirection": "baseline_direction",
+        "ligature": "ligature",
+        "noBreak": "no_break",
+        "digitSet": "digit_set",
+        "lineJoinType": "line_join_type",
+        "fillColor": "fill_color",
+        "applyFill": "apply_fill",
+        "strokeColor": "stroke_color",
+        "applyStroke": "apply_stroke",
+        "strokeWidth": "stroke_width",
+        "strokeOverFill": "stroke_over_fill",
+        "justification": "justification",
+        "direction": "direction",
+        "firstLineIndent": "first_line_indent",
+        "startIndent": "start_indent",
+        "endIndent": "end_indent",
+        "spaceBefore": "space_before",
+        "spaceAfter": "space_after",
+        "everyLineComposer": "every_line_composer",
+        "hangingRoman": "hanging_roman",
+        "autoHyphenate": "auto_hyphenate",
+        "composerEngine": "composer_engine",
+        "paragraphCount": "paragraph_count",
+        "boxText": "box_text",
+        "pointText": "point_text",
+        "boxTextSize": "box_text_size",
+        "boxTextPos": "box_text_pos",
+        "boxVerticalAlignment": "box_vertical_alignment",
+        "boxAutoFitPolicy": "box_auto_fit_policy",
+        "boxFirstBaselineAlignment": "box_first_baseline_alignment",
+        "boxFirstBaselineAlignmentMinimum": "box_first_baseline_alignment_minimum",
+        "boxInsetSpacing": "box_inset_spacing",
+        "boxOverflow": "box_overflow",
+        "lineOrientation": "line_orientation",
+        "composedLineCount": "composed_line_count",
+    }
+
+    _compare_fields(
+        expected_doc, parsed_doc, text_mappings, path, "textdocument", result
+    )
+
+
+def compare_property_group(
+    expected_group: dict[str, Any],
+    parsed_group: dict[str, Any],
+    path: str,
+    result: ValidationResult,
+) -> None:
+    """Compare a property group (effects group, transform group, etc.).
+
+    Recursively compares nested properties and property groups.
+
+    Args:
+        expected_group: Expected property group from ExtendScript JSON.
+        parsed_group: Parsed property group from aep_parser.
+        path: Dotted path for error messages.
+        result: ValidationResult to accumulate differences.
+    """
+    group_mappings = {
+        "name": "name",
+        "matchName": "match_name",
+        "enabled": "enabled",
+        "elided": "elided",
+        "isEffect": "is_effect",
+        "isMask": "is_mask",
+        "isModified": "is_modified",
+        "propertyDepth": "property_depth",
+        "selected": "selected",
+        "color": "color",
+        "maskFeatherFalloff": "mask_feather_falloff",
+        "maskMode": "mask_mode",
+        "maskMotionBlur": "mask_motion_blur",
+        "inverted": "inverted",
+        "locked": "locked",
+        "rotoBezier": "roto_bezier",
+    }
+
+    _compare_fields(
+        expected_group, parsed_group, group_mappings, path, "properties", result
+    )
+
+    # Compare child properties
+    _compare_children_by_match_name(
+        expected_group.get("properties", []),
+        parsed_group.get("properties", []),
+        path,
+        result,
+    )
 
 
 def compare_comp_item(
@@ -277,17 +768,21 @@ def compare_comp_item(
         "name": "name",
         "id": "id",
         "comment": "comment",
+        "label": "label",
         "duration": "duration",
         "frameRate": "frame_rate",
         "width": "width",
         "height": "height",
         "displayStartTime": "display_start_time",
+        "displayStartFrame": "display_start_frame",
         "dropFrame": "drop_frame",
         "bgColor": "bg_color",
         "pixelAspect": "pixel_aspect",
         "shutterPhase": "shutter_phase",
         "shutterAngle": "shutter_angle",
         "motionBlur": "motion_blur",
+        "motionBlurAdaptiveSampleLimit": "motion_blur_adaptive_sample_limit",
+        "motionBlurSamplesPerFrame": "motion_blur_samples_per_frame",
         "workAreaStart": "work_area_start",
         "workAreaDuration": "work_area_duration",
         "preserveNestedResolution": "preserve_nested_resolution",
@@ -295,16 +790,12 @@ def compare_comp_item(
         "frameBlending": "frame_blending",
         "hideShyLayers": "hide_shy_layers",
         "resolutionFactor": "resolution_factor",
+        "draft3d": "draft3d",
     }
 
-    for exp_key, parsed_key in comp_mappings.items():
-        if exp_key in expected_item:
-            exp_val = expected_item[exp_key]
-            if isinstance(exp_val, dict) and exp_val.get("_undefined"):
-                continue
-            parsed_val = get_enum_value(parsed_comp.get(parsed_key))
-            if not compare_values(exp_val, parsed_val):
-                result.add_diff(f"{path}.{exp_key}", exp_val, parsed_val, "composition")
+    _compare_fields(
+        expected_item, parsed_comp, comp_mappings, path, "composition", result
+    )
 
     # Compare layer counts
     exp_layers = expected_item.get("layers", [])
@@ -316,24 +807,25 @@ def compare_comp_item(
 
     # Compare each layer
     comp_duration = expected_item.get("duration", 60.0)
+    frame_rate = expected_item.get("frameRate", 24.0)
     for i, (exp_layer, parsed_layer) in enumerate(zip(exp_layers, parsed_layers)):
         compare_layer(
-            exp_layer, parsed_layer, f"{path}.layers[{i}]", comp_duration, result
+            exp_layer,
+            parsed_layer,
+            f"{path}.layers[{i}]",
+            comp_duration,
+            frame_rate,
+            result,
         )
 
     # Compare markers
-    exp_markers = expected_item.get("markers", [])
-    parsed_markers = parsed_comp.get("markers", [])
-    if len(exp_markers) != len(parsed_markers):
-        result.add_diff(
-            f"{path}.numMarkers", len(exp_markers), len(parsed_markers), "markers"
-        )
-
-    frame_rate = expected_item.get("frameRate", 24.0)
-    for i, (exp_marker, parsed_marker) in enumerate(zip(exp_markers, parsed_markers)):
-        compare_marker(
-            exp_marker, parsed_marker, f"{path}.markers[{i}]", frame_rate, result
-        )
+    _compare_markers(
+        expected_item.get("markers", []),
+        parsed_comp.get("markers", []),
+        path,
+        expected_item.get("frameRate", 24.0),
+        result,
+    )
 
 
 def compare_folder_hierarchy(
@@ -368,6 +860,99 @@ def compare_folder_hierarchy(
                 )
 
 
+def compare_footage_item(
+    expected_item: dict[str, Any],
+    parsed_item: dict[str, Any],
+    path: str,
+    result: ValidationResult,
+) -> None:
+    """Compare footage item properties and its main source.
+
+    Args:
+        expected_item: Expected FootageItem from ExtendScript JSON.
+        parsed_item: Parsed FootageItem from aep_parser.
+        path: Dotted path for error messages.
+        result: ValidationResult to accumulate differences.
+    """
+    footage_mappings = {
+        "name": "name",
+        "id": "id",
+        "comment": "comment",
+        "label": "label",
+        "duration": "duration",
+        "frameRate": "frame_rate",
+        "width": "width",
+        "height": "height",
+        "pixelAspect": "pixel_aspect",
+        "footageMissing": "footage_missing",
+    }
+
+    _compare_fields(
+        expected_item, parsed_item, footage_mappings, path, "footage", result
+    )
+
+    # Compare mainSource (FootageSource fields)
+    exp_source = expected_item.get("mainSource")
+    parsed_source = parsed_item.get("main_source")
+    if exp_source and parsed_source:
+        source_path = f"{path}.mainSource"
+
+        source_mappings = {
+            "alphaMode": "alpha_mode",
+            "conformFrameRate": "conform_frame_rate",
+            "fieldSeparationType": "field_separation_type",
+            "hasAlpha": "has_alpha",
+            "highQualityFieldSeparation": "high_quality_field_separation",
+            "invertAlpha": "invert_alpha",
+            "isStill": "is_still",
+            "loop": "loop",
+            "premulColor": "premul_color",
+        }
+
+        _compare_fields(
+            exp_source, parsed_source, source_mappings, source_path, "footage", result
+        )
+
+        # FileSource-specific fields
+        if "filePath" in exp_source:
+            exp_file = exp_source["filePath"]
+            parsed_file = parsed_source.get("file", "")
+            # Compare only the filename portion
+            if exp_file and parsed_file:
+                exp_name = Path(exp_file).name
+                parsed_name = Path(parsed_file).name
+                if exp_name != parsed_name:
+                    result.add_diff(
+                        f"{source_path}.fileName",
+                        exp_name,
+                        parsed_name,
+                        "footage",
+                    )
+
+        if "missingFootagePath" in exp_source:
+            exp_missing = exp_source["missingFootagePath"]
+            parsed_missing = parsed_source.get("missing_footage_path", "")
+            if exp_missing and exp_missing != parsed_missing:
+                result.add_diff(
+                    f"{source_path}.missingFootagePath",
+                    exp_missing,
+                    parsed_missing,
+                    "footage",
+                )
+
+        # SolidSource-specific fields
+        if "color" in exp_source:
+            exp_color = exp_source["color"]
+            parsed_color = parsed_source.get("color")
+            if not compare_values(exp_color, parsed_color):
+                result.add_diff(
+                    f"{source_path}.color",
+                    exp_color,
+                    parsed_color,
+                    "footage",
+                )
+
+
 def compare_settings(
     expected_settings: dict[str, Any],
     parsed_settings: dict[str, Any] | None,
@@ -383,8 +968,7 @@ def compare_settings(
         return
 
     # Map expected JSON keys to parsed ExtendScript keys
-    # Parsed values are raw integers matching ExtendScript
-    key_mappings = {
+    settings_mappings: dict[str, str] = {
         "quality": "Quality",
         "effects": "Effects",
         "proxyUse": "Proxy Use",
@@ -395,18 +979,29 @@ def compare_settings(
         "soloSwitches": "Solo Switches",
         "colorDepth": "Color Depth",
     }
+    # Settings that use identical keys in JSON and parsed
+    for key in (
+        "Time Span",
+        "Time Span Start",
+        "Time Span Duration",
+        "Time Span End",
+        "Use comp's frame rate",
+        "Use this frame rate",
+        "Frame Rate",
+        "Skip Existing Files",
+        "Disk Cache",
+        "3:2 Pulldown",
+    ):
+        settings_mappings[key] = key
 
-    for exp_key, parsed_key in key_mappings.items():
-        if exp_key in expected_settings:
-            exp_val = expected_settings[exp_key]
-            parsed_val = parsed_settings.get(parsed_key)
-            if exp_val != parsed_val:
-                result.add_diff(
-                    f"{path}.{exp_key}",
-                    exp_val,
-                    parsed_val,
-                    "renderqueue",
-                )
+    _compare_fields(
+        expected_settings,
+        parsed_settings,
+        settings_mappings,
+        path,
+        "renderqueue",
+        result,
+    )
 
 
 def compare_output_module_settings(
@@ -450,6 +1045,38 @@ def compare_output_module_settings(
                 "renderqueue",
             )
 
+    # Compare remaining output module settings with identical keys
+    om_settings_mappings: dict[str, str] = {}
+    for key in (
+        "Format",
+        "Channels",
+        "Depth",
+        "Color",
+        "Lock Aspect Ratio",
+        "Resize",
+        "Resize Quality",
+        "Audio Bit Depth",
+        "Audio Channels",
+        "Audio Sample Rate",
+        "Include Source XMP Metadata",
+        "Include Project Link",
+        "Post-Render Action",
+        "Use Region of Interest",
+        "Use Comp Frame Number",
+        "Starting #",
+        "Crop",
+    ):
+        om_settings_mappings[key] = key
+
+    _compare_fields(
+        expected_settings,
+        parsed_settings,
+        om_settings_mappings,
+        path,
+        "renderqueue",
+        result,
+    )
+
 
 def compare_render_queue(
     expected_rq: dict[str, Any],
@@ -482,6 +1109,24 @@ def compare_render_queue(
         parsed_item = parsed_items[i]
         path = f"RenderQueueItem[{i}]"
 
+        # Compare RQ item-level fields
+        rqi_mappings = {
+            "status": "status",
+            "render": "render",
+            "skipFrames": "skip_frames",
+            "logType": "log_type",
+            "elapsedSeconds": "elapsed_seconds",
+            "comment": "comment",
+            "compName": "comp_name",
+            "queueItemNotify": "queue_item_notify",
+            "templates": "templates",
+            "timeSpanStart": "time_span_start",
+            "timeSpanDuration": "time_span_duration",
+        }
+        _compare_fields(
+            exp_item, parsed_item, rqi_mappings, path, "renderqueue", result
+        )
+
         # Compare render settings
         if "settings" in exp_item:
             compare_settings(
@@ -512,6 +1157,31 @@ def compare_render_queue(
 
             parsed_om = parsed_oms[j]
             om_path = f"{path}.outputModule[{j}]"
+
+            # Compare output module-level fields
+            om_mappings = {
+                "name": "name",
+                "includeSourceXMP": "include_source_xmp",
+                "postRenderAction": "post_render_action",
+            }
+            _compare_fields(
+                exp_om, parsed_om, om_mappings, om_path, "renderqueue", result
+            )
+
+            # Compare output module file (path comparison)
+            if "file" in exp_om:
+                exp_file = exp_om["file"]
+                parsed_file = parsed_om.get("file", "")
+                if exp_file and parsed_file:
+                    exp_name = Path(exp_file).name
+                    parsed_name = Path(str(parsed_file)).name
+                    if exp_name != parsed_name:
+                        result.add_diff(
+                            f"{om_path}.fileName",
+                            exp_name,
+                            parsed_name,
+                            "renderqueue",
+                        )
 
             # Compare output module settings
             if "settings" in exp_om:
@@ -595,6 +1265,38 @@ def validate_aep(
         print("\n=== Comparing Folder Hierarchy ===")
     compare_folder_hierarchy(expected_items, parsed.get("items", {}), result)
 
+    # Compare footage items
+    if verbose:
+        print("\n=== Comparing Footage Items ===")
+    expected_footage = [i for i in expected_items if i.get("itemType") == "FootageItem"]
+    parsed_items_dict = parsed.get("items", {})
+    parsed_footage_by_id = {
+        item_id: item
+        for item_id, item in parsed_items_dict.items()
+        if item.get("type_name") == "Footage"
+    }
+
+    for exp_fi in expected_footage:
+        fi_id = exp_fi["id"]
+        fi_name = exp_fi["name"]
+
+        parsed_fi = parsed_footage_by_id.get(fi_id)
+        if parsed_fi is None:
+            result.add_diff(f"Footage[{fi_name}]", "exists", "missing", "footage")
+            if verbose:
+                print(f"  {fi_name} (id={fi_id}): MISSING!")
+            continue
+
+        before_count = len(result)
+        compare_footage_item(exp_fi, parsed_fi, f"Footage[{fi_name}]", result)
+
+        if verbose:
+            diff_count = len(result) - before_count
+            if diff_count > 0:
+                print(f"  {fi_name} (id={fi_id}): {diff_count} differences")
+            else:
+                print(f"  {fi_name} (id={fi_id}): OK")
+
     # Compare render queue
     if verbose:
         print("\n=== Comparing Render Queue ===")
@@ -632,10 +1334,10 @@ def print_results(
 
     if verbose and filtered_diffs:
         print("\nAll differences:")
-        for d in filtered_diffs[:50]:  # Limit output
+        for d in filtered_diffs[:200]:  # Limit output
             print(f"  {d}")
-        if len(filtered_diffs) > 50:
-            print(f"  ... and {len(filtered_diffs) - 50} more")
+        if len(filtered_diffs) > 200:
+            print(f"  ... and {len(filtered_diffs) - 200} more")
 
 
 def main(args: list[str] | None = None) -> int:
@@ -655,8 +1357,12 @@ def main(args: list[str] | None = None) -> int:
             "project",
             "composition",
             "layers",
+            "properties",
             "markers",
             "folders",
+            "footage",
+            "keyframes",
+            "textdocument",
             "renderqueue",
         ],
         help="Filter differences by category",

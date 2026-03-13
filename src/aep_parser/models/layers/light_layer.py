@@ -9,16 +9,16 @@ if typing.TYPE_CHECKING:
     from aep_parser.enums import LightType
 
 
-@dataclass
+@dataclass(eq=False)
 class LightLayer(Layer):
     """
     The `LightLayer` object represents a light layer within a composition.
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         comp = app.project.compositions[0]
         light = comp.light_layers[0]
         print(light.light_type)

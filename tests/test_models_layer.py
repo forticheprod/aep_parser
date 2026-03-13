@@ -22,6 +22,7 @@ from aep_parser.enums import (
     LayerQuality,
     LayerSamplingQuality,
     LightType,
+    PropertyType,
     TrackMatteType,
 )
 from aep_parser.models.layers import (
@@ -30,6 +31,8 @@ from aep_parser.models.layers import (
     ShapeLayer,
     TextLayer,
 )
+from aep_parser.models.properties.property_base import PropertyBase
+from aep_parser.models.properties.property_group import PropertyGroup
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "layer"
 BUGS_DIR = Path(__file__).parent.parent / "samples" / "bugs"
@@ -210,7 +213,7 @@ class TestLayerTypes:
 
     def test_type_camera(self) -> None:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "type_camera.aep"))
-        assert layer.layer_type == "camera"
+        assert layer.layer_type == "CameraLayer"
         assert isinstance(layer, CameraLayer)
 
     def test_type_null(self) -> None:
@@ -222,12 +225,12 @@ class TestLayerTypes:
 
     def test_type_shape(self) -> None:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "type_shape.aep"))
-        assert layer.layer_type == "shape"
+        assert layer.layer_type == "Layer"
         assert isinstance(layer, ShapeLayer)
 
     def test_type_text(self) -> None:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "type_text.aep"))
-        assert layer.layer_type == "text"
+        assert layer.layer_type == "Layer"
         assert isinstance(layer, TextLayer)
 
 
@@ -444,6 +447,67 @@ class TestTrackMatte:
         assert expected_layer is not None
         assert matted_layer.track_matte_type == expected_layer["trackMatteType"]
 
+    def test_has_track_matte(self) -> None:
+        expected = load_expected(SAMPLES_DIR, "track_matte_yes")
+        project = parse_project(SAMPLES_DIR / "track_matte_yes.aep")
+        comp = project.compositions[0]
+        expected_layers = None
+        for item in expected["items"]:
+            if "layers" in item:
+                expected_layers = item["layers"]
+                break
+        assert expected_layers is not None
+        for layer, exp in zip(comp.layers, expected_layers):
+            assert layer.has_track_matte == exp["hasTrackMatte"]
+
+    def test_has_track_matte_false(self) -> None:
+        expected = load_expected(SAMPLES_DIR, "track_matte_no")
+        project = parse_project(SAMPLES_DIR / "track_matte_no.aep")
+        comp = project.compositions[0]
+        expected_layers = None
+        for item in expected["items"]:
+            if "layers" in item:
+                expected_layers = item["layers"]
+                break
+        assert expected_layers is not None
+        for layer in comp.layers:
+            assert layer.has_track_matte is False
+
+    def test_is_track_matte(self) -> None:
+        expected = load_expected(SAMPLES_DIR, "track_matte_yes")
+        project = parse_project(SAMPLES_DIR / "track_matte_yes.aep")
+        comp = project.compositions[0]
+        expected_layers = None
+        for item in expected["items"]:
+            if "layers" in item:
+                expected_layers = item["layers"]
+                break
+        assert expected_layers is not None
+        for layer, exp in zip(comp.layers, expected_layers):
+            assert layer.is_track_matte == exp["isTrackMatte"]
+
+    def test_is_track_matte_false(self) -> None:
+        project = parse_project(SAMPLES_DIR / "track_matte_no.aep")
+        comp = project.compositions[0]
+        for layer in comp.layers:
+            assert layer.is_track_matte is False
+
+    def test_track_matte_layer(self) -> None:
+        project = parse_project(SAMPLES_DIR / "track_matte_yes.aep")
+        comp = project.compositions[0]
+        matted_layer = next(
+            (layer for layer in comp.layers if layer.has_track_matte), None
+        )
+        assert matted_layer is not None
+        assert matted_layer.track_matte_layer is not None
+        assert matted_layer.track_matte_layer.is_track_matte is True
+
+    def test_track_matte_layer_none(self) -> None:
+        project = parse_project(SAMPLES_DIR / "track_matte_no.aep")
+        comp = project.compositions[0]
+        for layer in comp.layers:
+            assert layer.track_matte_layer is None
+
 
 class TestParenting:
     """Tests for layer parenting."""
@@ -561,3 +625,176 @@ class TestActiveAtTime:
             layer = non_solo_layers[0]
             midpoint = (layer.in_point + layer.out_point) / 2
             assert layer.active_at_time(midpoint) is False
+
+
+class TestLayerPropertyGroupInheritance:
+    """Tests for Layer's PropertyGroup / PropertyBase inheritance."""
+
+    def test_layer_is_property_group(self) -> None:
+        """Layer is an instance of PropertyGroup."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, PropertyGroup)
+
+    def test_layer_is_property_base(self) -> None:
+        """Layer is an instance of PropertyBase."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, PropertyBase)
+
+    def test_property_depth_is_zero(self) -> None:
+        """Layers are at depth 0 (root of the property hierarchy)."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        assert layer.property_depth == 0
+
+    def test_property_type_named_group(self) -> None:
+        """Layer property_type is NAMED_GROUP."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        assert layer.property_type == PropertyType.NAMED_GROUP
+
+    def test_av_layer_match_name(self) -> None:
+        """AVLayer has the correct ExtendScript match name."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.match_name == "ADBE AV Layer"
+
+    def test_properties_contains_transform(self) -> None:
+        """Layer.properties includes the Transform group."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        match_names = [p.match_name for p in layer.properties]
+        assert "ADBE Transform Group" in match_names
+
+    def test_transform_accessor(self) -> None:
+        """Layer.transform returns the Transform PropertyGroup."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer.transform, PropertyGroup)
+        assert layer.transform.match_name == "ADBE Transform Group"
+
+    def test_effects_none_when_no_effects(self) -> None:
+        """Layer.effects is None when there are no effects."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        # Basic layer without effects
+        assert layer.effects is None
+
+    def test_num_properties_positive(self) -> None:
+        """Layer.num_properties returns the count of top-level property groups."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        assert layer.num_properties == len(layer.properties)
+        assert layer.num_properties > 0
+
+    def test_active_property(self) -> None:
+        """Layer.active reflects active_at_time(time)."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        assert layer.active == layer.active_at_time(layer.time)
+
+    def test_identity_equality(self) -> None:
+        """Two Layer objects are only equal when they are the same object."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        assert layer == layer
+        # A copy (different object) should not be equal
+        assert layer != object()
+
+    def test_transform_is_same_object_in_properties(self) -> None:
+        """Layer.transform returns the same PropertyGroup as in properties list."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        transform_from_list = next(
+            p for p in layer.properties if p.match_name == "ADBE Transform Group"
+        )
+        assert layer.transform is transform_from_list
+
+    def test_len_equals_num_properties(self) -> None:
+        """len(layer) equals layer.num_properties."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        assert len(layer) == layer.num_properties
+        assert len(layer) == len(layer.properties)
+
+    def test_getitem_by_int_index(self) -> None:
+        """layer[0] returns the first child property group."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        assert layer[0] is layer.properties[0]
+
+    def test_getitem_by_match_name(self) -> None:
+        """layer['ADBE Transform Group'] returns the Transform group."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        result = layer["ADBE Transform Group"]
+        assert isinstance(result, PropertyGroup)
+        assert result.match_name == "ADBE Transform Group"
+        assert result is layer.transform
+
+    def test_getitem_by_display_name(self) -> None:
+        """layer['Transform'] returns the Transform group by display name."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        result = layer["Transform"]
+        assert isinstance(result, PropertyGroup)
+        assert result.match_name == "ADBE Transform Group"
+
+    def test_getitem_chained(self) -> None:
+        """layer['ADBE Transform Group']['ADBE Position'] chains correctly."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        transform = layer["ADBE Transform Group"]
+        position = transform["ADBE Position"]
+        assert position.match_name == "ADBE Position"
+
+    def test_getitem_key_error(self) -> None:
+        """layer['nonexistent'] raises KeyError."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        with pytest.raises(KeyError):
+            layer["nonexistent_match_name"]
+
+    def test_getitem_index_error(self) -> None:
+        """layer[9999] raises IndexError."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        with pytest.raises(IndexError):
+            layer[9999]
+
+    def test_getitem_type_error(self) -> None:
+        """layer[1.5] raises TypeError."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        with pytest.raises(TypeError):
+            layer[1.5]  # type: ignore[index]
+
+    def test_getattr_single_word(self) -> None:
+        """layer.transform.position resolves via __getattr__."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        position = layer.transform.position  # type: ignore[attr-defined]
+        assert position.match_name == "ADBE Position"
+
+    def test_getattr_multi_word(self) -> None:
+        """layer.transform.anchor_point resolves 'Anchor Point'."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        anchor = layer.transform.anchor_point  # type: ignore[attr-defined]
+        assert anchor.match_name == "ADBE Anchor Point"
+
+    def test_getattr_attribute_error(self) -> None:
+        """Accessing a nonexistent child raises AttributeError."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        with pytest.raises(AttributeError):
+            layer.transform.nonexistent  # type: ignore[attr-defined]  # noqa: B018
+
+    def test_getattr_does_not_shadow_fields(self) -> None:
+        """Dataclass fields take priority over __getattr__."""
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        # 'name' is a dataclass field, should NOT look in children
+        assert isinstance(layer.transform.name, str)

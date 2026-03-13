@@ -37,49 +37,141 @@ types:
         type:
           switch-on: chunk_type
           cases:
-            '"LIST"': list_body # List of chunks
-            '"tdmn"': utf8_body # Property or parameter name
-            '"Utf8"': utf8_body # Contains text
-            '"tdsb"': tdsb_body # Transform property group flags
-            '"tdsn"': child_utf8_body # User-defined name of a property. Contains a single utf-8 chunk but no list_type
-            '"tdb4"': tdb4_body # Property metadata
-            '"cdat"': cdat_body # Property value(s)
-            '"pard"': pard_body # Property default values and ranges
-            '"lhd3"': lhd3_body # Number of keyframes and keyframe size for a property
-            '"ldta"': ldta_body # Layer data
-            '"pdnm"': child_utf8_body # Parameter control strings. Contains a single utf-8 chunk but no list_type
-            '"ldat"': ldat_body # Data of a keyframe
-            '"sspc"': sspc_body # Footage data
-            '"fnam"': child_utf8_body # Effect name. Contains a single utf-8 chunk but no list_type
-            '"idta"': idta_body # Item data
-            '"opti"': opti_body # Footage data
+            '"acer"': acer_body # Compensate for Scene-Referred Profiles setting
+            '"adfr"': adfr_body # Audio sample rate settings
             '"alas"': utf8_body # File footage data in json format as a string, contains file path
-            '"NmHd"': nmhd_body # Marker data
-            '"cdta"': cdta_body # Composition data
+            '"cdat"': cdat_body # Property value(s)
             '"cdrp"': cdrp_body # Composition drop frame
-            '"pjef"': utf8_body # Effect names
+            '"cdta"': cdta_body # Composition data
             '"cmta"': utf8_body # Comment data
+            '"dwga"': dwga_body # Working gamma setting
+            '"EfDC"': efdc_body # Effect definition count
+            '"ewot"': ewot_body # Effect workspace outline entries
+            '"fcid"': fcid_body # Active composition item ID
             '"fdta"': fdta_body # Folder data
-            '"RCom"': child_utf8_body # Render queue item comment. Contains a single utf-8 chunk
-            '"nnhd"': nnhd_body # Project data
+            '"fiac"': fiac_body # Viewer inner tab active flag
+            '"fips"': fips_body # Folder item panel settings (viewer state)
+            '"fitt"': fitt_body # Viewer inner tab type label
+            '"fivc"': fivc_body # Viewer inner view count
+            '"fivi"': fivi_body # Viewer inner active view index
+            '"fnam"': child_utf8_body # Effect name. Contains a single utf-8 chunk but no list_type
+            '"foac"': foac_body # Viewer outer tab active flag
             '"head"': head_body # Contains AE version and file revision
+            '"idta"': idta_body # Item data
+            '"ldat"': ldat_body # Data of a keyframe
+            '"ldta"': ldta_body # Layer data
+            '"lhd3"': lhd3_body # Number of keyframes and keyframe size for a property
+            '"LIST"': list_body # List of chunks
+            '"mkif"': mkif_body # Mask info
+            '"NmHd"': nmhd_body # Marker data
+            '"nnhd"': nnhd_body # Project data
+            '"opti"': opti_body # Footage data
+            '"otda"': cdat_body # Orientation keyframe value(s) (3 big-endian doubles)
+            '"otln"': otln_body # Comp panel outline entries (selection + collapsed state)
+            '"pard"': pard_body # Property default values and ranges
+            '"parn"': parn_body # Parameter count in a parT list
+            '"pdnm"': child_utf8_body # Parameter control strings. Contains a single utf-8 chunk but no list_type
+            '"pjef"': utf8_body # Effect names
+            '"RCom"': child_utf8_body # Render queue item comment. Contains a single utf-8 chunk
             '"Roou"': roou_body # Output module settings
             '"Ropt"': ropt_body # Format-specific render options
             '"Rout"': rout_body # Render queue item flags
-            '"acer"': acer_body # Compensate for Scene-Referred Profiles setting
-            '"adfr"': adfr_body # Audio sample rate settings
-            '"dwga"': dwga_body # Working gamma setting
-            '"fips"': fips_body # Folder item panel settings (viewer state)
-            '"fcid"': fcid_body # Active composition item ID
-            '"foac"': foac_body # Viewer outer tab active flag
-            '"fiac"': fiac_body # Viewer inner tab active flag
-            '"fitt"': fitt_body # Viewer inner tab type label
-            '"fivi"': fivi_body # Viewer inner active view index
-            '"fivc"': fivc_body # Viewer inner view count
+            '"fth5"': fth5_body # Variable-width mask feather points
+            '"shph"': shph_body # Shape path header (bounding box + closed flag)
+            '"sspc"': sspc_body # Footage data
+            '"tdb4"': tdb4_body # Property metadata
+            '"tdli"': s4_body   # Mask index for MASK control property (1-based)
+            '"tdmn"': utf8_body # Property or parameter name
+            '"tdum"': tdum_body # Property minimum value (stored min)
+            '"tduM"': tdum_body # Property maximum value (stored max)
+            '"tdpi"': s4_body   # Layer ID for LAYER control property (references ldta.layer_id)
+            '"tdps"': s4_body   # Secondary layer selector (always 0 in known samples)
+            '"tdsb"': tdsb_body # Transform property group flags
+            '"tdsn"': child_utf8_body # User-defined name of a property. Contains a single utf-8 chunk but no list_type
+            '"Utf8"': utf8_body # Contains text
             _: ascii_body
       - id: padding
         size: 1
         if: (len_data % 2) != 0
+  ewot_body:
+    doc: |
+      Effect workspace outline entries inside LIST Ewst.
+      Each entry is 4 bytes. The first byte contains flags:
+        - bit 7 (0x80): child property of an effect (not an effect group)
+        - bit 6 (0x40): selected
+      Entries without bit 7 are effect-group-level nodes.
+    seq:
+      - id: num_entries
+        type: u4
+        doc: Number of entries
+      - id: entries
+        type: ewot_entry
+        repeat: expr
+        repeat-expr: num_entries
+        doc: Array of outline entries
+  ewot_entry:
+    doc: Single effect workspace outline entry.
+    seq:
+      - id: is_child_property
+        type: b1
+        doc: When true, this is a child property, not an effect group (bit 7 of flags byte)
+      - id: selected
+        type: b1
+        doc: When true, this entry is selected (bit 6 of flags byte)
+      - id: reserved_flags
+        type: b6
+        doc: Remaining flag bits
+      - id: data
+        size: 3
+        doc: Remaining entry bytes
+  otln_body:
+    doc: |
+      Comp panel outline entries inside LIST FEE (composition timeline).
+      Each entry is 4 bytes. The first byte contains flags:
+        - bit 7 (0x80): collapsed in the timeline
+        - bit 6 (0x40): selected
+      Entries correspond 1:1 to layers and their property-tree nodes
+      in DFS order across all visible layers of the active composition.
+    seq:
+      - id: num_entries
+        type: u4
+        doc: Number of entries
+      - id: entries
+        type: otln_entry
+        repeat: expr
+        repeat-expr: num_entries
+        doc: Array of outline entries
+  otln_entry:
+    doc: Single comp panel outline entry.
+    seq:
+      - id: collapsed
+        type: b1
+        doc: When true, this node is collapsed in the comp timeline (bit 7 of flags byte)
+      - id: selected
+        type: b1
+        doc: When true, this entry is selected (bit 6 of flags byte)
+      - id: reserved_flags
+        type: b6
+        doc: Remaining flag bits (bit 5 = property, bit 3 = leaf, etc.)
+      - id: data
+        size: 3
+        doc: Remaining entry bytes
+  efdc_body:
+    doc: |
+      Effect definition count. The first byte contains the number of
+      LIST EfDf definitions inside LIST EfdG.
+    seq:
+      - id: count
+        type: u1
+        doc: Number of effect definitions
+  parn_body:
+    doc: |
+      Parameter count inside a LIST parT. Contains the number of tdmn/pard
+      parameter entries that follow.
+    seq:
+      - id: count
+        type: u4
+        doc: Number of parameters
   acer_body:
     doc: |
       Compensate for Scene-Referred Profiles setting in Project Settings.
@@ -274,6 +366,11 @@ types:
       - id: view_count
         type: u2
         doc: Number of views in the inner tab
+  s4_body:
+    doc: Single signed 32-bit big-endian integer value.
+    seq:
+      - id: value
+        type: s4
   fcid_body:
     doc: |
       Active composition item ID. Stores the item ID of the currently
@@ -1013,18 +1110,28 @@ types:
           Keyframe time in time-scale units. Signed 16-bit; negative values
           occur for keyframes positioned before the layer's start (e.g.
           composition markers).
-      - size: 2
-      - id: keyframe_interpolation_type
+      - size: 1
+      - id: in_interpolation_type
         type: u1
+        doc: |
+          Incoming interpolation type (binary value).
+          Add 6611 to get the ExtendScript enum value:
+          1 > LINEAR (6612), 2 > BEZIER (6613), 3 > HOLD (6614).
+      - id: out_interpolation_type
+        type: u1
+        doc: |
+          Outgoing interpolation type (binary value).
+          Add 6611 to get the ExtendScript enum value:
+          1 > LINEAR (6612), 2 > BEZIER (6613), 3 > HOLD (6614).
       - id: label
         type: u1
         enum: label
       - type: b2  # skip first 2 bits
-      - id: roving_across_time
+      - id: roving
         type: b1  # bit 5
-      - id: auto_bezier
+      - id: temporal_auto_bezier
         type: b1  # bit 4
-      - id: continuous_bezier
+      - id: temporal_continuous
         type: b1  # bit 3
       - type: b3  # skip remaining 3 bits
       - id: kf_data
@@ -1084,7 +1191,17 @@ types:
       - id: num_value
         type: u1
     seq:
-      - type: u8
+      - size: 3
+        doc: Unknown bytes (always 0x000000).
+      - type: b6
+      - id: spatial_auto_bezier
+        type: b1
+        doc: Spatial auto-Bezier flag.
+      - id: spatial_continuous
+        type: b1
+        doc: Spatial continuity flag.
+      - size: 4
+        doc: Unknown bytes (always 0x00000000).
       - type: f8
       - id: in_speed
         type: f8
@@ -1098,11 +1215,11 @@ types:
         type: f8
         repeat: expr
         repeat-expr: num_value
-      - id: tan_in
+      - id: in_spatial_tangents
         type: f8
         repeat: expr
         repeat-expr: num_value
-      - id: tan_out
+      - id: out_spatial_tangents
         type: f8
         repeat: expr
         repeat-expr: num_value
@@ -1235,9 +1352,13 @@ types:
         type: u1
         doc: Type of light for light layers (0=parallel, 1=spot, 2=point, 3=ambient)
       - size: 20
-      # - id: matte_layer_id
-      #   type: u4
-      #   doc: only for AE >= 23
+      - id: matte_layer_id
+        type: u4
+        if: _io.size - _io.pos >= 4
+        doc: |
+          ID of the layer used as a track matte for this layer.
+          0 when no track matte is applied. Only present in
+          AE >= 23 (ldta chunks longer than 160 bytes).
     instances:
       start_time:
         value: 'start_time_dividend * 1.0 / start_time_divisor'
@@ -1280,6 +1401,7 @@ types:
           item_type_raw == 4 and item_size == 64 ? ldat_item_type::no_value :
           item_type_raw == 4 and item_size == 48 ? ldat_item_type::one_d :
           item_type_raw == 4 and item_size == 16 ? ldat_item_type::marker :
+          item_type_raw == 4 and item_size == 8 ? ldat_item_type::shape :
           ldat_item_type::unknown
   list_body:
     seq:
@@ -1294,6 +1416,124 @@ types:
       - id: binary_data
         size-eos: true
         if: list_type == "btdk"
+  mkif_body:
+    doc: |
+      Mask info. Contains inverted flag, locked flag, mask mode,
+      motion blur, feather falloff and color.
+    seq:
+      - id: inverted
+        type: u1
+        doc: Whether the mask is inverted (1 = inverted, 0 = normal)
+      - id: locked
+        type: u1
+        doc: Whether the mask path is locked (1 = locked, 0 = unlocked)
+      - id: mask_motion_blur
+        type: u1
+        doc: Mask motion blur (0=Same as Layer, 1=Off, 2=On)
+      - id: mask_feather_falloff
+        type: u1
+        doc: Mask feather falloff (0=Smooth, 1=Linear)
+      - size: 2
+      - id: mode
+        type: u2
+        doc: Mask blending mode (0=None, 1=Add, 2=Subtract, 3=Intersect, 4=Darken, 5=Lighten, 6=Difference)
+      - size: 37
+        doc: Unknown data (timestamps, hashes)
+      - id: color_red
+        type: u1
+        doc: Red component of mask color (0-255)
+      - id: color_green
+        type: u1
+        doc: Green component of mask color (0-255)
+      - id: color_blue
+        type: u1
+        doc: Blue component of mask color (0-255)
+  fth5_body:
+    doc: |
+      Variable-width mask feather points.  Each feather point is 32 bytes.
+      Feather points can be placed anywhere along a closed mask path to vary
+      the feather radius at different positions.  The number of points is
+      determined by the chunk size divided by 32.
+
+      Integer fields use little-endian byte order despite the big-endian
+      RIFX container (similar to OTST cdat).  Float fields remain big-endian.
+    seq:
+      - id: points
+        type: feather_point
+        repeat: eos
+  feather_point:
+    doc: |
+      A single variable-width mask feather point (32 bytes).
+      The feather type (inner/outer) is derived from the sign of the radius:
+      negative radius = inner feather (type 1), positive = outer (type 0).
+    seq:
+      - id: seg_loc
+        type: u4le
+        doc: |
+          Mask path segment number where this feather point is located
+          (0-based, segments are portions of the path between vertices).
+      - id: interp_raw
+        type: u4le
+        doc: |
+          Feather radius interpolation type.
+          0 = non-Hold, 2 = Hold.  Mapped to 0/1 in ExtendScript.
+      - id: rel_seg_loc
+        type: f8
+        doc: |
+          Relative position on the segment, from 0.0 (at the starting
+          vertex) to 1.0 (at the next vertex).
+      - id: radius
+        type: f8
+        doc: |
+          Feather radius (amount).  Negative values indicate inner
+          feather points; positive values indicate outer feather.
+      - id: corner_angle
+        type: f4
+        doc: |
+          Relative angle percentage between the two normals at a
+          corner (0 to 100).  0 for non-corner feather points.
+      - id: tension
+        type: f4
+        doc: Feather tension amount, from 0.0 (0%) to 1.0 (100%).
+  shph_body:
+    doc: |
+      Shape path header. Contains a closed/open flag and the bounding box
+      for the shape vertices.  Vertex coordinates in the associated ldat
+      are normalized to [0, 1] relative to this bounding box.
+    seq:
+      - size: 3
+      - type: b4  # skip bits 7-4
+      - id: open
+        type: b1  # bit 3 - true when path is open
+      - type: b3  # skip bits 2-0
+      - id: top_left_x
+        type: f4
+        doc: Bounding-box left edge (x minimum)
+      - id: top_left_y
+        type: f4
+        doc: Bounding-box top edge (y minimum)
+      - id: bottom_right_x
+        type: f4
+        doc: Bounding-box right edge (x maximum)
+      - id: bottom_right_y
+        type: f4
+        doc: Bounding-box bottom edge (y maximum)
+      - size: 4
+    instances:
+      closed:
+        value: 'not open'
+  shape_point:
+    doc: |
+      A single normalized bezier point in a shape path.
+      Coordinates are big-endian f4 values in the [0, 1] range,
+      relative to the bounding box defined in shph_body.
+    seq:
+      - id: x
+        type: f4
+        doc: Normalized X coordinate
+      - id: y
+        type: f4
+        doc: Normalized Y coordinate
   nmhd_body:
     seq:
       - size: 3
@@ -1472,9 +1712,6 @@ types:
         if: asset_type == "Soli"
       blue:
         value: 'color[3]'
-        if: asset_type == "Soli"
-      alpha:
-        value: 'color[0]'
         if: asset_type == "Soli"
   pard_body:
     seq:
@@ -1682,9 +1919,25 @@ types:
       has_alpha:
         value: alpha_mode_raw != 3
         doc: True if footage has an alpha channel (3 means no_alpha)
+  tdum_body:
+    doc: |
+      Property stored min or max value inside a tdbs LIST.
+      Used for both tdum (min) and tduM (max) chunks.
+      When both tdum and tduM are zero, the property is unconstrained
+      (no min/max). Otherwise, tdum is the minimum and tduM the maximum.
+      The encoding depends on the property type:
+        Scalar:   float64      (8 bytes)
+        Color:    float32[4]   (16 bytes, RGBA)
+        Position: float64[2]   (16 bytes)
+        Vector:   float64[4]   (32 bytes)
+        Enum:     uint32       (4 bytes)
+    seq:
+      - id: data
+        size-eos: true
   tdb4_body:
     seq:
-      - size: 2
+      - id: magic
+        contents: [0xdb, 0x99]
       - id: dimensions
         type: u2
         doc: Number of values in a multi-dimensional
@@ -1701,7 +1954,11 @@ types:
         type: f8
         repeat: expr
         repeat-expr: 5
-        doc: Unknown f8 values (usually 0.0001, 1.0, 1.0, 1.0, 1.0)
+        doc: |
+          First float is a threshold (0.0001 for most properties, 0.0 for
+          some plugin spatial points). Second float encodes a comp aspect
+          ratio for spatial properties (e.g. 1.777778 = 16:9, 1.333333 =
+          4:3); 1.0 for non-spatial. Last three are always 1.0.
       # property_control_type - 4 bytes
       - size: 1
       - type: b7  # skip bits 7-1
@@ -1722,11 +1979,8 @@ types:
         type: u1
       - size: 15
         doc: Unknown bytes and flags
-      - id: unknown_floats_2
-        type: f8
-        repeat: expr
-        repeat-expr: 4
-        doc: Unknown f8 values (usually 0.0, sometimes 0.333)
+      - size: 32
+        doc: Reserved - always zero across all known property types.
       - size: 3
       - type: b7  # skip first 7 bits
       - id: expression_disabled
@@ -1738,7 +1992,12 @@ types:
         value: 'not expression_disabled'
   tdsb_body:
     seq:
-      - size: 2   # skip first 2 bytes
+      - id: roto_bezier
+        type: u1
+        doc: |
+          RotoBezier flag for mask shape properties (byte 0).
+          1 = RotoBezier enabled. Always 0 for non-mask-shape properties.
+      - size: 1   # skip byte 1
       - type: b3  # skip first 3 bits
       - id: locked_ratio
         type: b1  # bit 4
@@ -1764,7 +2023,7 @@ enums:
     2: placeholder
     9: solid
   layer_type:
-    0: footage
+    0: avlayer
     1: light
     2: camera
     3: text

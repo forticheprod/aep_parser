@@ -3,6 +3,8 @@ from __future__ import annotations
 import typing
 from dataclasses import dataclass, field
 
+from aep_parser.enums import TrackMatteType
+
 from .layer import Layer
 
 if typing.TYPE_CHECKING:
@@ -11,13 +13,12 @@ if typing.TYPE_CHECKING:
         FrameBlendingType,
         LayerQuality,
         LayerSamplingQuality,
-        TrackMatteType,
     )
 
     from ..items.item import Item
 
 
-@dataclass
+@dataclass(eq=False)
 class AVLayer(Layer):
     """
     The `AVLayer` object provides an interface to those layers that contain
@@ -26,9 +27,9 @@ class AVLayer(Layer):
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         comp = app.project.compositions[0]
         layer = comp.file_layers[0]
         print(layer.source)
@@ -46,26 +47,14 @@ class AVLayer(Layer):
     See: https://ae-scripting.docsforadobe.dev/layer/avlayer/
     """
 
-    blending_mode: BlendingMode
-    """The blending mode of the layer."""
-
-    frame_blending_type: FrameBlendingType
-    """The type of frame blending to perform when frame blending is enabled for the layer."""
-
-    quality: LayerQuality
-    """The layer's draft quality setting."""
-
-    sampling_quality: LayerSamplingQuality
-    """The layer's sampling method."""
-
-    track_matte_type: TrackMatteType
-    """Specifies the way the track matte is applied."""
-
     adjustment_layer: bool
     """When `True`, the layer is an adjustment layer."""
 
     audio_enabled: bool
     """When `True`, the layer's audio is enabled. This value corresponds to the audio toggle switch in the Timeline panel."""
+
+    blending_mode: BlendingMode
+    """The blending mode of the layer."""
 
     collapse_transformation: bool
     """`True` if collapse transformation is on for this layer."""
@@ -79,6 +68,9 @@ class AVLayer(Layer):
     frame_blending: bool
     """`True` if frame blending is enabled for this layer."""
 
+    frame_blending_type: FrameBlendingType
+    """The type of frame blending to perform when frame blending is enabled for the layer."""
+
     guide_layer: bool
     """`True` if the layer is a guide layer."""
 
@@ -88,22 +80,47 @@ class AVLayer(Layer):
     preserve_transparency: bool
     """`True` if preserve transparency is enabled for the layer."""
 
+    quality: LayerQuality
+    """The layer's draft quality setting."""
+
+    sampling_quality: LayerSamplingQuality
+    """The layer's sampling method."""
+
     three_d_layer: bool
     """`True` if this layer is a 3D layer."""
 
-    time_remap_enabled: bool
-    """`True` if time remapping is enabled for this layer."""
+    track_matte_type: TrackMatteType
+    """Specifies the way the track matte is applied."""
 
     _source_id: int
     """The ID of the source item for this layer. 0 for a text layer."""
 
+    _matte_layer_id: int
+    """
+    The ID of the layer used as a track matte for this layer.
+    ``0`` when no track matte is applied.
+    """
+
     # Set after parsing - reference to source item (not serialized)
     _source: Item | None = field(default=None, init=False, repr=False)
+
+    # Set after parsing - track matte references (not serialized)
+    _track_matte_layer: AVLayer | None = field(default=None, init=False, repr=False)
+    _is_track_matte: bool = field(default=False, init=False, repr=False)
 
     @property
     def source(self) -> Item | None:
         """The source item for this layer. `None` for a text layer."""
         return self._source
+
+    @property
+    def time_remap_enabled(self) -> bool:
+        """`True` if time remapping is enabled for this layer."""
+        try:
+            prop = self["ADBE Time Remapping"]
+        except KeyError:
+            return False
+        return bool(prop.animated)
 
     @source.setter
     def source(self, value: Item) -> None:
@@ -135,6 +152,24 @@ class AVLayer(Layer):
         if self._source is not None:
             return getattr(self._source, "height", 0)
         return self.containing_comp.height
+
+    @property
+    def has_track_matte(self) -> bool:
+        """
+        `True` if this layer has track matte. When true, this layer's `track_matte_type`
+        value controls how the matte is applied.
+        """
+        return self.track_matte_type != TrackMatteType.NO_TRACK_MATTE
+
+    @property
+    def is_track_matte(self) -> bool:
+        """`True` if this layer is being used as a track matte."""
+        return self._is_track_matte
+
+    @property
+    def track_matte_layer(self) -> AVLayer | None:
+        """The track matte layer for this layer. Returns `None` if this layer has no track matte layer."""
+        return self._track_matte_layer
 
     @property
     def is_name_from_source(self) -> bool:

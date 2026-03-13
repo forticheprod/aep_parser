@@ -26,7 +26,7 @@ from typing import Any, Generator, TextIO
 
 from aep_parser import parse
 
-from ..models.app import App
+from ..models.application import Application
 from ..models.items.composition import CompItem
 from ..models.items.folder import FolderItem
 from ..models.items.footage import FootageItem
@@ -40,7 +40,9 @@ from ..models.properties.property_group import PropertyGroup
 # =============================================================================
 
 
-def build_project_node(app: App, include_properties: bool = True) -> dict[str, Any]:
+def build_project_node(
+    app: Application, include_properties: bool = True
+) -> dict[str, Any]:
     """Build the root project node."""
     project = app.project
     attrs: dict[str, Any] = {
@@ -174,18 +176,11 @@ def build_layer_node(
     if include_properties:
         # Transform properties
         if layer.transform:
-            children.append(
-                {
-                    "type": "Transform",
-                    "name": "Transform",
-                    "attrs": {"properties": len(layer.transform)},
-                    "children": [build_property_node(p) for p in layer.transform],
-                }
-            )
+            children.append(build_property_group_node(layer.transform))
 
         # Effects
-        for effect in layer.effects:
-            children.append(build_property_group_node(effect))
+        if layer.effects:
+            children.append(build_property_group_node(layer.effects))
 
         # Text properties
         if isinstance(layer.text, PropertyGroup):

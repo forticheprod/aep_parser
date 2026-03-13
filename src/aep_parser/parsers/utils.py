@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import struct
 import typing
 from io import BytesIO
 from typing import Any, List, TypeVar
@@ -18,7 +19,9 @@ from ..kaitai.utils import (
 if typing.TYPE_CHECKING:
     from typing import Iterator
 
-T = TypeVar("T", bytes, List[Any])
+T = TypeVar(
+    "T", bytes, List[Any]
+)  # Cannot use list here because of py3.7, even with future
 
 
 def get_name(child_chunks: list[Aep.Chunk]) -> str:
@@ -52,7 +55,7 @@ def get_chunks_by_match_name(
         for chunk in root_chunk.chunks:
             if chunk.chunk_type == "tdmn":
                 match_name = str_contents(chunk)
-                if match_name in ("ADBE Group End", "ADBE Effect Built In Params"):
+                if match_name == "ADBE Group End":
                     skip_to_next_tdmn_flag = True
                 else:
                     skip_to_next_tdmn_flag = False
@@ -129,12 +132,13 @@ def parse_ldat_items(
     Uses lhd3.item_type to determine the correct parser class:
     - lrdr: RenderSettingsLdatBody (2246 bytes per item)
     - litm: OutputModuleSettingsLdatBody (128 bytes per item)
+    - shape: ShapePoint (8 bytes per item)
     - keyframe types: LdatItem (variable size per item)
 
     Args:
         list_chunk: A LIST chunk containing lhd3 and ldat child chunks.
-        is_spatial: Whether the property is spatial (affects 3D type interpretation
-            for keyframe items).
+        is_spatial: Whether the property is spatial (affects 3D type
+            interpretation for keyframe items).
 
     Returns:
         List of parsed items (type depends on item_type).
@@ -160,8 +164,47 @@ def parse_ldat_items(
             item = Aep.RenderSettingsLdatBody(stream)
         elif item_type == Aep.LdatItemType.litm:
             item = Aep.OutputModuleSettingsLdatBody(stream)
+        elif item_type == Aep.LdatItemType.shape:
+            item = Aep.ShapePoint(stream)
         else:
             item = Aep.LdatItem(item_type=item_type, _io=stream)
         items.append(item)
 
     return items
+
+
+def read_tdum(
+    chunks: list[Aep.Chunk],
+    chunk_type: str,
+    color: bool,
+    integer: bool,
+    dimensions: int,
+) -> Any:
+    """Decode a tdum (min) or tduM (max) chunk from a tdbs LIST.
+
+    Returns the decoded scalar/list value, or ``None`` when the chunk is
+    absent.  The binary encoding depends on the property type:
+
+    * Scalar: float64 (8 bytes)
+    * Color: float32×4 RGBA (16 bytes)
+    * Position: float64×dimensions (16 bytes for 2-D)
+    * Vector: float64×dimensions (up to 32 bytes for 4-D)
+    * Enum (integer flag): uint32 (4 bytes)
+    """
+    try:
+        chunk = find_by_type(chunks=chunks, chunk_type=chunk_type)
+    except ChunkNotFoundError:
+        return None
+    raw = chunk.data.data
+    size = len(raw)
+    if color and size == 16:
+        return list(struct.unpack(">4f", raw))
+    if integer and size == 4:
+        return struct.unpack(">I", raw)[0]
+    if size == 8:
+        return struct.unpack(">d", raw)[0]
+    if size == 16:
+        return list(struct.unpack(">2d", raw))
+    if size == 32:
+        return list(struct.unpack(">4d", raw))
+    return struct.unpack(">d", raw[:8])[0]

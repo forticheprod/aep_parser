@@ -32,7 +32,7 @@ def test_parse_marker_sample(sample_name: str) -> None:
 
 
 def get_first_comp_marker(project: Project) -> MarkerValue:
-    """Get the first marker from the first composition."""
+    """Get the first marker value from the first composition."""
     assert len(project.compositions) >= 1
     comp = project.compositions[0]
     assert len(comp.markers) >= 1
@@ -40,7 +40,7 @@ def get_first_comp_marker(project: Project) -> MarkerValue:
 
 
 def get_first_layer_marker(project: Project) -> MarkerValue:
-    """Get the first marker from the first layer."""
+    """Get the first marker value from the first layer."""
     assert len(project.compositions) >= 1
     comp = project.compositions[0]
     assert len(comp.layers) >= 1

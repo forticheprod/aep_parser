@@ -103,24 +103,31 @@ from .enums import (
 )
 from .kaitai import Aep
 from .models import (
-    App,
+    Application,
     AVItem,
     AVLayer,
     CameraLayer,
+    CineonFormatOptions,
     CompItem,
+    FeatherPoint,
     FileSource,
     FolderItem,
     FontObject,
     FootageItem,
     FootageSource,
     Item,
+    JpegFormatOptions,
     Keyframe,
+    KeyframeEase,
     Layer,
     LightLayer,
     MarkerValue,
+    MaskPropertyGroup,
+    OpenExrFormatOptions,
     OutputModule,
     OutputModuleSettings,
     PlaceholderSource,
+    PngFormatOptions,
     Project,
     Property,
     PropertyBase,
@@ -128,15 +135,19 @@ from .models import (
     RenderQueue,
     RenderQueueItem,
     RenderSettings,
+    Shape,
     ShapeLayer,
     SolidSource,
+    TargaFormatOptions,
     TextDocument,
     TextLayer,
+    TiffFormatOptions,
     View,
     Viewer,
     ViewOptions,
+    XmlFormatOptions,
 )
-from .parsers.app import parse_app
+from .parsers.application import parse_app
 from .parsers.project import _parse_project, parse_project
 
 try:
@@ -147,7 +158,7 @@ except PackageNotFoundError:
 __all__ = [
     "__version__",
     "AlphaMode",
-    "App",
+    "Application",
     "AudioBitDepth",
     "AudioChannels",
     "AudioSampleRate",
@@ -163,6 +174,7 @@ __all__ = [
     "BoxVerticalAlignment",
     "CameraLayer",
     "ChannelType",
+    "CineonFormatOptions",
     "CloseOptions",
     "ColorDepthSetting",
     "ColorManagementSystem",
@@ -175,6 +187,7 @@ __all__ = [
     "DiskCacheSetting",
     "EffectsSetting",
     "FastPreviewType",
+    "FeatherPoint",
     "FeetFramesFilmType",
     "FieldRender",
     "FieldSeparationType",
@@ -199,7 +212,9 @@ __all__ = [
     "GuideLayers",
     "ImportAsType",
     "Item",
+    "JpegFormatOptions",
     "Keyframe",
+    "KeyframeEase",
     "KeyframeInterpolationType",
     "Label",
     "Language",
@@ -218,7 +233,9 @@ __all__ = [
     "MaskFeatherFalloff",
     "MaskMode",
     "MaskMotionBlur",
+    "MaskPropertyGroup",
     "MotionBlurSetting",
+    "OpenExrFormatOptions",
     "OutputAudio",
     "OutputChannels",
     "OutputColorDepth",
@@ -232,6 +249,7 @@ __all__ = [
     "parse_project",
     "PlaceholderSource",
     "PlayMode",
+    "PngFormatOptions",
     "PostRenderAction",
     "PREFType",
     "Project",
@@ -254,11 +272,14 @@ __all__ = [
     "ResizeQuality",
     "ResolveType",
     "RQItemStatus",
+    "Shape",
     "ShapeLayer",
     "SolidSource",
     "SoloSwitchesSetting",
+    "TargaFormatOptions",
     "TextDocument",
     "TextLayer",
+    "TiffFormatOptions",
     "TimeDisplayType",
     "TimeSpanSource",
     "ToolType",
@@ -267,15 +288,16 @@ __all__ = [
     "Viewer",
     "ViewerType",
     "ViewOptions",
+    "XmlFormatOptions",
 ]
 
 
-def parse(aep_file_path: str | os.PathLike[str]) -> App:
-    """Parse an After Effects (.aep) project file and return an [App][] instance.
+def parse(aep_file_path: str | os.PathLike[str]) -> Application:
+    """Parse an After Effects (.aep) project file and return an [Application][] instance.
 
     This is the main entry point for the library. It parses the binary
-    RIFX data and returns an [App][] object whose
-    [project][aep_parser.models.app.App.project] attribute
+    RIFX data and returns an [Application][] object whose
+    [project][aep_parser.models.application.Application.project] attribute
     holds the full project tree.
 
     Args:
