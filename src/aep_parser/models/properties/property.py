@@ -522,3 +522,37 @@ class Property(PropertyBase):
     def has_min(self) -> bool:
         """`True` if there is a minimum permitted value for the named property."""
         return self.min_value is not None
+
+    def value_at_time(
+        self, time: float, pre_expression: bool = True
+    ) -> list[float] | float | MarkerValue | Shape | TextDocument | None:
+        """Get the value of the named property at the given time.
+
+        If the property has keyframes, the value is computed by
+        interpolating between surrounding keyframes using the stored
+        interpolation type and temporal ease.
+
+        If the property is not animated, returns the static
+        [value][Property.value].
+
+        Args:
+            time: The composition time in seconds at which to evaluate
+                the property.
+            pre_expression: When ``True`` the value is evaluated before
+                any expression is applied (the only mode supported by
+                the parser).
+
+        Raises:
+            NotImplementedError: If *pre_expression* is ``False``,
+                because the parser cannot evaluate expressions.
+        """
+        if not pre_expression:
+            raise NotImplementedError(
+                "Expression evaluation is not supported by the parser."
+            )
+        if not self.keyframes:
+            return self.value  # type: ignore[no-any-return]
+
+        from .interpolation import interpolate_keyframes
+
+        return interpolate_keyframes(time, self.keyframes, self.is_spatial)
