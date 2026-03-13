@@ -15,6 +15,7 @@ from aep_parser.enums import (
     MaskMode,
     MaskMotionBlur,
     PropertyType,
+    PropertyValueType,
 )
 from aep_parser.models import MaskPropertyGroup
 
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
 
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "property"
+BUGS_DIR = Path(__file__).parent.parent / "samples" / "bugs"
 
 
 def _find_property(layer, match_name: str) -> Property | None:
@@ -451,6 +453,48 @@ class TestEffectProperties:
         opacity = _find_property(layer, "ADBE Opacity")
         assert opacity is not None
         assert opacity.selected is False
+
+    def test_layer_index_value(self) -> None:
+        """LAYER_INDEX effect property reads layer index from tdpi chunk.
+
+        The S_BlurDirectional effect's "Matte from Layer" parameter has
+        property_value_type LAYER_INDEX.  When no layer is selected the
+        value is 0.
+        """
+        project = parse_project(BUGS_DIR / "29.97_fps_time_scale_3.125.aep")
+        # Find the S_BlurDirectional effect in any composition
+        for comp in project.compositions:
+            for layer in comp.layers:
+                if layer.effects is None:
+                    continue
+                for effect in layer.effects:
+                    if effect.name == "S_BlurDirectional":
+                        for prop in effect.properties:
+                            if prop.name == "Matte from Layer":
+                                assert prop.property_value_type == PropertyValueType.LAYER_INDEX
+                                assert prop.value == 0
+                                return
+        pytest.fail("S_BlurDirectional 'Matte from Layer' property not found")
+
+    def test_mask_index_value(self) -> None:
+        """MASK_INDEX effect property reads mask index from tdli chunk.
+
+        The S_BlurDirectional effect's "Matte from Path" parameter has
+        property_value_type MASK_INDEX.  Value 1 means mask #1.
+        """
+        project = parse_project(BUGS_DIR / "29.97_fps_time_scale_3.125.aep")
+        for comp in project.compositions:
+            for layer in comp.layers:
+                if layer.effects is None:
+                    continue
+                for effect in layer.effects:
+                    if effect.name == "S_BlurDirectional":
+                        for prop in effect.properties:
+                            if prop.name == "Matte from Path":
+                                assert prop.property_value_type == PropertyValueType.MASK_INDEX
+                                assert prop.value == 1
+                                return
+        pytest.fail("S_BlurDirectional 'Matte from Path' property not found")
 
 
 class TestMasks:

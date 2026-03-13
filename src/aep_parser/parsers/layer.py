@@ -180,6 +180,7 @@ def _parse_layer_property_groups(
     child_chunks: list[Aep.Chunk],
     composition: CompItem,
     effect_param_defs: dict[str, dict[str, dict[str, Any]]],
+    layer_id_to_index: dict[int, int] | None,
 ) -> tuple[
     list[Property | PropertyGroup],
     Property | None,
@@ -194,6 +195,8 @@ def _parse_layer_property_groups(
         composition: The parent composition.
         effect_param_defs: Project-level effect parameter definitions, used as
             fallback when layer-level parT chunks are missing.
+        layer_id_to_index: Mapping from binary layer IDs to 1-based layer
+            indices, used to resolve LAYER_INDEX property values.
 
     Returns:
         Tuple of (properties, marker_property) where *properties* is an
@@ -233,6 +236,7 @@ def _parse_layer_property_groups(
                 effect_param_defs=effect_param_defs,
                 frame_rate=composition.frame_rate,
                 comp_size=(composition.width, composition.height),
+                layer_id_to_index=layer_id_to_index,
             )
             properties.append(prop_group)
         elif first_list.list_type == "tdbs":
@@ -253,6 +257,7 @@ def parse_layer(
     layer_chunk: Aep.Chunk,
     composition: CompItem,
     effect_param_defs: dict[str, dict[str, dict[str, Any]]],
+    layer_id_to_index: dict[int, int] | None = None,
 ) -> Layer:
     """
     Parse a composition layer.
@@ -265,6 +270,8 @@ def parse_layer(
         composition: The composition.
         effect_param_defs: Project-level effect parameter definitions, used as
             fallback when layer-level parT chunks are missing.
+        layer_id_to_index: Mapping from binary layer IDs to 1-based layer
+            indices, used to resolve LAYER_INDEX property values.
 
     Returns:
         An [AVLayer][] for most layers, or a [LightLayer][] for light layers.
@@ -290,7 +297,7 @@ def parse_layer(
     out_point = ldta_chunk.start_time + ldta_chunk.out_point * stretch_factor
 
     properties, marker_property = _parse_layer_property_groups(
-        child_chunks, composition, effect_param_defs
+        child_chunks, composition, effect_param_defs, layer_id_to_index
     )
 
     # Adjust keyframe times from layer-relative to composition-relative

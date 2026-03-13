@@ -424,11 +424,13 @@ def compare_property(
     )
 
     # Compare value
-    if "value" in expected_prop and parsed_prop.get("value") is not None:
+    if "value" in expected_prop:
         exp_val = expected_prop["value"]
-        parsed_val = parsed_prop["value"]
+        parsed_val = parsed_prop.get("value")
         if not isinstance(exp_val, dict) or not exp_val.get("_undefined"):
-            if not compare_values(exp_val, parsed_val):
+            if parsed_val is None:
+                result.add_diff(f"{path}.value", exp_val, parsed_val, "properties")
+            elif not compare_values(exp_val, parsed_val):
                 result.add_diff(f"{path}.value", exp_val, parsed_val, "properties")
 
     # Compare numKeys vs len(keyframes)

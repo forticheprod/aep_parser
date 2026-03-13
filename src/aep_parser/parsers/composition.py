@@ -101,11 +101,22 @@ def parse_composition(
 
     # Parse composition's layers
     layer_sub_chunks = filter_by_list_type(chunks=child_chunks, list_type="Layr")
+
+    # Build layer_id-to-index mapping for LAYER control effect properties.
+    # ExtendScript reports 1-based layer indices; the binary stores internal
+    # layer IDs (ldta.layer_id).  Pre-scan all layer chunks so the mapping
+    # is available when parsing effect properties.
+    layer_id_to_index: dict[int, int] = {}
+    for idx, lc in enumerate(layer_sub_chunks, 1):
+        ldta = find_by_type(chunks=lc.chunks, chunk_type="ldta")
+        layer_id_to_index[ldta.layer_id] = idx
+
     for layer_chunk in layer_sub_chunks:
         layer = parse_layer(
             layer_chunk=layer_chunk,
             composition=composition,
             effect_param_defs=effect_param_defs,
+            layer_id_to_index=layer_id_to_index,
         )
         composition.layers.append(layer)
 

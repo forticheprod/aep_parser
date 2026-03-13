@@ -55,6 +55,7 @@ def parse_property_group(
     effect_param_defs: dict[str, dict[str, dict[str, Any]]],
     frame_rate: float,
     comp_size: tuple[int, int],
+    layer_id_to_index: dict[int, int] | None,
 ) -> PropertyGroup:
     """
     Parse a property group.
@@ -76,6 +77,9 @@ def parse_property_group(
         effect_param_defs: Project-level effect parameter definitions, used as
             fallback when layer-level parT chunks are missing.
         frame_rate: The frame rate of the parent composition.
+        comp_size: ``(width, height)`` of the parent composition in pixels.
+        layer_id_to_index: Mapping from binary layer IDs to 1-based layer
+            indices, used to resolve LAYER_INDEX property values.
     """
     name = MATCH_NAME_TO_NICE_NAME.get(group_match_name, group_match_name)
     child_depth = property_depth + 1
@@ -102,6 +106,7 @@ def parse_property_group(
                     effect_param_defs=effect_param_defs,
                     frame_rate=frame_rate,
                     comp_size=comp_size,
+                    layer_id_to_index=layer_id_to_index,
                 )
                 properties.append(sub_prop)
         elif first_chunk.list_type == "tdgp":
@@ -119,6 +124,7 @@ def parse_property_group(
                         effect_param_defs=effect_param_defs,
                         frame_rate=frame_rate,
                         comp_size=comp_size,
+                        layer_id_to_index=layer_id_to_index,
                     )
                     properties.append(sub_prop)
                 # Append 1-based index to mask names (e.g. "Mask 1", "Mask 2")
@@ -140,6 +146,7 @@ def parse_property_group(
                         effect_param_defs=effect_param_defs,
                         frame_rate=frame_rate,
                         comp_size=comp_size,
+                        layer_id_to_index=layer_id_to_index,
                     )
                     properties.append(sub_prop)
         elif first_chunk.list_type == "tdbs":
@@ -149,6 +156,7 @@ def parse_property_group(
                 time_scale=time_scale,
                 property_depth=child_depth,
                 frame_rate=frame_rate,
+                layer_id_to_index=layer_id_to_index,
             )
             properties.append(sub_prop)
         elif first_chunk.list_type == "otst":
@@ -223,6 +231,7 @@ def _parse_mask_atom(
     effect_param_defs: dict[str, dict[str, dict[str, Any]]],
     frame_rate: float,
     comp_size: tuple[int, int],
+    layer_id_to_index: dict[int, int] | None,
 ) -> MaskPropertyGroup:
     """Parse a mask atom into a MaskPropertyGroup.
 
@@ -238,6 +247,9 @@ def _parse_mask_atom(
         property_depth: The nesting depth of this group.
         effect_param_defs: Project-level effect parameter definitions.
         frame_rate: The frame rate of the parent composition.
+        comp_size: ``(width, height)`` of the parent composition in pixels.
+        layer_id_to_index: Mapping from binary layer IDs to 1-based layer
+            indices, used to resolve LAYER_INDEX property values.
     """
     from ..enums import MaskFeatherFalloff, MaskMode, MaskMotionBlur
 
@@ -249,6 +261,7 @@ def _parse_mask_atom(
         effect_param_defs=effect_param_defs,
         frame_rate=frame_rate,
         comp_size=comp_size,
+        layer_id_to_index=layer_id_to_index,
     )
 
     # Extract rotoBezier from ADBE Mask Shape tdsb (byte 0).
@@ -538,9 +551,7 @@ def parse_shape(
         for shap_chunk in filter_by_list_type(
             chunks=omks_chunk.chunks, list_type="shap"
         ):
-            shape_values.append(
-                _parse_shape_shap(shap_chunk, comp_size, is_mask)
-            )
+            shape_values.append(_parse_shape_shap(shap_chunk, comp_size, is_mask))
     except (ChunkNotFoundError, Exception):
         logger.debug("Could not parse omks shape data for %s", match_name)
         return prop
@@ -776,6 +787,7 @@ def _parse_effect_properties(
     child_depth: int,
     frame_rate: float,
     comp_size: tuple[int, int],
+    layer_id_to_index: dict[int, int] | None,
 ) -> list[Property | PropertyGroup]:
     """Parse effect properties and merge with parameter definitions.
 
@@ -790,6 +802,9 @@ def _parse_effect_properties(
         time_scale: The time scale of the parent composition.
         child_depth: The property depth for parsed child properties.
         frame_rate: The frame rate of the parent composition.
+        comp_size: ``(width, height)`` of the parent composition in pixels.
+        layer_id_to_index: Mapping from binary layer IDs to 1-based layer
+            indices, used to resolve LAYER_INDEX property values.
 
     Returns:
         List of parsed and merged properties.
@@ -808,6 +823,7 @@ def _parse_effect_properties(
                 time_scale=time_scale,
                 property_depth=child_depth,
                 frame_rate=frame_rate,
+                layer_id_to_index=layer_id_to_index,
             )
             if match_name in param_defs:
                 _merge_param_def(prop, param_defs[match_name])
@@ -821,6 +837,7 @@ def _parse_effect_properties(
                 effect_param_defs={},
                 frame_rate=frame_rate,
                 comp_size=comp_size,
+                layer_id_to_index=layer_id_to_index,
             )
             properties.append(sub_group)
         else:
@@ -849,6 +866,7 @@ def parse_effect(
     effect_param_defs: dict[str, dict[str, dict[str, Any]]],
     frame_rate: float,
     comp_size: tuple[int, int],
+    layer_id_to_index: dict[int, int] | None,
 ) -> PropertyGroup:
     """
     Parse an effect.
@@ -870,6 +888,9 @@ def parse_effect(
         effect_param_defs: Project-level effect parameter definitions, used as
             fallback when layer-level parT chunks are missing.
         frame_rate: The frame rate of the parent composition.
+        comp_size: ``(width, height)`` of the parent composition in pixels.
+        layer_id_to_index: Mapping from binary layer IDs to 1-based layer
+            indices, used to resolve LAYER_INDEX property values.
     """
     sspc_child_chunks = sspc_chunk.chunks
     fnam_chunk = find_by_type(chunks=sspc_child_chunks, chunk_type="fnam")
@@ -900,6 +921,7 @@ def parse_effect(
         child_depth=property_depth + 1,
         frame_rate=frame_rate,
         comp_size=comp_size,
+        layer_id_to_index=layer_id_to_index,
     )
 
     effect_group = PropertyGroup(
@@ -978,9 +1000,11 @@ def _parse_effect_parameter_def(parameter_chunks: list[Aep.Chunk]) -> dict[str, 
 
     elif control_type == PropertyControlType.LAYER:
         result["property_value_type"] = PropertyValueType.LAYER_INDEX
+        result["default_value"] = 0
 
     elif control_type == PropertyControlType.MASK:
         result["property_value_type"] = PropertyValueType.MASK_INDEX
+        result["default_value"] = 0
 
     elif control_type == PropertyControlType.CURVE:
         result["property_value_type"] = PropertyValueType.CUSTOM_VALUE

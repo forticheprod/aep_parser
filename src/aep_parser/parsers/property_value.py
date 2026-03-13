@@ -448,6 +448,7 @@ def parse_property(
     time_scale: float,
     property_depth: int,
     frame_rate: float,
+    layer_id_to_index: dict[int, int] | None = None,
 ) -> Property:
     """
     Parse a property.
@@ -465,6 +466,9 @@ def parse_property(
             for some frame values.
         property_depth: The nesting depth of this property (0 = layer level).
         frame_rate: The frame rate of the parent composition.
+        layer_id_to_index: Mapping from binary layer IDs (ldta.layer_id)
+            to 1-based layer indices. Used to convert tdpi values to the
+            layer index reported by ExtendScript.
     """
     tdbs_child_chunks = tdbs_chunk.chunks
 
@@ -524,6 +528,25 @@ def parse_property(
     except ChunkNotFoundError:
         value = None
 
+    # For LAYER/MASK control properties, read index from tdpi/tdli chunks.
+    # tdpi stores the binary layer_id (references ldta.layer_id); convert
+    # to a 1-based layer index using the composition's mapping.
+    # tdli stores the 1-based mask index directly.
+    try:
+        tdpi_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdpi")
+        layer_id = tdpi_chunk.value
+        if layer_id == 0 or layer_id_to_index is None:
+            value = 0
+        else:
+            value = layer_id_to_index.get(layer_id, 0)
+    except ChunkNotFoundError:
+        pass
+    try:
+        tdli_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdli")
+        value = tdli_chunk.value
+    except ChunkNotFoundError:
+        pass
+
     try:
         utf8_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="Utf8")
         expression = str_contents(utf8_chunk)
@@ -544,6 +567,12 @@ def parse_property(
     keyframes = _parse_keyframes(
         tdbs_child_chunks, time_scale, is_spatial, frame_rate=frame_rate
     )
+
+    # When a property is animated and has no cdat chunk, fall back to
+    # the first keyframe's value (ExtendScript reports the interpolated
+    # value at the current time, which defaults to keyframe 0).
+    if value is None and keyframes:
+        value = keyframes[0].value
 
     # Convert 0–1 fraction to 0–100 percentage for properties that
     # ExtendScript reports in percent (e.g. Opacity, Scale).

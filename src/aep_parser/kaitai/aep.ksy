@@ -80,9 +80,12 @@ types:
             '"shph"': shph_body # Shape path header (bounding box + closed flag)
             '"sspc"': sspc_body # Footage data
             '"tdb4"': tdb4_body # Property metadata
+            '"tdli"': s4_body   # Mask index for MASK control property (1-based)
             '"tdmn"': utf8_body # Property or parameter name
             '"tdum"': tdum_body # Property minimum value (stored min)
             '"tduM"': tdum_body # Property maximum value (stored max)
+            '"tdpi"': s4_body   # Layer ID for LAYER control property (references ldta.layer_id)
+            '"tdps"': s4_body   # Secondary layer selector (always 0 in known samples)
             '"tdsb"': tdsb_body # Transform property group flags
             '"tdsn"': child_utf8_body # User-defined name of a property. Contains a single utf-8 chunk but no list_type
             '"Utf8"': utf8_body # Contains text
@@ -363,6 +366,11 @@ types:
       - id: view_count
         type: u2
         doc: Number of views in the inner tab
+  s4_body:
+    doc: Single signed 32-bit big-endian integer value.
+    seq:
+      - id: value
+        type: s4
   fcid_body:
     doc: |
       Active composition item ID. Stores the item ID of the currently

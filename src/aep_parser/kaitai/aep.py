@@ -612,11 +612,26 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.Tdb4Body(_io__raw_data, self, self._root)
+            elif _on == u"tdli":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.S4Body(_io__raw_data, self, self._root)
             elif _on == u"tdmn":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+            elif _on == u"tdpi":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.S4Body(_io__raw_data, self, self._root)
+            elif _on == u"tdps":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.S4Body(_io__raw_data, self, self._root)
             elif _on == u"tdsb":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -783,7 +798,16 @@ class Aep(KaitaiStruct):
             elif _on == u"tdb4":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"tdli":
+                pass
+                self.data._fetch_instances()
             elif _on == u"tdmn":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"tdpi":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"tdps":
                 pass
                 self.data._fetch_instances()
             elif _on == u"tdsb":
@@ -2749,6 +2773,22 @@ class Aep(KaitaiStruct):
             self.render = self._io.read_bits_int_be(1) != 0
             self._unnamed2 = self._io.read_bits_int_be(6)
             self._unnamed3 = self._io.read_bytes(3)
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class S4Body(KaitaiStruct):
+        """Single signed 32-bit big-endian integer value."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.S4Body, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.value = self._io.read_s4be()
 
 
         def _fetch_instances(self):

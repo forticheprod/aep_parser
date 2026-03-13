@@ -68,8 +68,6 @@ pip install -e ".[dev]" # alternative
 
 # Verify installation
 uv run pytest
-uv run mypy src/aep_parser
-uv run ruff check src/
 ```
 
 ### Tools and Scripts
