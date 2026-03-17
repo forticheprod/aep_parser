@@ -34,6 +34,7 @@ class TestToDict:
 
     def test_enum_to_dict(self) -> None:
         from aep_parser.enums import BlendingMode
+
         result = to_dict(BlendingMode.NORMAL)
         assert result == BlendingMode.NORMAL.value
 
@@ -56,6 +57,7 @@ class TestGetEnumValue:
 
     def test_enum_returns_value(self) -> None:
         from aep_parser.enums import BlendingMode
+
         assert get_enum_value(BlendingMode.ADD) == BlendingMode.ADD.value
 
     def test_non_enum_returns_as_is(self) -> None:
@@ -151,8 +153,20 @@ class TestCompareMarker:
 
     def test_matching_marker(self) -> None:
         result = ValidationResult()
-        expected_marker = {"time": 1.0, "comment": "test", "chapter": "", "url": "", "duration": 0}
-        parsed_marker = {"frame_time": 30, "comment": "test", "chapter": "", "url": "", "duration": 0}
+        expected_marker = {
+            "time": 1.0,
+            "comment": "test",
+            "chapter": "",
+            "url": "",
+            "duration": 0,
+        }
+        parsed_marker = {
+            "frame_time": 30,
+            "comment": "test",
+            "chapter": "",
+            "url": "",
+            "duration": 0,
+        }
         compare_marker(expected_marker, parsed_marker, "Marker[0]", 30.0, result)
         # time=frame_time/fps = 30/30 = 1.0
         marker_diffs = [d for d in result.differences if "Marker" in d]
@@ -186,7 +200,9 @@ class TestCompareLayer:
                     parsed_layers = parsed_comps[0].get("layers", [])
                     if parsed_layers:
                         result = ValidationResult()
-                        compare_layer(exp_layer, parsed_layers[0], "Layer[0]", 30.0, result)
+                        compare_layer(
+                            exp_layer, parsed_layers[0], "Layer[0]", 30.0, 24.0, result
+                        )
                         assert isinstance(result, ValidationResult)
 
 
@@ -204,7 +220,9 @@ class TestMain:
     """Tests for the CLI main() entry point."""
 
     def test_missing_aep(self, tmp_path: Path) -> None:
-        exit_code = main([str(tmp_path / "nonexistent.aep"), str(tmp_path / "test.json")])
+        exit_code = main(
+            [str(tmp_path / "nonexistent.aep"), str(tmp_path / "test.json")]
+        )
         assert exit_code == 1
 
     def test_missing_json(self, tmp_path: Path) -> None:

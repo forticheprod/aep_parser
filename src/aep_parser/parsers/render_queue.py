@@ -86,9 +86,6 @@ def parse_render_queue_items(
         list_settings_chunk
     )
 
-    rout_chunk = find_by_type(chunks=lrdr_child_chunks, chunk_type="Rout")
-    rout_items = rout_chunk.items
-
     # LItm chunk is probably the RQItemCollection.
     litm_chunk = find_by_list_type(chunks=lrdr_child_chunks, list_type="LItm")
 
@@ -108,12 +105,10 @@ def parse_render_queue_items(
                 list_chunk = chunk
             elif list_type == "LOm " and list_chunk is not None:
                 # We have both list_chunk and lom_chunk, parse the item
-                render_enabled = rout_items[item_index].render
                 item = parse_render_queue_item(
                     list_chunk=list_chunk,
                     lom_chunk=chunk,
                     ldat_body=render_settings_chunks[item_index],
-                    render_enabled=render_enabled,
                     comment=comment,
                     project=project,
                 )
@@ -129,7 +124,6 @@ def parse_render_queue_item(
     list_chunk: Aep.Chunk,
     lom_chunk: Aep.Chunk,
     ldat_body: Aep.RenderSettingsLdatBody,
-    render_enabled: bool,
     comment: str,
     project: Project,
 ) -> RenderQueueItem:
@@ -140,7 +134,6 @@ def parse_render_queue_item(
         list_chunk: The LIST 'list' chunk containing item metadata.
         lom_chunk: The LIST 'LOm ' chunk containing output modules.
         ldat_body: The RenderSettingsLdatBody chunk for this item.
-        render_enabled: Whether the item is set to render when queue starts.
         comment: The comment for the render queue item (from RCom chunk).
         project: The Project object being constructed, used to link comp
             references in render queue items.
@@ -170,6 +163,8 @@ def parse_render_queue_item(
     # Group chunks by Roou - each Roou starts a new output module
     om_groups = split_on_type(lom_child_chunks, "Roou")
 
+    status = RQItemStatus.from_binary(ldat_body.status)
+
     render_queue_item = RenderQueueItem(
         comment=comment,
         comp=comp,
@@ -178,11 +173,11 @@ def parse_render_queue_item(
         name=template_name,
         output_modules=[],
         queue_item_notify=queue_item_notify,
-        render=render_enabled,
+        render=status != RQItemStatus.UNQUEUED,
         settings=settings,
         skip_frames=0,  # to be calculated after parsing output module settings
         start_time=start_time_val,
-        status=RQItemStatus.from_binary(ldat_body.status),
+        status=status,
         time_span_duration_frames=time_span_duration_frames,
         time_span_start_frames=time_span_start_frames,
     )
@@ -215,10 +210,22 @@ def _parse_render_settings(
 
     Args:
         ldat_body: The parsed RenderSettingsLdatBody from LdatItem.
+        comp: The composition being rendered, used to resolve time span.
 
     Returns:
         Dict with ExtendScript-compatible keys.
     """
+    time_span = TimeSpanSource.from_binary(ldat_body.time_span_source)
+
+    if time_span == TimeSpanSource.LENGTH_OF_COMP:
+        ts_start = 0.0
+        ts_duration = comp.duration
+    elif time_span == TimeSpanSource.WORK_AREA_ONLY:
+        ts_start = comp.work_area_start
+        ts_duration = comp.work_area_duration
+    else:
+        ts_start = ldat_body.time_span_start
+        ts_duration = ldat_body.time_span_duration
 
     return {
         "3:2 Pulldown": PulldownSetting(ldat_body.pulldown),
@@ -235,10 +242,10 @@ def _parse_render_settings(
         "Resolution": [ldat_body.resolution_x, ldat_body.resolution_y],
         "Skip Existing Files": bool(ldat_body.skip_existing_files),
         "Solo Switches": SoloSwitchesSetting.from_binary(ldat_body.solo_switches),
-        "Time Span Duration": ldat_body.time_span_duration,
-        "Time Span End": ldat_body.time_span_end,
-        "Time Span Start": ldat_body.time_span_start,
-        "Time Span": TimeSpanSource.from_binary(ldat_body.time_span_source),
+        "Time Span Duration": ts_duration,
+        "Time Span End": ts_start + ts_duration,
+        "Time Span Start": ts_start,
+        "Time Span": time_span,
         "Use comp's frame rate": comp.frame_rate,
         "Use this frame rate": ldat_body.frame_rate,
     }

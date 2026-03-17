@@ -17,9 +17,9 @@ class RenderQueue:
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         render_queue = app.project.render_queue
         for rq_item in render_queue:
             ...
@@ -33,3 +33,13 @@ class RenderQueue:
 
     def __iter__(self) -> typing.Iterator[RenderQueueItem]:
         return iter(self.items)
+
+    @property
+    def num_items(self) -> int:
+        """
+        Return the number of items in the render queue.
+
+        Note:
+            Equivalent to `len(render_queue.items)`
+        """
+        return len(self.items)

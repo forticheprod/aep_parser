@@ -14,15 +14,18 @@ class View:
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         view = app.active_viewer.views[0]
         print(view.options)
         ```
 
     See: https://ae-scripting.docsforadobe.dev/other/view/
     """
+
+    active: bool
+    """When `True`, indicates if the view is the active view in its viewer."""
 
     options: ViewOptions
     """Options object for this View."""

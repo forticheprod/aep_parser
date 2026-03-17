@@ -81,9 +81,7 @@ class TestOutputModule:
             ("include_source_xmp_data_off", False),
         ],
     )
-    def test_include_source_xmp(
-        self, sample_name: str, expected_value: bool
-    ) -> None:
+    def test_include_source_xmp(self, sample_name: str, expected_value: bool) -> None:
         project = parse_project(OM_SAMPLES_DIR / f"{sample_name}.aep")
         om = project.render_queue.items[0].output_modules[0]
         assert om.include_source_xmp is expected_value
@@ -105,7 +103,10 @@ class TestOutputModule:
         [
             ("convert_to_linear_light_off", ConvertToLinearLight.OFF),
             ("convert_to_linear_light_on", ConvertToLinearLight.ON),
-            ("convert_to_linear_light_on_for_32_bpc", ConvertToLinearLight.ON_FOR_32_BPC),
+            (
+                "convert_to_linear_light_on_for_32_bpc",
+                ConvertToLinearLight.ON_FOR_32_BPC,
+            ),
         ],
     )
     def test_convert_to_linear_light(
@@ -180,9 +181,7 @@ class TestOutputModuleSettings:
             ("starting_9999999", 9999999),
         ],
     )
-    def test_starting_number(
-        self, sample_name: str, expected_value: int
-    ) -> None:
+    def test_starting_number(self, sample_name: str, expected_value: int) -> None:
         expected = load_expected(SAMPLES_DIR, sample_name)
         project = parse_project(SAMPLES_DIR / f"{sample_name}.aep")
         om = project.render_queue.items[0].output_modules[0]
@@ -219,7 +218,11 @@ class TestResolveOutputFilename:
         [
             ("[projectName]", {"project_name": "MyProject"}, "MyProject"),
             ("[compName]", {"comp_name": "Comp 1"}, "Comp 1"),
-            ("[renderSettingsName]", {"render_settings_name": "Best Settings"}, "Best Settings"),
+            (
+                "[renderSettingsName]",
+                {"render_settings_name": "Best Settings"},
+                "Best Settings",
+            ),
             ("[outputModuleName]", {"output_module_name": "Lossless"}, "Lossless"),
             ("[width]", {"width": 1920}, "1920"),
             ("[height]", {"height": 1080}, "1080"),
@@ -246,9 +249,7 @@ class TestResolveOutputFilename:
             (OutputChannels.ALPHA, "Alpha"),
         ],
     )
-    def test_channels(
-        self, channels: OutputChannels, expected: str
-    ) -> None:
+    def test_channels(self, channels: OutputChannels, expected: str) -> None:
         assert resolve_output_filename("[channels]", channels=channels) == expected
 
     @pytest.mark.parametrize(
@@ -260,7 +261,10 @@ class TestResolveOutputFilename:
         ],
     )
     def test_project_color_depth(self, depth: int, expected: str) -> None:
-        assert resolve_output_filename("[projectColorDepth]", project_color_depth=depth) == expected
+        assert (
+            resolve_output_filename("[projectColorDepth]", project_color_depth=depth)
+            == expected
+        )
 
     @pytest.mark.parametrize(
         "color_depth, expected",
@@ -276,10 +280,17 @@ class TestResolveOutputFilename:
     def test_output_color_depth(
         self, color_depth: OutputColorDepth, expected: str
     ) -> None:
-        assert resolve_output_filename("[outputColorDepth]", output_color_depth=color_depth) == expected
+        assert (
+            resolve_output_filename(
+                "[outputColorDepth]", output_color_depth=color_depth
+            )
+            == expected
+        )
 
     def test_file_extension(self) -> None:
-        result = resolve_output_filename("[compName].[fileExtension]", comp_name="MyComp", file_extension="mp4")
+        result = resolve_output_filename(
+            "[compName].[fileExtension]", comp_name="MyComp", file_extension="mp4"
+        )
         assert result == "MyComp.mp4"
 
     def test_combined_template(self) -> None:
@@ -298,7 +309,11 @@ class TestResolveOutputFilename:
         [
             ("[startTimecode]", {"start_time": 0.0, "frame_rate": 24.0}, "0-00-00-00"),
             ("[endTimecode]", {"end_time": 10.0, "frame_rate": 24.0}, "0-00-10-00"),
-            ("[durationTimecode]", {"duration_time": 5.0, "frame_rate": 24.0}, "0-00-05-00"),
+            (
+                "[durationTimecode]",
+                {"duration_time": 5.0, "frame_rate": 24.0},
+                "0-00-05-00",
+            ),
         ],
     )
     def test_timecode(
@@ -307,7 +322,9 @@ class TestResolveOutputFilename:
         assert resolve_output_filename(template, **kwargs) == expected
 
     def test_project_folder_empty(self) -> None:
-        result = resolve_output_filename("[projectFolder][compName]", comp_name="MyComp")
+        result = resolve_output_filename(
+            "[projectFolder][compName]", comp_name="MyComp"
+        )
         assert result == "MyComp"
 
 
@@ -330,7 +347,10 @@ class TestOutputColorSpace:
             ("adobe_rgb", "Adobe RGB (1998)"),
             ("acescg", "ACEScg ACES Working Space AMPAS S-2014-004"),
             ("acescct", "ACEScct"),
-            ("aces_2065-1", "ACES Academy Color Encoding Specification SMPTE ST 2065-1"),
+            (
+                "aces_2065-1",
+                "ACES Academy Color Encoding Specification SMPTE ST 2065-1",
+            ),
             ("prophoto_rgb", "ProPhoto RGB"),
             ("cie_rgb", "CIE RGB"),
             ("colormatch_rgb", "ColorMatch RGB"),
@@ -341,9 +361,7 @@ class TestOutputColorSpace:
             ("arriflex_daylight", "ARRIFLEX D-20 Daylight Log (by Adobe)"),
         ],
     )
-    def test_output_color_space(
-        self, sample_name: str, expected_value: str
-    ) -> None:
+    def test_output_color_space(self, sample_name: str, expected_value: str) -> None:
         project = parse_project(OCS_SAMPLES_DIR / f"{sample_name}.aep")
         om = project.render_queue.items[0].output_modules[0]
         assert om.settings["Output Color Space"] == expected_value

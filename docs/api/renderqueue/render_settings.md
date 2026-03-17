@@ -4,7 +4,6 @@ Render settings are stored as a [RenderSettings][aep_parser.models.settings.Rend
 
 ::: aep_parser.models.settings.RenderSettings
     options:
-      show_root_heading: true
       show_bases: false
 
 ## Available Keys

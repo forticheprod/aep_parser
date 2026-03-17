@@ -643,11 +643,12 @@
     // =========================================================================
 
     function main() {
-        // Prompt for output folder
-        var folder = Folder.selectDialog("Select the version-specific folder (e.g., samples/versions/ae2024/)");
-        if (!folder) {
-            alert("No folder selected. Aborting.");
-            return;
+        // Resolve samples/versions/ relative to this script: scripts/jsx/../../samples/versions/
+        var scriptFile = new File($.fileName);
+        var scriptDir = scriptFile.parent;
+        var folder = new Folder(scriptDir.fsName + "/../../samples/versions/ae" + getAEVersionYear());
+        if (!folder.exists) {
+            folder.create();
         }
 
         // Determine assets path (samples/assets relative to samples/versions/aeXXXX)
@@ -717,11 +718,10 @@
             $.writeln("1. Review the project in After Effects");
             $.writeln("2. Run export_project_json.jsx to create the reference JSON");
 
-            alert("Complete sample generated for AE " + aeYear + "!\n\nSaved to:\n" + outputPath + "\n\nItems: " + proj.numItems + "\nMain comp layers: " + mainComp.numLayers);
+            $.writeln("Complete sample generated for AE " + aeYear + ".");
 
         } catch(e) {
             $.writeln("ERROR: " + e.toString());
-            alert("Error generating sample:\n" + e.toString());
         }
     }
 

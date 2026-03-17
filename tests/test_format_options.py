@@ -30,11 +30,7 @@ from aep_parser.models.renderqueue.format_options import (
 )
 
 FORMAT_DIR = (
-    Path(__file__).parent.parent
-    / "samples"
-    / "models"
-    / "output_module"
-    / "format"
+    Path(__file__).parent.parent / "samples" / "models" / "output_module" / "format"
 )
 CINEON_DIR = FORMAT_DIR / "cineon"
 AVI_DIR = FORMAT_DIR / "avi"
@@ -374,9 +370,7 @@ class TestH264FormatOptions:
 
     def test_mpeg_audio_format_mpeg(self) -> None:
         """MPEG audio format sample has ADBEMPEGAudioFormat set to MPEG."""
-        project = parse_project(
-            FORMAT_DIR / "h.264" / "audio_format_mpeg.aep"
-        )
+        project = parse_project(FORMAT_DIR / "h.264" / "audio_format_mpeg.aep")
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, XmlFormatOptions)
         assert opts.mpeg_audio_format == MPEGAudioFormat.MPEG
@@ -390,17 +384,13 @@ class TestH264FormatOptions:
         assert opts.mpeg_mux_stream_compatibility == MPEGMuxStreamCompatibility.STD
 
     def test_mpeg_audio_layer_i(self) -> None:
-        project = parse_project(
-            FORMAT_DIR / "h.264" / "audio_format_mpeg.aep"
-        )
+        project = parse_project(FORMAT_DIR / "h.264" / "audio_format_mpeg.aep")
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, XmlFormatOptions)
         assert opts.params["ADBEMPEGAudioLayer"] == "1"
 
     def test_mpeg_audio_layer_ii(self) -> None:
-        project = parse_project(
-            FORMAT_DIR / "h.264" / "audio_format_mpeg_layer_II.aep"
-        )
+        project = parse_project(FORMAT_DIR / "h.264" / "audio_format_mpeg_layer_II.aep")
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, XmlFormatOptions)
         assert opts.params["ADBEMPEGAudioLayer"] == "2"
@@ -686,10 +676,16 @@ class TestJpegFormatOptions:
         assert self._opts("quality_10").quality == 10
 
     def test_baseline_standard(self) -> None:
-        assert self._opts("baseline_standard").format_type == JpegFormatType.BASELINE_STANDARD
+        assert (
+            self._opts("baseline_standard").format_type
+            == JpegFormatType.BASELINE_STANDARD
+        )
 
     def test_baseline_optimized(self) -> None:
-        assert self._opts("baseline_optimized").format_type == JpegFormatType.BASELINE_OPTIMIZED
+        assert (
+            self._opts("baseline_optimized").format_type
+            == JpegFormatType.BASELINE_OPTIMIZED
+        )
 
     def test_progressive(self) -> None:
         assert self._opts("progressive_3").format_type == JpegFormatType.PROGRESSIVE
@@ -782,7 +778,9 @@ class TestOpenExrFormatOptions:
         assert opts.luminance_chroma is False
 
     def test_luminance_chroma_on(self) -> None:
-        project = parse_project(FORMAT_DIR / "openexr" / "compression_zip_luminance_chroma.aep")
+        project = parse_project(
+            FORMAT_DIR / "openexr" / "compression_zip_luminance_chroma.aep"
+        )
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, OpenExrFormatOptions)
         assert opts.luminance_chroma is True
@@ -794,7 +792,9 @@ class TestOpenExrFormatOptions:
         assert opts.thirty_two_bit_float is False
 
     def test_32_bit_float_on(self) -> None:
-        project = parse_project(FORMAT_DIR / "openexr" / "compression_zip_32_bit_float.aep")
+        project = parse_project(
+            FORMAT_DIR / "openexr" / "compression_zip_32_bit_float.aep"
+        )
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, OpenExrFormatOptions)
         assert opts.thirty_two_bit_float is True
@@ -818,7 +818,9 @@ class TestOpenExrFormatOptions:
         assert opts.dwa_compression_level == 1.0
 
     def test_dwa_compression_level_dwaa_large(self) -> None:
-        project = parse_project(FORMAT_DIR / "openexr" / "compression_dwaa_10000000000.0.aep")
+        project = parse_project(
+            FORMAT_DIR / "openexr" / "compression_dwaa_10000000000.0.aep"
+        )
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, OpenExrFormatOptions)
         assert opts.dwa_compression_level == 10000000000.0
@@ -926,7 +928,7 @@ class TestPngFormatOptions:
         project = parse_project(FORMAT_DIR / "png" / "luminance_max_1.797693e+308.aep")
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, PngFormatOptions)
-        assert opts.luminance_max == 1.7976931348623157e+308
+        assert opts.luminance_max == 1.7976931348623157e308
 
     def test_content_light_max_default(self) -> None:
         project = parse_project(FORMAT_DIR / "png" / "base.aep")
@@ -935,10 +937,12 @@ class TestPngFormatOptions:
         assert opts.content_light_max is None
 
     def test_content_light_max_set(self) -> None:
-        project = parse_project(FORMAT_DIR / "png" / "content_light_levels_maximum_1.797693e+308.aep")
+        project = parse_project(
+            FORMAT_DIR / "png" / "content_light_levels_maximum_1.797693e+308.aep"
+        )
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, PngFormatOptions)
-        assert opts.content_light_max == 1.7976931348623157e+308
+        assert opts.content_light_max == 1.7976931348623157e308
 
     def test_content_light_average_default(self) -> None:
         project = parse_project(FORMAT_DIR / "png" / "base.aep")
@@ -947,10 +951,12 @@ class TestPngFormatOptions:
         assert opts.content_light_average is None
 
     def test_content_light_average_set(self) -> None:
-        project = parse_project(FORMAT_DIR / "png" / "content_light_levels_average_1.797693e+308.aep")
+        project = parse_project(
+            FORMAT_DIR / "png" / "content_light_levels_average_1.797693e+308.aep"
+        )
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, PngFormatOptions)
-        assert opts.content_light_average == 1.7976931348623157e+308
+        assert opts.content_light_average == 1.7976931348623157e308
 
 
 class TestTargaFormatOptions:

@@ -1,29 +1,31 @@
 from __future__ import annotations
 
 import typing
-from abc import ABC
 from dataclasses import dataclass, field
+from typing import List, cast
 
 from aep_parser.enums import Label
+
+from ..properties.marker import MarkerValue
+from ..properties.property import Property
+from ..properties.property_group import PropertyGroup
 
 if typing.TYPE_CHECKING:
     from aep_parser.enums import AutoOrientType
 
     from ..items.composition import CompItem
-    from ..properties.marker import MarkerValue
-    from ..properties.property import Property
-    from ..properties.property_group import PropertyGroup
 
 
 @dataclass(eq=False)
-class Layer(ABC):
+class Layer(PropertyGroup):
     """
     The `Layer` object provides access to layers within compositions.
 
-    Warning:
-        In the ExtendScript API, `Layer` is a subclass of [PropertyGroup][], which is a
-        subclass of [PropertyBase][aep_parser.models.properties.property_base.PropertyBase].
-        It is not the case here at the moment.
+    Info:
+        `Layer` is a subclass of [PropertyGroup][], which is a subclass of
+        [PropertyBase][aep_parser.models.properties.property_base.PropertyBase]. All
+        methods and attributes of [PropertyGroup][], in addition to those listed below,
+        are available when working with `Layer` objects.
 
     Info:
         `Layer` is the base class for [CameraLayer][] object, [LightLayer][]
@@ -43,14 +45,6 @@ class Layer(ABC):
     """
     The composition that contains this layer. Set after parsing when the full
     project structure is available.
-    """
-
-    effects: list[PropertyGroup]
-    """Contains a layer's effects (if any)."""
-
-    enabled: bool
-    """
-    Corresponds to the video switch state of the layer in the Timeline panel.
     """
 
     frame_in_point: int
@@ -96,19 +90,14 @@ class Layer(ABC):
     """
 
     layer_type: str
-    """The type of layer (footage, light, camera, text, shape)."""
+    """The type of layer. Matches ExtendScript `layerType` values:
+    ``"AVLayer"``, ``"LightLayer"``, ``"CameraLayer"``, or ``"Layer"``."""
 
     locked: bool
     """
     When `True`, the layer is locked. This corresponds to the lock toggle in
     the Layer panel.
     """
-
-    markers: list[MarkerValue]
-    """Contains a layer's markers."""
-
-    name: str
-    """The name of the layer."""
 
     null_layer: bool
     """When `True`, the layer was created as a null object."""
@@ -146,21 +135,143 @@ class Layer(ABC):
     0 (not including 0) are set to -1.
     """
 
-    text: PropertyGroup | None
-    """Contains a layer's text properties (if any)."""
-
     time: float
     """
     The current time of the layer, expressed in composition time (seconds).
     """
 
-    transform: list[Property]
-    """Contains a layer's transform properties."""
-
     is_name_set: bool = field(init=False)
 
     # Set after parsing - reference to parent layer (not serialized)
     _parent: Layer | None = field(default=None, init=False, repr=False)
+
+    # Use identity-based equality to avoid comparing all fields recursively,
+    # which could produce unexpected results or hit circular references.
+    __eq__ = object.__eq__
+    __hash__ = object.__hash__
+
+    @property
+    def index(self) -> int:
+        """The 0-based index position of the layer in its containing comp.
+
+        Warning:
+            Unlike ExtendScript (1-based), this uses Python's 0-based
+            convention so that ``comp.layers[layer.index]`` works directly.
+        """
+        return self.containing_comp.layers.index(self)
+
+    @property
+    def has_video(self) -> bool:
+        """`True` if the layer has a video switch in the Timeline panel.
+
+        Always `False` for [CameraLayer][] and [LightLayer][] objects.
+        """
+        return False
+
+    @property
+    def active(self) -> bool:
+        """
+        When `True`, the layer is active at the current time.
+
+        Overrides [PropertyBase.active][] to evaluate
+        [active_at_time][] at [time][].
+        """
+        return self.active_at_time(self.time)
+
+    @property
+    def marker(self) -> Property | None:
+        """The layer's marker property.
+
+        A [Property][aep_parser.models.properties.property.Property] with
+        ``match_name="ADBE Marker"`` whose keyframes hold marker values.
+        `None` when the layer has no markers.
+        """
+        try:
+            prop = self["ADBE Marker"]
+        except KeyError:
+            return None
+        return cast(Property, prop)
+
+    @property
+    def markers(self) -> list[MarkerValue]:
+        """A flat list of [MarkerValue][] objects for this layer.
+
+        Shortcut for accessing marker data without navigating the property
+        tree. Returns an empty list when the layer has no markers.
+
+        Example:
+            ```python
+            for marker in layer.markers:
+                print(marker.comment)
+            ```
+        """
+        if self.marker is None:
+            return []
+        return cast(
+            List[MarkerValue],  # Cannot use `list` for Py3.7`
+            [kf.value for kf in self.marker.keyframes],
+        )
+
+    @property
+    def transform(self) -> PropertyGroup:
+        """
+        Contains a layer's transform properties.
+
+        This is the Transform `PropertyGroup` (match name
+        ``ADBE Transform Group``). Individual transform properties (Position,
+        Scale, Rotation, etc.) are accessible via
+        [properties][PropertyGroup.properties].
+        """
+        group = self["ADBE Transform Group"]
+        assert isinstance(group, PropertyGroup)
+        return group
+
+    @property
+    def effects(self) -> PropertyGroup | None:
+        """
+        Contains a layer's effects.
+
+        This is the Effects `PropertyGroup` (match name ``ADBE Effect Parade``).
+        Each child in [properties][PropertyGroup.properties] is itself a
+        [PropertyGroup][] representing one effect. `None` when the layer has no
+        effects.
+        """
+        try:
+            group = self["ADBE Effect Parade"]
+        except KeyError:
+            return None
+        if not isinstance(group, PropertyGroup) or not group.properties:
+            return None
+        return group
+
+    @property
+    def masks(self) -> PropertyGroup | None:
+        """
+        Contains a layer's masks.
+
+        This is the Masks `PropertyGroup` (match name ``ADBE Mask Parade``).
+        Each child in [properties][PropertyGroup.properties] is itself a
+        [PropertyGroup][] representing one mask. `None` when the layer has no
+        masks.
+        """
+        try:
+            group = self["ADBE Mask Parade"]
+        except KeyError:
+            return None
+        if not isinstance(group, PropertyGroup) or not group.properties:
+            return None
+        return group
+
+    @property
+    def text(self) -> PropertyGroup | None:
+        """Contains a layer's text properties (if any)."""
+        try:
+            group = self["ADBE Text Properties"]
+        except KeyError:
+            return None
+        if isinstance(group, PropertyGroup):
+            return group
+        return None
 
     @property
     def parent(self) -> Layer | None:
@@ -176,7 +287,7 @@ class Layer(ABC):
 
         For this method to return ``True``, three conditions must be met:
 
-        1. The layer must be [enabled][].
+        1. The layer must be `enabled`.
         2. No other layer in the [containing_comp][] may be soloed unless
            this layer is also [solo][].
         3. *time* must fall between [in_point][] (inclusive) and

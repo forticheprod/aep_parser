@@ -5,16 +5,16 @@ from dataclasses import dataclass
 from .layer import Layer
 
 
-@dataclass
+@dataclass(eq=False)
 class CameraLayer(Layer):
     """
     The CameraLayer object represents a camera layer within a composition.
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         comp = app.project.compositions[0]
         camera = comp.camera_layers[0]
         print(camera.name)

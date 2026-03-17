@@ -57,6 +57,16 @@ class BitsPerChannel(IntEnum):
     SIXTEEN = 16
     THIRTY_TWO = 32
 
+    @classmethod
+    def from_binary(cls, value: int) -> BitsPerChannel:
+        """Convert binary value to BitsPerChannel."""
+        _mapping = {
+            0: cls.EIGHT,
+            1: cls.SIXTEEN,
+            2: cls.THIRTY_TWO,
+        }
+        return _mapping.get(value, cls.EIGHT)
+
 
 class AutoOrientType(IntEnum):
     """Auto-orientation mode for a layer.
@@ -114,6 +124,51 @@ class BlendingMode(IntEnum):
     DARKER_COLOR = 5247
     SUBTRACT = 5248
     DIVIDE = 5249
+
+    @classmethod
+    def from_binary(cls, value: int) -> BlendingMode:
+        """Convert binary blending mode value to BlendingMode."""
+        _mapping = {
+            0: cls.NORMAL,  # cameras, lights, and null layers
+            2: cls.NORMAL,
+            3: cls.DISSOLVE,
+            4: cls.ADD,
+            5: cls.MULTIPLY,
+            6: cls.SCREEN,
+            7: cls.OVERLAY,
+            8: cls.SOFT_LIGHT,
+            9: cls.HARD_LIGHT,
+            10: cls.DARKEN,
+            11: cls.LIGHTEN,
+            12: cls.CLASSIC_DIFFERENCE,
+            13: cls.HUE,
+            14: cls.SATURATION,
+            15: cls.COLOR,
+            16: cls.LUMINOSITY,
+            17: cls.STENCIL_ALPHA,
+            18: cls.STENCIL_LUMA,
+            19: cls.SILHOUETE_ALPHA,
+            20: cls.SILHOUETTE_LUMA,
+            21: cls.LUMINESCENT_PREMUL,
+            22: cls.ALPHA_ADD,
+            23: cls.CLASSIC_COLOR_DODGE,
+            24: cls.CLASSIC_COLOR_BURN,
+            25: cls.EXCLUSION,
+            26: cls.DIFFERENCE,
+            27: cls.COLOR_DODGE,
+            28: cls.COLOR_BURN,
+            29: cls.LINEAR_DODGE,
+            30: cls.LINEAR_BURN,
+            31: cls.LINEAR_LIGHT,
+            32: cls.VIVID_LIGHT,
+            33: cls.PIN_LIGHT,
+            34: cls.HARD_MIX,
+            35: cls.LIGHTER_COLOR,
+            36: cls.DARKER_COLOR,
+            37: cls.SUBTRACT,
+            38: cls.DIVIDE,
+        }
+        return _mapping.get(value, cls.NORMAL)
 
 
 class ChannelType(IntEnum):
@@ -217,6 +272,15 @@ class FootageTimecodeDisplayStartType(IntEnum):
     FTCS_USE_SOURCE_MEDIA = 2212
     FTCS_START_0 = 2213
 
+    @classmethod
+    def from_binary(cls, value: int) -> FootageTimecodeDisplayStartType:
+        """Convert binary value to FootageTimecodeDisplayStartType."""
+        _mapping = {
+            0: cls.FTCS_START_0,
+            1: cls.FTCS_USE_SOURCE_MEDIA,
+        }
+        return _mapping.get(value, cls.FTCS_START_0)
+
 
 class FrameBlendingType(IntEnum):
     """Frame blending mode for a layer.
@@ -259,6 +323,7 @@ class GpuAccelType(IntEnum):
     METAL = 1814
     VULKAN = 1815
     SOFTWARE = 1816
+    DIRECTX = 1817
 
 
 class ImportAsType(IntEnum):
@@ -338,6 +403,7 @@ class LightType(IntEnum):
     SPOT = 4413
     POINT = 4414
     AMBIENT = 4415
+    ENVIRONMENT = 4416
 
     @classmethod
     def from_binary(cls, value: int) -> LightType:
@@ -365,6 +431,14 @@ class MaskFeatherFalloff(IntEnum):
     FFO_SMOOTH = 7212
     FFO_LINEAR = 7213
 
+    @classmethod
+    def from_binary(cls, value: int) -> MaskFeatherFalloff:
+        """Convert binary value to MaskFeatherFalloff."""
+        try:
+            return cls(value + 7212)
+        except ValueError:
+            return cls.FFO_SMOOTH
+
 
 class MaskMode(IntEnum):
     """Blending mode for masks.
@@ -380,6 +454,14 @@ class MaskMode(IntEnum):
     DARKEN = 6817
     DIFFERENCE = 6818
 
+    @classmethod
+    def from_binary(cls, value: int) -> MaskMode:
+        """Convert binary mask mode value to MaskMode."""
+        try:
+            return cls(value + 6812)
+        except ValueError:
+            return cls.NONE
+
 
 class MaskMotionBlur(IntEnum):
     """Motion blur setting for masks.
@@ -390,6 +472,20 @@ class MaskMotionBlur(IntEnum):
     SAME_AS_LAYER = 7012
     ON = 7013
     OFF = 7014
+
+    @classmethod
+    def from_binary(cls, value: int) -> MaskMotionBlur:
+        """Convert binary value to MaskMotionBlur.
+
+        Note: binary 1 = Off and binary 2 = On (swapped relative
+        to enum integer order where ON = 7013 < OFF = 7014).
+        """
+        _mapping = {
+            0: cls.SAME_AS_LAYER,
+            1: cls.OFF,
+            2: cls.ON,
+        }
+        return _mapping.get(value, cls.SAME_AS_LAYER)
 
 
 class PlayMode(IntEnum):

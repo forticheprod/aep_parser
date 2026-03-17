@@ -60,6 +60,18 @@ class AVItem(Item):
     _used_in: set[CompItem] = field(default_factory=set, init=False, repr=False)
 
     @property
+    def has_video(self) -> bool:
+        """`True` if the item has a video component.
+
+        An AVItem has video when it has non-zero dimensions (`width > 0`
+        and `height > 0`). In a [CompItem][], the value is always `True`.
+        In a [FootageItem][aep_parser.models.items.footage.FootageItem],
+        the value depends on the footage source (e.g. audio-only files
+        return `False`).
+        """
+        return self.width > 0 and self.height > 0
+
+    @property
     def used_in(self) -> list[CompItem]:
         """All the compositions that use this AVItem."""
         return list(self._used_in)

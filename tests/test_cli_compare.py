@@ -1,6 +1,8 @@
 """Tests for CLI compare module.
 
-These tests verify the aep-compare command line tool functionality.
+These tests verify the aep-compare command line tool functionality,
+including leaf-only diff output, chunk listing, hex dump, multi-file
+comparison, and context display.
 """
 
 from __future__ import annotations
@@ -10,9 +12,13 @@ from pathlib import Path
 from aep_parser.cli.compare import (
     ByteDifference,
     ChunkDifference,
+    MultiFileDifference,
+    _compare_chunk_dicts,
+    _format_hex_dump,
     compare_aep_files,
     compare_binary_data,
     filter_differences,
+    parse_aep_chunks,
     to_json_output,
 )
 
@@ -43,6 +49,27 @@ class TestByteDifference:
         assert "0x00" in formatted
 
 
+class TestMultiFileDifference:
+    """Tests for MultiFileDifference dataclass."""
+
+    def test_single_bit_two_distinct_values(self) -> None:
+        """Bit position is set when exactly two distinct values differ by 1 bit."""
+        diff = MultiFileDifference(
+            path="test", offset=0, values=[0x00, 0x80, 0x00, 0x80]
+        )
+        assert diff.bit_position == 0  # MSB
+
+    def test_multiple_bits_no_position(self) -> None:
+        """No bit position when values differ by more than one bit."""
+        diff = MultiFileDifference(path="test", offset=0, values=[0x00, 0xFF, 0x00])
+        assert diff.bit_position is None
+
+    def test_three_distinct_values_no_position(self) -> None:
+        """No bit position when more than two distinct values."""
+        diff = MultiFileDifference(path="test", offset=0, values=[0x00, 0x01, 0x02])
+        assert diff.bit_position is None
+
+
 class TestCompareBinaryData:
     """Tests for compare_binary_data function."""
 
@@ -55,7 +82,7 @@ class TestCompareBinaryData:
     def test_single_byte_difference(self) -> None:
         """Test detection of a single byte difference."""
         data1 = b"\x00\x01\x02\x03"
-        data2 = b"\x00\xFF\x02\x03"
+        data2 = b"\x00\xff\x02\x03"
         diffs = list(compare_binary_data(data1, data2, "test"))
         assert len(diffs) == 1
         assert diffs[0].offset == 1
@@ -71,6 +98,33 @@ class TestCompareBinaryData:
         assert diffs[0].offset == 3
         assert diffs[0].byte1 == -1  # Missing in data1
         assert diffs[0].byte2 == 0x03
+
+
+class TestLeafOnlyChunks:
+    """Tests that only leaf chunks appear in parsed output (no LIST dups)."""
+
+    def test_no_list_paths_in_output(self) -> None:
+        """parse_aep_chunks should not include LIST containers as leaves."""
+        aep_path = SAMPLES_DIR / "versions" / "ae2025" / "complete.aep"
+        chunks = parse_aep_chunks(aep_path)
+
+        for path in chunks:
+            # The final segment (after last /) should not be a LIST
+            final_segment = path.rsplit("/", 1)[-1]
+            base = final_segment.split("[")[0]
+            # LIST chunks should only appear as path prefixes, never as
+            # the leaf chunk itself (their raw data duplicates children).
+            assert not base.startswith("LIST:"), (
+                f"LIST chunk found in leaf output: {path}"
+            )
+
+    def test_leaf_chunks_have_data(self) -> None:
+        """All leaf chunks should have non-empty raw data."""
+        aep_path = SAMPLES_DIR / "versions" / "ae2025" / "complete.aep"
+        chunks = parse_aep_chunks(aep_path)
+        assert len(chunks) > 0
+        for path, data in chunks.items():
+            assert len(data) > 0, f"Empty data for {path}"
 
 
 class TestCompareAepFiles:
@@ -97,14 +151,80 @@ class TestCompareAepFiles:
         total_diffs = len(differences) + len(only_in_file1) + len(only_in_file2)
         assert total_diffs > 0
 
+    def test_no_duplicate_diffs_in_parent_chunks(self) -> None:
+        """Diffs should only appear in leaf chunks, not repeated in parents."""
+        file1 = SAMPLES_DIR / "models" / "layer" / "enabled_false.aep"
+        file2 = SAMPLES_DIR / "models" / "layer" / "locked_true.aep"
+
+        differences, _, _ = compare_aep_files(file1, file2)
+        paths = [d.path for d in differences]
+
+        # No path should be a prefix of another path
+        for i, p1 in enumerate(paths):
+            for j, p2 in enumerate(paths):
+                if i != j:
+                    assert not p2.startswith(p1 + "/"), (
+                        f"Parent chunk {p1} has diffs that should only be in child {p2}"
+                    )
+
+
+class TestCompareChunkDicts:
+    """Tests for _compare_chunk_dicts helper."""
+
+    def test_identical_dicts(self) -> None:
+        """Identical dicts produce no differences."""
+        data = {"a": b"\x00\x01", "b": b"\x02\x03"}
+        diffs, only1, only2 = _compare_chunk_dicts(data, data)
+        assert len(diffs) == 0
+        assert len(only1) == 0
+        assert len(only2) == 0
+
+    def test_missing_paths_detected(self) -> None:
+        """Paths in one dict but not the other are reported."""
+        data1 = {"a": b"\x00", "b": b"\x01"}
+        data2 = {"a": b"\x00", "c": b"\x02"}
+        _, only1, only2 = _compare_chunk_dicts(data1, data2)
+        assert "b" in only1
+        assert "c" in only2
+
+
+class TestFormatHexDump:
+    """Tests for _format_hex_dump helper."""
+
+    def test_small_data(self) -> None:
+        """Hex dump of a few bytes formats correctly."""
+        data = b"\x00\x01\x02\x03"
+        result = _format_hex_dump(data)
+        assert "0000:" in result
+        assert "00 01 02 03" in result
+
+    def test_ascii_representation(self) -> None:
+        """ASCII column shows printable chars and dots for non-printable."""
+        data = b"Hello\x00World"
+        result = _format_hex_dump(data)
+        assert "Hello.World" in result
+
+    def test_multi_line(self) -> None:
+        """Data longer than 16 bytes produces multiple lines."""
+        data = bytes(range(32))
+        result = _format_hex_dump(data)
+        lines = result.strip().split("\n")
+        assert len(lines) == 2
+        assert lines[0].startswith("0000:")
+        assert lines[1].startswith("0010:")
+
 
 class TestFilterDifferences:
     """Tests for filter_differences function."""
 
     def test_filter_matches_pattern(self) -> None:
         """Test that filter correctly matches patterns."""
-        diff1 = ChunkDifference(path="LIST:Layr/ldta", byte_diffs=[], size1=10, size2=10)
-        diff2 = ChunkDifference(path="LIST:Comp/cdta", byte_diffs=[], size1=10, size2=10)
+        diff1 = ChunkDifference(
+            path="LIST:Layr/ldta", byte_diffs=[], size1=10, size2=10
+        )
+        diff2 = ChunkDifference(
+            path="LIST:Comp/cdta", byte_diffs=[], size1=10, size2=10
+        )
         differences = [diff1, diff2]
 
         filtered, _, _ = filter_differences(differences, [], [], "ldta")

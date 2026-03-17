@@ -14,9 +14,9 @@ class ViewOptions:
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         options = app.active_viewer.views[0].options
         print(options.zoom)
         ```
@@ -52,6 +52,12 @@ class ViewOptions:
 
     grid: bool
     """When `True`, the grid overlay is visible in the view."""
+
+    guides_locked: bool
+    """When `True`, indicates guides are locked in the view."""
+
+    guides_snap: bool
+    """When `True`, indicates layers snap to guides when dragged in the view."""
 
     guides_visibility: bool
     """

@@ -1,6 +1,6 @@
 """Data models for After Effects project structure."""
 
-from .app import App
+from .application import Application
 from .items.av_item import AVItem
 from .items.composition import CompItem
 from .items.folder import FolderItem
@@ -12,12 +12,16 @@ from .layers.layer import Layer
 from .layers.light_layer import LightLayer
 from .layers.shape_layer import ShapeLayer
 from .layers.text_layer import TextLayer
+from .layers.three_d_model_layer import ThreeDModelLayer
 from .project import Project
 from .properties.keyframe import Keyframe
+from .properties.keyframe_ease import KeyframeEase
 from .properties.marker import MarkerValue
+from .properties.mask_property_group import MaskPropertyGroup
 from .properties.property import Property
 from .properties.property_base import PropertyBase
 from .properties.property_group import PropertyGroup
+from .properties.shape import FeatherPoint, Shape
 from .renderqueue.format_options import (
     CineonFormatOptions,
     JpegFormatOptions,
@@ -42,12 +46,13 @@ from .text import (
 from .viewer import View, Viewer, ViewOptions
 
 __all__ = [
-    "App",
+    "Application",
     "AVItem",
     "AVLayer",
     "CameraLayer",
     "CineonFormatOptions",
     "CompItem",
+    "FeatherPoint",
     "FileSource",
     "FolderItem",
     "FontObject",
@@ -56,9 +61,11 @@ __all__ = [
     "Item",
     "JpegFormatOptions",
     "Keyframe",
+    "KeyframeEase",
     "Layer",
     "LightLayer",
     "MarkerValue",
+    "MaskPropertyGroup",
     "OpenExrFormatOptions",
     "OutputModule",
     "OutputModuleSettings",
@@ -71,11 +78,13 @@ __all__ = [
     "RenderQueue",
     "RenderQueueItem",
     "RenderSettings",
+    "Shape",
     "ShapeLayer",
     "SolidSource",
     "TargaFormatOptions",
     "TextDocument",
     "TextLayer",
+    "ThreeDModelLayer",
     "TiffFormatOptions",
     "View",
     "Viewer",
