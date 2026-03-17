@@ -13,6 +13,7 @@ from ..enums import (
     OutputColorMode,
     OutputFormat,
     PostRenderAction,
+    PostRenderActionSetting,
     ResizeQuality,
 )
 from ..kaitai import Aep
@@ -105,7 +106,7 @@ def _parse_output_module_settings(
             "File Name": file_name,
             "File Template": file_name_template,
         },
-        "Post-Render Action": post_render_action,
+        "Post-Render Action": PostRenderActionSetting(om_ldat_data.post_render_action),
         "Preserve RGB": bool(om_ldat_data.preserve_rgb),
         "Resize Quality": ResizeQuality(om_ldat_data.resize_quality),
         "Resize to": [roou_chunk.width, roou_chunk.height],

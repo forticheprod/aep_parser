@@ -4,7 +4,6 @@ Output module settings are stored as an [OutputModuleSettings][aep_parser.models
 
 ::: aep_parser.models.settings.OutputModuleSettings
     options:
-      show_root_heading: true
       show_bases: false
 
 ## Available Keys
@@ -30,7 +29,7 @@ Output module settings are stored as an [OutputModuleSettings][aep_parser.models
 | `"Output Audio"` | [OutputAudio][aep_parser.enums.OutputAudio] | Audio output mode |
 | `"Output Color Space"` | `str` | Output color space name, or empty string if unset |
 | `"Output File Info"` | `dict[str, str]` | Output file path info (see [sub-keys](#output-file-info-sub-keys) below) |
-| `"Post-Render Action"` | [PostRenderAction][aep_parser.enums.PostRenderAction] | Action after rendering |
+| `"Post-Render Action"` | [PostRenderActionSetting][aep_parser.enums.PostRenderActionSetting] | Action after rendering |
 | `"Preserve RGB"` | `bool` | When `true`, disables color management conversions for this output module |
 | `"Resize Quality"` | [ResizeQuality][aep_parser.enums.ResizeQuality] | Resize quality |
 | `"Resize to"` | `list[int]` | Target resize dimensions `[width, height]` |
@@ -144,14 +143,14 @@ The `"Output File Info"` value is a `dict[str, str]` with the following keys:
 | `RATE_88200` | 88200 | `"88.200 kHz"` |
 | `RATE_96000` | 96000 | `"96.000 kHz"` |
 
-### PostRenderAction
+### PostRenderActionSetting
 
 | Member | Value | Label |
 |--------|-------|-------|
-| `NONE` | 3612 | `"None"` |
-| `IMPORT` | 3613 | `"Import"` |
-| `IMPORT_AND_REPLACE_USAGE` | 3614 | `"Import & Replace Usage"` |
-| `SET_PROXY` | 3615 | `"Set Proxy"` |
+| `NONE` | 0 | `"None"` |
+| `IMPORT` | 1 | `"Import"` |
+| `IMPORT_AND_REPLACE_USAGE` | 2 | `"Import & Replace Usage"` |
+| `SET_PROXY` | 3 | `"Set Proxy"` |
 
 ### ResizeQuality
 

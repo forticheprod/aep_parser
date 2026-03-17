@@ -42,9 +42,9 @@ class OutputModule:
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         om = app.project.render_queue.items[0].output_modules[0]
         print(om.file)
         ```

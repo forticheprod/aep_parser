@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import json
 import os
+from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from aep_parser import App, Project
+from aep_parser import Application, Project
 from aep_parser import parse as _parse_aep
 
 if TYPE_CHECKING:
@@ -18,20 +19,25 @@ if TYPE_CHECKING:
 SAMPLES_DIR = Path(__file__).parent.parent / "samples"
 
 
+@lru_cache(maxsize=None)
 def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
     """Parse an AEP file and return the Project object.
 
-    Convenience wrapper around :func:`aep_parser.parse` for tests that only
-    need the ``Project``.
+    Results are cached for the session so the same file is only parsed once.
     """
     return _parse_aep(aep_file_path).project
 
 
-def parse_app(aep_file_path: str | os.PathLike[str]) -> App:
-    """Parse an AEP file and return the App object."""
+@lru_cache(maxsize=None)
+def parse_app(aep_file_path: str | os.PathLike[str]) -> Application:
+    """Parse an AEP file and return the Application object.
+
+    Results are cached for the session so the same file is only parsed once.
+    """
     return _parse_aep(aep_file_path)
 
 
+@lru_cache(maxsize=None)
 def load_expected(samples_dir: Path, sample_name: str) -> dict:
     """Load the expected JSON for a sample."""
     json_path = samples_dir / f"{sample_name}.json"
@@ -118,11 +124,18 @@ def get_comp_marker_from_json(expected: dict) -> dict:
 
 
 def get_layer_marker_from_json(expected: dict) -> dict:
-    """Extract first layer marker from expected JSON."""
+    """Extract first layer marker value from expected JSON.
+
+    Looks for the ADBE Marker property in the layer's properties array
+    and returns the first keyframe's value.
+    """
     if "items" in expected:
         for item in expected["items"]:
             if item.get("typeName") == "Composition" and "layers" in item:
                 for layer in item["layers"]:
-                    if "markers" in layer and len(layer["markers"]) > 0:
-                        return layer["markers"][0]
+                    for prop in layer.get("properties", []):
+                        if prop.get("matchName") == "ADBE Marker":
+                            kfs = prop.get("keyframes", [])
+                            if kfs:
+                                return kfs[0].get("value", {})
     return {}

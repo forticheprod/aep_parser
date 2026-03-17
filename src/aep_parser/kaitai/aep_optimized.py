@@ -185,11 +185,16 @@ def _optimized_chunk_read(self: Aep.Chunk) -> None:
     )
     _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
 
-    # Use dict lookup instead of if/elif chain
-    try:
-        chunk_class = _CHUNK_TYPE_TO_CLASS[self.chunk_type]
-    except KeyError:
+    # Use dict lookup instead of if/elif chain.
+    # Skip typed parsing for empty opti chunks (e.g. 3D-model footage).
+    # Mirrors the opti guard in aep.ksy.
+    if self.len_data == 0 and self.chunk_type == "opti":
         chunk_class = _FALLBACK_CLASS
+    else:
+        try:
+            chunk_class = _CHUNK_TYPE_TO_CLASS[self.chunk_type]
+        except KeyError:
+            chunk_class = _FALLBACK_CLASS
     self.data = chunk_class(_io__raw_data, self, self._root)
 
     if (self.len_data % 2) != 0:

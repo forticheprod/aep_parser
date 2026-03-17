@@ -27,6 +27,12 @@ This as a .aep (After Effects Project) parser in Python. After Effects files (.a
 <!-- INSTALLATION -->
 ## Installation
 
+### uv (recommended)
+```sh
+uv add aep-parser
+```
+
+### pip
 ```sh
 pip install aep-parser
 ```

@@ -15,9 +15,9 @@ class FolderItem(Item):
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         root = app.project.root_folder
         print(root.name)
         for item in root:
@@ -35,3 +35,13 @@ class FolderItem(Item):
     def __iter__(self) -> typing.Iterator[Item]:
         """Return an iterator over the folder items."""
         return iter(self.items)
+
+    @property
+    def num_items(self) -> int:
+        """
+        Return the number of items in the folder.
+
+        Note:
+            Equivalent to `len(folder.items)`
+        """
+        return len(self.items)

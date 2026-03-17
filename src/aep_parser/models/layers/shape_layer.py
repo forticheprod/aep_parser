@@ -5,16 +5,16 @@ from dataclasses import dataclass
 from .av_layer import AVLayer
 
 
-@dataclass
+@dataclass(eq=False)
 class ShapeLayer(AVLayer):
     """
     The `ShapeLayer` object represents a shape layer within a composition.
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         comp = app.project.compositions[0]
         shape_layer = comp.shape_layers[0]
         print(shape_layer.content)

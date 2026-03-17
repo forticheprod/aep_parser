@@ -126,9 +126,7 @@ class TestViewOptionsFastPreview:
 
     def test_fast_preview_wireframe(self) -> None:
         """Test wireframe fast preview mode."""
-        opts = _get_active_view_options(
-            SAMPLES_DIR / "fast_preview_wireframe.aep"
-        )
+        opts = _get_active_view_options(SAMPLES_DIR / "fast_preview_wireframe.aep")
         assert opts.fast_preview == FastPreviewType.FP_WIREFRAME
 
 
@@ -165,16 +163,12 @@ class TestViewOptionsMaskAndShapePath:
 
     def test_mask_and_shape_path_on(self) -> None:
         """Test mask and shape path visibility enabled."""
-        opts = _get_active_view_options(
-            SAMPLES_DIR / "mask_and_shape_path_on.aep"
-        )
+        opts = _get_active_view_options(SAMPLES_DIR / "mask_and_shape_path_on.aep")
         assert opts.mask_and_shape_path is True
 
     def test_mask_and_shape_path_off(self) -> None:
         """Test mask and shape path visibility disabled."""
-        opts = _get_active_view_options(
-            SAMPLES_DIR / "mask_and_shape_path_off.aep"
-        )
+        opts = _get_active_view_options(SAMPLES_DIR / "mask_and_shape_path_off.aep")
         assert opts.mask_and_shape_path is False
 
 
@@ -183,16 +177,12 @@ class TestViewOptionsProportionalGrid:
 
     def test_proportional_grid_on(self) -> None:
         """Test proportional grid enabled."""
-        opts = _get_active_view_options(
-            SAMPLES_DIR / "proportional_grid_on.aep"
-        )
+        opts = _get_active_view_options(SAMPLES_DIR / "proportional_grid_on.aep")
         assert opts.proportional_grid is True
 
     def test_proportional_grid_off(self) -> None:
         """Test proportional grid disabled."""
-        opts = _get_active_view_options(
-            SAMPLES_DIR / "proportional_grid_off.aep"
-        )
+        opts = _get_active_view_options(SAMPLES_DIR / "proportional_grid_off.aep")
         assert opts.proportional_grid is False
 
 
@@ -229,16 +219,12 @@ class TestViewOptionsTitleActionSafe:
 
     def test_title_action_safe_on(self) -> None:
         """Test title/action safe guides displayed."""
-        opts = _get_active_view_options(
-            SAMPLES_DIR / "title_action_safe_on.aep"
-        )
+        opts = _get_active_view_options(SAMPLES_DIR / "title_action_safe_on.aep")
         assert opts.title_action_safe is True
 
     def test_title_action_safe_off(self) -> None:
         """Test title/action safe guides hidden."""
-        opts = _get_active_view_options(
-            SAMPLES_DIR / "title_action_safe_off.aep"
-        )
+        opts = _get_active_view_options(SAMPLES_DIR / "title_action_safe_off.aep")
         assert opts.title_action_safe is False
 
 
@@ -275,3 +261,54 @@ class TestViewOptionsZoom:
         """Test 1600% zoom level."""
         opts = _get_active_view_options(SAMPLES_DIR / "zoom_1600.aep")
         assert opts.zoom == 16.0
+
+
+class TestViewOptionsGuidesSnap:
+    """Tests for ViewOptions.guidesSnap attribute."""
+
+    def test_snap_to_guides_on(self) -> None:
+        """Test snap to guides enabled."""
+        opts = _get_active_view_options(SAMPLES_DIR / "snap_to_guides_on.aep")
+        assert opts.guides_snap is True
+
+    def test_snap_to_guides_off(self) -> None:
+        """Test snap to guides disabled."""
+        opts = _get_active_view_options(SAMPLES_DIR / "snap_to_guides_off.aep")
+        assert opts.guides_snap is False
+
+
+class TestViewOptionsGuidesLocked:
+    """Tests for ViewOptions.guidesLocked attribute."""
+
+    def test_lock_guides_on(self) -> None:
+        """Test lock guides enabled."""
+        opts = _get_active_view_options(SAMPLES_DIR / "lock_guides_on.aep")
+        assert opts.guides_locked is True
+
+    def test_lock_guides_off(self) -> None:
+        """Test lock guides disabled."""
+        opts = _get_active_view_options(SAMPLES_DIR / "lock_guides_off.aep")
+        assert opts.guides_locked is False
+
+
+class TestViewActive:
+    """Tests for View.active attribute."""
+
+    def test_active_view_in_single_view(self) -> None:
+        """In a 1-view viewer, the single view is active."""
+        app = parse_app(SAMPLES_DIR / "zoom_default.aep")
+        assert app.active_viewer is not None
+        viewer = app.active_viewer
+        assert len(viewer.views) >= 1
+        assert viewer.views[viewer.active_view_index].active is True
+
+    def test_inactive_views(self) -> None:
+        """Views that are not the active_view_index should be inactive."""
+        app = parse_app(SAMPLES_DIR / "3dcomps_1_view_4_views.aep")
+        assert app.active_viewer is not None
+        viewer = app.active_viewer
+        for i, view in enumerate(viewer.views):
+            if i == viewer.active_view_index:
+                assert view.active is True
+            else:
+                assert view.active is False

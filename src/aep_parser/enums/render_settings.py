@@ -388,3 +388,30 @@ _TIME_SPAN_SOURCE_LABELS: dict[int, str] = {
     1: "Work Area Only",
     2: "Custom",
 }
+
+
+class PostRenderActionSetting(IntEnum):
+    """Post-render action for the output module settings dict.
+
+    Used in OutputModule Settings > Post-Render Action
+
+    Not documented in AE scripting reference.
+    """
+
+    NONE = 0
+    IMPORT = 1
+    IMPORT_AND_REPLACE_USAGE = 2
+    SET_PROXY = 3
+
+    @property
+    def label(self) -> str:
+        """ExtendScript STRING format label."""
+        return _POST_RENDER_ACTION_SETTING_LABELS[self.value]
+
+
+_POST_RENDER_ACTION_SETTING_LABELS: dict[int, str] = {
+    0: "None",
+    1: "Import",
+    2: "Import & Replace Usage",
+    3: "Set Proxy",
+}

@@ -5,8 +5,10 @@ This guide helps you understand the AEP Parser codebase and contribute new featu
 ## Quick Start
 
 1. **Fork and clone** the repository
-2. **Install with dev dependencies**: `pip install -e ".[dev]"`
-3. **Run tests**: `pytest`
+2. **Install with dev dependencies**:
+   - With uv (recommended): `uv sync --extra dev`
+   - With pip: `pip install -e ".[dev]"`
+3. **Run tests**: `uv run pytest` (or `pytest`)
 4. **Make your changes** following this guide
 5. **Submit a pull request**
 
@@ -17,7 +19,7 @@ This guide helps you understand the AEP Parser codebase and contribute new featu
 AEP Parser transforms binary .aep files into typed Python objects through a three-stage pipeline:
 
 ```
-.aep file → Kaitai Parser → Raw Chunks → Parsers → Model Dataclasses
+.aep file > Kaitai Parser > Raw Chunks > Parsers > Model Dataclasses
 ```
 
 **Stage 1: Binary Parsing (Kaitai)**
@@ -27,7 +29,7 @@ AEP Parser transforms binary .aep files into typed Python objects through a thre
 
 **Stage 2: Data Transformation (Parsers)**
 - `src/aep_parser/parsers/` - Transform raw chunks into model instances
-- Entry point: `parse()` in `parsers/app.py`
+- Entry point: `parse()` in `parsers/application.py`
 - Pattern: Each parser receives chunks + context, returns a model instance
 
 **Stage 3: Data Models**
@@ -49,7 +51,7 @@ AEP Parser transforms binary .aep files into typed Python objects through a thre
 - `find_by_list_type()` - Find a LIST chunk by its list_type
 - `filter_by_type()` - Get all chunks of a given type
 
-**Chunk attribute proxy**: `aep_optimized.py` monkey-patches `Aep.Chunk.__getattr__` so that attribute access on a chunk transparently delegates to `chunk.data` when the attribute is not found on the chunk itself. This means you can write `chunk.list_type` instead of `chunk.data.list_type`, and `cdta_chunk.time_scale` instead of `cdta_chunk.data.time_scale`. Keep this in mind when reading parser code — any attribute on a `Chunk` may actually come from its `.data`.
+**Chunk attribute proxy**: `aep_optimized.py` monkey-patches `Aep.Chunk.__getattr__` so that attribute access on a chunk transparently delegates to `chunk.data` when the attribute is not found on the chunk itself. This means you can write `chunk.list_type` instead of `chunk.data.list_type`, and `cdta_chunk.time_scale` instead of `cdta_chunk.data.time_scale`. Keep this in mind when reading parser code - any attribute on a `Chunk` may actually come from its `.data`.
 
 ## Development Workflow
 
@@ -60,13 +62,12 @@ AEP Parser transforms binary .aep files into typed Python objects through a thre
 git clone https://github.com/forticheprod/aep_parser.git
 cd aep_parser
 
-# Install with dev dependencies
-pip install -e ".[dev]"
+# Install with dev dependencies (pick one)
+uv sync --extra dev    # recommended
+pip install -e ".[dev]" # alternative
 
 # Verify installation
-pytest
-mypy src/aep_parser
-ruff check src/
+uv run pytest
 ```
 
 ### Tools and Scripts
@@ -110,7 +111,7 @@ Located in `scripts/jsx/`, these scripts help generate test samples and validate
 
 1. Open After Effects
 2. Open your .aep file
-3. File → Scripts → Run Script File → `export_project_json.jsx`
+3. File > Scripts > Run Script File > `export_project_json.jsx`
 4. A `.json` file is saved next to the .aep file
 
 This JSON serves as "ground truth" for validating the Python parser.
@@ -217,9 +218,9 @@ kaitai-struct-compiler --target python \
 > compiles to Python's `//` (floor division). To get true (float) division,
 > multiply one operand by `1.0`:
 > ```yaml
-> # Wrong — truncates to integer (e.g. 3 / 4 = 0)
+> # Wrong - truncates to integer (e.g. 3 / 4 = 0)
 > value: 'pixel_ratio_width / pixel_ratio_height'
-> # Correct — produces float (e.g. 3 * 1.0 / 4 = 0.75)
+> # Correct - produces float (e.g. 3 * 1.0 / 4 = 0.75)
 > value: 'pixel_ratio_width * 1.0 / pixel_ratio_height'
 > ```
 
@@ -319,7 +320,7 @@ Convert byte values to binary to identify the bit:
 Add bit fields to `aep.ksy`:
 
 ```yaml
-# Read individual bits (from MSB to LSB: 7→0)
+# Read individual bits (from MSB to LSB: 7>0)
 - id: preserve_nested_resolution
   type: b1  # bit 7
 - type: b1  # skip bit 6
@@ -393,16 +394,16 @@ python-lottie documentation for COS format details: [python-lottie COS documenta
 
 ```bash
 # Run all tests
-pytest
+uv run pytest
 
 # Run specific test file
-pytest tests/test_models_layer.py
+uv run pytest tests/test_models_layer.py
 
 # Run specific test
-pytest tests/test_models_layer.py::test_layer_motion_blur -v
+uv run pytest tests/test_models_layer.py::test_layer_motion_blur -v
 
 # Run with coverage
-pytest --cov=aep_parser --cov-report=html
+uv run pytest --cov=aep_parser --cov-report=html
 ```
 
 ### Test Structure
@@ -460,16 +461,16 @@ Use the JSX scripts to generate samples systematically.
 
 ```bash
 # Check code style
-ruff check src/
+uv run ruff check src/
 
 # Auto-fix issues
-ruff check --fix src/
+uv run ruff check --fix src/
 
 # Format code
-ruff format src/
+uv run ruff format src/
 
 # Type checking
-mypy src/aep_parser
+uv run mypy src/aep_parser
 ```
 
 **Note**: `kaitai/aep.py` is auto-generated and excluded from linting.
@@ -479,14 +480,15 @@ mypy src/aep_parser
 ### Building Documentation
 
 ```bash
-# Install docs dependencies
-pip install -e ".[docs]"
+# Install docs dependencies (pick one)
+uv sync --extra docs   # recommended
+pip install -e ".[docs]" # alternative
 
 # Build static site
-mkdocs build --strict
+uv run mkdocs build --strict
 
 # Serve with live reload
-mkdocs serve --strict
+uv run mkdocs serve --strict
 ```
 
 Documentation is auto-deployed to GitHub Pages when changes are pushed to `main`.
@@ -499,21 +501,18 @@ Reference the [After Effects Scripting Guide](https://ae-scripting.docsforadobe.
 
 ```python
 def parse_layer(chunk: Aep.Chunk) -> Layer:
-    """Parse a layer from AEP chunk data.
-    
-    See: https://ae-scripting.docsforadobe.dev/layers/layer
-    """
+    """Parse a layer from AEP chunk data."""
 ```
 
 ### Cross-Referencing in Docstrings
 
-Use mkdocstrings [scoped cross-references](https://mkdocstrings.github.io/python/usage/configuration/docstrings/#scoped_crossrefs) to link to other classes, functions, or attributes. Do **not** use Sphinx-style `:class:`, `:func:`, or `:meth:` notation — mkdocs does not interpret it.
+Use mkdocstrings [scoped cross-references](https://mkdocstrings.github.io/python/usage/configuration/docstrings/#scoped_crossrefs) to link to other classes, functions, or attributes. Do **not** use Sphinx-style `:class:`, `:func:`, or `:meth:` notation - mkdocs does not interpret it.
 
 ```python
-# Short form — resolved via scoped cross-references (sibling/parent lookup)
+# Short form - resolved via scoped cross-references (sibling/parent lookup)
 """The [CompItem][] that contains this layer."""
 
-# Explicit path — for cross-module or ambiguous references
+# Explicit path - for cross-module or ambiguous references
 """See [FileSource.missing_footage_path][aep_parser.models.sources.file.FileSource.missing_footage_path]."""
 
 # ✗ Don't use Sphinx-style notation

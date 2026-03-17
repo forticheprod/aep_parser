@@ -107,15 +107,14 @@ var AEP_EXPORT_AS_LIBRARY = true;
     function main() {
         // Check that AepExport is available
         if (typeof AepExport === "undefined" || typeof AepExport.exportProject !== "function") {
-            alert("Error: export_project_json.jsx must be included before this script.\n\n" +
+            $.writeln("ERROR: export_project_json.jsx must be included before this script.\n" +
                   "Make sure the @include directive is uncommented and the file path is correct.");
             return;
         }
 
-        // Prompt for folder
-        var selectedFolder = Folder.selectDialog("Select a folder containing .aep files (directly or in subfolders)");
+        // Ask user to select a folder
+        var selectedFolder = Folder.selectDialog("Select folder containing .aep files");
         if (!selectedFolder) {
-            alert("No folder selected. Aborting.");
             return;
         }
 
@@ -127,7 +126,7 @@ var AEP_EXPORT_AS_LIBRARY = true;
         var aepFiles = findAepFiles(selectedFolder, []);
 
         if (aepFiles.length === 0) {
-            alert("No .aep files found in the selected folder.");
+            $.writeln("ERROR: No .aep files found in: " + selectedFolder.fsName);
             return;
         }
 
@@ -181,7 +180,7 @@ var AEP_EXPORT_AS_LIBRARY = true;
             message += "\n\nCheck console for details on failures.";
         }
 
-        alert(message);
+        $.writeln(message);
     }
 
     main();

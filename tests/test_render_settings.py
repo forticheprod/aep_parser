@@ -202,7 +202,9 @@ class TestRenderSettings:
 
     def test_proxy_use_comp_proxies_only(self) -> None:
         """Test use comp proxies only setting."""
-        project = parse_project(SAMPLES_DIR / "custom_proxy_use_use_comp_proxies_only.aep")
+        project = parse_project(
+            SAMPLES_DIR / "custom_proxy_use_use_comp_proxies_only.aep"
+        )
         rs = project.render_queue.items[0].settings
 
         assert rs["Proxy Use"] == 3  # Use Comp Proxies Only
@@ -323,7 +325,7 @@ class TestOutputModuleSettings:
         [
             ("audio_output_off.aep", 1),
             ("audio_output_on.aep", 2),
-            ("audio_output_auto.aep", 3 ),
+            ("audio_output_auto.aep", 3),
         ],
     )
     def test_audio_output(self, filename: str, expected_output_audio: int) -> None:
@@ -441,99 +443,77 @@ class TestOutputModuleSettings:
 
     def test_include_project_link_off(self) -> None:
         """Test include project link is False when disabled."""
-        project = parse_project(
-            OM_SAMPLES_DIR / "include_project_link_off.aep"
-        )
+        project = parse_project(OM_SAMPLES_DIR / "include_project_link_off.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Include Project Link"] is False
 
     def test_include_project_link_on(self) -> None:
         """Test include project link is True when enabled."""
-        project = parse_project(
-            OM_SAMPLES_DIR / "include_project_link_on.aep"
-        )
+        project = parse_project(OM_SAMPLES_DIR / "include_project_link_on.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Include Project Link"] is True
 
     def test_use_region_of_interest_unchecked(self) -> None:
         """Test Use Region of Interest is False when unchecked."""
-        project = parse_project(
-            OM_SAMPLES_DIR / "crop_use_roi_unchecked.aep"
-        )
+        project = parse_project(OM_SAMPLES_DIR / "crop_use_roi_unchecked.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Use Region of Interest"] is False
 
     def test_use_region_of_interest_checked(self) -> None:
         """Test Use Region of Interest is True when checked."""
-        project = parse_project(
-            OM_SAMPLES_DIR / "crop_use_roi_checked.aep"
-        )
+        project = parse_project(OM_SAMPLES_DIR / "crop_use_roi_checked.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Use Region of Interest"] is True
 
     def test_lock_aspect_ratio_off(self) -> None:
         """Test Lock Aspect Ratio is False when disabled."""
-        project = parse_project(
-            SAMPLES_DIR / "lock_aspect_ratio_off.aep"
-        )
+        project = parse_project(SAMPLES_DIR / "lock_aspect_ratio_off.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Lock Aspect Ratio"] is False
 
     def test_lock_aspect_ratio_on(self) -> None:
         """Test Lock Aspect Ratio is True when enabled."""
-        project = parse_project(
-            SAMPLES_DIR / "lock_aspect_ratio_on.aep"
-        )
+        project = parse_project(SAMPLES_DIR / "lock_aspect_ratio_on.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Lock Aspect Ratio"] is True
 
     def test_resize_unchecked(self) -> None:
         """Test Resize is False when unchecked."""
-        project = parse_project(
-            OM_SAMPLES_DIR / "resize_unchecked.aep"
-        )
+        project = parse_project(OM_SAMPLES_DIR / "resize_unchecked.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Resize"] is False
 
     def test_resize_checked(self) -> None:
         """Test Resize is True when checked."""
-        project = parse_project(
-            OM_SAMPLES_DIR / "resize_checked.aep"
-        )
+        project = parse_project(OM_SAMPLES_DIR / "resize_checked.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Resize"] is True
 
     def test_resize_quality_low(self) -> None:
         """Test Resize Quality is 0 when set to low."""
-        project = parse_project(
-            OM_SAMPLES_DIR / "resize_quality_low.aep"
-        )
+        project = parse_project(OM_SAMPLES_DIR / "resize_quality_low.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Resize Quality"] == 0
 
     def test_resize_quality_high(self) -> None:
         """Test Resize Quality is 1 when set to high."""
-        project = parse_project(
-            OM_SAMPLES_DIR / "resize_quality_high.aep"
-        )
+        project = parse_project(OM_SAMPLES_DIR / "resize_quality_high.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Resize Quality"] == 1
 
     def test_resize_to_hd(self) -> None:
         """Test Resize to HD 1920x1080."""
-        project = parse_project(
-            OM_SAMPLES_DIR / "resize_hd_1920x1080_29.97_fps.aep"
-        )
+        project = parse_project(OM_SAMPLES_DIR / "resize_hd_1920x1080_29.97_fps.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Resize to"] == [1920, 1080]
@@ -549,21 +529,17 @@ class TestOutputModuleSettings:
 
     def test_resize_to_custom(self) -> None:
         """Test Resize to custom 960x540."""
-        project = parse_project(
-            OM_SAMPLES_DIR / "resize_custom_960x540.aep"
-        )
+        project = parse_project(OM_SAMPLES_DIR / "resize_custom_960x540.aep")
         settings = project.render_queue.items[0].output_modules[0].settings
 
         assert settings["Resize to"] == [960, 540]
 
     def test_output_file_info_default(self) -> None:
         """Test Output File Info with default [compName].[fileExtension]."""
-        project = parse_project(
-            SAMPLES_DIR / "output_to_comp_and_frame_range.aep"
+        project = parse_project(SAMPLES_DIR / "output_to_comp_and_frame_range.aep")
+        info = (
+            project.render_queue.items[0].output_modules[0].settings["Output File Info"]
         )
-        info = project.render_queue.items[0].output_modules[0].settings[
-            "Output File Info"
-        ]
 
         assert info["File Template"] == "[compName].[fileExtension]"
         assert info["Subfolder Path"] == ""
@@ -573,12 +549,10 @@ class TestOutputModuleSettings:
 
     def test_output_file_info_comp_folder(self) -> None:
         """Test Output File Info with [compName] subfolder in base path."""
-        project = parse_project(
-            SAMPLES_DIR / "output_to_comp_folder_and_name.aep"
+        project = parse_project(SAMPLES_DIR / "output_to_comp_folder_and_name.aep")
+        info = (
+            project.render_queue.items[0].output_modules[0].settings["Output File Info"]
         )
-        info = project.render_queue.items[0].output_modules[0].settings[
-            "Output File Info"
-        ]
 
         assert "[compName]" in info["Base Path"]
         assert info["File Template"] == "[compName].[fileExtension]"
@@ -587,12 +561,10 @@ class TestOutputModuleSettings:
 
     def test_output_file_info_custom_all_fields(self) -> None:
         """Test Output File Info with all available template tokens."""
-        project = parse_project(
-            SAMPLES_DIR / "output_to_custom_all_fields.aep"
+        project = parse_project(SAMPLES_DIR / "output_to_custom_all_fields.aep")
+        info = (
+            project.render_queue.items[0].output_modules[0].settings["Output File Info"]
         )
-        info = project.render_queue.items[0].output_modules[0].settings[
-            "Output File Info"
-        ]
 
         template = info["File Template"]
         assert "[projectFolder]" in template
@@ -606,22 +578,16 @@ class TestOutputModuleSettings:
 
     def test_output_file_info_project_and_comp(self) -> None:
         """Test Output File Info with project and comp name template."""
-        project = parse_project(
-            SAMPLES_DIR / "output_to_project_and_comp_name.aep"
+        project = parse_project(SAMPLES_DIR / "output_to_project_and_comp_name.aep")
+        info = (
+            project.render_queue.items[0].output_modules[0].settings["Output File Info"]
         )
-        info = project.render_queue.items[0].output_modules[0].settings[
-            "Output File Info"
-        ]
 
-        assert info["File Template"] == (
-            "[projectName]_[compName].[fileExtension]"
-        )
+        assert info["File Template"] == ("[projectName]_[compName].[fileExtension]")
 
     def test_output_file_info_subfolder(self) -> None:
         """Test Output File Info with subfolder in file name template."""
-        project = parse_project(
-            SAMPLES_DIR / "save_in_subfolder_toto.aep"
-        )
+        project = parse_project(SAMPLES_DIR / "save_in_subfolder_toto.aep")
         om = project.render_queue.items[0].output_modules[0]
         info = om.settings["Output File Info"]
 
@@ -684,9 +650,7 @@ class TestOutputModule:
         """Test post_render_action is SET_PROXY."""
         from aep_parser.enums import PostRenderAction
 
-        project = parse_project(
-            SAMPLES_DIR / "post_render_set_proxy_this_comp.aep"
-        )
+        project = parse_project(SAMPLES_DIR / "post_render_set_proxy_this_comp.aep")
         om = project.render_queue.items[0].output_modules[0]
 
         assert om.post_render_action == PostRenderAction.SET_PROXY

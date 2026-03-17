@@ -53,7 +53,9 @@ class TestPlaceholders:
     def test_placeholder_still(self) -> None:
         expected = load_expected(SAMPLES_DIR, "placeholder_still")
         footage_json = get_footage_from_json(expected)
-        footage = get_first_footage(parse_project(SAMPLES_DIR / "placeholder_still.aep"))
+        footage = get_first_footage(
+            parse_project(SAMPLES_DIR / "placeholder_still.aep")
+        )
         assert footage is not None
         assert footage_json["mainSource"]["isStill"] is True
         assert footage.main_source.is_still == footage_json["mainSource"]["isStill"]
@@ -61,7 +63,9 @@ class TestPlaceholders:
     def test_placeholder_movie(self) -> None:
         expected = load_expected(SAMPLES_DIR, "placeholder_movie")
         footage_json = get_footage_from_json(expected)
-        footage = get_first_footage(parse_project(SAMPLES_DIR / "placeholder_movie.aep"))
+        footage = get_first_footage(
+            parse_project(SAMPLES_DIR / "placeholder_movie.aep")
+        )
         assert footage is not None
         assert footage_json["mainSource"]["isStill"] is False
         assert footage.main_source.is_still == footage_json["mainSource"]["isStill"]
@@ -85,7 +89,9 @@ class TestPlaceholders:
     def test_placeholder_30fps(self) -> None:
         expected = load_expected(SAMPLES_DIR, "placeholder_30fps")
         footage_json = get_footage_from_json(expected)
-        footage = get_first_footage(parse_project(SAMPLES_DIR / "placeholder_30fps.aep"))
+        footage = get_first_footage(
+            parse_project(SAMPLES_DIR / "placeholder_30fps.aep")
+        )
         assert footage is not None
         assert footage_json["frameRate"] == 30
         assert math.isclose(footage.frame_rate, footage_json["frameRate"])
@@ -93,7 +99,9 @@ class TestPlaceholders:
     def test_placeholder_60fps(self) -> None:
         expected = load_expected(SAMPLES_DIR, "placeholder_60fps")
         footage_json = get_footage_from_json(expected)
-        footage = get_first_footage(parse_project(SAMPLES_DIR / "placeholder_60fps.aep"))
+        footage = get_first_footage(
+            parse_project(SAMPLES_DIR / "placeholder_60fps.aep")
+        )
         assert footage is not None
         assert footage_json["frameRate"] == 60
         assert math.isclose(footage.frame_rate, footage_json["frameRate"])
@@ -103,7 +111,9 @@ class TestPlaceholders:
         footage_json = get_footage_from_json(expected)
         footage = get_first_footage(parse_project(SAMPLES_DIR / "frameRate_23976.aep"))
         assert footage is not None
-        assert math.isclose(footage.frame_rate, footage_json["frameRate"], rel_tol=0.001)
+        assert math.isclose(
+            footage.frame_rate, footage_json["frameRate"], rel_tol=0.001
+        )
 
 
 class TestSolidColors:
@@ -150,21 +160,37 @@ class TestAlphaMode:
         footage_json = get_footage_from_json(expected)
         footage = get_first_footage(parse_project(SAMPLES_DIR / "alphaMode_IGNORE.aep"))
         assert footage is not None
-        assert footage.main_source.alpha_mode == footage_json["mainSource"]["alphaMode"] == AlphaMode.IGNORE
+        assert (
+            footage.main_source.alpha_mode
+            == footage_json["mainSource"]["alphaMode"]
+            == AlphaMode.IGNORE
+        )
 
     def test_alphaMode_STRAIGHT(self) -> None:
         expected = load_expected(SAMPLES_DIR, "alphaMode_STRAIGHT")
         footage_json = get_footage_from_json(expected)
-        footage = get_first_footage(parse_project(SAMPLES_DIR / "alphaMode_STRAIGHT.aep"))
+        footage = get_first_footage(
+            parse_project(SAMPLES_DIR / "alphaMode_STRAIGHT.aep")
+        )
         assert footage is not None
-        assert footage.main_source.alpha_mode == footage_json["mainSource"]["alphaMode"] == AlphaMode.STRAIGHT
+        assert (
+            footage.main_source.alpha_mode
+            == footage_json["mainSource"]["alphaMode"]
+            == AlphaMode.STRAIGHT
+        )
 
     def test_alphaMode_PREMULTIPLIED(self) -> None:
         expected = load_expected(SAMPLES_DIR, "alphaMode_PREMULTIPLIED")
         footage_json = get_footage_from_json(expected)
-        footage = get_first_footage(parse_project(SAMPLES_DIR / "alphaMode_PREMULTIPLIED.aep"))
+        footage = get_first_footage(
+            parse_project(SAMPLES_DIR / "alphaMode_PREMULTIPLIED.aep")
+        )
         assert footage is not None
-        assert footage.main_source.alpha_mode == footage_json["mainSource"]["alphaMode"] == AlphaMode.PREMULTIPLIED
+        assert (
+            footage.main_source.alpha_mode
+            == footage_json["mainSource"]["alphaMode"]
+            == AlphaMode.PREMULTIPLIED
+        )
 
 
 class TestFieldSeparation:
@@ -173,30 +199,54 @@ class TestFieldSeparation:
     def test_fieldSeparationType_OFF(self) -> None:
         expected = load_expected(SAMPLES_DIR, "fieldSeparationType_OFF")
         footage_json = get_footage_from_json(expected)
-        footage = get_first_footage(parse_project(SAMPLES_DIR / "fieldSeparationType_OFF.aep"))
+        footage = get_first_footage(
+            parse_project(SAMPLES_DIR / "fieldSeparationType_OFF.aep")
+        )
         assert footage is not None
-        assert footage.main_source.field_separation_type == footage_json["mainSource"]["fieldSeparationType"] == FieldSeparationType.OFF
+        assert (
+            footage.main_source.field_separation_type
+            == footage_json["mainSource"]["fieldSeparationType"]
+            == FieldSeparationType.OFF
+        )
 
     def test_fieldSeparationType_UPPER(self) -> None:
         expected = load_expected(SAMPLES_DIR, "fieldSeparationType_UPPER")
         footage_json = get_footage_from_json(expected)
-        footage = get_first_footage(parse_project(SAMPLES_DIR / "fieldSeparationType_UPPER.aep"))
+        footage = get_first_footage(
+            parse_project(SAMPLES_DIR / "fieldSeparationType_UPPER.aep")
+        )
         assert footage is not None
-        assert footage.main_source.field_separation_type == footage_json["mainSource"]["fieldSeparationType"] == FieldSeparationType.UPPER_FIELD_FIRST
+        assert (
+            footage.main_source.field_separation_type
+            == footage_json["mainSource"]["fieldSeparationType"]
+            == FieldSeparationType.UPPER_FIELD_FIRST
+        )
 
     def test_fieldSeparationType_LOWER(self) -> None:
         expected = load_expected(SAMPLES_DIR, "fieldSeparationType_LOWER")
         footage_json = get_footage_from_json(expected)
-        footage = get_first_footage(parse_project(SAMPLES_DIR / "fieldSeparationType_LOWER.aep"))
+        footage = get_first_footage(
+            parse_project(SAMPLES_DIR / "fieldSeparationType_LOWER.aep")
+        )
         assert footage is not None
-        assert footage.main_source.field_separation_type == footage_json["mainSource"]["fieldSeparationType"] == FieldSeparationType.LOWER_FIELD_FIRST
+        assert (
+            footage.main_source.field_separation_type
+            == footage_json["mainSource"]["fieldSeparationType"]
+            == FieldSeparationType.LOWER_FIELD_FIRST
+        )
 
     def test_highQualityFieldSeparation_true(self) -> None:
         expected = load_expected(SAMPLES_DIR, "highQualityFieldSeparation_true")
         footage_json = get_footage_from_json(expected)
-        footage = get_first_footage(parse_project(SAMPLES_DIR / "highQualityFieldSeparation_true.aep"))
+        footage = get_first_footage(
+            parse_project(SAMPLES_DIR / "highQualityFieldSeparation_true.aep")
+        )
         assert footage is not None
-        assert footage.main_source.high_quality_field_separation == footage_json["mainSource"]["highQualityFieldSeparation"] is True
+        assert (
+            footage.main_source.high_quality_field_separation
+            == footage_json["mainSource"]["highQualityFieldSeparation"]
+            is True
+        )
 
 
 class TestFootageSettings:
@@ -205,16 +255,28 @@ class TestFootageSettings:
     def test_conformFrameRate_24(self) -> None:
         expected = load_expected(SAMPLES_DIR, "conformFrameRate_24")
         footage_json = get_footage_from_json(expected)
-        footage = get_first_footage(parse_project(SAMPLES_DIR / "conformFrameRate_24.aep"))
+        footage = get_first_footage(
+            parse_project(SAMPLES_DIR / "conformFrameRate_24.aep")
+        )
         assert footage is not None
-        assert footage.main_source.conform_frame_rate == footage_json["mainSource"]["conformFrameRate"] == 24
+        assert (
+            footage.main_source.conform_frame_rate
+            == footage_json["mainSource"]["conformFrameRate"]
+            == 24
+        )
 
     def test_conformFrameRate_30(self) -> None:
         expected = load_expected(SAMPLES_DIR, "conformFrameRate_30")
         footage_json = get_footage_from_json(expected)
-        footage = get_first_footage(parse_project(SAMPLES_DIR / "conformFrameRate_30.aep"))
+        footage = get_first_footage(
+            parse_project(SAMPLES_DIR / "conformFrameRate_30.aep")
+        )
         assert footage is not None
-        assert footage.main_source.conform_frame_rate == footage_json["mainSource"]["conformFrameRate"] == 30
+        assert (
+            footage.main_source.conform_frame_rate
+            == footage_json["mainSource"]["conformFrameRate"]
+            == 30
+        )
 
     def test_loop_3(self) -> None:
         expected = load_expected(SAMPLES_DIR, "loop_3")
@@ -236,14 +298,24 @@ class TestFootageSettings:
         footage_json = get_footage_from_json(expected)
         footage = get_first_footage(parse_project(SAMPLES_DIR / "invertAlpha_true.aep"))
         assert footage is not None
-        assert footage.main_source.invert_alpha == footage_json["mainSource"]["invertAlpha"] is True
+        assert (
+            footage.main_source.invert_alpha
+            == footage_json["mainSource"]["invertAlpha"]
+            is True
+        )
 
     def test_premulColor_black(self) -> None:
         expected = load_expected(SAMPLES_DIR, "premulColor_black")
         footage_json = get_footage_from_json(expected)
-        footage = get_first_footage(parse_project(SAMPLES_DIR / "premulColor_black.aep"))
+        footage = get_first_footage(
+            parse_project(SAMPLES_DIR / "premulColor_black.aep")
+        )
         assert footage is not None
-        assert footage.main_source.premul_color == footage_json["mainSource"]["premulColor"] == [0, 0, 0]
+        assert (
+            footage.main_source.premul_color
+            == footage_json["mainSource"]["premulColor"]
+            == [0, 0, 0]
+        )
 
     def test_premulColor_red(self) -> None:
         expected = load_expected(SAMPLES_DIR, "premulColor_red")
@@ -251,7 +323,10 @@ class TestFootageSettings:
         footage = get_first_footage(parse_project(SAMPLES_DIR / "premulColor_red.aep"))
         assert footage is not None
         assert footage_json["mainSource"]["premulColor"] == [1, 0, 0]
-        assert footage.main_source.premul_color == footage_json["mainSource"]["premulColor"]
+        assert (
+            footage.main_source.premul_color
+            == footage_json["mainSource"]["premulColor"]
+        )
 
     def test_removePulldown_OFF(self) -> None:
         project = parse_project(SAMPLES_DIR / "removePulldown_OFF.aep")

@@ -32,9 +32,9 @@ class TextDocument:
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         comp = app.project.compositions[0]
         text_doc = comp.text_layers[0].text.source_text.value
         print(text_doc.text)

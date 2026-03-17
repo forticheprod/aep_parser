@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import typing
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .layer import Layer
 
@@ -9,16 +9,16 @@ if typing.TYPE_CHECKING:
     from aep_parser.enums import LightType
 
 
-@dataclass
+@dataclass(eq=False)
 class LightLayer(Layer):
     """
     The `LightLayer` object represents a light layer within a composition.
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         comp = app.project.compositions[0]
         light = comp.light_layers[0]
         print(light.light_type)
@@ -33,3 +33,13 @@ class LightLayer(Layer):
 
     light_type: LightType
     """The type of light."""
+
+    _light_source_id: int = field(repr=False)
+
+    light_source: Layer | None = field(default=None, repr=False)
+    """The layer used as a light source when `light_type` is
+    `LightType.ENVIRONMENT`. Returns `None` if no source is assigned.
+
+    Warning:
+        Added in After Effects 24.3.
+    """

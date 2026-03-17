@@ -12,9 +12,9 @@ The primary function you'll use is [`parse()`](parsers.md#main-parser).
 
 Internal parsing functions for converting binary data to Python objects.
 
-### [App](app.md)
+### [Application](application.md)
 
-The top-level `App` dataclass representing the After Effects application.
+The top-level `Application` dataclass representing the After Effects application.
 
 ### [Project](project.md)
 
@@ -55,7 +55,7 @@ Properties control layer appearance and behavior:
 
 Sources provide the content for footage items:
 
-- [Footage Source](sources/file_source.md) - Base class for sources
+- [Footage Source](sources/footage_source.md) - Base class for sources
 - [File Source](sources/file_source.md) - File-based sources
 - [Solid Source](sources/solid_source.md) - Solid color sources
 - [Placeholder Source](sources/placeholder_source.md) - Placeholder sources

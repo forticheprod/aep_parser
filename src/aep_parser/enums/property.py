@@ -41,23 +41,23 @@ class PropertyValueType(IntEnum):
     """
 
     UNKNOWN = 0
-    NO_VALUE = 1
-    THREE_D_SPATIAL = 2
-    THREE_D = 3
-    TWO_D_SPATIAL = 4
-    TWO_D = 5
-    ONE_D = 6
-    COLOR = 7
-    CUSTOM_VALUE = 8
-    MARKER = 9
-    LAYER_INDEX = 10
-    MASK_INDEX = 11
-    SHAPE = 12
-    TEXT_DOCUMENT = 13
-    LRDR = 14
-    LITM = 15
-    GIDE = 16
-    ORIENTATION = 17
+    NO_VALUE = 6412
+    ThreeD_SPATIAL = 6413
+    ThreeD = 6414
+    TwoD_SPATIAL = 6415
+    TwoD = 6416
+    OneD = 6417
+    COLOR = 6418
+    CUSTOM_VALUE = 6419
+    MARKER = 6420
+    LAYER_INDEX = 6421
+    MASK_INDEX = 6422
+    SHAPE = 6423
+    TEXT_DOCUMENT = 6424
+    LRDR = 6425
+    LITM = 6426
+    GIDE = 6427
+    ORIENTATION = 6428
 
 
 class KeyframeInterpolationType(IntEnum):

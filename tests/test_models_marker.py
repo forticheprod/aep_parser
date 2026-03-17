@@ -32,7 +32,7 @@ def test_parse_marker_sample(sample_name: str) -> None:
 
 
 def get_first_comp_marker(project: Project) -> MarkerValue:
-    """Get the first marker from the first composition."""
+    """Get the first marker value from the first composition."""
     assert len(project.compositions) >= 1
     comp = project.compositions[0]
     assert len(comp.markers) >= 1
@@ -40,7 +40,7 @@ def get_first_comp_marker(project: Project) -> MarkerValue:
 
 
 def get_first_layer_marker(project: Project) -> MarkerValue:
-    """Get the first marker from the first layer."""
+    """Get the first marker value from the first layer."""
     assert len(project.compositions) >= 1
     comp = project.compositions[0]
     assert len(comp.layers) >= 1
@@ -138,7 +138,9 @@ class TestCompMarkerProtectedRegion:
     def test_protectedRegion_true(self) -> None:
         expected = load_expected(SAMPLES_DIR, "protectedRegion_true")
         marker_json = get_comp_marker_from_json(expected)
-        marker = get_first_comp_marker(parse_project(SAMPLES_DIR / "protectedRegion_true.aep"))
+        marker = get_first_comp_marker(
+            parse_project(SAMPLES_DIR / "protectedRegion_true.aep")
+        )
         assert marker_json["protectedRegion"] is True
         assert marker.protected_region == marker_json["protectedRegion"]
 
@@ -149,18 +151,24 @@ class TestLayerMarker:
     def test_layer_marker_comment(self) -> None:
         expected = load_expected(SAMPLES_DIR, "layer_comment")
         marker_json = get_layer_marker_from_json(expected)
-        marker = get_first_layer_marker(parse_project(SAMPLES_DIR / "layer_comment.aep"))
+        marker = get_first_layer_marker(
+            parse_project(SAMPLES_DIR / "layer_comment.aep")
+        )
         assert marker.comment == marker_json["comment"] == "Layer marker comment"
 
     def test_layer_marker_duration(self) -> None:
         expected = load_expected(SAMPLES_DIR, "layer_duration")
         marker_json = get_layer_marker_from_json(expected)
-        marker = get_first_layer_marker(parse_project(SAMPLES_DIR / "layer_duration.aep"))
+        marker = get_first_layer_marker(
+            parse_project(SAMPLES_DIR / "layer_duration.aep")
+        )
         assert marker_json["duration"] == 3
         assert math.isclose(marker.duration, marker_json["duration"])
 
     def test_layer_marker_cuePointName(self) -> None:
         expected = load_expected(SAMPLES_DIR, "layer_cuePointName")
         marker_json = get_layer_marker_from_json(expected)
-        marker = get_first_layer_marker(parse_project(SAMPLES_DIR / "layer_cuePointName.aep"))
+        marker = get_first_layer_marker(
+            parse_project(SAMPLES_DIR / "layer_cuePointName.aep")
+        )
         assert marker.cue_point_name == marker_json["cuePointName"] == "layer_cue_1"

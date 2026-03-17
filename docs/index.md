@@ -8,9 +8,17 @@ AEP Parser is a Python library that parses Adobe After Effects project files (.a
 
 ## Installation
 
-```bash
-pip install aep-parser
-```
+=== "uv"
+
+    ```bash
+    uv add aep-parser
+    ```
+
+=== "pip"
+
+    ```bash
+    pip install aep-parser
+    ```
 
 ## Quick Start
 
@@ -48,7 +56,7 @@ for item in project:
 An After Effects project has a hierarchical structure:
 
 ```
-App
+Application
 ├── Viewer
 │   └── View
 │       └── ViewOptions
@@ -76,7 +84,7 @@ App
 
 The library provides dataclasses that mirror After Effects' object model:
 
-- `App`: Application-level object (version, build number, active viewer)
+- `Application`: Application-level object (version, build number, active viewer)
 - `Viewer`, `View`, `ViewOptions`: Viewer panels and view settings
 - `Project`: Root project object
 - `CompItem`, `FootageItem`, `FolderItem`: Project items

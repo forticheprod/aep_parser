@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from conftest import parse_app
 
-from aep_parser import App
+from aep_parser import Application
 from aep_parser.cli.visualize import (
     build_project_node,
     format_dot,
@@ -24,7 +24,7 @@ SAMPLES_DIR = Path(__file__).parent.parent / "samples"
 
 
 @pytest.fixture(scope="module")
-def sample_app() -> App:
+def sample_app() -> Application:
     """Parse the AE2025 complete sample once for all tests in this module."""
     aep_path = SAMPLES_DIR / "versions" / "ae2025" / "complete.aep"
     return parse_app(aep_path)
@@ -33,7 +33,7 @@ def sample_app() -> App:
 class TestBuildProjectNode:
     """Tests for build_project_node function."""
 
-    def test_builds_project_structure(self, sample_app: App) -> None:
+    def test_builds_project_structure(self, sample_app: Application) -> None:
         """Test that project node is built with correct structure."""
         app = sample_app
         # Use include_properties=False to avoid PropertyGroup/Property type mismatch
@@ -46,12 +46,13 @@ class TestBuildProjectNode:
         assert "version" in node["attrs"]
         assert "frame_rate" in node["attrs"]
 
-    def test_project_node_without_properties(self, sample_app: App) -> None:
+    def test_project_node_without_properties(self, sample_app: Application) -> None:
         """Test building project node without layer properties."""
         app = sample_app
         node = build_project_node(app, include_properties=False)
 
         assert node["type"] == "Project"
+
         # Check that no property nodes exist in the tree
         def has_property_node(n: dict) -> bool:
             if n.get("type") == "Property":
@@ -63,7 +64,7 @@ class TestBuildProjectNode:
 
         assert not has_property_node(node)
 
-    def test_project_node_has_items(self, sample_app: App) -> None:
+    def test_project_node_has_items(self, sample_app: Application) -> None:
         """Test that project node includes folder and composition items."""
         app = sample_app
         node = build_project_node(app, include_properties=False)
@@ -75,7 +76,7 @@ class TestBuildProjectNode:
 class TestFormatText:
     """Tests for format_text function."""
 
-    def test_text_output_not_empty(self, sample_app: App) -> None:
+    def test_text_output_not_empty(self, sample_app: Application) -> None:
         """Test that text output produces content."""
         app = sample_app
         node = build_project_node(app, include_properties=False)
@@ -87,7 +88,7 @@ class TestFormatText:
         assert len(result) > 0
         assert "Project" in result or node["name"] in result
 
-    def test_text_output_with_depth_limit(self, sample_app: App) -> None:
+    def test_text_output_with_depth_limit(self, sample_app: Application) -> None:
         """Test that depth limit reduces output."""
         app = sample_app
         node = build_project_node(app, include_properties=False)
@@ -105,7 +106,7 @@ class TestFormatText:
 class TestFormatJson:
     """Tests for format_json function."""
 
-    def test_json_output_valid(self, sample_app: App) -> None:
+    def test_json_output_valid(self, sample_app: Application) -> None:
         """Test that JSON output is valid JSON."""
         import json
 
@@ -121,7 +122,7 @@ class TestFormatJson:
         assert parsed["type"] == "Project"
         assert "children" in parsed
 
-    def test_json_output_with_depth_limit(self, sample_app: App) -> None:
+    def test_json_output_with_depth_limit(self, sample_app: Application) -> None:
         """Test that JSON respects depth limit."""
         import json
 
@@ -144,7 +145,7 @@ class TestFormatJson:
 class TestFormatDot:
     """Tests for format_dot function."""
 
-    def test_dot_output_valid_structure(self, sample_app: App) -> None:
+    def test_dot_output_valid_structure(self, sample_app: Application) -> None:
         """Test that DOT output has valid Graphviz structure."""
         app = sample_app
         node = build_project_node(app, include_properties=False)
@@ -161,7 +162,7 @@ class TestFormatDot:
 class TestFormatMermaid:
     """Tests for format_mermaid function."""
 
-    def test_mermaid_output_valid_structure(self, sample_app: App) -> None:
+    def test_mermaid_output_valid_structure(self, sample_app: Application) -> None:
         """Test that Mermaid output has valid flowchart structure."""
         app = sample_app
         node = build_project_node(app, include_properties=False)

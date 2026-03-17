@@ -76,6 +76,7 @@ def parse_item(
             label=label,
             parent_folder=parent_folder,
             comment=comment,
+            effect_param_defs=project._effect_param_defs,
         )
 
     else:
