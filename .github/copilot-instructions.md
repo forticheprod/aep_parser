@@ -33,7 +33,8 @@ A Python library for parsing Adobe After Effects project files (.aep). The binar
 ```powershell
 uv sync --extra dev                  # Install with dev dependencies
 uv sync --extra docs                 # Install with docs dependencies
-uv run pytest                        # Run tests with coverage
+uv run pytest                        # Run tests (parallel)
+uv run pytest --cov=src/aep_parser --cov-report html --cov-report term:skip-covered  # With coverage
 uv run mypy src/aep_parser           # Type checking
 uv run ruff check src/ ; uv run ruff format src/  # Linting (excludes auto-generated kaitai/aep.py)
 uv run mkdocs build --strict         # Build documentation

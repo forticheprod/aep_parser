@@ -13,11 +13,10 @@ See :doc:`/limitations` for details.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
-from conftest import get_first_layer, parse_project
+from conftest import get_first_layer, load_expected, parse_project
 
 from aep_parser import Property
 
@@ -36,8 +35,7 @@ _FINDERS: dict[str, object] = {
 
 def _load_vat(base_name: str) -> tuple[str, list[dict]]:
     """Load value_at_time JSON and return (matchName, frames)."""
-    path = VAT_DIR / f"{base_name}_value_at_time.json"
-    data = json.loads(path.read_text(encoding="utf-8"))
+    data = load_expected(VAT_DIR, f"{base_name}_value_at_time")
     prop = data["comps"][0]["layers"][0]["properties"][0]
     return prop["matchName"], prop["frames"]
 
