@@ -12,13 +12,12 @@ and sentinel out-point markers.  The sample file contains:
 
 from __future__ import annotations
 
-import json
 import math
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from conftest import parse_project
+from conftest import load_expected, parse_project
 
 if TYPE_CHECKING:
     from aep_parser import Project
@@ -26,7 +25,6 @@ if TYPE_CHECKING:
 
 BUGS_DIR = Path(__file__).parent.parent / "samples" / "bugs"
 AEP_PATH = BUGS_DIR / "29.97_fps_time_scale_3.125.aep"
-JSON_PATH = BUGS_DIR / "29.97_fps_time_scale_3.125.json"
 
 
 @pytest.fixture(scope="module")
@@ -38,8 +36,7 @@ def project() -> Project:
 @pytest.fixture(scope="module")
 def expected() -> dict:
     """Load the expected JSON."""
-    with open(JSON_PATH, encoding="utf-8") as f:
-        return json.load(f)
+    return load_expected(BUGS_DIR, "29.97_fps_time_scale_3.125")
 
 
 def _comp_by_id(project: Project, comp_id: int) -> CompItem:

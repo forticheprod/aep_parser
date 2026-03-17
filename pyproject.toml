@@ -34,6 +34,7 @@ dependencies = [
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
+    "pytest-xdist>=3.0",
     "mypy>=1.0",
     "ruff>=0.1",
 ]
@@ -56,13 +57,14 @@ aep-compare = "aep_parser.cli.compare:main"
 aep-validate = "aep_parser.cli.validate:main"
 
 [build-system]
-requires = ["setuptools>=61.0", "setuptools-scm>=7.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.18", "hatch-vcs>=0.4"]
+build-backend = "hatchling.build"
 
-[tool.setuptools_scm]
+[tool.hatch.version]
+source = "vcs"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/aep_parser"]
 
 [tool.ruff]
 target-version = "py37"
@@ -112,7 +114,7 @@ ignore_errors = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-vv -ra --showlocals --cov=. --cov-report html --cov-report term:skip-covered"
+addopts = "-v -ra --showlocals"
 
 [tool.coverage.run]
 source = ["src/aep_parser"]

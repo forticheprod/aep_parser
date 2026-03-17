@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-from conftest import parse_project
+from conftest import load_expected, parse_project
 
 from aep_parser.cli.validate import (
     ValidationResult,
@@ -130,11 +129,11 @@ class TestCompareProjectLevel:
 
     def test_matching_project(self) -> None:
         aep_path = SAMPLES_DIR / "models" / "composition" / "bgColor_custom.aep"
-        json_path = SAMPLES_DIR / "models" / "composition" / "bgColor_custom.json"
         project = parse_project(aep_path)
         parsed = to_dict(project)
-        with open(json_path, encoding="utf-8") as f:
-            expected = json.load(f)
+        expected = load_expected(
+            SAMPLES_DIR / "models" / "composition", "bgColor_custom"
+        )
         result = ValidationResult()
         compare_project_level(expected, parsed, result)
         # Project-level fields should match (or have no differences)
@@ -185,11 +184,11 @@ class TestCompareLayer:
 
     def test_full_layer_comparison(self) -> None:
         aep_path = SAMPLES_DIR / "models" / "layer" / "enabled_false.aep"
-        json_path = SAMPLES_DIR / "models" / "layer" / "enabled_false.json"
         project = parse_project(aep_path)
         parsed = to_dict(project)
-        with open(json_path, encoding="utf-8") as f:
-            expected = json.load(f)
+        expected = load_expected(
+            SAMPLES_DIR / "models" / "layer", "enabled_false"
+        )
         # Find matching comp and layers
         for item in expected["items"]:
             if "layers" in item and len(item["layers"]) > 0:
