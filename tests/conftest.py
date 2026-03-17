@@ -25,7 +25,7 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
 
     Results are cached for the session so the same file is only parsed once.
     """
-    return _parse_aep(aep_file_path).project
+    return parse_app(aep_file_path).project
 
 
 @lru_cache(maxsize=None)

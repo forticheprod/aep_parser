@@ -48,4 +48,4 @@ jobs:
     - name: Install dependencies
       run: uv sync --extra dev
     - name: Test with pytest
-      run: uv run pytest
+      run: uv run pytest -v --no-header --override-ini="addopts=-ra -n auto" --tb=short
