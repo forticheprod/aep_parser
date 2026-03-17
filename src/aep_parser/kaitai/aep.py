@@ -40,11 +40,12 @@ class Aep(KaitaiStruct):
         dark_green = 16
 
     class LayerType(IntEnum):
-        footage = 0
+        avlayer = 0
         light = 1
         camera = 2
         text = 3
         shape = 4
+        three_d_model = 5
 
     class LdatItemType(IntEnum):
         unknown = 0
@@ -391,8 +392,13 @@ class Aep(KaitaiStruct):
         def _read(self):
             self.chunk_type = (self._io.read_bytes(4)).decode(u"ASCII")
             self.len_data = self._io.read_u4be()
-            _on = self.chunk_type
-            if _on == u"LIST":
+            _on = (u"" if  ((self.chunk_type == u"opti") and (self.len_data == 0))  else self.chunk_type)
+            if _on == u"EfDC":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.EfdcBody(_io__raw_data, self, self._root)
+            elif _on == u"LIST":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
@@ -467,6 +473,11 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.DwgaBody(_io__raw_data, self, self._root)
+            elif _on == u"ewot":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.EwotBody(_io__raw_data, self, self._root)
             elif _on == u"fcid":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -512,6 +523,11 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.FoacBody(_io__raw_data, self, self._root)
+            elif _on == u"fth5":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.Fth5Body(_io__raw_data, self, self._root)
             elif _on == u"head":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -537,6 +553,11 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.Lhd3Body(_io__raw_data, self, self._root)
+            elif _on == u"mkif":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.MkifBody(_io__raw_data, self, self._root)
             elif _on == u"nnhd":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -547,11 +568,26 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.OptiBody(_io__raw_data, self, self._root)
+            elif _on == u"otda":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.CdatBody(_io__raw_data, self, self._root)
+            elif _on == u"otln":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.OtlnBody(_io__raw_data, self, self._root)
             elif _on == u"pard":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.PardBody(_io__raw_data, self, self._root)
+            elif _on == u"parn":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.ParnBody(_io__raw_data, self, self._root)
             elif _on == u"pdnm":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -562,6 +598,11 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+            elif _on == u"shph":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.ShphBody(_io__raw_data, self, self._root)
             elif _on == u"sspc":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -572,11 +613,26 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.Tdb4Body(_io__raw_data, self, self._root)
+            elif _on == u"tdli":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.S4Body(_io__raw_data, self, self._root)
             elif _on == u"tdmn":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+            elif _on == u"tdpi":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.S4Body(_io__raw_data, self, self._root)
+            elif _on == u"tdps":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.S4Body(_io__raw_data, self, self._root)
             elif _on == u"tdsb":
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -587,6 +643,16 @@ class Aep(KaitaiStruct):
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
                 _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
                 self.data = Aep.ChildUtf8Body(_io__raw_data, self, self._root)
+            elif _on == u"tduM":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.TdumBody(_io__raw_data, self, self._root)
+            elif _on == u"tdum":
+                pass
+                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
+                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+                self.data = Aep.TdumBody(_io__raw_data, self, self._root)
             else:
                 pass
                 self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
@@ -600,8 +666,11 @@ class Aep(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
-            _on = self.chunk_type
-            if _on == u"LIST":
+            _on = (u"" if  ((self.chunk_type == u"opti") and (self.len_data == 0))  else self.chunk_type)
+            if _on == u"EfDC":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"LIST":
                 pass
                 self.data._fetch_instances()
             elif _on == u"NmHd":
@@ -646,6 +715,9 @@ class Aep(KaitaiStruct):
             elif _on == u"dwga":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"ewot":
+                pass
+                self.data._fetch_instances()
             elif _on == u"fcid":
                 pass
                 self.data._fetch_instances()
@@ -673,6 +745,9 @@ class Aep(KaitaiStruct):
             elif _on == u"foac":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"fth5":
+                pass
+                self.data._fetch_instances()
             elif _on == u"head":
                 pass
                 self.data._fetch_instances()
@@ -688,13 +763,25 @@ class Aep(KaitaiStruct):
             elif _on == u"lhd3":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"mkif":
+                pass
+                self.data._fetch_instances()
             elif _on == u"nnhd":
                 pass
                 self.data._fetch_instances()
             elif _on == u"opti":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"otda":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"otln":
+                pass
+                self.data._fetch_instances()
             elif _on == u"pard":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"parn":
                 pass
                 self.data._fetch_instances()
             elif _on == u"pdnm":
@@ -703,19 +790,37 @@ class Aep(KaitaiStruct):
             elif _on == u"pjef":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"shph":
+                pass
+                self.data._fetch_instances()
             elif _on == u"sspc":
                 pass
                 self.data._fetch_instances()
             elif _on == u"tdb4":
                 pass
                 self.data._fetch_instances()
+            elif _on == u"tdli":
+                pass
+                self.data._fetch_instances()
             elif _on == u"tdmn":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"tdpi":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"tdps":
                 pass
                 self.data._fetch_instances()
             elif _on == u"tdsb":
                 pass
                 self.data._fetch_instances()
             elif _on == u"tdsn":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"tduM":
+                pass
+                self.data._fetch_instances()
+            elif _on == u"tdum":
                 pass
                 self.data._fetch_instances()
             else:
@@ -806,6 +911,72 @@ class Aep(KaitaiStruct):
             return getattr(self, '_m_working_gamma', None)
 
 
+    class EfdcBody(KaitaiStruct):
+        """Effect definition count. The first byte contains the number of
+        LIST EfDf definitions inside LIST EfdG.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.EfdcBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.count = self._io.read_u1()
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class EwotBody(KaitaiStruct):
+        """Effect workspace outline entries inside LIST Ewst.
+        Each entry is 4 bytes. The first byte contains flags:
+          - bit 7 (0x80): child property of an effect (not an effect group)
+          - bit 6 (0x40): selected
+        Entries without bit 7 are effect-group-level nodes.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.EwotBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.num_entries = self._io.read_u4be()
+            self.entries = []
+            for i in range(self.num_entries):
+                self.entries.append(Aep.EwotEntry(self._io, self, self._root))
+
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.entries)):
+                pass
+                self.entries[i]._fetch_instances()
+
+
+
+    class EwotEntry(KaitaiStruct):
+        """Single effect workspace outline entry."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.EwotEntry, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.is_child_property = self._io.read_bits_int_be(1) != 0
+            self.selected = self._io.read_bits_int_be(1) != 0
+            self.reserved_flags = self._io.read_bits_int_be(6)
+            self.data = self._io.read_bytes(3)
+
+
+        def _fetch_instances(self):
+            pass
+
+
     class FcidBody(KaitaiStruct):
         """Active composition item ID. Stores the item ID of the currently
         active (most recently focused) composition in the project.
@@ -833,6 +1004,30 @@ class Aep(KaitaiStruct):
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(1)
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class FeatherPoint(KaitaiStruct):
+        """A single variable-width mask feather point (32 bytes).
+        The feather type (inner/outer) is derived from the sign of the radius:
+        negative radius = inner feather (type 1), positive = outer (type 0).
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.FeatherPoint, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.seg_loc = self._io.read_u4le()
+            self.interp_raw = self._io.read_u4le()
+            self.rel_seg_loc = self._io.read_f8be()
+            self.radius = self._io.read_f8be()
+            self.corner_angle = self._io.read_f4be()
+            self.tension = self._io.read_f4be()
 
 
         def _fetch_instances(self):
@@ -894,19 +1089,20 @@ class Aep(KaitaiStruct):
             self._unnamed20 = self._io.read_bytes(7)
             self._unnamed21 = self._io.read_bits_int_be(4)
             self.grid = self._io.read_bits_int_be(1) != 0
-            self._unnamed23 = self._io.read_bits_int_be(2)
+            self.guides_snap = self._io.read_bits_int_be(1) != 0
+            self.guides_locked = self._io.read_bits_int_be(1) != 0
             self.guides_visibility = self._io.read_bits_int_be(1) != 0
-            self._unnamed25 = self._io.read_bytes(45)
+            self._unnamed26 = self._io.read_bytes(45)
             self.zoom_type = self._io.read_u1()
-            self._unnamed27 = self._io.read_bytes(2)
+            self._unnamed28 = self._io.read_bytes(2)
             self.zoom = self._io.read_f8be()
             self.exposure = self._io.read_f4be()
-            self._unnamed30 = self._io.read_bytes(1)
-            self._unnamed31 = self._io.read_bits_int_be(7)
+            self._unnamed31 = self._io.read_bytes(1)
+            self._unnamed32 = self._io.read_bits_int_be(7)
             self.use_display_color_management = self._io.read_bits_int_be(1) != 0
-            self._unnamed33 = self._io.read_bits_int_be(7)
+            self._unnamed34 = self._io.read_bits_int_be(7)
             self.auto_resolution = self._io.read_bits_int_be(1) != 0
-            self._unnamed35 = self._io.read_bytes_full()
+            self._unnamed36 = self._io.read_bytes_full()
 
 
         def _fetch_instances(self):
@@ -982,6 +1178,38 @@ class Aep(KaitaiStruct):
 
         def _fetch_instances(self):
             pass
+
+
+    class Fth5Body(KaitaiStruct):
+        """Variable-width mask feather points.  Each feather point is 32 bytes.
+        Feather points can be placed anywhere along a closed mask path to vary
+        the feather radius at different positions.  The number of points is
+        determined by the chunk size divided by 32.
+        
+        Integer fields use little-endian byte order despite the big-endian
+        RIFX container (similar to OTST cdat).  Float fields remain big-endian.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.Fth5Body, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.points = []
+            i = 0
+            while not self._io.is_eof():
+                self.points.append(Aep.FeatherPoint(self._io, self, self._root))
+                i += 1
+
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.points)):
+                pass
+                self.points[i]._fetch_instances()
+
 
 
     class HeadBody(KaitaiStruct):
@@ -1187,8 +1415,12 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self._unnamed0 = self._io.read_u8be()
-            self._unnamed1 = self._io.read_f8be()
+            self._unnamed0 = self._io.read_bytes(3)
+            self._unnamed1 = self._io.read_bits_int_be(6)
+            self.spatial_auto_bezier = self._io.read_bits_int_be(1) != 0
+            self.spatial_continuous = self._io.read_bits_int_be(1) != 0
+            self._unnamed4 = self._io.read_bytes(4)
+            self._unnamed5 = self._io.read_f8be()
             self.in_speed = self._io.read_f8be()
             self.in_influence = self._io.read_f8be()
             self.out_speed = self._io.read_f8be()
@@ -1197,13 +1429,13 @@ class Aep(KaitaiStruct):
             for i in range(self.num_value):
                 self.value.append(self._io.read_f8be())
 
-            self.tan_in = []
+            self.in_spatial_tangents = []
             for i in range(self.num_value):
-                self.tan_in.append(self._io.read_f8be())
+                self.in_spatial_tangents.append(self._io.read_f8be())
 
-            self.tan_out = []
+            self.out_spatial_tangents = []
             for i in range(self.num_value):
-                self.tan_out.append(self._io.read_f8be())
+                self.out_spatial_tangents.append(self._io.read_f8be())
 
 
 
@@ -1212,10 +1444,10 @@ class Aep(KaitaiStruct):
             for i in range(len(self.value)):
                 pass
 
-            for i in range(len(self.tan_in)):
+            for i in range(len(self.in_spatial_tangents)):
                 pass
 
-            for i in range(len(self.tan_out)):
+            for i in range(len(self.out_spatial_tangents)):
                 pass
 
 
@@ -1261,14 +1493,15 @@ class Aep(KaitaiStruct):
         def _read(self):
             self._unnamed0 = self._io.read_bytes(1)
             self.time_raw = self._io.read_s2be()
-            self._unnamed2 = self._io.read_bytes(2)
-            self.keyframe_interpolation_type = self._io.read_u1()
+            self._unnamed2 = self._io.read_bytes(1)
+            self.in_interpolation_type = self._io.read_u1()
+            self.out_interpolation_type = self._io.read_u1()
             self.label = KaitaiStream.resolve_enum(Aep.Label, self._io.read_u1())
-            self._unnamed5 = self._io.read_bits_int_be(2)
-            self.roving_across_time = self._io.read_bits_int_be(1) != 0
-            self.auto_bezier = self._io.read_bits_int_be(1) != 0
-            self.continuous_bezier = self._io.read_bits_int_be(1) != 0
-            self._unnamed9 = self._io.read_bits_int_be(3)
+            self._unnamed6 = self._io.read_bits_int_be(2)
+            self.roving = self._io.read_bits_int_be(1) != 0
+            self.temporal_auto_bezier = self._io.read_bits_int_be(1) != 0
+            self.temporal_continuous = self._io.read_bits_int_be(1) != 0
+            self._unnamed10 = self._io.read_bits_int_be(3)
             _on = self.item_type
             if _on == Aep.LdatItemType.color:
                 pass
@@ -1377,12 +1610,13 @@ class Aep(KaitaiStruct):
             self._unnamed11 = self._io.read_bits_int_be(1) != 0
             self.sampling_quality = self._io.read_bits_int_be(1) != 0
             self.environment_layer = self._io.read_bits_int_be(1) != 0
-            self.characters_toward_camera = self._io.read_bits_int_be(2)
+            self.characters_toward_camera = self._io.read_bits_int_be(1) != 0
+            self.three_d_per_char = self._io.read_bits_int_be(1) != 0
             self.frame_blending_type = self._io.read_bits_int_be(1) != 0
             self.guide_layer = self._io.read_bits_int_be(1) != 0
-            self._unnamed17 = self._io.read_bits_int_be(1) != 0
+            self._unnamed18 = self._io.read_bits_int_be(1) != 0
             self.null_layer = self._io.read_bits_int_be(1) != 0
-            self._unnamed19 = self._io.read_bits_int_be(1) != 0
+            self._unnamed20 = self._io.read_bits_int_be(1) != 0
             self.camera_or_poi_auto_orient = self._io.read_bits_int_be(1) != 0
             self.markers_locked = self._io.read_bits_int_be(1) != 0
             self.solo = self._io.read_bits_int_be(1) != 0
@@ -1398,27 +1632,34 @@ class Aep(KaitaiStruct):
             self.audio_enabled = self._io.read_bits_int_be(1) != 0
             self.enabled = self._io.read_bits_int_be(1) != 0
             self.source_id = self._io.read_u4be()
-            self._unnamed35 = self._io.read_bytes(17)
+            self._unnamed36 = self._io.read_bytes(17)
             self.label = KaitaiStream.resolve_enum(Aep.Label, self._io.read_u1())
-            self._unnamed37 = self._io.read_bytes(2)
+            self._unnamed38 = self._io.read_bytes(2)
             self.layer_name = (self._io.read_bytes(32)).decode(u"windows-1252")
-            self._unnamed39 = self._io.read_bytes(3)
+            self._unnamed40 = self._io.read_bytes(3)
             self.blending_mode = self._io.read_u1()
-            self._unnamed41 = self._io.read_bytes(3)
+            self._unnamed42 = self._io.read_bytes(3)
             self.preserve_transparency = self._io.read_u1()
-            self._unnamed43 = self._io.read_bytes(3)
+            self._unnamed44 = self._io.read_bytes(3)
             self.track_matte_type = self._io.read_u1()
             self.stretch_divisor = self._io.read_u4be()
-            self._unnamed46 = self._io.read_bytes(19)
+            self._unnamed47 = self._io.read_bytes(19)
             self.layer_type = KaitaiStream.resolve_enum(Aep.LayerType, self._io.read_u1())
             self.parent_id = self._io.read_u4be()
-            self._unnamed49 = self._io.read_bytes(3)
+            self._unnamed50 = self._io.read_bytes(3)
             self.light_type = self._io.read_u1()
-            self._unnamed51 = self._io.read_bytes(20)
+            self._unnamed52 = self._io.read_bytes(20)
+            if self._io.size() - self._io.pos() >= 4:
+                pass
+                self.matte_layer_id = self._io.read_u4be()
+
 
 
         def _fetch_instances(self):
             pass
+            if self._io.size() - self._io.pos() >= 4:
+                pass
+
 
         @property
         def in_point(self):
@@ -1483,7 +1724,7 @@ class Aep(KaitaiStruct):
             if hasattr(self, '_m_item_type'):
                 return self._m_item_type
 
-            self._m_item_type = (Aep.LdatItemType.lrdr if  ((self.item_type_raw == 1) and (self.item_size == 2246))  else (Aep.LdatItemType.litm if  ((self.item_type_raw == 1) and (self.item_size == 128))  else (Aep.LdatItemType.gide if  ((self.item_type_raw == 2) and (self.item_size == 1))  else (Aep.LdatItemType.color if  ((self.item_type_raw == 4) and (self.item_size == 152))  else (Aep.LdatItemType.three_d if  ((self.item_type_raw == 4) and (self.item_size == 128))  else (Aep.LdatItemType.two_d_spatial if  ((self.item_type_raw == 4) and (self.item_size == 104))  else (Aep.LdatItemType.two_d if  ((self.item_type_raw == 4) and (self.item_size == 88))  else (Aep.LdatItemType.orientation if  ((self.item_type_raw == 4) and (self.item_size == 80))  else (Aep.LdatItemType.no_value if  ((self.item_type_raw == 4) and (self.item_size == 64))  else (Aep.LdatItemType.one_d if  ((self.item_type_raw == 4) and (self.item_size == 48))  else (Aep.LdatItemType.marker if  ((self.item_type_raw == 4) and (self.item_size == 16))  else Aep.LdatItemType.unknown)))))))))))
+            self._m_item_type = (Aep.LdatItemType.lrdr if  ((self.item_type_raw == 1) and (self.item_size == 2246))  else (Aep.LdatItemType.litm if  ((self.item_type_raw == 1) and (self.item_size == 128))  else (Aep.LdatItemType.gide if  ((self.item_type_raw == 2) and (self.item_size == 1))  else (Aep.LdatItemType.color if  ((self.item_type_raw == 4) and (self.item_size == 152))  else (Aep.LdatItemType.three_d if  ((self.item_type_raw == 4) and (self.item_size == 128))  else (Aep.LdatItemType.two_d_spatial if  ((self.item_type_raw == 4) and (self.item_size == 104))  else (Aep.LdatItemType.two_d if  ((self.item_type_raw == 4) and (self.item_size == 88))  else (Aep.LdatItemType.orientation if  ((self.item_type_raw == 4) and (self.item_size == 80))  else (Aep.LdatItemType.no_value if  ((self.item_type_raw == 4) and (self.item_size == 64))  else (Aep.LdatItemType.one_d if  ((self.item_type_raw == 4) and (self.item_size == 48))  else (Aep.LdatItemType.marker if  ((self.item_type_raw == 4) and (self.item_size == 16))  else (Aep.LdatItemType.shape if  ((self.item_type_raw == 4) and (self.item_size == 8))  else Aep.LdatItemType.unknown))))))))))))
             return getattr(self, '_m_item_type', None)
 
 
@@ -1523,6 +1764,33 @@ class Aep(KaitaiStruct):
             if self.list_type == u"btdk":
                 pass
 
+
+
+    class MkifBody(KaitaiStruct):
+        """Mask info. Contains inverted flag, locked flag, mask mode,
+        motion blur, feather falloff and color.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.MkifBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.inverted = self._io.read_u1()
+            self.locked = self._io.read_u1()
+            self.mask_motion_blur = self._io.read_u1()
+            self.mask_feather_falloff = self._io.read_u1()
+            self._unnamed4 = self._io.read_bytes(2)
+            self.mode = self._io.read_u2be()
+            self._unnamed6 = self._io.read_bytes(37)
+            self.color_red = self._io.read_u1()
+            self.color_green = self._io.read_u1()
+            self.color_blue = self._io.read_u1()
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class NmhdBody(KaitaiStruct):
@@ -1819,17 +2087,6 @@ class Aep(KaitaiStruct):
 
 
         @property
-        def alpha(self):
-            if hasattr(self, '_m_alpha'):
-                return self._m_alpha
-
-            if self.asset_type == u"Soli":
-                pass
-                self._m_alpha = self.color[0]
-
-            return getattr(self, '_m_alpha', None)
-
-        @property
         def blue(self):
             if hasattr(self, '_m_blue'):
                 return self._m_blue
@@ -1861,6 +2118,55 @@ class Aep(KaitaiStruct):
                 self._m_red = self.color[1]
 
             return getattr(self, '_m_red', None)
+
+
+    class OtlnBody(KaitaiStruct):
+        """Comp panel outline entries inside LIST FEE (composition timeline).
+        Each entry is 4 bytes. The first byte contains flags:
+          - bit 7 (0x80): collapsed in the timeline
+          - bit 6 (0x40): selected
+        Entries correspond 1:1 to layers and their property-tree nodes
+        in DFS order across all visible layers of the active composition.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.OtlnBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.num_entries = self._io.read_u4be()
+            self.entries = []
+            for i in range(self.num_entries):
+                self.entries.append(Aep.OtlnEntry(self._io, self, self._root))
+
+
+
+        def _fetch_instances(self):
+            pass
+            for i in range(len(self.entries)):
+                pass
+                self.entries[i]._fetch_instances()
+
+
+
+    class OtlnEntry(KaitaiStruct):
+        """Single comp panel outline entry."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.OtlnEntry, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.collapsed = self._io.read_bits_int_be(1) != 0
+            self.selected = self._io.read_bits_int_be(1) != 0
+            self.reserved_flags = self._io.read_bits_int_be(6)
+            self.data = self._io.read_bytes(3)
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class OutputModuleSettingsLdatBody(KaitaiStruct):
@@ -2146,6 +2452,24 @@ class Aep(KaitaiStruct):
                 self._m_last_value_z = self.last_value_z_raw * 512
 
             return getattr(self, '_m_last_value_z', None)
+
+
+    class ParnBody(KaitaiStruct):
+        """Parameter count inside a LIST parT. Contains the number of tdmn/pard
+        parameter entries that follow.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.ParnBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.count = self._io.read_u4be()
+
+
+        def _fetch_instances(self):
+            pass
 
 
     class PngRoptData(KaitaiStruct):
@@ -2458,6 +2782,77 @@ class Aep(KaitaiStruct):
             pass
 
 
+    class S4Body(KaitaiStruct):
+        """Single signed 32-bit big-endian integer value."""
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.S4Body, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.value = self._io.read_s4be()
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class ShapePoint(KaitaiStruct):
+        """A single normalized bezier point in a shape path.
+        Coordinates are big-endian f4 values in the [0, 1] range,
+        relative to the bounding box defined in shph_body.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.ShapePoint, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.x = self._io.read_f4be()
+            self.y = self._io.read_f4be()
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class ShphBody(KaitaiStruct):
+        """Shape path header. Contains a closed/open flag and the bounding box
+        for the shape vertices.  Vertex coordinates in the associated ldat
+        are normalized to [0, 1] relative to this bounding box.
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.ShphBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self._unnamed0 = self._io.read_bytes(3)
+            self._unnamed1 = self._io.read_bits_int_be(4)
+            self.open = self._io.read_bits_int_be(1) != 0
+            self._unnamed3 = self._io.read_bits_int_be(3)
+            self.top_left_x = self._io.read_f4be()
+            self.top_left_y = self._io.read_f4be()
+            self.bottom_right_x = self._io.read_f4be()
+            self.bottom_right_y = self._io.read_f4be()
+            self._unnamed8 = self._io.read_bytes(4)
+
+
+        def _fetch_instances(self):
+            pass
+
+        @property
+        def closed(self):
+            if hasattr(self, '_m_closed'):
+                return self._m_closed
+
+            self._m_closed = (not (self.open))
+            return getattr(self, '_m_closed', None)
+
+
     class SspcBody(KaitaiStruct):
         """Source footage settings chunk. Contains dimension, timing, and alpha/field settings.
         """
@@ -2581,46 +2976,46 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self._unnamed0 = self._io.read_bytes(2)
+            self.magic = self._io.read_bytes(2)
+            if not self.magic == b"\xDB\x99":
+                raise kaitaistruct.ValidationNotEqualError(b"\xDB\x99", self.magic, self._io, u"/types/tdb4_body/seq/0")
             self.dimensions = self._io.read_u2be()
             self._unnamed2 = self._io.read_bytes(1)
             self._unnamed3 = self._io.read_bits_int_be(4)
             self.is_spatial = self._io.read_bits_int_be(1) != 0
             self._unnamed5 = self._io.read_bits_int_be(2)
             self.static = self._io.read_bits_int_be(1) != 0
-            self._unnamed7 = self._io.read_bytes(10)
+            self._unnamed7 = self._io.read_bytes(5)
+            self._unnamed8 = self._io.read_bits_int_be(6)
+            self.can_vary_over_time = self._io.read_bits_int_be(1) != 0
+            self._unnamed10 = self._io.read_bits_int_be(1) != 0
+            self._unnamed11 = self._io.read_bytes(4)
             self.unknown_floats = []
             for i in range(5):
                 self.unknown_floats.append(self._io.read_f8be())
 
-            self._unnamed9 = self._io.read_bytes(1)
-            self._unnamed10 = self._io.read_bits_int_be(7)
+            self._unnamed13 = self._io.read_bytes(1)
+            self._unnamed14 = self._io.read_bits_int_be(7)
             self.no_value = self._io.read_bits_int_be(1) != 0
-            self._unnamed12 = self._io.read_bytes(1)
-            self._unnamed13 = self._io.read_bits_int_be(4)
+            self._unnamed16 = self._io.read_bytes(1)
+            self._unnamed17 = self._io.read_bits_int_be(4)
             self.vector = self._io.read_bits_int_be(1) != 0
             self.integer = self._io.read_bits_int_be(1) != 0
-            self._unnamed16 = self._io.read_bits_int_be(1) != 0
+            self._unnamed20 = self._io.read_bits_int_be(1) != 0
             self.color = self._io.read_bits_int_be(1) != 0
-            self._unnamed18 = self._io.read_bytes(8)
+            self._unnamed22 = self._io.read_bytes(8)
             self.animated = self._io.read_u1()
-            self._unnamed20 = self._io.read_bytes(15)
-            self.unknown_floats_2 = []
-            for i in range(4):
-                self.unknown_floats_2.append(self._io.read_f8be())
-
-            self._unnamed22 = self._io.read_bytes(3)
-            self._unnamed23 = self._io.read_bits_int_be(7)
+            self._unnamed24 = self._io.read_bytes(15)
+            self._unnamed25 = self._io.read_bytes(32)
+            self._unnamed26 = self._io.read_bytes(3)
+            self._unnamed27 = self._io.read_bits_int_be(7)
             self.expression_disabled = self._io.read_bits_int_be(1) != 0
-            self._unnamed25 = self._io.read_bytes(4)
+            self._unnamed29 = self._io.read_bytes(4)
 
 
         def _fetch_instances(self):
             pass
             for i in range(len(self.unknown_floats)):
-                pass
-
-            for i in range(len(self.unknown_floats_2)):
                 pass
 
 
@@ -2641,13 +3036,40 @@ class Aep(KaitaiStruct):
             self._read()
 
         def _read(self):
-            self._unnamed0 = self._io.read_bytes(2)
-            self._unnamed1 = self._io.read_bits_int_be(3)
+            self.roto_bezier = self._io.read_u1()
+            self._unnamed1 = self._io.read_bytes(1)
+            self._unnamed2 = self._io.read_bits_int_be(3)
             self.locked_ratio = self._io.read_bits_int_be(1) != 0
-            self._unnamed3 = self._io.read_bits_int_be(4)
-            self._unnamed4 = self._io.read_bits_int_be(6)
+            self._unnamed4 = self._io.read_bits_int_be(4)
+            self._unnamed5 = self._io.read_bits_int_be(6)
             self.dimensions_separated = self._io.read_bits_int_be(1) != 0
             self.enabled = self._io.read_bits_int_be(1) != 0
+
+
+        def _fetch_instances(self):
+            pass
+
+
+    class TdumBody(KaitaiStruct):
+        """Property stored min or max value inside a tdbs LIST.
+        Used for both tdum (min) and tduM (max) chunks.
+        When both tdum and tduM are zero, the property is unconstrained
+        (no min/max). Otherwise, tdum is the minimum and tduM the maximum.
+        The encoding depends on the property type:
+          Scalar:   float64      (8 bytes)
+          Color:    float32[4]   (16 bytes, RGBA)
+          Position: float64[2]   (16 bytes)
+          Vector:   float64[4]   (32 bytes)
+          Enum:     uint32       (4 bytes)
+        """
+        def __init__(self, _io, _parent=None, _root=None):
+            super(Aep.TdumBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+            self._read()
+
+        def _read(self):
+            self.data = self._io.read_bytes_full()
 
 
         def _fetch_instances(self):

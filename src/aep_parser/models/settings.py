@@ -36,7 +36,7 @@ from aep_parser.enums import (
     OutputColorDepth,
     OutputColorMode,
     OutputFormat,
-    PostRenderAction,
+    PostRenderActionSetting,
     ProxyUseSetting,
     PulldownSetting,
     RenderQuality,
@@ -81,12 +81,10 @@ Example:
 
     project = parse("project.aep").project
     for rq_item in project.render_queue.items:
-        for output_module in rq_item.output_modules:
-            settings = output_module.settings
-            print(f"Video Output: {settings['Video Output']}")
-            print(f"Dimensions: {output_module.width}x{output_module.height}")
-            print(f"Color Mode: {settings['Color'].name}")
-            print(f"Output Frame Rate: {output_module.frame_rate}")
+        settings = rq_item.settings
+        print(f"Quality: {settings['Quality']}")
+        print(f"Resolution: {settings['Resolution']}")
+        print(f"Frame Rate: {settings['Frame Rate']}")
     ```
 """
 
@@ -113,7 +111,7 @@ OutputModuleSettings = TypedDict(
         "Output Audio": OutputAudio,
         "Output Color Space": str,
         "Output File Info": dict,
-        "Post-Render Action": PostRenderAction,
+        "Post-Render Action": PostRenderActionSetting,
         "Preserve RGB": bool,
         "Resize Quality": ResizeQuality,
         "Resize to": list,

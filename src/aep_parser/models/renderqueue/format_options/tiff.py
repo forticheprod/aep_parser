@@ -12,12 +12,9 @@ class TiffFormatOptions:
 
     Example:
         ```python
-        import aep_parser
-        from aep_parser.models.renderqueue.format_options.tiff import (
-            TiffFormatOptions,
-        )
+        from aep_parser import TiffFormatOptions, parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         om = app.project.render_queue.items[0].output_modules[0]
         if isinstance(om.format_options, TiffFormatOptions):
             print(om.format_options.lzw_compression)

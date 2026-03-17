@@ -16,12 +16,9 @@ class OpenExrFormatOptions:
 
     Example:
         ```python
-        import aep_parser
-        from aep_parser.models.renderqueue.format_options.openexr import (
-            OpenExrFormatOptions,
-        )
+        from aep_parser import OpenExrFormatOptions, parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         om = app.project.render_queue.items[0].output_modules[0]
         if isinstance(om.format_options, OpenExrFormatOptions):
             print(om.format_options.compression)

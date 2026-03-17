@@ -9,17 +9,17 @@ if typing.TYPE_CHECKING:
 
 
 @dataclass
-class App:
+class Application:
     """
-    The `App` object represents the After Effects application. Attributes
+    The `Application` object represents the After Effects application. Attributes
     provide access to the project and application-level settings parsed from
     the binary file.
 
     Example:
         ```python
-        import aep_parser
+        from aep_parser import parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         print(app.version)
         ```
 

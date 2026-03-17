@@ -13,10 +13,9 @@ class PlaceholderSource(FootageSource):
 
     Example:
         ```python
-        import aep_parser
-        from aep_parser.models.sources.placeholder import PlaceholderSource
+        from aep_parser import PlaceholderSource, parse
 
-        app = aep_parser.parse("project.aep")
+        app = parse("project.aep")
         footage = app.project.footages[0]
         if isinstance(footage.main_source, PlaceholderSource):
             print(footage.main_source.width)

@@ -1,4 +1,5 @@
 """Tests for CompItem model parsing."""
+
 from __future__ import annotations
 
 import math
@@ -136,14 +137,26 @@ class TestCompItemMotionBlur:
     def test_motionBlurSamplesPerFrame_32(self) -> None:
         expected = load_expected(SAMPLES_DIR, "motionBlurSamplesPerFrame_32")
         comp_json = get_comp_from_json(expected)
-        comp = parse_project(SAMPLES_DIR / "motionBlurSamplesPerFrame_32.aep").compositions[0]
-        assert comp.motion_blur_samples_per_frame == comp_json["motionBlurSamplesPerFrame"] == 32
+        comp = parse_project(
+            SAMPLES_DIR / "motionBlurSamplesPerFrame_32.aep"
+        ).compositions[0]
+        assert (
+            comp.motion_blur_samples_per_frame
+            == comp_json["motionBlurSamplesPerFrame"]
+            == 32
+        )
 
     def test_motionBlurAdaptiveSampleLimit_256(self) -> None:
         expected = load_expected(SAMPLES_DIR, "motionBlurAdaptiveSampleLimit_256")
         comp_json = get_comp_from_json(expected)
-        comp = parse_project(SAMPLES_DIR / "motionBlurAdaptiveSampleLimit_256.aep").compositions[0]
-        assert comp.motion_blur_adaptive_sample_limit == comp_json["motionBlurAdaptiveSampleLimit"] == 256
+        comp = parse_project(
+            SAMPLES_DIR / "motionBlurAdaptiveSampleLimit_256.aep"
+        ).compositions[0]
+        assert (
+            comp.motion_blur_adaptive_sample_limit
+            == comp_json["motionBlurAdaptiveSampleLimit"]
+            == 256
+        )
 
 
 class TestCompItemResolution:
@@ -158,7 +171,9 @@ class TestCompItemResolution:
     def test_resolutionFactor_quarter(self) -> None:
         expected = load_expected(SAMPLES_DIR, "resolutionFactor_quarter")
         comp_json = get_comp_from_json(expected)
-        comp = parse_project(SAMPLES_DIR / "resolutionFactor_quarter.aep").compositions[0]
+        comp = parse_project(SAMPLES_DIR / "resolutionFactor_quarter.aep").compositions[
+            0
+        ]
         assert comp.resolution_factor == comp_json["resolutionFactor"]
 
 
@@ -168,14 +183,18 @@ class TestCompItemNestedOptions:
     def test_preserveNestedFrameRate_true(self) -> None:
         expected = load_expected(SAMPLES_DIR, "preserveNestedFrameRate_true")
         comp_json = get_comp_from_json(expected)
-        comp = parse_project(SAMPLES_DIR / "preserveNestedFrameRate_true.aep").compositions[0]
+        comp = parse_project(
+            SAMPLES_DIR / "preserveNestedFrameRate_true.aep"
+        ).compositions[0]
         assert comp_json["preserveNestedFrameRate"] is True
         assert comp.preserve_nested_frame_rate == comp_json["preserveNestedFrameRate"]
 
     def test_preserveNestedResolution_true(self) -> None:
         expected = load_expected(SAMPLES_DIR, "preserveNestedResolution_true")
         comp_json = get_comp_from_json(expected)
-        comp = parse_project(SAMPLES_DIR / "preserveNestedResolution_true.aep").compositions[0]
+        comp = parse_project(
+            SAMPLES_DIR / "preserveNestedResolution_true.aep"
+        ).compositions[0]
         assert comp_json["preserveNestedResolution"] is True
         assert comp.preserve_nested_resolution == comp_json["preserveNestedResolution"]
 
@@ -239,7 +258,9 @@ class TestCompItemWorkArea:
         comp_json = get_comp_from_json(expected)
         comp = parse_project(SAMPLES_DIR / "workAreaDuration_10.aep").compositions[0]
         work_area_duration = comp.out_point - comp.in_point
-        assert math.isclose(work_area_duration, comp_json["workAreaDuration"], rel_tol=0.001)
+        assert math.isclose(
+            work_area_duration, comp_json["workAreaDuration"], rel_tol=0.001
+        )
 
 
 class TestCompItemDisplayStart:
@@ -323,10 +344,13 @@ class TestCompItemDropFrame:
         assert comp_json["dropFrame"] is False
         assert comp.drop_frame == comp_json["dropFrame"]
 
+
 class TestCompItemDraft3D:
     """Tests for composition Draft 3D mode."""
 
-    @pytest.mark.skip(reason="Draft 3D mode is deprecated in After Effects 2024, but still needs to be parsed for older files.")
+    @pytest.mark.skip(
+        reason="Draft 3D mode is deprecated in After Effects 2024, but still needs to be parsed for older files."
+    )
     def test_draft3d_on(self) -> None:
         expected = load_expected(SAMPLES_DIR, "draft3d_on")
         comp_json = get_comp_from_json(expected)
@@ -334,7 +358,9 @@ class TestCompItemDraft3D:
         assert comp_json["draft3d"] is True
         assert comp.draft3d is True
 
-    @pytest.mark.skip(reason="Draft 3D mode is deprecated in After Effects 2024, but still needs to be parsed for older files.")
+    @pytest.mark.skip(
+        reason="Draft 3D mode is deprecated in After Effects 2024, but still needs to be parsed for older files."
+    )
     def test_draft3d_off(self) -> None:
         expected = load_expected(SAMPLES_DIR, "draft3d_off")
         comp_json = get_comp_from_json(expected)
@@ -374,16 +400,12 @@ class TestCompItemLayerFiltering:
         assert comp.camera_layers is comp.camera_layers
 
     def test_light_layers(self) -> None:
-        comp = parse_project(
-            LAYER_SAMPLES_DIR / "lightType_POINT.aep"
-        ).compositions[0]
+        comp = parse_project(LAYER_SAMPLES_DIR / "lightType_POINT.aep").compositions[0]
         assert len(comp.light_layers) == 1
         assert all(isinstance(layer, LightLayer) for layer in comp.light_layers)
 
     def test_light_layers_cached(self) -> None:
-        comp = parse_project(
-            LAYER_SAMPLES_DIR / "lightType_POINT.aep"
-        ).compositions[0]
+        comp = parse_project(LAYER_SAMPLES_DIR / "lightType_POINT.aep").compositions[0]
         assert comp.light_layers is comp.light_layers
 
     def test_null_layers(self) -> None:
@@ -412,9 +434,7 @@ class TestCompItemLayerFiltering:
         assert comp.adjustment_layers is comp.adjustment_layers
 
     def test_three_d_layers(self) -> None:
-        comp = parse_project(
-            LAYER_SAMPLES_DIR / "threeDLayer_true.aep"
-        ).compositions[0]
+        comp = parse_project(LAYER_SAMPLES_DIR / "threeDLayer_true.aep").compositions[0]
         assert len(comp.three_d_layers) == 1
         assert all(
             isinstance(layer, AVLayer) and layer.three_d_layer
@@ -422,15 +442,11 @@ class TestCompItemLayerFiltering:
         )
 
     def test_three_d_layers_cached(self) -> None:
-        comp = parse_project(
-            LAYER_SAMPLES_DIR / "threeDLayer_true.aep"
-        ).compositions[0]
+        comp = parse_project(LAYER_SAMPLES_DIR / "threeDLayer_true.aep").compositions[0]
         assert comp.three_d_layers is comp.three_d_layers
 
     def test_guide_layers(self) -> None:
-        comp = parse_project(
-            LAYER_SAMPLES_DIR / "guideLayer_true.aep"
-        ).compositions[0]
+        comp = parse_project(LAYER_SAMPLES_DIR / "guideLayer_true.aep").compositions[0]
         assert len(comp.guide_layers) == 1
         assert all(
             isinstance(layer, AVLayer) and layer.guide_layer
@@ -438,9 +454,7 @@ class TestCompItemLayerFiltering:
         )
 
     def test_guide_layers_cached(self) -> None:
-        comp = parse_project(
-            LAYER_SAMPLES_DIR / "guideLayer_true.aep"
-        ).compositions[0]
+        comp = parse_project(LAYER_SAMPLES_DIR / "guideLayer_true.aep").compositions[0]
         assert comp.guide_layers is comp.guide_layers
 
     def test_solo_layers(self) -> None:
@@ -483,30 +497,30 @@ class TestCompItemLayerFiltering:
         assert comp.file_layers is comp.file_layers
 
     def test_solid_layers(self) -> None:
-        comp = parse_project(
-            LAYER_SAMPLES_DIR / "gray_solid_1_above.aep"
-        ).compositions[0]
+        comp = parse_project(LAYER_SAMPLES_DIR / "gray_solid_1_above.aep").compositions[
+            0
+        ]
         assert len(comp.solid_layers) == 2
         for layer in comp.solid_layers:
             assert isinstance(layer, AVLayer)
             assert isinstance(layer.source.main_source, SolidSource)
 
     def test_solid_layers_cached(self) -> None:
-        comp = parse_project(
-            LAYER_SAMPLES_DIR / "gray_solid_1_above.aep"
-        ).compositions[0]
+        comp = parse_project(LAYER_SAMPLES_DIR / "gray_solid_1_above.aep").compositions[
+            0
+        ]
         assert comp.solid_layers is comp.solid_layers
 
     def test_placeholder_layers_empty(self) -> None:
         """A comp with only solid layers has no placeholder layers."""
-        comp = parse_project(
-            LAYER_SAMPLES_DIR / "gray_solid_1_above.aep"
-        ).compositions[0]
+        comp = parse_project(LAYER_SAMPLES_DIR / "gray_solid_1_above.aep").compositions[
+            0
+        ]
         assert comp.placeholder_layers == []
 
     def test_empty_file_layers(self) -> None:
         """A comp with only solid layers has no file layers."""
-        comp = parse_project(
-            LAYER_SAMPLES_DIR / "gray_solid_1_above.aep"
-        ).compositions[0]
+        comp = parse_project(LAYER_SAMPLES_DIR / "gray_solid_1_above.aep").compositions[
+            0
+        ]
         assert comp.file_layers == []

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from typing import Any
 
 from ..enums import Label
 from ..kaitai.utils import (
@@ -15,7 +16,7 @@ from .layer import parse_layer
 if typing.TYPE_CHECKING:
     from ..kaitai import Aep
     from ..models.items.folder import FolderItem
-    from ..models.properties.marker import MarkerValue
+    from ..models.properties.property import Property
 
 
 def parse_composition(
@@ -25,6 +26,7 @@ def parse_composition(
     label: Label,
     parent_folder: FolderItem,
     comment: str,
+    effect_param_defs: dict[str, dict[str, dict[str, Any]]],
 ) -> CompItem:
     """
     Parse a composition item.
@@ -38,6 +40,8 @@ def parse_composition(
             preferences).
         parent_folder: The composition's parent folder.
         comment: The composition comment.
+        effect_param_defs: Project-level effect parameter definitions, used as
+            fallback when layer-level parT chunks are missing.
     """
     cdta_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     try:
@@ -69,7 +73,7 @@ def parse_composition(
         frame_blending=cdta_chunk.frame_blending,
         hide_shy_layers=cdta_chunk.hide_shy_layers,
         layers=[],
-        markers=[],
+        marker_property=None,
         motion_blur=cdta_chunk.motion_blur,
         motion_blur_adaptive_sample_limit=cdta_chunk.motion_blur_adaptive_sample_limit,
         motion_blur_samples_per_frame=cdta_chunk.motion_blur_samples_per_frame,
@@ -90,33 +94,86 @@ def parse_composition(
         drop_frame=drop_frame,
     )
 
-    composition.markers = _get_markers(
+    composition.marker_property = _get_markers(
         child_chunks=child_chunks,
         composition=composition,
     )
 
     # Parse composition's layers
     layer_sub_chunks = filter_by_list_type(chunks=child_chunks, list_type="Layr")
+
+    # Build layer_id-to-index mapping for LAYER control effect properties.
+    # ExtendScript reports 1-based layer indices; the binary stores internal
+    # layer IDs (ldta.layer_id).  Pre-scan all layer chunks so the mapping
+    # is available when parsing effect properties.
+    layer_id_to_index: dict[int, int] = {}
+    for idx, lc in enumerate(layer_sub_chunks, 1):
+        ldta = find_by_type(chunks=lc.chunks, chunk_type="ldta")
+        layer_id_to_index[ldta.layer_id] = idx
+
     for layer_chunk in layer_sub_chunks:
         layer = parse_layer(
             layer_chunk=layer_chunk,
             composition=composition,
+            effect_param_defs=effect_param_defs,
+            layer_id_to_index=layer_id_to_index,
         )
         composition.layers.append(layer)
+
+    # Apply effect selected states from Ewst/ewot chunks
+    selected_states = _parse_effect_selected(child_chunks)
+    effect_idx = 0
+    for layer in composition.layers:
+        if layer.effects is None:
+            continue
+        for effect in layer.effects:
+            if effect_idx < len(selected_states):
+                effect.selected = selected_states[effect_idx]
+            effect_idx += 1
 
     return composition
 
 
+def _parse_effect_selected(child_chunks: list[Aep.Chunk]) -> list[bool]:
+    """Parse effect selected states from LIST:Ewst / ewot chunks.
+
+    The ``ewot`` chunk inside ``LIST:Ewst`` stores per-property flags for
+    the effect workspace.  Each entry is 4 bytes: the first byte contains
+    flags where bit 6 (``0x40``) indicates *selected*.  Entries whose first
+    byte has bit 7 (``0x80``) set are child properties of an effect; entries
+    **without** bit 7 are effect-group-level entries.  By filtering to the
+    group-level entries and checking bit 6 we obtain a boolean per effect.
+
+    Args:
+        child_chunks: The composition item's child chunks.
+
+    Returns:
+        Ordered list of booleans, one per effect across all layers.
+    """
+    selected: list[bool] = []
+    ewst_chunks = filter_by_list_type(chunks=child_chunks, list_type="Ewst")
+    for ewst_chunk in ewst_chunks:
+        try:
+            ewot_chunk = find_by_type(chunks=ewst_chunk.chunks, chunk_type="ewot")
+        except ChunkNotFoundError:
+            continue
+
+        for entry in ewot_chunk.entries:
+            # Entries without is_child_property are effect group nodes
+            if not entry.is_child_property:
+                selected.append(entry.selected)
+
+    return selected
+
+
 def _get_markers(
     child_chunks: list[Aep.Chunk], composition: CompItem
-) -> list[MarkerValue]:
+) -> Property | None:
     """
     Get the composition markers.
 
-    Marker keyframe times in the binary format are stored relative to the
-    hidden marker layer's (SecL) own start time. They must be offset by the
-    layer's start_time to obtain composition time, which is what ExtendScript
-    reports via ``marker.time``.
+    Marker keyframe times in the binary format are stored in absolute
+    composition time (not relative to the SecL layer's start time).
 
     Args:
         child_chunks: child chunks of the composition LIST chunk.
@@ -126,12 +183,9 @@ def _get_markers(
     markers_layer = parse_layer(
         layer_chunk=markers_layer_chunk,
         composition=composition,
+        effect_param_defs={},
     )
+    if markers_layer.marker is None:
+        return None
 
-    # Adjust marker frame_time from layer-relative to comp-relative time.
-    # Binary keyframe times are relative to the SecL layer's own timeline,
-    # but ExtendScript reports marker times in composition time.
-    for marker in markers_layer.markers:
-        marker.frame_time += markers_layer.frame_start_time
-
-    return markers_layer.markers
+    return markers_layer.marker

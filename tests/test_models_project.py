@@ -130,19 +130,14 @@ class TestGpuAccelType:
             "gpuAccelType_mercury_gpu_acceleration_CUDA",
         )
         project = parse_project(
-            SAMPLES_DIR
-            / "gpuAccelType_mercury_gpu_acceleration_CUDA.aep"
+            SAMPLES_DIR / "gpuAccelType_mercury_gpu_acceleration_CUDA.aep"
         )
         assert expected["gpuAccelType"] == 1813
         assert project.gpu_accel_type.value == expected["gpuAccelType"]
 
     def test_software(self) -> None:
-        expected = load_expected(
-            SAMPLES_DIR, "gpuAccelType_mercury_software_only"
-        )
-        project = parse_project(
-            SAMPLES_DIR / "gpuAccelType_mercury_software_only.aep"
-        )
+        expected = load_expected(SAMPLES_DIR, "gpuAccelType_mercury_software_only")
+        project = parse_project(SAMPLES_DIR / "gpuAccelType_mercury_software_only.aep")
         assert expected["gpuAccelType"] == 1816
         assert project.gpu_accel_type.value == expected["gpuAccelType"]
 
@@ -184,11 +179,17 @@ class TestColorManagement:
 
     def test_lutInterpolationMethod_trilinear(self) -> None:
         project = parse_project(SAMPLES_DIR / "lutInterpolationMethod_trilinear.aep")
-        assert project.lut_interpolation_method == project.lut_interpolation_method.TRILINEAR
+        assert (
+            project.lut_interpolation_method
+            == project.lut_interpolation_method.TRILINEAR
+        )
 
     def test_lutInterpolationMethod_tetrahedral(self) -> None:
         project = parse_project(SAMPLES_DIR / "lutInterpolationMethod_tetrahedral.aep")
-        assert project.lut_interpolation_method == project.lut_interpolation_method.TETRAHEDRAL
+        assert (
+            project.lut_interpolation_method
+            == project.lut_interpolation_method.TETRAHEDRAL
+        )
 
 
 class TestRevision:
@@ -221,4 +222,3 @@ class TestActiveItem:
         project = parse_project(VIEW_SAMPLES_DIR / "comp2_active.aep")
         assert project.active_item is not None
         assert project.active_item.name == "Comp 2"
-

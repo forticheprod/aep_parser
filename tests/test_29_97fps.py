@@ -67,17 +67,13 @@ class TestTimeScale3_125:
     """Tests for the 29.97fps compositions that use time_scale=3.125"""
 
     @pytest.mark.parametrize("comp_id", [155, 11516])
-    def test_frame_rate(
-        self, project: Project, expected: dict, comp_id: int
-    ) -> None:
+    def test_frame_rate(self, project: Project, expected: dict, comp_id: int) -> None:
         comp = _comp_by_id(project, comp_id)
         exp = _expected_comp(expected, comp_id)
         assert math.isclose(comp.frame_rate, exp["frameRate"], rel_tol=1e-6)
 
     @pytest.mark.parametrize("comp_id", [155, 11516])
-    def test_duration(
-        self, project: Project, expected: dict, comp_id: int
-    ) -> None:
+    def test_duration(self, project: Project, expected: dict, comp_id: int) -> None:
         comp = _comp_by_id(project, comp_id)
         exp = _expected_comp(expected, comp_id)
         assert math.isclose(comp.duration, exp["duration"], rel_tol=1e-6)
@@ -98,9 +94,7 @@ class TestTimeScale3_125:
     ) -> None:
         comp = _comp_by_id(project, comp_id)
         exp = _expected_comp(expected, comp_id)
-        assert math.isclose(
-            comp.work_area_start, exp["workAreaStart"], abs_tol=1e-9
-        )
+        assert math.isclose(comp.work_area_start, exp["workAreaStart"], abs_tol=1e-9)
 
     @pytest.mark.parametrize("comp_id", [155, 11516])
     def test_frame_out_point(self, project: Project, comp_id: int) -> None:
@@ -110,7 +104,7 @@ class TestTimeScale3_125:
 
 
 # -----------------------------------------------------------------------
-#  Sentinel out_point (full work area) — id=281855
+#  Sentinel out_point (full work area) - id=281855
 # -----------------------------------------------------------------------
 
 
@@ -119,18 +113,14 @@ class TestSentinelOutPoint:
 
     COMP_ID = 281855
 
-    def test_work_area_equals_duration(
-        self, project: Project, expected: dict
-    ) -> None:
+    def test_work_area_equals_duration(self, project: Project, expected: dict) -> None:
         """When out_point is sentinel, work_area_duration must equal duration."""
         comp = _comp_by_id(project, self.COMP_ID)
         exp = _expected_comp(expected, self.COMP_ID)
         assert math.isclose(
             comp.work_area_duration, exp["workAreaDuration"], rel_tol=1e-6
         )
-        assert math.isclose(
-            comp.work_area_duration, comp.duration, rel_tol=1e-9
-        )
+        assert math.isclose(comp.work_area_duration, comp.duration, rel_tol=1e-9)
 
     def test_out_point_equals_duration(self, project: Project) -> None:
         """Sentinel out_point should resolve to display_start_time + duration."""
@@ -155,7 +145,7 @@ class TestSentinelOutPoint:
 
 
 # -----------------------------------------------------------------------
-#  Non-zero display_start_time — id=12173, id=2767
+#  Non-zero display_start_time - id=12173, id=2767
 # -----------------------------------------------------------------------
 
 
@@ -163,9 +153,7 @@ class TestNonZeroDisplayStartTime:
     """Tests for comps with display_start_time > 0 (start frame = 1)."""
 
     @pytest.mark.parametrize("comp_id", [12173, 2767])
-    def test_display_start_frame(
-        self, project: Project, comp_id: int
-    ) -> None:
+    def test_display_start_frame(self, project: Project, comp_id: int) -> None:
         comp = _comp_by_id(project, comp_id)
         assert comp.display_start_frame == 1
 
@@ -179,15 +167,11 @@ class TestNonZeroDisplayStartTime:
             comp.display_start_time, exp["displayStartTime"], rel_tol=1e-6
         )
 
-    def test_work_area_with_offset(
-        self, project: Project, expected: dict
-    ) -> None:
+    def test_work_area_with_offset(self, project: Project, expected: dict) -> None:
         """Comp 2767 has a non-trivial work-area that starts mid-timeline."""
         comp = _comp_by_id(project, 2767)
         exp = _expected_comp(expected, 2767)
-        assert math.isclose(
-            comp.work_area_start, exp["workAreaStart"], rel_tol=1e-4
-        )
+        assert math.isclose(comp.work_area_start, exp["workAreaStart"], rel_tol=1e-4)
         assert math.isclose(
             comp.work_area_duration, exp["workAreaDuration"], rel_tol=1e-4
         )

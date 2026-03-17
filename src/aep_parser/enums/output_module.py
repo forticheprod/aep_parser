@@ -370,20 +370,12 @@ _CONVERT_TO_LINEAR_LIGHT_LABELS: dict[int, str] = {
 
 
 class PostRenderAction(IntEnum):
-    """Action after rendering completes.
-
-    See: https://ae-scripting.docsforadobe.dev/renderqueue/outputmodule/#outputmodulepostrenderaction
-    """
+    """Action after rendering completes."""
 
     NONE = 3612
     IMPORT = 3613
     IMPORT_AND_REPLACE_USAGE = 3614
     SET_PROXY = 3615
-
-    @property
-    def label(self) -> str:
-        """ExtendScript STRING format label."""
-        return _POST_RENDER_ACTION_LABELS[self.value]
 
     @classmethod
     def from_binary(cls, value: int) -> PostRenderAction:
@@ -392,11 +384,3 @@ class PostRenderAction(IntEnum):
             return cls(value + 3612)
         except ValueError:
             return cls.NONE
-
-
-_POST_RENDER_ACTION_LABELS: dict[int, str] = {
-    3612: "None",
-    3613: "Import",
-    3614: "Import & Replace Usage",
-    3615: "Set Proxy",
-}

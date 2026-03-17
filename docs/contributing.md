@@ -5,15 +5,28 @@ See the full [Contributing Guide](https://github.com/forticheprod/aep_parser/blo
 ## Quick Start
 
 1. **Fork and clone** the repository
-2. **Install**: `pip install -e ".[dev]"`
-3. **Test**: `pytest`
+2. **Install**:
+
+    === "uv"
+
+        ```bash
+        uv sync --extra dev
+        ```
+
+    === "pip"
+
+        ```bash
+        pip install -e ".[dev]"
+        ```
+
+3. **Test**: `pytest` (or `uv run pytest`)
 4. **Submit a pull request**
 
 ## Key Topics
 
 The contributing guide covers:
 
-- **Architecture** - Three-stage pipeline: Kaitai → Parsers → Models
+- **Architecture** - Three-stage pipeline: Kaitai > Parsers > Models
 - **Development** - CLI tools, debugging tips, After Effects JSX scripts
 - **Adding Features** - New attributes, layer types, boolean flags
 - **Testing** - Running tests, creating samples

@@ -6,9 +6,17 @@ AEP Parser provides three command-line utilities for working with After Effects 
 
 All CLI tools are available after installing aep_parser:
 
-```bash
-pip install aep_parser
-```
+=== "uv"
+
+    ```bash
+    uv sync --extra dev
+    ```
+
+=== "pip"
+
+    ```bash
+    pip install aep_parser
+    ```
 
 ---
 
@@ -66,34 +74,50 @@ The tool reports:
 
 ## aep-compare
 
-Compares two After Effects project files (.aep or .aepx) and reports differences at the byte level.
+Inspects and compares After Effects project files (.aep or .aepx) at the binary chunk level. Supports four modes:
+
+- **Compare** - diff two files byte-by-byte
+- **Multi** - diff three or more files simultaneously (first file is the reference)
+- **List** - print a tree of all chunks and their sizes in a single file
+- **Dump** - hex-dump a specific chunk from a single file
 
 ### Usage
 
 ```bash
+# Two-file comparison
 aep-compare file1.aep file2.aep
-aep-compare file1.aepx file2.aepx
-aep-compare file1.aep file2.aep --json
-aep-compare file1.aep file2.aep --filter ldta
-aep-compare file1.aep file2.aep --format aepx
+
+# Multi-file comparison (first file = reference)
+aep-compare ref.aep v1.aep v2.aep v3.aep
+
+# List all chunks in a file
+aep-compare file.aep --list
+
+# Hex-dump a specific chunk
+aep-compare file.aep --dump "LIST:Fold/ftts"
+
+# Show surrounding bytes around each difference
+aep-compare file1.aep file2.aep --context 4
 ```
 
 ### Arguments
 
 | Argument | Description |
 |----------|-------------|
-| `file1` | Path to the first .aep or .aepx file |
-| `file2` | Path to the second .aep or .aepx file |
+| `files` | One or more .aep/.aepx files. Use one file with `--list` or `--dump`; two or more for comparison (three or more triggers multi-file mode with the first file as reference) |
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
 | `--format` | File format: `auto` (default), `aep`, or `aepx`. Auto-detects from extension |
-| `--json` | Output differences in JSON format |
-| `--filter` | Filter differences by chunk type pattern (case-insensitive, e.g., `ldta`, `LIST:Layr`) |
+| `--list` | Print a tree of all chunk paths and sizes from a single file |
+| `--dump PATH` | Hex-dump the chunk at the given path (e.g. `LIST:Fold/ftts`). Accepts partial paths when unambiguous |
+| `--context N` | Show `N` surrounding bytes on either side of each differing byte |
+| `--json` | Output differences in JSON format (two-file mode only) |
+| `--filter` | Filter results by chunk path pattern (case-insensitive, e.g., `ldta`, `LIST:Layr`) |
 
-### Example
+### Examples
 
 ```bash
 # Compare two AEP files
@@ -102,31 +126,94 @@ aep-compare original.aep modified.aep
 # Compare AEPX (XML) files
 aep-compare version1.aepx version2.aepx
 
-# Export differences as JSON
+# Multi-file comparison against a reference
+aep-compare baseline.aep with_blur.aep with_glow.aep with_both.aep
+
+# Export two-file diff as JSON
 aep-compare original.aep modified.aep --json > diff.json
 
-# Only show differences in layer data (ldta) chunks
+# Only show differences in layer data chunks
 aep-compare original.aep modified.aep --filter ldta
 
 # Filter by LIST chunk type
 aep-compare original.aep modified.aep --filter "LIST:Layr"
+
+# Show 4 bytes of context around each difference
+aep-compare original.aep modified.aep --context 4
+
+# Combine context and filter for focused investigation
+aep-compare original.aep modified.aep --filter ldta --context 2
+
+# List all chunks in a file to find paths for --dump
+aep-compare my_project.aep --list
+
+# Hex-dump a specific chunk for byte-level inspection
+aep-compare my_project.aep --dump "LIST:Fold/ftts"
+
+# Partial path matching (dumps all matching chunks if unambiguous)
+aep-compare my_project.aep --dump "cdta"
 ```
 
 ### Output
 
-The tool reports for each difference:
+#### Two-file comparison
 
-- **Chunk path**: The hierarchical location in the file structure
-- **Byte offset**: Position within the chunk
-- **Hex values**: Side-by-side comparison (e.g., `0x2A vs 0x3B`)
-- **Binary values**: Bit-level view (e.g., `00101010 vs 00111011`)
+Reports for each differing chunk:
+
+- **Chunk path**: Hierarchical location in the file structure
+- **Byte offset**: Position within the chunk (decimal and hex)
+- **Hex values**: Side-by-side comparison with binary representation
 - **Bit position**: If only one bit differs, shows which bit (7 to 0, left to right)
 
-Example output:
 ```
-Layr/ldta:
+[LIST:Fold/LIST:Layr/ldta]
   Offset   38 (0x0026): 0x00 (00000000) vs 0x01 (00000001), bit 0
   Offset   42 (0x002A): 0x64 (01100100) vs 0x32 (00110010)
+```
+
+With `--context 2`, surrounding bytes are shown for each difference:
+
+```
+  Offset   38 (0x0026): 0x00 (00000000) vs 0x01 (00000001), bit 0
+    File 1:  64  00 [00] 00  00
+    File 2:  64  00 [01] 00  00
+```
+
+#### Multi-file comparison
+
+All file values are shown side by side separated by `|`:
+
+```
+[LIST:Fold/LIST:Layr/ldta]
+  Offset   38 (0x0026): 0x00 (00000000) | 0x01 (00000001) | 0x01 (00000001), bit 0
+```
+
+Missing chunks (not present in every file) are listed with which files contain them.
+
+#### `--list` output
+
+Prints a chunk tree with sizes for every leaf chunk:
+
+```
+Chunk tree: my_project.aep
+
+LIST:RIFX/
+  LIST:Fold/
+    hdta (112B)
+    ftts (4B)
+    LIST:Item/
+      cdta (52B)
+      ...
+```
+
+#### `--dump` output
+
+Hex dump with offset, hex bytes, and ASCII representation:
+
+```
+[LIST:Fold/ftts] (4 bytes)
+
+0000: A6 00 00 00                                       ....
 ```
 
 ---
@@ -261,8 +348,20 @@ aep-validate test_project.aep reference.json --verbose
 When investigating unknown binary fields:
 
 ```bash
+# Explore chunk structure before diffing
+aep-compare baseline.aep --list
+
+# Inspect raw bytes of a specific chunk
+aep-compare baseline.aep --dump "LIST:Fold/LIST:Layr/ldta"
+
 # Compare two files with known single difference
 aep-compare baseline.aep with_auto_orient.aep --filter ldta
+
+# Show surrounding bytes for context around each changed byte
+aep-compare baseline.aep with_auto_orient.aep --filter ldta --context 4
+
+# Multi-file comparison to isolate which values different settings produce
+aep-compare baseline.aep setting_a.aep setting_b.aep --filter ldta
 ```
 
 ### Documentation Generation

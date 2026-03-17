@@ -1,8 +1,8 @@
 """Parse COS (Carousel Object Structure) text data into text models.
 
-Transforms the dict returned by :class:`~aep_parser.cos.CosParser` for a
-``btdk`` chunk into :class:`~aep_parser.models.text.TextDocument` and
-:class:`~aep_parser.models.text.FontObject` instances.
+Transforms the dict returned by [CosParser][aep_parser.cos.CosParser] for a
+``btdk`` chunk into [TextDocument][aep_parser.models.text.TextDocument] and
+[FontObject][aep_parser.models.text.FontObject] instances.
 
 The COS data layout follows the structure documented in the
 `lottie-docs AEP reference
@@ -19,9 +19,9 @@ Text documents
 ``data["1"]["1"]`` is an array of text documents (one per keyframe).  Inside
 each document:
 
-* ``doc["0"]["0"]`` — the text string
-* ``doc["0"]["5"]["0"]`` — array of paragraph style runs
-* ``doc["0"]["6"]["0"]`` — array of character style runs
+* ``doc["0"]["0"]`` - the text string
+* ``doc["0"]["5"]["0"]`` - array of paragraph style runs
+* ``doc["0"]["6"]["0"]`` - array of character style runs
 
 Default styles live at ``data["1"]["2"]`` (character) and
 ``data["1"]["3"]`` (paragraph).
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Helper — safe nested dict/list access
+# Helper - safe nested dict/list access
 # ---------------------------------------------------------------------------
 
 
@@ -157,7 +157,7 @@ def _parse_paragraph_style(
     ====  ==============================
 
     Returns:
-        Dict of keyword arguments suitable for :class:`TextDocument`.
+        Dict of keyword arguments suitable for [TextDocument][].
     """
     if not style or not isinstance(style, dict):
         return {}
@@ -190,12 +190,12 @@ def _parse_paragraph_style(
     if isinstance(space_after, (int, float)):
         result["space_after"] = float(space_after)
 
-    # Auto leading (key 6 — int acting as bool)
+    # Auto leading (key 6 - int acting as bool)
     auto_leading = style.get("6")
     if isinstance(auto_leading, (int, bool)):
         result["auto_leading"] = bool(auto_leading)
 
-    # Leading type (key 8 — maps to LeadingType enum)
+    # Leading type (key 8 - maps to LeadingType enum)
     leading_type_val = style.get("8")
     if isinstance(leading_type_val, int):
         try:
@@ -291,14 +291,14 @@ def _parse_char_style(
         fonts: The parsed font list (used to resolve font index).
 
     Returns:
-        Dict of keyword arguments suitable for :class:`TextDocument`.
+        Dict of keyword arguments suitable for [TextDocument][].
     """
     if not style or not isinstance(style, dict):
         return {}
 
     result: dict[str, Any] = {}
 
-    # Font (key 0 — index into the font array)
+    # Font (key 0 - index into the font array)
     font_idx = style.get("0")
     if isinstance(font_idx, int) and 0 <= font_idx < len(fonts):
         font_obj = fonts[font_idx]
@@ -319,7 +319,7 @@ def _parse_char_style(
     if isinstance(faux_italic, (bool, int)):
         result["faux_italic"] = bool(faux_italic)
 
-    # Apply fill (key 56 — near stroke keys 53/54/57/58)
+    # Apply fill (key 56 - near stroke keys 53/54/57/58)
     apply_fill = style.get("56")
     if isinstance(apply_fill, (bool, int)):
         result["apply_fill"] = bool(apply_fill)
@@ -393,19 +393,19 @@ def _parse_char_style(
     if isinstance(tsume, (int, float)):
         result["tsume"] = float(tsume)
 
-    # Fill color (key 53 → SimplePaint with ARGB)
+    # Fill color (key 53 > SimplePaint with ARGB)
     fill_paint = style.get("53")
     fill_color = _parse_color(fill_paint)
     if fill_color is not None:
         result["fill_color"] = fill_color
 
-    # Stroke color (key 54 → SimplePaint with ARGB)
+    # Stroke color (key 54 > SimplePaint with ARGB)
     stroke_paint = style.get("54")
     stroke_color = _parse_color(stroke_paint)
     if stroke_color is not None:
         result["stroke_color"] = stroke_color
 
-    # Apply stroke (key 57 — "Stroke enabled")
+    # Apply stroke (key 57 - "Stroke enabled")
     apply_stroke_val = style.get("57")
     if isinstance(apply_stroke_val, (bool, int)):
         result["apply_stroke"] = bool(apply_stroke_val)
@@ -464,17 +464,17 @@ def parse_text_documents(
         entry["0"]["6"]["0"]         -> character style runs
 
     For each document the *first* character style and *first* paragraph
-    style are extracted and mapped onto :class:`TextDocument` attributes,
+    style are extracted and mapped onto [TextDocument][] attributes,
     matching the ExtendScript API semantics where most properties "only
     reflect the first character".
 
     Args:
         cos_data: The parsed COS dict from a ``btdk`` chunk.
-        fonts: The list of :class:`FontObject` parsed by
-            :func:`parse_fonts` (font indices reference this list).
+        fonts: The list of [FontObject][] parsed by
+            [parse_fonts][] (font indices reference this list).
 
     Returns:
-        List of :class:`TextDocument` instances (one per keyframe).
+        List of [TextDocument][] instances (one per keyframe).
     """
     doc_array = _g(cos_data, "1", "1")
     if not doc_array or not isinstance(doc_array, list):
@@ -492,11 +492,11 @@ def parse_text_documents(
         # Start with text
         kwargs: dict[str, Any] = {"text": text}
 
-        # First character style → most TextDocument char-level attributes
+        # First character style > most TextDocument char-level attributes
         char_style = _get_first_char_style(doc_entry)
         kwargs.update(_parse_char_style(char_style, fonts))
 
-        # First paragraph style → paragraph-level attributes
+        # First paragraph style > paragraph-level attributes
         para_style = _get_first_para_style(doc_entry)
         kwargs.update(_parse_paragraph_style(para_style))
 
@@ -521,16 +521,16 @@ def parse_btdk_cos(
     """Parse a btdk COS dict into text documents and fonts.
 
     This is the main entry point called by
-    :func:`~aep_parser.parsers.property.parse_text_document`.
+    [parse_text_document][aep_parser.parsers.property.parse_text_document].
 
     Args:
         cos_data: The parsed COS dict from a ``btdk`` chunk (the return
-            value of :meth:`~aep_parser.cos.CosParser.parse`).
+            value of [CosParser.parse][aep_parser.cos.CosParser.parse]).
 
     Returns:
         A tuple ``(text_documents, fonts)`` where *text_documents* is a
-        list of :class:`TextDocument` (one per keyframe) and *fonts* is
-        the list of :class:`FontObject` referenced by the documents.
+        list of [TextDocument][] (one per keyframe) and *fonts* is
+        the list of [FontObject][] referenced by the documents.
     """
     fonts = parse_fonts(cos_data)
     documents = parse_text_documents(cos_data, fonts)

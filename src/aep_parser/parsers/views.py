@@ -34,6 +34,8 @@ def _parse_view_options(fips_chunk: Aep.Chunk) -> ViewOptions:
             wireframe=fips_chunk.fast_preview_wireframe,
         ),
         grid=fips_chunk.grid,
+        guides_locked=fips_chunk.guides_locked,
+        guides_snap=fips_chunk.guides_snap,
         guides_visibility=fips_chunk.guides_visibility,
         mask_and_shape_path=fips_chunk.mask_and_shape_path,
         proportional_grid=fips_chunk.proportional_grid,
@@ -110,11 +112,18 @@ def _build_viewer(block: list[Aep.Chunk]) -> Viewer | None:
     if fivc is not None:
         fips_chunks = fips_chunks[: fivc.view_count]
 
-    views = [View(options=_parse_view_options(fips)) for fips in fips_chunks]
+    active_view_index = fivi.active_view_index if fivi else 0
+    views = [
+        View(
+            active=(i == active_view_index),
+            options=_parse_view_options(fips),
+        )
+        for i, fips in enumerate(fips_chunks)
+    ]
 
     return Viewer(
         active=bool(foac and foac.active and fiac and fiac.active),
-        active_view_index=fivi.active_view_index if fivi else 0,
+        active_view_index=active_view_index,
         type=viewer_type,
         views=views,
     )
