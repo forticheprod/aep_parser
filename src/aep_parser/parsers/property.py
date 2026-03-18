@@ -959,7 +959,7 @@ def _parse_effect_parameter_def(parameter_chunks: list[Aep.Chunk]) -> dict[str, 
     control_type = PropertyControlType(int(pard_chunk.property_control_type))
 
     result: dict[str, Any] = {
-        "name": pard_chunk.name,
+        "name": pard_chunk.name.split("\x00")[0],
         "property_control_type": control_type,
     }
 

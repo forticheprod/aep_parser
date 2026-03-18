@@ -222,6 +222,7 @@ def parse_aep_chunks(file_path: Path) -> dict[str, bytes]:
     Only leaf chunks (non-LIST) are included.
     """
     aep = Aep.from_file(str(file_path))
+    aep._read()
     result: dict[str, bytes] = {}
     _extract_chunks_recursive(aep.data.chunks, "", result)
     return result
@@ -429,6 +430,7 @@ def list_aep_chunks(file_path: Path) -> None:
         file_path: Path to the AEP file.
     """
     aep = Aep.from_file(str(file_path))
+    aep._read()
     print(f"\nChunk tree: {file_path.name}\n")
 
     for _path, identifier, size, depth, is_list in _walk_chunks_tree(aep.data.chunks):

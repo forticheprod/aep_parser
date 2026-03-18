@@ -511,6 +511,7 @@ types:
   fdta_body:
     seq:
       - size: 1
+      - size-eos: true
   head_body:
     doc: |
       After Effects file header. Contains version info encoded as a 32-bit value.
@@ -570,6 +571,7 @@ types:
       - id: label
         type: u1
         enum: label
+      - size-eos: true
   ldat_body:
     seq:
       - id: items
@@ -1046,8 +1048,8 @@ types:
       - size: 4
         doc: Unknown bytes 86-89
       - id: template_name
-        type: strz
         size: 64
+        type: str
         encoding: ASCII
         doc: Render settings template name
       - size: 1990
@@ -1395,6 +1397,7 @@ types:
       - size: 3
       - id: item_type_raw
         type: u1
+      - size-eos: true
     instances:
       item_type:
         value: >-
@@ -1606,7 +1609,7 @@ types:
     seq:
       - id: asset_type
         size: 4
-        type: strz
+        type: str
         encoding: ASCII
         # enum: asset_type
       - id: asset_type_int
@@ -1619,14 +1622,14 @@ types:
         repeat-expr: 4
         if: asset_type == "Soli"
       - id: solid_name
-        type: strz
-        encoding: windows-1252
         size: 256
+        type: str
+        encoding: windows-1252
         if: asset_type == "Soli"
       - size: 4
         if: asset_type_int == 2
       - id: placeholder_name
-        type: strz
+        type: str
         encoding: windows-1252
         size-eos: true
         if: asset_type_int == 2
@@ -1706,11 +1709,12 @@ types:
         if: asset_type == "8BPS"
         doc: Unknown PSD bytes 94-343
       - id: psd_group_name
-        type: strz
+        type: str
         encoding: UTF-8
         size-eos: true
         if: asset_type == "8BPS"
         doc: PSD group/folder name that this layer belongs to (e.g. "PAINT 02")
+      - size-eos: true
     instances:
       red:
         value: 'color[1]'
@@ -1729,7 +1733,7 @@ types:
         enum: property_control_type
       - id: name
         size: 32
-        type: strz
+        type: str
         encoding: windows-1252
       - size: 8
       - id: last_color
@@ -1814,6 +1818,7 @@ types:
         if: >-
           property_control_type == property_control_type::scalar
           or property_control_type == property_control_type::slider
+      - size-eos: true
     instances:
       last_value_x:
         value: 'last_value_x_raw * (property_control_type == property_control_type::two_d ? 1.0/128 : 512)'
@@ -1915,6 +1920,7 @@ types:
           Number of zero-padded digits used for frame numbers in image
           sequences. For example, 4 means frames are numbered as 0001,
           0002 etc. 0 for non-sequence footage.
+      - size-eos: true
     instances:
       duration:
         value: 'duration_dividend * 1.0 / duration_divisor'

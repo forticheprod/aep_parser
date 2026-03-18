@@ -55,7 +55,7 @@ def parse_footage(
     sspc_chunk = find_by_type(chunks=pin_child_chunks, chunk_type="sspc")
     opti_chunk = find_by_type(chunks=pin_child_chunks, chunk_type="opti")
 
-    asset_type = getattr(opti_chunk, "asset_type", "")
+    asset_type = getattr(opti_chunk, "asset_type", "").split("\x00")[0]
     start_frame = sspc_chunk.start_frame
     end_frame = sspc_chunk.end_frame
 
@@ -84,11 +84,11 @@ def parse_footage(
     main_source: FileSource | SolidSource | PlaceholderSource
     if not asset_type and hasattr(opti_chunk, "placeholder_name"):
         asset_type = "placeholder"
-        item_name = opti_chunk.placeholder_name
+        item_name = opti_chunk.placeholder_name.split("\x00")[0]
         main_source = PlaceholderSource(**source_attrs)
     elif asset_type == "Soli":
         asset_type = "solid"
-        item_name = opti_chunk.solid_name
+        item_name = opti_chunk.solid_name.split("\x00")[0]
         color = [opti_chunk.red, opti_chunk.green, opti_chunk.blue]
         main_source = SolidSource(color=color, **source_attrs)
     else:
@@ -270,7 +270,7 @@ def _parse_psd_attributes(opti_chunk: Aep.OptiBody) -> dict[str, object]:
     """
     attrs: dict[str, object] = {
         "psd_layer_index": opti_chunk.psd_layer_index,
-        "psd_group_name": opti_chunk.psd_group_name or "",
+        "psd_group_name": (opti_chunk.psd_group_name or "").split("\x00")[0],
         "psd_layer_count": opti_chunk.psd_layer_count,
         "psd_canvas_width": opti_chunk.psd_canvas_width,
         "psd_canvas_height": opti_chunk.psd_canvas_height,

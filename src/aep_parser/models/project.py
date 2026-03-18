@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import typing
 from dataclasses import dataclass, field
+from io import BytesIO
 from pathlib import Path
 from typing import Any, cast
+
+from kaitaistruct import KaitaiStream
 
 from .items.composition import CompItem
 from .items.folder import FolderItem
@@ -22,6 +25,7 @@ if typing.TYPE_CHECKING:
         LutInterpolationMethod,
         TimeDisplayType,
     )
+    from aep_parser.kaitai.aep import Aep
 
     from .items.item import Item
     from .layers.layer import Layer
@@ -178,6 +182,9 @@ class Project:
     item is currently selected or if multiple items are selected.
     """
 
+    _aep: Aep = field(repr=False)
+    """The raw Kaitai Aep object, kept for serialization."""
+
     display_start_frame: int = field(init=False)
     """The start frame number for the project display."""
 
@@ -258,3 +265,32 @@ class Project:
                 if item.is_footage
             ]
         return self._footages
+
+    def save(self, path: Path | None = None, overwrite: bool = False) -> None:
+        """
+        Save the project to a new .aep file at the given path.
+
+        Warning:
+            This is highly experimental for now.
+            Do not overwrite your files. You **will** lose data at some point.
+        """
+        if path is None:
+            path = Path(self.file)
+
+        if path.exists() and not overwrite:
+            raise FileExistsError(f"The file '{path}' already exists. Use 'overwrite=True' to overwrite it.")
+
+        aep = self._aep
+        aep._check()
+
+        xmp_bytes = aep.xmp_packet.encode("UTF-8")
+        output_size = 8 + aep.len_data + len(xmp_bytes)
+        buf = BytesIO(bytearray(output_size))
+
+        with KaitaiStream(buf) as io:
+            aep._write(io)
+            result = buf.getvalue()
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(result)
