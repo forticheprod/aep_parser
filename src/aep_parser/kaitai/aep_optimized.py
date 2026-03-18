@@ -24,7 +24,7 @@ from .aep import Aep
 def _get_string_value(node: ast.expr) -> str | None:
     """Extract a string value from an AST expression node.
 
-    Handles ``ast.Constant`` (Python 3.8+) and the legacy ``ast.Str``
+    Handles `ast.Constant` (Python 3.8+) and the legacy `ast.Str`
     (Python 3.7) transparently.
     """
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
@@ -36,7 +36,7 @@ def _get_string_value(node: ast.expr) -> str | None:
 
 
 def _extract_on_comparison(test: ast.expr) -> str | None:
-    """Extract the string from an ``_on == "..."`` comparison node."""
+    """Extract the string from an `_on == "..."` comparison node."""
     if not isinstance(test, ast.Compare):
         return None
     if len(test.ops) != 1 or not isinstance(test.ops[0], ast.Eq):
@@ -49,9 +49,9 @@ def _extract_on_comparison(test: ast.expr) -> str | None:
 
 
 def _extract_class_name(stmts: list[ast.stmt]) -> str | None:
-    """Find ``self.data = Aep.ClassName(...)`` in a list of statements.
+    """Find `self.data = Aep.ClassName(...)` in a list of statements.
 
-    Returns the *ClassName* portion, or ``None`` if no matching
+    Returns the *ClassName* portion, or `None` if no matching
     assignment is found.
     """
     for stmt in stmts:
@@ -84,7 +84,7 @@ def _walk_if_chain(
 
     Returns:
         Tuple of (mapping from chunk_type to class_name, fallback
-        class_name from the ``else`` clause or ``None``).
+        class_name from the `else` clause or `None`).
     """
     mapping: dict[str, str] = {}
     fallback: str | None = None
@@ -113,7 +113,7 @@ def _walk_if_chain(
 def _build_chunk_type_mapping() -> tuple[dict[str, type], type]:
     """Build chunk type to class mapping by introspecting Chunk._read.
 
-    Parses the AST of ``Chunk._read`` and walks the if/elif/else chain
+    Parses the AST of `Chunk._read` and walks the if/elif/else chain
     to extract (chunk_type, Aep subclass) pairs structurally -- no
     regular expressions involved.
 
@@ -204,22 +204,7 @@ def _optimized_chunk_read(self: Aep.Chunk) -> None:
     self._dirty = False
 
 
-def _chunk_getattr(self: Aep.Chunk, name: str) -> object:
-    """Delegate attribute access to chunk.data if not found on chunk itself.
-
-    This allows writing ``chunk.list_type`` instead of
-    ``chunk.data.list_type``.  ``__getattr__`` is only invoked after
-    normal lookup has already failed, so ``self.data`` is safe to
-    access directly (it is always set by ``_read``).
-    """
-    data = object.__getattribute__(self, "data")
-    if data is not None and hasattr(data, name):
-        return getattr(data, name)
-    raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
-
-
 # Apply optimizations on import
 Aep.Chunk._read = _optimized_chunk_read
-Aep.Chunk.__getattr__ = _chunk_getattr
 
 __all__ = ["Aep"]

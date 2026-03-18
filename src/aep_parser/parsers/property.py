@@ -77,7 +77,7 @@ def parse_property_group(
         effect_param_defs: Project-level effect parameter definitions, used as
             fallback when layer-level parT chunks are missing.
         frame_rate: The frame rate of the parent composition.
-        comp_size: ``(width, height)`` of the parent composition in pixels.
+        comp_size: `(width, height)` of the parent composition in pixels.
         layer_id_to_index: Mapping from binary layer IDs to 1-based layer
             indices, used to resolve LAYER_INDEX property values.
     """
@@ -96,7 +96,7 @@ def parse_property_group(
         # Effects can share a match name when the same effect type is applied
         # multiple times. Iterate all LIST chunks for sspc and tdgp; other
         # types use the first chunk (additional chunks are auxiliary data).
-        if first_chunk.list_type == "sspc":
+        if first_chunk.data.list_type == "sspc":
             for chunk in filter_by_list_type(chunks=sub_prop_chunks, list_type="sspc"):
                 sub_prop: Property | PropertyGroup = parse_effect(
                     sspc_chunk=chunk,
@@ -109,7 +109,7 @@ def parse_property_group(
                     layer_id_to_index=layer_id_to_index,
                 )
                 properties.append(sub_prop)
-        elif first_chunk.list_type == "tdgp":
+        elif first_chunk.data.list_type == "tdgp":
             if match_name == "ADBE Mask Atom":
                 # Pair each mask tdgp chunk with its mkif (mask info) chunk
                 for tdgp_c, mkif_c in zip(
@@ -149,7 +149,7 @@ def parse_property_group(
                         layer_id_to_index=layer_id_to_index,
                     )
                     properties.append(sub_prop)
-        elif first_chunk.list_type == "tdbs":
+        elif first_chunk.data.list_type == "tdbs":
             sub_prop = parse_property(
                 tdbs_chunk=first_chunk,
                 match_name=match_name,
@@ -159,7 +159,7 @@ def parse_property_group(
                 layer_id_to_index=layer_id_to_index,
             )
             properties.append(sub_prop)
-        elif first_chunk.list_type == "otst":
+        elif first_chunk.data.list_type == "otst":
             sub_prop = parse_orientation(
                 otst_chunk=first_chunk,
                 match_name=match_name,
@@ -168,7 +168,7 @@ def parse_property_group(
                 frame_rate=frame_rate,
             )
             properties.append(sub_prop)
-        elif first_chunk.list_type == "btds":
+        elif first_chunk.data.list_type == "btds":
             sub_prop = parse_text_document(
                 btds_chunk=first_chunk,
                 match_name=match_name,
@@ -177,7 +177,7 @@ def parse_property_group(
                 frame_rate=frame_rate,
             )
             properties.append(sub_prop)
-        elif first_chunk.list_type == "om-s":
+        elif first_chunk.data.list_type == "om-s":
             sub_prop = parse_shape(
                 oms_chunk=first_chunk,
                 match_name=match_name,
@@ -190,7 +190,7 @@ def parse_property_group(
         else:
             logger.warning(
                 "Skipping unsupported property list type '%s' (match name '%s')",
-                first_chunk.list_type,
+                first_chunk.data.list_type,
                 match_name,
             )
 
@@ -198,8 +198,8 @@ def parse_property_group(
     # Leaf properties always have a tdsb; groups may or may not.
     group_enabled = True
     with suppress(ChunkNotFoundError):
-        group_tdsb = find_by_type(chunks=tdgp_chunk.chunks, chunk_type="tdsb")
-        group_enabled = group_tdsb.enabled
+        group_tdsb = find_by_type(chunks=tdgp_chunk.data.chunks, chunk_type="tdsb")
+        group_enabled = group_tdsb.data.enabled
 
     prop_group = PropertyGroup(
         enabled=group_enabled,
@@ -247,7 +247,7 @@ def _parse_mask_atom(
         property_depth: The nesting depth of this group.
         effect_param_defs: Project-level effect parameter definitions.
         frame_rate: The frame rate of the parent composition.
-        comp_size: ``(width, height)`` of the parent composition in pixels.
+        comp_size: `(width, height)` of the parent composition in pixels.
         layer_id_to_index: Mapping from binary layer IDs to 1-based layer
             indices, used to resolve LAYER_INDEX property values.
     """
@@ -269,11 +269,11 @@ def _parse_mask_atom(
     chunks_by_mn = get_chunks_by_match_name(tdgp_chunk)
     mask_shape_chunks = chunks_by_mn.get("ADBE Mask Shape", [])
     for chunk in mask_shape_chunks:
-        if chunk.chunk_type == "LIST" and chunk.list_type == "om-s":
+        if chunk.chunk_type == "LIST" and chunk.data.list_type == "om-s":
             with suppress(ChunkNotFoundError):
-                tdbs = find_by_list_type(chunks=chunk.chunks, list_type="tdbs")
-                tdsb = find_by_type(chunks=tdbs.chunks, chunk_type="tdsb")
-                roto_bezier = bool(tdsb.roto_bezier)
+                tdbs = find_by_list_type(chunks=chunk.data.chunks, list_type="tdbs")
+                tdsb = find_by_type(chunks=tdbs.data.chunks, chunk_type="tdsb")
+                roto_bezier = bool(tdsb.data.roto_bezier)
             break
 
     mask_group = MaskPropertyGroup(
@@ -283,17 +283,17 @@ def _parse_mask_atom(
         property_depth=base.property_depth,
         properties=base.properties,
         color=[
-            mkif_chunk.color_red / 255.0,
-            mkif_chunk.color_green / 255.0,
-            mkif_chunk.color_blue / 255.0,
+            mkif_chunk.data.color_red / 255.0,
+            mkif_chunk.data.color_green / 255.0,
+            mkif_chunk.data.color_blue / 255.0,
         ],
-        inverted=bool(mkif_chunk.inverted),
-        locked=bool(mkif_chunk.locked),
+        inverted=bool(mkif_chunk.data.inverted),
+        locked=bool(mkif_chunk.data.locked),
         mask_feather_falloff=MaskFeatherFalloff.from_binary(
-            int(mkif_chunk.mask_feather_falloff)
+            int(mkif_chunk.data.mask_feather_falloff)
         ),
-        mask_mode=MaskMode.from_binary(int(mkif_chunk.mode)),
-        mask_motion_blur=MaskMotionBlur.from_binary(int(mkif_chunk.mask_motion_blur)),
+        mask_mode=MaskMode.from_binary(int(mkif_chunk.data.mode)),
+        mask_motion_blur=MaskMotionBlur.from_binary(int(mkif_chunk.data.mask_motion_blur)),
         roto_bezier=roto_bezier,
     )
     mask_group.property_type = base.property_type
@@ -328,7 +328,7 @@ def parse_orientation(
         property_depth: The nesting depth of this property (0 = layer level).
         frame_rate: The frame rate of the parent composition.
     """
-    tdbs_chunk = find_by_list_type(chunks=otst_chunk.chunks, list_type="tdbs")
+    tdbs_chunk = find_by_list_type(chunks=otst_chunk.data.chunks, list_type="tdbs")
     prop = parse_property(
         tdbs_chunk=tdbs_chunk,
         match_name=match_name,
@@ -348,7 +348,7 @@ def parse_orientation(
     # The cdat inside OTST stores doubles as little-endian, unlike the
     # rest of the big-endian RIFX file.  Re-read the raw bytes as LE.
     try:
-        cdat_chunk = find_by_type(chunks=tdbs_chunk.chunks, chunk_type="cdat")
+        cdat_chunk = find_by_type(chunks=tdbs_chunk.data.chunks, chunk_type="cdat")
         n = cdat_chunk.len_data // 8
         values = list(struct.unpack(f"<{n}d", cdat_chunk._raw_data))
         while len(values) < 3:
@@ -363,8 +363,8 @@ def parse_orientation(
     # reads from tdbs which only has 1D orientation data, so we
     # override each keyframe's value with the full 3D otda data.
     try:
-        otky_chunk = find_by_list_type(chunks=otst_chunk.chunks, list_type="otky")
-        otda_chunks = filter_by_type(chunks=otky_chunk.chunks, chunk_type="otda")
+        otky_chunk = find_by_list_type(chunks=otst_chunk.data.chunks, list_type="otky")
+        otda_chunks = filter_by_type(chunks=otky_chunk.data.chunks, chunk_type="otda")
         for idx, kf in enumerate(prop.keyframes):
             if idx < len(otda_chunks):
                 n = otda_chunks[idx].len_data // 8
@@ -380,47 +380,47 @@ def _parse_shape_shap(
     comp_size: tuple[int, int],
     is_mask_shape: bool,
 ) -> Shape:
-    """Parse a single shape path from a ``shap`` LIST chunk.
+    """Parse a single shape path from a `shap` LIST chunk.
 
-    Each ``shap`` LIST contains:
-    - ``shph`` chunk: shape header with closed flag and bounding box
-    - ``list`` LIST:  contains ``lhd3`` (point count/size) and ``ldat``
+    Each `shap` LIST contains:
+    - `shph` chunk: shape header with closed flag and bounding box
+    - `list` LIST:  contains `lhd3` (point count/size) and `ldat`
       (raw normalized bezier points)
 
-    Points in ``ldat`` are stored as big-endian ``(f4 x, f4 y)`` pairs,
-    normalized to the ``[0, 1]`` range of the bounding box.  Every three
+    Points in `ldat` are stored as big-endian `(f4 x, f4 y)` pairs,
+    normalized to the `[0, 1]` range of the bounding box.  Every three
     consecutive points form a cycle:
-    ``vertex, out_tangent, in_tangent_of_next_vertex``.
+    `vertex, out_tangent, in_tangent_of_next_vertex`.
 
-    Mask shapes use a normalized ``[0, 1]`` bounding box, so the
-    resulting coordinates must be scaled by ``comp_size`` to get pixel
+    Mask shapes use a normalized `[0, 1]` bounding box, so the
+    resulting coordinates must be scaled by `comp_size` to get pixel
     values.  Shape-layer paths already have a pixel bounding box.
 
     Args:
-        shap_chunk: A ``shap`` LIST chunk.
-        comp_size: ``(width, height)`` of the containing composition,
+        shap_chunk: A `shap` LIST chunk.
+        comp_size: `(width, height)` of the containing composition,
             used for denormalizing mask shapes.
         is_mask_shape: Whether this shape belongs to a mask property.
 
     Returns:
         A [Shape][] with absolute coordinates and tangent offsets.
     """
-    shph_chunk = find_by_type(chunks=shap_chunk.chunks, chunk_type="shph")
-    list_chunk = find_by_list_type(chunks=shap_chunk.chunks, list_type="list")
+    shph_chunk = find_by_type(chunks=shap_chunk.data.chunks, chunk_type="shph")
+    list_chunk = find_by_list_type(chunks=shap_chunk.data.chunks, list_type="list")
 
     # Bounding box from shape header
-    tl_x = shph_chunk.top_left_x
-    tl_y = shph_chunk.top_left_y
-    br_x = shph_chunk.bottom_right_x
-    br_y = shph_chunk.bottom_right_y
-    closed = shph_chunk.closed
+    tl_x = shph_chunk.data.top_left_x
+    tl_y = shph_chunk.data.top_left_y
+    br_x = shph_chunk.data.bottom_right_x
+    br_y = shph_chunk.data.bottom_right_y
+    closed = shph_chunk.data.closed
 
     # Read raw bezier points from ldat
-    lhd3 = find_by_type(chunks=list_chunk.chunks, chunk_type="lhd3")
-    ldat = find_by_type(chunks=list_chunk.chunks, chunk_type="ldat")
+    lhd3 = find_by_type(chunks=list_chunk.data.chunks, chunk_type="lhd3")
+    ldat = find_by_type(chunks=list_chunk.data.chunks, chunk_type="ldat")
 
-    point_count = lhd3.count
-    raw_bytes = ldat.items
+    point_count = lhd3.data.count
+    raw_bytes = ldat.data.items
 
     # Parse (f4 x, f4 y) pairs - big-endian
     points: list[tuple[float, float]] = []
@@ -472,21 +472,21 @@ def _parse_shape_shap(
 
 
 def _parse_feather_points(shap_chunk: Aep.Chunk) -> list[FeatherPoint]:
-    """Extract variable-width mask feather data from a ``fth5`` chunk.
+    """Extract variable-width mask feather data from a `fth5` chunk.
 
     Args:
-        shap_chunk: The ``shap`` LIST chunk that may contain ``fth5``.
+        shap_chunk: The `shap` LIST chunk that may contain `fth5`.
 
     Returns:
-        List of [FeatherPoint][] instances (empty if no ``fth5``).
+        List of [FeatherPoint][] instances (empty if no `fth5`).
     """
     try:
-        fth5 = find_by_type(chunks=shap_chunk.chunks, chunk_type="fth5")
+        fth5 = find_by_type(chunks=shap_chunk.data.chunks, chunk_type="fth5")
     except ChunkNotFoundError:
         return []
 
     points: list[FeatherPoint] = []
-    for pt in fth5.points:
+    for pt in fth5.data.points:
         points.append(
             FeatherPoint(
                 seg_loc=int(pt.seg_loc),
@@ -509,26 +509,26 @@ def parse_shape(
     frame_rate: float,
     comp_size: tuple[int, int],
 ) -> Property:
-    """Parse a shape/mask-path property from an ``om-s`` LIST chunk.
+    """Parse a shape/mask-path property from an `om-s` LIST chunk.
 
-    An ``om-s`` LIST contains:
-    - ``tdbs`` LIST: standard property metadata (timing, keyframes, etc.)
-    - ``omks`` LIST: shape keyframe values (one ``shap`` per keyframe,
-      or one ``shap`` for static shapes)
+    An `om-s` LIST contains:
+    - `tdbs` LIST: standard property metadata (timing, keyframes, etc.)
+    - `omks` LIST: shape keyframe values (one `shap` per keyframe,
+      or one `shap` for static shapes)
 
     Args:
-        oms_chunk: The ``om-s`` LIST chunk to parse.
+        oms_chunk: The `om-s` LIST chunk to parse.
         match_name: The property match name.
         time_scale: Time scale divisor of the parent composition.
         property_depth: Nesting depth of this property.
         frame_rate: The frame rate of the parent composition.
 
     Returns:
-        A [Property][] with ``property_value_type`` set to
-        [SHAPE][aep_parser.enums.PropertyValueType.SHAPE] and ``value``
+        A [Property][] with `property_value_type` set to
+        [SHAPE][aep_parser.enums.PropertyValueType.SHAPE] and `value`
         set to a [Shape][].
     """
-    tdbs_chunk = find_by_list_type(chunks=oms_chunk.chunks, list_type="tdbs")
+    tdbs_chunk = find_by_list_type(chunks=oms_chunk.data.chunks, list_type="tdbs")
     prop = parse_property(
         tdbs_chunk=tdbs_chunk,
         match_name=match_name,
@@ -545,11 +545,11 @@ def parse_shape(
 
     # Collect shape values from omks > shap LISTs
     try:
-        omks_chunk = find_by_list_type(chunks=oms_chunk.chunks, list_type="omks")
+        omks_chunk = find_by_list_type(chunks=oms_chunk.data.chunks, list_type="omks")
         shape_values: list[Shape] = []
         is_mask = match_name == "ADBE Mask Shape"
         for shap_chunk in filter_by_list_type(
-            chunks=omks_chunk.chunks, list_type="shap"
+            chunks=omks_chunk.data.chunks, list_type="shap"
         ):
             shape_values.append(_parse_shape_shap(shap_chunk, comp_size, is_mask))
     except (ChunkNotFoundError, Exception):
@@ -599,7 +599,7 @@ def parse_text_document(
         property_depth: The nesting depth of this property (0 = layer level).
         frame_rate: The frame rate of the parent composition.
     """
-    tdbs_chunk = find_by_list_type(chunks=btds_chunk.chunks, list_type="tdbs")
+    tdbs_chunk = find_by_list_type(chunks=btds_chunk.data.chunks, list_type="tdbs")
     prop = parse_property(
         tdbs_chunk=tdbs_chunk,
         match_name=match_name,
@@ -610,12 +610,12 @@ def parse_text_document(
 
     try:
         btdk_chunk = find_by_list_type(
-            chunks=btds_chunk.chunks,
+            chunks=btds_chunk.data.chunks,
             list_type="btdk",
         )
         parser = CosParser(
-            io.BytesIO(btdk_chunk.binary_data),
-            len(btdk_chunk.binary_data),
+            io.BytesIO(btdk_chunk.data.binary_data),
+            len(btdk_chunk.data.binary_data),
         )
         cos_data = parser.parse()
         if not isinstance(cos_data, dict):
@@ -803,7 +803,7 @@ def _parse_effect_properties(
         time_scale: The time scale of the parent composition.
         child_depth: The property depth for parsed child properties.
         frame_rate: The frame rate of the parent composition.
-        comp_size: ``(width, height)`` of the parent composition in pixels.
+        comp_size: `(width, height)` of the parent composition in pixels.
         layer_id_to_index: Mapping from binary layer IDs to 1-based layer
             indices, used to resolve LAYER_INDEX property values.
 
@@ -817,7 +817,7 @@ def _parse_effect_properties(
         if match_name.endswith("-0000"):
             continue
         first_chunk = prop_chunks[0]
-        if first_chunk.list_type == "tdbs":
+        if first_chunk.data.list_type == "tdbs":
             prop = parse_property(
                 tdbs_chunk=first_chunk,
                 match_name=match_name,
@@ -829,7 +829,7 @@ def _parse_effect_properties(
             if match_name in param_defs:
                 _merge_param_def(prop, param_defs[match_name])
             properties.append(prop)
-        elif first_chunk.list_type == "tdgp":
+        elif first_chunk.data.list_type == "tdgp":
             sub_group = parse_property_group(
                 tdgp_chunk=first_chunk,
                 group_match_name=match_name,
@@ -843,7 +843,7 @@ def _parse_effect_properties(
             properties.append(sub_group)
         else:
             raise NotImplementedError(
-                f"Cannot parse parameter value : {first_chunk.list_type}"
+                f"Cannot parse parameter value : {first_chunk.data.list_type}"
             )
 
     # Synthesize default properties for parT entries not in tdgp.
@@ -899,14 +899,14 @@ def parse_effect(
         effect_param_defs: Project-level effect parameter definitions, used as
             fallback when layer-level parT chunks are missing.
         frame_rate: The frame rate of the parent composition.
-        comp_size: ``(width, height)`` of the parent composition in pixels.
+        comp_size: `(width, height)` of the parent composition in pixels.
         layer_id_to_index: Mapping from binary layer IDs to 1-based layer
             indices, used to resolve LAYER_INDEX property values.
     """
-    sspc_child_chunks = sspc_chunk.chunks
+    sspc_child_chunks = sspc_chunk.data.chunks
     fnam_chunk = find_by_type(chunks=sspc_child_chunks, chunk_type="fnam")
 
-    utf8_chunk = fnam_chunk.chunk
+    utf8_chunk = fnam_chunk.data.chunk
     tdgp_chunk = find_by_list_type(chunks=sspc_child_chunks, list_type="tdgp")
     name = get_user_defined_name(tdgp_chunk) or str_contents(utf8_chunk)
 
@@ -956,57 +956,57 @@ def _parse_effect_parameter_def(parameter_chunks: list[Aep.Chunk]) -> dict[str, 
     """Parse effect parameter definition from pard chunk, returning a dict of values."""
     pard_chunk = find_by_type(chunks=parameter_chunks, chunk_type="pard")
 
-    control_type = PropertyControlType(int(pard_chunk.property_control_type))
+    control_type = PropertyControlType(int(pard_chunk.data.property_control_type))
 
     result: dict[str, Any] = {
-        "name": pard_chunk.name.split("\x00")[0],
+        "name": pard_chunk.data.name.split("\x00")[0],
         "property_control_type": control_type,
     }
 
     if control_type == PropertyControlType.ANGLE:
-        result["last_value"] = pard_chunk.last_value / 65536
+        result["last_value"] = pard_chunk.data.last_value / 65536
         result["property_value_type"] = PropertyValueType.OneD
 
     elif control_type == PropertyControlType.BOOLEAN:
-        result["last_value"] = pard_chunk.last_value
-        result["default_value"] = pard_chunk.default
+        result["last_value"] = pard_chunk.data.last_value
+        result["default_value"] = pard_chunk.data.default
         result["min_value"] = 0
         result["max_value"] = 1
 
     elif control_type == PropertyControlType.COLOR:
-        result["last_value"] = pard_chunk.last_color
-        result["default_value"] = pard_chunk.default_color
-        result["max_value"] = pard_chunk.max_color
+        result["last_value"] = pard_chunk.data.last_color
+        result["default_value"] = pard_chunk.data.default_color
+        result["max_value"] = pard_chunk.data.max_color
         result["property_value_type"] = PropertyValueType.COLOR
 
     elif control_type == PropertyControlType.ENUM:
-        result["last_value"] = pard_chunk.last_value
+        result["last_value"] = pard_chunk.data.last_value
         # nb_options is stored with the count in the high 16 bits
-        nb_options = pard_chunk.nb_options >> 16
+        nb_options = pard_chunk.data.nb_options >> 16
         result["nb_options"] = nb_options
-        result["default_value"] = pard_chunk.default
+        result["default_value"] = pard_chunk.data.default
         result["min_value"] = 1
         result["max_value"] = nb_options
 
     elif control_type == PropertyControlType.SCALAR:
-        result["last_value"] = pard_chunk.last_value / 65536
-        result["min_value"] = pard_chunk.min_value
-        result["max_value"] = pard_chunk.max_value
+        result["last_value"] = pard_chunk.data.last_value / 65536
+        result["min_value"] = pard_chunk.data.min_value
+        result["max_value"] = pard_chunk.data.max_value
 
     elif control_type == PropertyControlType.SLIDER:
-        result["last_value"] = pard_chunk.last_value
-        result["max_value"] = pard_chunk.max_value
+        result["last_value"] = pard_chunk.data.last_value
+        result["max_value"] = pard_chunk.data.max_value
 
     elif control_type == PropertyControlType.THREE_D:
         result["last_value"] = [
-            pard_chunk.last_value_x,
-            pard_chunk.last_value_y,
-            pard_chunk.last_value_z,
+            pard_chunk.data.last_value_x,
+            pard_chunk.data.last_value_y,
+            pard_chunk.data.last_value_z,
         ]
         result["property_value_type"] = PropertyValueType.ThreeD_SPATIAL
 
     elif control_type == PropertyControlType.TWO_D:
-        result["last_value"] = [pard_chunk.last_value_x, pard_chunk.last_value_y]
+        result["last_value"] = [pard_chunk.data.last_value_x, pard_chunk.data.last_value_y]
         result["property_value_type"] = PropertyValueType.TwoD_SPATIAL
 
     elif control_type == PropertyControlType.LAYER:
@@ -1030,7 +1030,7 @@ def _parse_effect_parameter_def(parameter_chunks: list[Aep.Chunk]) -> dict[str, 
 
     with suppress(ChunkNotFoundError):
         pdnm_chunk = find_by_type(chunks=parameter_chunks, chunk_type="pdnm")
-        utf8_chunk = pdnm_chunk.chunk
+        utf8_chunk = pdnm_chunk.data.chunk
         pdnm_data = str_contents(utf8_chunk)
         if control_type == PropertyControlType.ENUM:
             result["property_parameters"] = pdnm_data.split("|")

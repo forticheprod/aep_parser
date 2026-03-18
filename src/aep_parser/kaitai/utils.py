@@ -54,7 +54,7 @@ def find_by_list_type(chunks: list[Aep.Chunk], list_type: str) -> Aep.Chunk:
     """
     return _find_chunk(
         chunks=chunks,
-        func=lambda chunk: chunk.chunk_type == "LIST" and chunk.list_type == list_type,
+        func=lambda chunk: chunk.chunk_type == "LIST" and chunk.data.list_type == list_type,
         description=f"LIST/{list_type} chunk",
     )
 
@@ -70,7 +70,7 @@ def filter_by_list_type(chunks: list[Aep.Chunk], list_type: str) -> list[Aep.Chu
     """Return LIST chunks that have the provided list_type."""
     return _filter_chunks(
         chunks=chunks,
-        func=lambda chunk: chunk.chunk_type == "LIST" and chunk.list_type == list_type,
+        func=lambda chunk: chunk.chunk_type == "LIST" and chunk.data.list_type == list_type,
     )
 
 
@@ -86,7 +86,7 @@ def find_chunks_before(
     chunk_type: str,
     before_type: str,
 ) -> list[Aep.Chunk]:
-    """Return consecutive chunks of ``chunk_type`` immediately before ``before_type``.
+    """Return consecutive chunks of `chunk_type` immediately before `before_type`.
 
     Scans *chunks* for the first occurrence of *before_type*, then collects the
     uninterrupted run of *chunk_type* chunks that directly precede it.
@@ -172,7 +172,7 @@ def split_on_type(
 
 def str_contents(chunk: Aep.Chunk) -> str:
     """Return the string contents of a chunk whose chunk_type is Utf8."""
-    text: str = chunk.contents
+    text: str = chunk.data.contents
     return text.rstrip("\x00")
 
 
@@ -201,7 +201,7 @@ def chunk_tree(
     prefix = "  " * indent
     for chunk in chunks:
         if chunk.chunk_type == "LIST":
-            label = f"LIST:{chunk.list_type}"
+            label = f"LIST:{chunk.data.list_type}"
             lines.append(f"{prefix}{label} ({chunk.len_data} B)")
             if depth != 0 and hasattr(chunk.data, "chunks"):
                 lines.append(chunk_tree(chunk.data.chunks, depth - 1, indent + 1))
@@ -221,8 +221,8 @@ def recursive_find(
 
     Args:
         chunks: List of chunks to search.
-        chunk_type: Match chunks with this chunk_type (e.g. ``"cdta"``).
-        list_type: Match LIST chunks with this list_type (e.g. ``"Layr"``).
+        chunk_type: Match chunks with this chunk_type (e.g. `"cdta"`).
+        list_type: Match LIST chunks with this list_type (e.g. `"Layr"`).
             When provided, only LIST chunks are matched.
 
     Returns:
@@ -233,7 +233,7 @@ def recursive_find(
     results: list[Aep.Chunk] = []
     for chunk in chunks:
         if list_type is not None:
-            if chunk.chunk_type == "LIST" and chunk.list_type == list_type:
+            if chunk.chunk_type == "LIST" and chunk.data.list_type == list_type:
                 results.append(chunk)
         elif chunk.chunk_type == chunk_type:
             results.append(chunk)

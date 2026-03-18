@@ -52,7 +52,7 @@ def get_chunks_by_match_name(
     if root_chunk:
         skip_to_next_tdmn_flag = True
         match_name = ""
-        for chunk in root_chunk.chunks:
+        for chunk in root_chunk.data.chunks:
             if chunk.chunk_type == "tdmn":
                 match_name = str_contents(chunk)
                 if match_name == "ADBE Group End":
@@ -89,10 +89,10 @@ def property_has_keyframes(property_chunk: Aep.Chunk) -> bool:
     """
     if property_chunk.chunk_type != "LIST":
         return False
-    if property_chunk.list_type != "tdbs":
+    if property_chunk.data.list_type != "tdbs":
         return False
-    for chunk in property_chunk.chunks:
-        if chunk.chunk_type == "LIST" and chunk.list_type == "list":
+    for chunk in property_chunk.data.chunks:
+        if chunk.chunk_type == "LIST" and chunk.data.list_type == "list":
             return True  # Has keyframes
     return False  # Has cdat (constant) or other structure
 
@@ -113,7 +113,7 @@ def parse_alas_data(parent_chunks: list[Aep.Chunk]) -> dict[str, Any]:
     """
     try:
         als2_chunk = find_by_list_type(chunks=parent_chunks, list_type="Als2")
-        alas_chunk = find_by_type(chunks=als2_chunk.chunks, chunk_type="alas")
+        alas_chunk = find_by_type(chunks=als2_chunk.data.chunks, chunk_type="alas")
     except ChunkNotFoundError:
         return {}
     alas_text = str_contents(alas_chunk)
@@ -143,22 +143,22 @@ def parse_ldat_items(
     Returns:
         List of parsed items (type depends on item_type).
     """
-    lhd3 = find_by_type(chunks=list_chunk.chunks, chunk_type="lhd3")
-    ldat = find_by_type(chunks=list_chunk.chunks, chunk_type="ldat")
+    lhd3 = find_by_type(chunks=list_chunk.data.chunks, chunk_type="lhd3")
+    ldat = find_by_type(chunks=list_chunk.data.chunks, chunk_type="ldat")
 
-    count = lhd3.count
+    count = lhd3.data.count
     if not count:
         return []
 
-    item_size = lhd3.item_size
-    item_type = lhd3.item_type
+    item_size = lhd3.data.item_size
+    item_type = lhd3.data.item_type
 
     # Adjust type for spatial 3D properties
     if item_type == Aep.LdatItemType.three_d and is_spatial:
         item_type = Aep.LdatItemType.three_d_spatial
 
     items = []
-    for item_bytes in split_into_batches(ldat.items, item_size):
+    for item_bytes in split_into_batches(ldat.data.items, item_size):
         stream = KaitaiStream(BytesIO(item_bytes))
         if item_type == Aep.LdatItemType.lrdr:
             item = Aep.RenderSettingsLdatBody(stream)
@@ -183,7 +183,7 @@ def read_tdum(
 ) -> Any:
     """Decode a tdum (min) or tduM (max) chunk from a tdbs LIST.
 
-    Returns the decoded scalar/list value, or ``None`` when the chunk is
+    Returns the decoded scalar/list value, or `None` when the chunk is
     absent.  The binary encoding depends on the property type:
 
     * Scalar: float64 (8 bytes)

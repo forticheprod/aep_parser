@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import typing
-from dataclasses import dataclass, field
 
 from .item import Item
 
 if typing.TYPE_CHECKING:
+    from aep_parser.enums import Label
+
     from .composition import CompItem
+    from .folder import FolderItem
 
 
-@dataclass(eq=False)
 class AVItem(Item):
     """
     The `AVItem` object provides access to attributes and methods of
@@ -46,7 +47,7 @@ class AVItem(Item):
     width: int
     """The width of the item in pixels."""
 
-    footage_missing: bool = field(default=False, init=False)
+    footage_missing: bool
     """
     When `True`, the AVItem is a placeholder, or represents footage with a
     source file that could not be found when the project was last saved.
@@ -57,7 +58,40 @@ class AVItem(Item):
     [FileSource.missing_footage_path][aep_parser.models.sources.file.FileSource.missing_footage_path].
     """
 
-    _used_in: set[CompItem] = field(default_factory=set, init=False, repr=False)
+    _used_in: set[CompItem]
+
+    def __init__(
+        self,
+        *,
+        comment: str,
+        id: int,
+        label: Label,
+        name: str,
+        parent_folder: FolderItem | None,
+        type_name: str,
+        duration: float = 0.0,
+        frame_duration: int = 0,
+        frame_rate: float = 0.0,
+        height: int = 0,
+        pixel_aspect: float = 1.0,
+        width: int = 0,
+    ) -> None:
+        super().__init__(
+            comment=comment,
+            id=id,
+            label=label,
+            name=name,
+            parent_folder=parent_folder,
+            type_name=type_name,
+        )
+        self.__dict__["duration"] = duration
+        self.__dict__["frame_duration"] = frame_duration
+        self.__dict__["frame_rate"] = frame_rate
+        self.__dict__["height"] = height
+        self.__dict__["pixel_aspect"] = pixel_aspect
+        self.__dict__["width"] = width
+        self.footage_missing = False
+        self._used_in: set[CompItem] = set()
 
     @property
     def has_video(self) -> bool:

@@ -85,7 +85,7 @@ class MultiFileDifference:
     path: str
     offset: int
     values: list[int]
-    """Byte value per file. ``-1`` if the chunk is missing in that file."""
+    """Byte value per file. `-1` if the chunk is missing in that file."""
     bit_position: int | None = None
 
     def __post_init__(self) -> None:
@@ -106,7 +106,7 @@ class MultiChunkDifference:
     path: str
     diffs: list[MultiFileDifference]
     sizes: list[int] = field(default_factory=list)
-    """Chunk size per file. ``0`` if missing."""
+    """Chunk size per file. `0` if missing."""
 
 
 # ── AEPX parsing ────────────────────────────────────────────────────────────
@@ -233,8 +233,8 @@ def _get_chunk_identifier(chunk: Any) -> str:
     chunk_type = str(chunk.chunk_type)
 
     # For LIST chunks, include the list_type
-    if chunk_type == "LIST" and hasattr(chunk, "list_type"):
-        return f"LIST:{chunk.list_type}"
+    if chunk_type == "LIST" and hasattr(chunk.data, "list_type"):
+        return f"LIST:{chunk.data.list_type}"
 
     return chunk_type
 
@@ -248,7 +248,7 @@ def _build_chunk_path(
 
     Args:
         parent_path: Parent chunk path prefix.
-        identifier: Chunk identifier (e.g. ``ldta``, ``LIST:Fold``).
+        identifier: Chunk identifier (e.g. `ldta`, `LIST:Fold`).
         counters: Mutable counter dict tracking duplicates at this level.
 
     Returns:
@@ -291,10 +291,10 @@ def _extract_chunks_recursive(
 
         # Recurse into LIST chunks without storing their raw data
         if chunk.chunk_type == "LIST":
-            if hasattr(chunk, "chunks") and chunk.chunks:
+            if hasattr(chunk.data, "chunks") and chunk.data.chunks:
                 child_counters: dict[str, int] = {}
                 _extract_chunks_recursive(
-                    chunk.chunks, current_path, result, child_counters
+                    chunk.data.chunks, current_path, result, child_counters
                 )
             # Skip LIST chunks entirely (even empty ones)
         else:
@@ -414,13 +414,13 @@ def _walk_chunks_tree(
 
         is_list = (
             chunk.chunk_type == "LIST"
-            and hasattr(chunk, "chunks")
-            and chunk.chunks is not None
+            and hasattr(chunk.data, "chunks")
+            and chunk.data.chunks is not None
         )
         yield current_path, identifier, size, depth, is_list
 
         if is_list:
-            yield from _walk_chunks_tree(chunk.chunks, current_path, depth + 1)
+            yield from _walk_chunks_tree(chunk.data.chunks, current_path, depth + 1)
 
 
 def list_aep_chunks(file_path: Path) -> None:
@@ -492,7 +492,7 @@ def dump_aep_chunk(file_path: Path, chunk_path: str) -> None:
 
     Args:
         file_path: Path to the AEP file.
-        chunk_path: Full or partial chunk path (e.g. ``LIST:Fold/ftts``).
+        chunk_path: Full or partial chunk path (e.g. `LIST:Fold/ftts`).
     """
     chunks = parse_aep_chunks(file_path)
 
@@ -589,7 +589,7 @@ def _format_context_line(label: str, data: bytes, offset: int, context: int) -> 
     """Format a context line showing bytes around a diff offset.
 
     Args:
-        label: Label for this line (e.g. ``File 1``).
+        label: Label for this line (e.g. `File 1`).
         data: Full chunk data.
         offset: The diff offset to highlight.
         context: Number of bytes before/after to show.

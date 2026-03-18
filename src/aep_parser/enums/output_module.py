@@ -38,7 +38,7 @@ class OutputColorDepth(IntEnum):
 
     The value represents total bits per pixel: 24 or 32 for 8 bpc
     (with/without alpha), 48 or 64 for 16 bpc, 96 or 128 for 32 bpc
-    (floating point). The ``+`` label suffix indicates alpha is included.
+    (floating point). The `+` label suffix indicates alpha is included.
 
     Used in OutputModule Settings > Depth
 
@@ -158,7 +158,7 @@ class OutputFormat(IntEnum):
 
         Args:
             format_id: The 4-char format identifier from the Roou chunk
-                (e.g. ``"H264"``, ``"TIF "``, ``"png!"``).
+                (e.g. `"H264"`, `"TIF "`, `"png!"`).
 
         Raises:
             ValueError: If the format identifier is not recognised.
@@ -323,7 +323,7 @@ class AudioSampleRate(IntEnum):
 
     @property
     def label(self) -> str:
-        """ExtendScript STRING format label (e.g. ``"48.000 kHz"``)."""
+        """ExtendScript STRING format label (e.g. `"48.000 kHz"`)."""
         if self.value == 0:
             return ""
         return f"{self.value / 1000:.3f} kHz"
@@ -332,8 +332,8 @@ class AudioSampleRate(IntEnum):
     def from_binary(cls, value: int) -> AudioSampleRate:
         """Convert binary audio sample rate value.
 
-        Unknown or negative values (e.g. ``-1`` when audio is disabled)
-        are mapped to ``OFF``.
+        Unknown or negative values (e.g. `-1` when audio is disabled)
+        are mapped to `OFF`.
         """
         if value in cls._value2member_map_:
             return cls(value)

@@ -177,8 +177,8 @@ class RenderQueueItem:
 
         Args:
             format: The output format.
-                ``GetSettingsFormat.NUMBER`` returns numeric values (enums unwrapped to ints).
-                ``GetSettingsFormat.STRING`` returns all values as strings
+                `GetSettingsFormat.NUMBER` returns numeric values (enums unwrapped to ints).
+                `GetSettingsFormat.STRING` returns all values as strings
         """
         if format == GetSettingsFormat.STRING:
             return settings_to_string(self.settings)
@@ -194,7 +194,7 @@ class RenderQueueItem:
         """Return a single render setting in the specified format.
 
         Args:
-            key: The setting key (e.g. ``"Quality"``, ``"Frame Rate"``).
+            key: The setting key (e.g. `"Quality"`, `"Frame Rate"`).
             format: The output format.
         """
         return self.get_settings(format)[key]

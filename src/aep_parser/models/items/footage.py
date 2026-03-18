@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import typing
-from dataclasses import dataclass
 
 from .av_item import AVItem
 
 if typing.TYPE_CHECKING:
+    from aep_parser.enums import Label
+
     from ..sources.file import FileSource
     from ..sources.placeholder import PlaceholderSource
     from ..sources.solid import SolidSource
+    from .folder import FolderItem
 
 
-@dataclass(eq=False)
 class FootageItem(AVItem):
     """
     The `FootageItem` object represents a footage item imported into a project,
@@ -45,6 +46,44 @@ class FootageItem(AVItem):
 
     start_frame: int
     """The footage start frame."""
+
+    def __init__(
+        self,
+        *,
+        comment: str,
+        id: int,
+        label: Label,
+        name: str,
+        parent_folder: FolderItem | None,
+        duration: float,
+        frame_duration: int,
+        frame_rate: float,
+        height: int,
+        pixel_aspect: float,
+        width: int,
+        main_source: FileSource | SolidSource | PlaceholderSource,
+        asset_type: str,
+        end_frame: int,
+        start_frame: int,
+    ) -> None:
+        super().__init__(
+            comment=comment,
+            id=id,
+            label=label,
+            name=name,
+            parent_folder=parent_folder,
+            type_name="Footage",
+            duration=duration,
+            frame_duration=frame_duration,
+            frame_rate=frame_rate,
+            height=height,
+            pixel_aspect=pixel_aspect,
+            width=width,
+        )
+        self.main_source = main_source
+        self.asset_type = asset_type
+        self.end_frame = end_frame
+        self.start_frame = start_frame
 
     @property
     def file(self) -> str | None:

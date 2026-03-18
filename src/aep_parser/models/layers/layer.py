@@ -91,7 +91,7 @@ class Layer(PropertyGroup):
 
     layer_type: str
     """The type of layer. Matches ExtendScript `layerType` values:
-    ``"AVLayer"``, ``"LightLayer"``, ``"CameraLayer"``, or ``"Layer"``."""
+    `"AVLayer"`, `"LightLayer"`, `"CameraLayer"`, or `"Layer"`."""
 
     locked: bool
     """
@@ -156,7 +156,7 @@ class Layer(PropertyGroup):
 
         Warning:
             Unlike ExtendScript (1-based), this uses Python's 0-based
-            convention so that ``comp.layers[layer.index]`` works directly.
+            convention so that `comp.layers[layer.index]` works directly.
         """
         return self.containing_comp.layers.index(self)
 
@@ -183,7 +183,7 @@ class Layer(PropertyGroup):
         """The layer's marker property.
 
         A [Property][aep_parser.models.properties.property.Property] with
-        ``match_name="ADBE Marker"`` whose keyframes hold marker values.
+        `match_name="ADBE Marker"` whose keyframes hold marker values.
         `None` when the layer has no markers.
         """
         try:
@@ -218,7 +218,7 @@ class Layer(PropertyGroup):
         Contains a layer's transform properties.
 
         This is the Transform `PropertyGroup` (match name
-        ``ADBE Transform Group``). Individual transform properties (Position,
+        `ADBE Transform Group`). Individual transform properties (Position,
         Scale, Rotation, etc.) are accessible via
         [properties][PropertyGroup.properties].
         """
@@ -231,7 +231,7 @@ class Layer(PropertyGroup):
         """
         Contains a layer's effects.
 
-        This is the Effects `PropertyGroup` (match name ``ADBE Effect Parade``).
+        This is the Effects `PropertyGroup` (match name `ADBE Effect Parade`).
         Each child in [properties][PropertyGroup.properties] is itself a
         [PropertyGroup][] representing one effect. `None` when the layer has no
         effects.
@@ -249,7 +249,7 @@ class Layer(PropertyGroup):
         """
         Contains a layer's masks.
 
-        This is the Masks `PropertyGroup` (match name ``ADBE Mask Parade``).
+        This is the Masks `PropertyGroup` (match name `ADBE Mask Parade`).
         Each child in [properties][PropertyGroup.properties] is itself a
         [PropertyGroup][] representing one mask. `None` when the layer has no
         masks.
@@ -285,7 +285,7 @@ class Layer(PropertyGroup):
     def active_at_time(self, time: float) -> bool:
         """Return whether the layer is active at the given time.
 
-        For this method to return ``True``, three conditions must be met:
+        For this method to return `True`, three conditions must be met:
 
         1. The layer must be `enabled`.
         2. No other layer in the [containing_comp][] may be soloed unless

@@ -80,7 +80,7 @@ class OutputModule:
     - [TiffFormatOptions][] for TIFF sequences
     - [XmlFormatOptions][] for XML-based formats (AVI, H.264, MP3,
       QuickTime, WAV)
-    - ``None`` for formats without parsed format options
+    - `None` for formats without parsed format options
     """
 
     frame_rate: float
@@ -113,11 +113,11 @@ class OutputModule:
 
     settings: OutputModuleSettings
     """
-    [OutputModuleSettings][aep_parser.models.settings.OutputModuleSettings]
-    dict with ExtendScript-compatible keys. Includes ``"Video Output"``,
-    ``"Audio Bit Depth"``, ``"Output Color Space"``, ``"Preserve RGB"``,
-    ``"Convert to Linear Light"``, etc. Matches the format from
-    ``OutputModule.getSettings(GetSettingsFormat.NUMBER)``.
+    `OutputModuleSettings`[`aep_parser.models.settings.OutputModuleSettings`]
+    dict with ExtendScript-compatible keys. Includes `"Video Output"`,
+    `"Audio Bit Depth"`, `"Output Color Space"`, `"Preserve RGB"`,
+    `"Convert to Linear Light"`, etc. Matches the format from
+    `OutputModule.getSettings(GetSettingsFormat.NUMBER)`.
     """
 
     templates: list[str]
@@ -187,8 +187,8 @@ class OutputModule:
 
         Args:
             format: The output format.
-                ``GetSettingsFormat.NUMBER`` returns numeric values (enums unwrapped to ints).
-                ``GetSettingsFormat.STRING`` returns all values as strings
+                `GetSettingsFormat.NUMBER` returns numeric values (enums unwrapped to ints).
+                `GetSettingsFormat.STRING` returns all values as strings
         """
         if format == GetSettingsFormat.STRING:
             return settings_to_string(self.settings)
@@ -204,7 +204,7 @@ class OutputModule:
         """Return a single output module setting in the specified format.
 
         Args:
-            key: The setting key (e.g. ``"Video Output"``, ``"Audio Bit Depth"``).
+            key: The setting key (e.g. `"Video Output"`, `"Audio Bit Depth"`).
             format: The output format.
         """
         return self.get_settings(format)[key]

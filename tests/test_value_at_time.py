@@ -1,7 +1,7 @@
 """Tests for Property.value_at_time() interpolation against ExtendScript ground truth.
 
-Ground truth comes from ``export_value_at_time.jsx`` which evaluates
-``prop.valueAtTime(frame * comp.frameDuration)`` in After Effects and stores
+Ground truth comes from `export_value_at_time.jsx` which evaluates
+`prop.valueAtTime(frame * comp.frameDuration)` in After Effects and stores
 the result alongside the frame number and full-precision evaluation time.
 
 Spatial properties (position, 2D/3D) exhibit a systematic ±0.015 deviation

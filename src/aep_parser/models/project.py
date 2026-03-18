@@ -32,6 +32,17 @@ if typing.TYPE_CHECKING:
     from .renderqueue.render_queue import RenderQueue
 
 
+def _recursive_check(obj: Any) -> None:
+    """Recursively call _check() on all kaitai objects in the tree."""
+    if hasattr(obj, "chunks"):
+        for chunk in obj.chunks:
+            _recursive_check(chunk)
+    if hasattr(obj, "data") and hasattr(obj.data, "_check"):
+        _recursive_check(obj.data)
+    if hasattr(obj, "_check"):
+        obj._check()
+
+
 @dataclass
 class Project:
     """
@@ -176,14 +187,14 @@ class Project:
     xmp_packet: ET.Element
     """The XMP packet for the project, containing metadata."""
 
+    _aep: Aep = field(repr=False)
+    """The raw Kaitai Aep object, kept for serialization."""
+
     active_item: Item | None = None
     """
     The item that is currently active and is to be acted upon, or `None` if no
     item is currently selected or if multiple items are selected.
     """
-
-    _aep: Aep = field(repr=False)
-    """The raw Kaitai Aep object, kept for serialization."""
 
     display_start_frame: int = field(init=False)
     """The start frame number for the project display."""
@@ -266,22 +277,18 @@ class Project:
             ]
         return self._footages
 
-    def save(self, path: Path | None = None, overwrite: bool = False) -> None:
+    def save(self, path: Path) -> None:
         """
-        Save the project to a new .aep file at the given path.
+        Save the project to a new .aep file at the given path. As writing is
+        still experimental, overwriting is not allowed for now.
 
         Warning:
             This is highly experimental for now.
-            Do not overwrite your files. You **will** lose data at some point.
         """
-        if path is None:
-            path = Path(self.file)
-
-        if path.exists() and not overwrite:
-            raise FileExistsError(f"The file '{path}' already exists. Use 'overwrite=True' to overwrite it.")
+        if path.exists():
+            raise FileExistsError(f"The file '{path}' already exists. As writing is still experimental, overwriting is not allowed for now. Please choose a different path or delete the existing file.")
 
         aep = self._aep
-        aep._check()
 
         xmp_bytes = aep.xmp_packet.encode("UTF-8")
         output_size = 8 + aep.len_data + len(xmp_bytes)

@@ -379,7 +379,7 @@ class TestEffectProperties:
         """Two Gaussian Blur effects on the same layer are both parsed.
 
         When the same effect type is applied more than once, only the first
-        instance carries a ``parT`` chunk at layer level. The parser falls
+        instance carries a `parT` chunk at layer level. The parser falls
         back to project-level EfdG definitions for subsequent instances.
         """
         project = parse_project(SAMPLES_DIR / "2_gaussian.aep")
@@ -1037,9 +1037,9 @@ LAYER_SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "layer
 class TestUnitsText:
     """Tests for Property.units_text.
 
-    The ``units_text`` attribute is determined by the property's ``match_name``
-    and returns one of ``"pixels"``, ``"degrees"``, ``"percent"``,
-    ``"seconds"``, ``"dB"``, or ``""`` (no unit).
+    The `units_text` attribute is determined by the property's `match_name`
+    and returns one of `"pixels"`, `"degrees"`, `"percent"`,
+    `"seconds"`, `"dB"`, or `""` (no unit).
     """
 
     # -- Transform properties ------------------------------------------------
@@ -1504,7 +1504,7 @@ class TestLinearHoldEase:
 
 
 def _get_mask_shape(layer) -> Property:  # type: ignore[type-arg]
-    """Return the ``ADBE Mask Shape`` property from the first mask."""
+    """Return the `ADBE Mask Shape` property from the first mask."""
     assert layer.masks is not None
     mask = layer.masks.properties[0]
     for prop in mask.properties:

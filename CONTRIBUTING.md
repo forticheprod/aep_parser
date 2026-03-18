@@ -51,7 +51,9 @@ AEP Parser transforms binary .aep files into typed Python objects through a thre
 - `find_by_list_type()` - Find a LIST chunk by its list_type
 - `filter_by_type()` - Get all chunks of a given type
 
-**Chunk attribute proxy**: `aep_optimized.py` monkey-patches `Aep.Chunk.__getattr__` so that attribute access on a chunk transparently delegates to `chunk.data` when the attribute is not found on the chunk itself. This means you can write `chunk.list_type` instead of `chunk.data.list_type`, and `cdta_chunk.time_scale` instead of `cdta_chunk.data.time_scale`. Keep this in mind when reading parser code - any attribute on a `Chunk` may actually come from its `.data`.
+**Chunk data access**: Chunk attributes live on `chunk.data`, not on the chunk itself. Always use explicit `chunk.data.X` access:
+- `chunk.data.list_type` — the list_type of a LIST chunk
+- `cdta_chunk.data.time_scale` — a typed body field
 
 ## Development Workflow
 
@@ -260,7 +262,7 @@ def parse_comp_item(chunk: Aep.Chunk, context: Context) -> CompItem:
     
     return CompItem(
         # ... other arguments ...
-        shutter_angle=cdta_chunk.shutter_angle,  # <-- Add this
+        shutter_angle=cdta_chunk.data.shutter_angle,  # <-- Add this
     )
 ```
 
@@ -343,7 +345,7 @@ motion_blur: bool
 """When True, motion blur is enabled for the composition."""
 
 # In parser
-motion_blur=flags_chunk.motion_blur,
+motion_blur=flags_chunk.data.motion_blur,
 ```
 
 ### Adding a New Layer Type
@@ -545,19 +547,19 @@ def parse_thing(chunk: Aep.Chunk, context: Context) -> ThingModel:
     """Parse a Thing from AEP chunk data."""
     
     # Get child chunks
-    child_chunks = chunk.chunks
+    child_chunks = chunk.data.chunks
     
     # Find specific chunks
     data_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     name_chunk = find_by_type(chunks=child_chunks, chunk_type="tdgp")
     
     # Parse name (common pattern)
-    name = name_chunk.name.decode("utf-8") if name_chunk else ""
+    name = name_chunk.data.name.decode("utf-8") if name_chunk else ""
     
     # Return model instance
     return ThingModel(
         name=name,
-        some_value=data_chunk.some_value,
+        some_value=data_chunk.data.some_value,
     )
 ```
 

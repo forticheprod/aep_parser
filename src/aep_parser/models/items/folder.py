@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import typing
-from dataclasses import dataclass, field
 
 from .item import Item
 
+if typing.TYPE_CHECKING:
+    from aep_parser.enums import Label
 
-@dataclass(eq=False)
+
 class FolderItem(Item):
     """
     The `FolderItem` object corresponds to a folder in your Project panel. It
@@ -27,10 +28,29 @@ class FolderItem(Item):
     See: https://ae-scripting.docsforadobe.dev/item/folderitem/
     """
 
-    items: list[Item] = field(default_factory=list)
+    items: list[Item]
     """
     The items in this folder. Contains only the top-level items in the folder.
     """
+
+    def __init__(
+        self,
+        *,
+        comment: str,
+        id: int,
+        label: Label,
+        name: str,
+        parent_folder: FolderItem | None,
+    ) -> None:
+        super().__init__(
+            comment=comment,
+            id=id,
+            label=label,
+            name=name,
+            parent_folder=parent_folder,
+            type_name="Folder",
+        )
+        self.items: list[Item] = []
 
     def __iter__(self) -> typing.Iterator[Item]:
         """Return an iterator over the folder items."""

@@ -49,7 +49,7 @@ def parse_render_queue(root_chunks: list[Aep.Chunk], project: Project) -> Render
             references in render queue items.
     """
     lrdr_chunk = find_by_list_type(chunks=root_chunks, list_type="LRdr")
-    lrdr_child_chunks = lrdr_chunk.chunks
+    lrdr_child_chunks = lrdr_chunk.data.chunks
     items = parse_render_queue_items(lrdr_child_chunks, project)
     return RenderQueue(items=items)
 
@@ -77,8 +77,8 @@ def parse_render_queue_items(
     # This ldat contains N × item_size bytes, one block per render queue item
     list_settings_chunk = find_by_list_type(chunks=lrdr_child_chunks, list_type="list")
 
-    settings_lhd3 = find_by_type(chunks=list_settings_chunk.chunks, chunk_type="lhd3")
-    num_items = settings_lhd3.count
+    settings_lhd3 = find_by_type(chunks=list_settings_chunk.data.chunks, chunk_type="lhd3")
+    num_items = settings_lhd3.data.count
     if num_items == 0:
         return []
 
@@ -96,11 +96,11 @@ def parse_render_queue_items(
     comment = ""
     list_chunk = None
 
-    for chunk in litm_chunk.chunks:
+    for chunk in litm_chunk.data.chunks:
         if chunk.chunk_type == "RCom":
-            comment = chunk.chunk.contents
+            comment = chunk.data.chunk.data.contents
         elif chunk.chunk_type == "LIST":
-            list_type = chunk.list_type
+            list_type = chunk.data.list_type
             if list_type == "list":
                 list_chunk = chunk
             elif list_type == "LOm " and list_chunk is not None:
@@ -158,7 +158,7 @@ def parse_render_queue_item(
     if ldat_body.start_time:
         start_time_val = AEP_EPOCH + timedelta(seconds=ldat_body.start_time)
 
-    lom_child_chunks = lom_chunk.chunks
+    lom_child_chunks = lom_chunk.data.chunks
 
     # Group chunks by Roou - each Roou starts a new output module
     om_groups = split_on_type(lom_child_chunks, "Roou")

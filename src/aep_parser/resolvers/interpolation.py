@@ -1,18 +1,18 @@
 """Interpolation utilities for keyframe-based property evaluation.
 
 Implements HOLD, LINEAR, and BEZIER interpolation for
-``Property.value_at_time()``.  Pure Python with no external dependencies.
+`Property.value_at_time()`.  Pure Python with no external dependencies.
 
 The algorithms are ported from `lottie-web <https://github.com/airbnb/
 lottie-web>`_, the industry-standard renderer for Lottie/bodymovin
 animations exported from After Effects:
 
 - **Temporal ease** uses a normalised [0, 1] → [0, 1] cubic-bezier
-  easing function (``BezierEasing``), with an 11-point sample table,
+  easing function (`BezierEasing`), with an 11-point sample table,
   Newton-Raphson refinement, and binary-subdivision fallback (ported
-  from ``BezierEaser.js``).
+  from `BezierEaser.js`).
 - **Spatial paths** are pre-sampled into a 150-segment polyline with
-  per-segment partial lengths (ported from ``bez.js``).
+  per-segment partial lengths (ported from `bez.js`).
 - **Arc-length reparameterisation** walks the segment table linearly,
   interpolating between adjacent sample points.
 """
@@ -463,7 +463,7 @@ def _tangents_are_zero(tangent: list[float] | None) -> bool:
 def _compute_auto_spatial_tangents(
     keyframes: list[Keyframe],
 ) -> list[tuple[list[float] | None, list[float] | None]]:
-    """Compute spatial tangents for keyframes with ``spatial_auto_bezier``.
+    """Compute spatial tangents for keyframes with `spatial_auto_bezier`.
 
     Returns a list of (out_tangent, in_tangent) per keyframe.
     """
@@ -532,7 +532,7 @@ def _compute_auto_spatial_tangents(
 def _compute_auto_temporal_ease(
     keyframes: list[Keyframe],
 ) -> list[tuple[float, float, float, float]]:
-    """Compute temporal ease for keyframes with ``temporal_auto_bezier``.
+    """Compute temporal ease for keyframes with `temporal_auto_bezier`.
 
     Returns (out_speed, out_influence, in_speed, in_influence) per keyframe.
     """
@@ -756,7 +756,7 @@ def interpolate_keyframes(
         is_spatial: Whether the property is spatial.
 
     Returns:
-        Interpolated value, or ``None`` if no keyframes.
+        Interpolated value, or `None` if no keyframes.
     """
     if not keyframes:
         return None

@@ -303,7 +303,7 @@ def parse(aep_file_path: str | os.PathLike[str]) -> Application:
     holds the full project tree.
 
     Args:
-        aep_file_path: Path to the ``.aep`` file.
+        aep_file_path: Path to the `.aep` file.
 
     Example:
         ```python

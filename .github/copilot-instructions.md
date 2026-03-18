@@ -60,8 +60,8 @@ JSX scripts run in After Effects via VS Code debugger - see `.vscode/launch.json
 3. Add parser in `parsers/`:
    ```python
    def parse_thing(chunk: Aep.Chunk, context: ...) -> ThingModel:
-       data_chunk = find_by_type(chunks=chunk.chunks, chunk_type="xxxx")
-       return ThingModel(field=data_chunk.field)
+       data_chunk = find_by_type(chunks=chunk.data.chunks, chunk_type="xxxx")
+       return ThingModel(field=data_chunk.data.field)
    ```
 4. Validate parsed values against ExtendScript using `aep-validate` (see [CLI Tools](#cli-tools))
 5. Add test case in `tests/test_models_*.py` using sample .aep files
@@ -90,14 +90,12 @@ layer_chunks = filter_by_list_type(chunks=comp_chunks, list_type="Layr")
 
 For debugging, `chunk_tree(chunks, depth)` prints the chunk hierarchy and `recursive_find(chunks, chunk_type, list_type)` searches the entire tree recursively.
 
-### Chunk Attribute Proxy (`__getattr__` override)
-`aep_optimized.py` monkey-patches `Aep.Chunk.__getattr__` so attribute access on a chunk delegates to `chunk.data` when not found on the chunk itself:
+### Chunk Data Access
+Chunk attributes live on `chunk.data`, not on the chunk itself. Always use explicit `chunk.data.X` access:
 ```python
-chunk.list_type          # shorter - uses __getattr__ proxy
-chunk.data.list_type     # equivalent explicit access
-cdta_chunk.time_scale    # proxied from cdta_chunk.data.time_scale
+chunk.data.list_type     # the list_type of a LIST chunk
+cdta_chunk.data.time_scale  # a typed body field
 ```
-Any attribute access on a `Chunk` object may actually come from `chunk.data`.
 
 ### Value Mapping Pattern
 Binary values often differ from ExtendScript values. Single-param mappings use a `from_binary` classmethod on the enum (`enums/general.py` or relevant module):

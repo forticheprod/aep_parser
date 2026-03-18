@@ -1,7 +1,7 @@
 """Parse COS (Carousel Object Structure) text data into text models.
 
 Transforms the dict returned by [CosParser][aep_parser.cos.CosParser] for a
-``btdk`` chunk into [TextDocument][aep_parser.models.text.TextDocument] and
+`btdk` chunk into [TextDocument][aep_parser.models.text.TextDocument] and
 [FontObject][aep_parser.models.text.FontObject] instances.
 
 The COS data layout follows the structure documented in the
@@ -10,21 +10,21 @@ The COS data layout follows the structure documented in the
 
 Fonts
 -----
-``data["0"]["1"]["0"]`` contains an array of available fonts.  Each entry
-carries a ``CoolTypeFont`` marker and exposes PostScript name, version, and
+`data["0"]["1"]["0"]` contains an array of available fonts.  Each entry
+carries a `CoolTypeFont` marker and exposes PostScript name, version, and
 a flag at well-known sub-keys.
 
 Text documents
 --------------
-``data["1"]["1"]`` is an array of text documents (one per keyframe).  Inside
+`data["1"]["1"]` is an array of text documents (one per keyframe).  Inside
 each document:
 
-* ``doc["0"]["0"]`` - the text string
-* ``doc["0"]["5"]["0"]`` - array of paragraph style runs
-* ``doc["0"]["6"]["0"]`` - array of character style runs
+* `doc["0"]["0"]` - the text string
+* `doc["0"]["5"]["0"]` - array of paragraph style runs
+* `doc["0"]["6"]["0"]` - array of character style runs
 
-Default styles live at ``data["1"]["2"]`` (character) and
-``data["1"]["3"]`` (paragraph).
+Default styles live at `data["1"]["2"]` (character) and
+`data["1"]["3"]` (paragraph).
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ def _g(data: Any, *keys: str | int) -> Any:
     """Safely traverse a nested dict/list by successive keys.
 
     Each key is tried as a dict string key first and then as a list index.
-    Returns ``None`` when any step along the path is missing.
+    Returns `None` when any step along the path is missing.
 
     Example::
 
@@ -84,7 +84,7 @@ def _g(data: Any, *keys: str | int) -> Any:
 def parse_fonts(cos_data: dict[str, Any]) -> list[FontObject]:
     """Parse font entries from COS data.
 
-    Reads the font array at ``cos_data["0"]["1"]["0"]``.  Each font entry
+    Reads the font array at `cos_data["0"]["1"]["0"]`.  Each font entry
     is a dict with structure::
 
         entry["0"]["0"]["0"]  -> PostScript name (str)
@@ -93,7 +93,7 @@ def parse_fonts(cos_data: dict[str, Any]) -> list[FontObject]:
         entry["0"]["99"]      -> "CoolTypeFont" marker
 
     Args:
-        cos_data: The parsed COS dict from a ``btdk`` chunk.
+        cos_data: The parsed COS dict from a `btdk` chunk.
 
     Returns:
         List of [FontObject][] instances in the same order as the COS
@@ -227,10 +227,10 @@ def _parse_paragraph_style(
 
 
 def _parse_color(paint: Any) -> list[float] | None:
-    """Extract an RGB colour from a COS ``SimplePaint`` structure.
+    """Extract an RGB colour from a COS `SimplePaint` structure.
 
-    The paint structure contains ``{"0": {"0": flag, "1": [A, R, G, B]},
-    "99": "SimplePaint"}``.  Returns ``[R, G, B]`` or ``None``.
+    The paint structure contains `{"0": {"0": flag, "1": [A, R, G, B]},
+    "99": "SimplePaint"}`.  Returns `[R, G, B]` or `None`.
     """
     argb = _g(paint, "0", "1")
     if isinstance(argb, list) and len(argb) >= 4:
@@ -255,16 +255,16 @@ def _parse_char_style(
     Key     Field
     ======  ===================================
     0       Font index (into font array)
-    1       ``font_size``
-    2       ``faux_bold``
-    3       ``faux_italic``
-    12      ``font_caps_option``
-    13      ``font_baseline_option``
-    53.0.1  ``fill_color`` (ARGB [0, 1])
-    54.0.1  ``stroke_color`` (ARGB [0, 1])
-    57      ``apply_stroke`` (stroke enabled)
-    58      ``stroke_over_fill``
-    63      ``stroke_width``
+    1       `font_size`
+    2       `faux_bold`
+    3       `faux_italic`
+    12      `font_caps_option`
+    13      `font_baseline_option`
+    53.0.1  `fill_color` (ARGB [0, 1])
+    54.0.1  `stroke_color` (ARGB [0, 1])
+    57      `apply_stroke` (stroke enabled)
+    58      `stroke_over_fill`
+    63      `stroke_width`
     ======  ===================================
 
     Inferred keys (from empirical analysis)
@@ -273,17 +273,17 @@ def _parse_char_style(
     ======  ===================================
     Key     Field
     ======  ===================================
-    4       ``apply_fill``
-    5       ``tracking``
-    6       ``horizontal_scale``
-    7       ``vertical_scale``
-    8       ``auto_kern_type``
-    9       ``baseline_shift``
-    10      ``leading`` (line spacing)
-    11      ``leading_type``
-    17      ``tsume``
-    35      ``baseline_direction``
-    56      ``apply_fill`` (near stroke keys)
+    4       `apply_fill`
+    5       `tracking`
+    6       `horizontal_scale`
+    7       `vertical_scale`
+    8       `auto_kern_type`
+    9       `baseline_shift`
+    10      `leading` (line spacing)
+    11      `leading_type`
+    17      `tsume`
+    35      `baseline_direction`
+    56      `apply_fill` (near stroke keys)
     ======  ===================================
 
     Args:
@@ -431,7 +431,7 @@ def _parse_char_style(
 def _get_first_char_style(doc: dict[str, Any]) -> dict[str, Any] | None:
     """Return the first character style dict from a text document entry.
 
-    Path: ``doc["0"]["6"]["0"][0]["0"]["0"]["6"]``
+    Path: `doc["0"]["6"]["0"][0]["0"]["0"]["6"]`
     """
     result = _g(doc, "0", "6", "0", 0, "0", "0", "6")
     if isinstance(result, dict):
@@ -442,7 +442,7 @@ def _get_first_char_style(doc: dict[str, Any]) -> dict[str, Any] | None:
 def _get_first_para_style(doc: dict[str, Any]) -> dict[str, Any] | None:
     """Return the first paragraph style dict from a text document entry.
 
-    Path: ``doc["0"]["5"]["0"][0]["0"]["0"]["5"]``
+    Path: `doc["0"]["5"]["0"][0]["0"]["0"]["5"]`
     """
     result = _g(doc, "0", "5", "0", 0, "0", "0", "5")
     if isinstance(result, dict):
@@ -456,7 +456,7 @@ def parse_text_documents(
 ) -> list[TextDocument]:
     """Parse text documents from COS data.
 
-    Reads the document array at ``cos_data["1"]["1"]``.  Each entry is
+    Reads the document array at `cos_data["1"]["1"]`.  Each entry is
     a dict with structure::
 
         entry["0"]["0"]              -> text string
@@ -469,7 +469,7 @@ def parse_text_documents(
     reflect the first character".
 
     Args:
-        cos_data: The parsed COS dict from a ``btdk`` chunk.
+        cos_data: The parsed COS dict from a `btdk` chunk.
         fonts: The list of [FontObject][] parsed by
             [parse_fonts][] (font indices reference this list).
 
@@ -524,11 +524,11 @@ def parse_btdk_cos(
     [parse_text_document][aep_parser.parsers.property.parse_text_document].
 
     Args:
-        cos_data: The parsed COS dict from a ``btdk`` chunk (the return
+        cos_data: The parsed COS dict from a `btdk` chunk (the return
             value of [CosParser.parse][aep_parser.cos.CosParser.parse]).
 
     Returns:
-        A tuple ``(text_documents, fonts)`` where *text_documents* is a
+        A tuple `(text_documents, fonts)` where *text_documents* is a
         list of [TextDocument][] (one per keyframe) and *fonts* is
         the list of [FontObject][] referenced by the documents.
     """

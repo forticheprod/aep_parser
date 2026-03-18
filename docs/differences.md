@@ -215,7 +215,7 @@ not available in ExtendScript:
 
 | Attribute | Description |
 |-----------|-------------|
-| `layer_type` | The layer type (`"footage"`, `"light"`, `"camera"`, `"text"`, `"shape"`) |
+| `layer_type` | The layer type (`"AVLayer"`, `"Layer"`, `"CameraLayer"`, `"LightLayer"`) |
 
 ### RenderQueueItem
 

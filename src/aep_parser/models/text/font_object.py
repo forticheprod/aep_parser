@@ -111,7 +111,7 @@ class FontObject:
     family_prefix: str | None = None
     """
     The family prefix of the variable font. For example, the family of the
-    PostScript name ``SFPro-Bold`` is ``SFPro``.
+    PostScript name `SFPro-Bold` is `SFPro`.
 
     Note:
         Will return `None` for non-variable fonts.
@@ -126,7 +126,7 @@ class FontObject:
     design_axes_data: list[dict[str, Any]] | None = None
     """
     The design axes data from the font. Each dict contains the axis
-    ``name``, ``tag``, ``min`` value, ``max`` value, and ``default`` value.
+    `name`, `tag`, `min` value, `max` value, and `default` value.
 
     Note:
         Will return `None` for non-variable fonts.

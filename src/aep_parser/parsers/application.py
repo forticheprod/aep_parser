@@ -30,11 +30,11 @@ def parse_app(aep: Aep, project: Project) -> Application:
     # Parse version from binary header
     # Format: {major}.{minor}x{build}
     version = (
-        f"{head_chunk.ae_version_major}."
-        f"{head_chunk.ae_version_minor}x"
-        f"{head_chunk.ae_build_number}"
+        f"{head_chunk.data.ae_version_major}."
+        f"{head_chunk.data.ae_version_minor}x"
+        f"{head_chunk.data.ae_build_number}"
     )
-    build_number = head_chunk.ae_build_number
+    build_number = head_chunk.data.ae_build_number
 
     # Parse viewer panels from Fold-level chunks
     viewers = parse_viewers(root_folder_chunk)

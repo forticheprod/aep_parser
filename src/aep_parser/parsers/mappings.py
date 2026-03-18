@@ -175,9 +175,9 @@ def map_viewer_type_from_string(label: str) -> ViewerType:
 def map_gpu_accel_type(uuid: str) -> GpuAccelType | None:
     """Map a gpuG UUID to a GpuAccelType enum value.
 
-    The GPU acceleration type is stored in the ``gpuG`` LIST chunk as a
+    The GPU acceleration type is stored in the `gpuG` LIST chunk as a
     UUID string.  Known UUIDs are mapped to their corresponding enum
-    value; unknown UUIDs default to ``None``.
+    value; unknown UUIDs default to `None`.
 
     Args:
         uuid: The UUID string from the gpuG Utf8 chunk.
@@ -218,29 +218,29 @@ def map_output_color_space(
     """Map the output color space profile UID to a human-readable name.
 
     The 16-byte UID is the **ICC Profile ID** per ISO 15076-1 §7.2.18,
-    computed as ``MD5(icc_data)`` with bytes 44-47, 64-67 and 84-99
+    computed as `MD5(icc_data)` with bytes 44-47, 64-67 and 84-99
     zeroed.  For Adobe color management, these correspond to ICC profiles
-    shipped in the ``MPProfiles`` / ``Profiles`` directories.  For OCIO
+    shipped in the `MPProfiles` / `Profiles` directories.  For OCIO
     color management, the UIDs cannot be resolved without the OCIO config
     and more reverse-engineering.
 
-    When ``output_color_space_working`` is ``True``, the project's
+    When `output_color_space_working` is `True`, the project's
     working color space name is returned directly.  Otherwise, the
-    16-byte ``output_profile_id`` is looked up in the known profiles
+    16-byte `output_profile_id` is looked up in the known profiles
     table.
 
     The mapping can be regenerated from ICC files on disk using
-    ``scripts/generate_color_space_mapping.py``.
+    `scripts/generate_color_space_mapping.py`.
 
     Args:
         output_profile_id: 16-byte binary profile identifier from the
-            output-module ``ldat`` chunk.
+            output-module `ldat` chunk.
         output_color_space_working: Flag indicating "Working Color
             Space".
         working_space: The project's working color space name.
 
     Returns:
-        The color space name, or ``None`` if the profile is unknown.
+        The color space name, or `None` if the profile is unknown.
     """
     mapping = {
         "7388945281150aeb4d9daebdafdc1801": "ACES Academy Color Encoding Specification SMPTE ST 2065-1",

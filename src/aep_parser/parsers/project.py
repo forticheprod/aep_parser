@@ -47,7 +47,7 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
     Warning: Deprecated
         Use [aep_parser.parse][] instead which returns an
         [Application][aep_parser.models.application.Application] instance.  Access the project
-        via ``app.project``.
+        via `app.project`.
 
     Args:
         aep_file_path: path to the project file
@@ -64,7 +64,7 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
 
     Args:
         aep: The parsed Kaitai RIFX structure.
-        file_path: Path to the ``.aep`` file (stored on the Project).
+        file_path: Path to the `.aep` file (stored on the Project).
     """
     root_chunks = aep.data.chunks
 
@@ -80,18 +80,18 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
     color_profile = _get_color_profile_settings(root_chunks)
 
     project = Project(
-        bits_per_channel=BitsPerChannel.from_binary(nnhd_chunk.bits_per_channel),
-        revision=head_chunk.file_revision,
+        bits_per_channel=BitsPerChannel.from_binary(nnhd_chunk.data.bits_per_channel),
+        revision=head_chunk.data.file_revision,
         color_management_system=ColorManagementSystem(
             int(color_profile["colorManagementSystem"])
         ),
         compensate_for_scene_referred_profiles=bool(
-            acer_chunk.compensate_for_scene_referred_profiles
+            acer_chunk.data.compensate_for_scene_referred_profiles
         ),
         effect_names=_get_effect_names(root_chunks),
         expression_engine=_get_expression_engine(root_chunks),  # CC 2019+
         feet_frames_film_type=FeetFramesFilmType.from_binary(
-            nnhd_chunk.feet_frames_film_type
+            nnhd_chunk.data.feet_frames_film_type
         ),
         lut_interpolation_method=LutInterpolationMethod(
             int(color_profile["lutInterpolationMethod"])
@@ -99,24 +99,24 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
         ocio_configuration_file=str(color_profile["ocioConfigurationFile"]),
         file=file_path,
         footage_timecode_display_start_type=FootageTimecodeDisplayStartType.from_binary(
-            nnhd_chunk.footage_timecode_display_start_type
+            nnhd_chunk.data.footage_timecode_display_start_type
         ),
-        frame_rate=nnhd_chunk.frame_rate,
-        frames_count_type=FramesCountType.from_binary(nnhd_chunk.frames_count_type),
-        frames_use_feet_frames=nnhd_chunk.frames_use_feet_frames,
+        frame_rate=nnhd_chunk.data.frame_rate,
+        frames_count_type=FramesCountType.from_binary(nnhd_chunk.data.frames_count_type),
+        frames_use_feet_frames=nnhd_chunk.data.frames_use_feet_frames,
         linear_blending=any(c.chunk_type == "lnrb" for c in root_chunks),
         linearize_working_space=any(c.chunk_type == "lnrp" for c in root_chunks),
-        working_gamma=dwga_chunk.working_gamma,
+        working_gamma=dwga_chunk.data.working_gamma,
         working_space=_get_working_space(root_chunks),
         display_color_space=_get_display_color_space(root_chunks),
         gpu_accel_type=map_gpu_accel_type(
-            str_contents(find_by_type(chunks=gpug_chunk.chunks, chunk_type="Utf8"))
+            str_contents(find_by_type(chunks=gpug_chunk.data.chunks, chunk_type="Utf8"))
         ),
-        audio_sample_rate=adfr_chunk.audio_sample_rate,
+        audio_sample_rate=adfr_chunk.data.audio_sample_rate,
         items={},
         render_queue=None,
-        time_display_type=TimeDisplayType.from_binary(nnhd_chunk.time_display_type),
-        transparency_grid_thumbnails=bool(nnhd_chunk.transparency_grid_thumbnails),
+        time_display_type=TimeDisplayType.from_binary(nnhd_chunk.data.time_display_type),
+        transparency_grid_thumbnails=bool(nnhd_chunk.data.transparency_grid_thumbnails),
         xmp_packet=xmp_packet,
         _aep=aep,
     )
@@ -125,7 +125,7 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
 
     root_folder = parse_folder(
         is_root=True,
-        child_chunks=root_folder_chunk.chunks,
+        child_chunks=root_folder_chunk.data.chunks,
         project=project,
         item_id=0,
         item_name="root",
@@ -142,7 +142,7 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
 
     with contextlib.suppress(ChunkNotFoundError):
         fcid_chunk = find_by_type(chunks=root_chunks, chunk_type="fcid")
-        project.active_item = project.items[fcid_chunk.active_item_id]
+        project.active_item = project.items[fcid_chunk.data.active_item_id]
 
     return project
 
@@ -180,17 +180,17 @@ def _clamp_layer_times(
 
     After Effects clamps timing values when queried via ExtendScript:
 
-    * ``outPoint`` is clamped to
-      ``start_time + source.duration * abs(stretch / 100)`` for non-still
-      footage layers where ``time_remap_enabled`` is ``False``.
-    * ``inPoint`` is clamped to ``start_time`` when it falls before the
+    * `outPoint` is clamped to
+      `start_time + source.duration * abs(stretch / 100)` for non-still
+      footage layers where `time_remap_enabled` is `False`.
+    * `inPoint` is clamped to `start_time` when it falls before the
       layer's start time (positive stretch only).
 
-    These clamps do **not** apply when ``time_remap_enabled`` is ``True``,
+    These clamps do **not** apply when `time_remap_enabled` is `True`,
     since time-remapped layers have arbitrary time mapping.
 
-    Note: ``collapse_transformation`` (continuously rasterise) does **not**
-    prevent clamping - AE still clamps ``outPoint`` to the source duration.
+    Note: `collapse_transformation` (continuously rasterise) does **not**
+    prevent clamping - AE still clamps `outPoint` to the source duration.
 
     Args:
         layer: The layer whose timing may need clamping.
@@ -249,7 +249,7 @@ def _get_expression_engine(root_chunks: list[Aep.Chunk]) -> str:
             chunks=root_chunks, list_type="ExEn"
         )
         utf8_chunk = find_by_type(
-            chunks=expression_engine_chunk.chunks, chunk_type="Utf8"
+            chunks=expression_engine_chunk.data.chunks, chunk_type="Utf8"
         )
         return str_contents(utf8_chunk)
     except ChunkNotFoundError:
@@ -278,17 +278,17 @@ def _parse_effect_definitions(
         return {}
 
     effect_defs: dict[str, dict[str, dict[str, Any]]] = {}
-    efdf_chunks = filter_by_list_type(chunks=efdg_chunk.chunks, list_type="EfDf")
+    efdf_chunks = filter_by_list_type(chunks=efdg_chunk.data.chunks, list_type="EfDf")
 
     for efdf_chunk in efdf_chunks:
-        efdf_child_chunks = efdf_chunk.chunks
+        efdf_child_chunks = efdf_chunk.data.chunks
         # First tdmn in EfDf contains the effect match name
         tdmn_chunk = find_by_type(chunks=efdf_child_chunks, chunk_type="tdmn")
         effect_match_name = str_contents(tdmn_chunk)
 
         # Parse param defs from the sspc chunk
         sspc_chunk = find_by_list_type(chunks=efdf_child_chunks, list_type="sspc")
-        param_defs = parse_effect_param_defs(sspc_chunk.chunks)
+        param_defs = parse_effect_param_defs(sspc_chunk.data.chunks)
         effect_defs[effect_match_name] = param_defs
 
     return effect_defs
@@ -302,7 +302,7 @@ def _get_effect_names(root_chunks: list[Aep.Chunk]) -> list[str]:
         root_chunks (Aep.Chunk): list of root chunks of the project
     """
     pefl_chunk = find_by_list_type(chunks=root_chunks, list_type="Pefl")
-    pefl_child_chunks = pefl_chunk.chunks
+    pefl_child_chunks = pefl_chunk.data.chunks
     pjef_chunks = filter_by_type(chunks=pefl_child_chunks, chunk_type="pjef")
     return [str_contents(chunk) for chunk in pjef_chunks]
 
@@ -366,7 +366,7 @@ def _get_display_color_space(root_chunks: list[Aep.Chunk]) -> str:
 
     The display color space is stored in the second Utf8 chunk that
     follows the working space baseColorProfile chunk. When no display
-    color space is set, the chunk contains ``{}``.
+    color space is set, the chunk contains `{}`.
 
     Args:
         root_chunks: list of root chunks of the project

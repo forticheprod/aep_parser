@@ -78,15 +78,39 @@ SKIP_PROPERTIES = {
 }
 
 
+def _get_field_names(obj: Any) -> set[str] | None:
+    """Get serializable field names for model objects.
+
+    Supports both `@dataclass` models and plain-class models that use
+    type annotations (e.g. the Item hierarchy after the descriptor
+    conversion).
+    """
+    if is_dataclass(obj) and not isinstance(obj, type):
+        return {f.name for f in fields(obj)}
+    # Collect annotations from the full MRO for plain-class models
+    annotations: dict[str, Any] = {}
+    for base in reversed(type(obj).__mro__):
+        if base is object:
+            continue
+        annotations.update(getattr(base, "__annotations__", {}))
+    if annotations:
+        return {name for name in annotations if not name.startswith("_")}
+    return None
+
+
 def to_dict(obj: Any) -> Any:
     """Convert dataclass/enum to dict recursively, skipping circular reference fields."""
-    if is_dataclass(obj) and not isinstance(obj, type):
+    field_names = _get_field_names(obj)
+    if field_names is not None:
         result = {}
-        for field in fields(obj):
-            if field.name in SKIP_FIELDS:
+        for name in field_names:
+            if name in SKIP_FIELDS:
                 continue
-            value = getattr(obj, field.name)
-            result[field.name] = to_dict(value)
+            try:
+                value = getattr(obj, name)
+            except AttributeError:
+                continue
+            result[name] = to_dict(value)
         # Include @property attributes (non-private, non-skipped)
         for name in dir(type(obj)):
             if name.startswith("_") or name in SKIP_FIELDS or name in SKIP_PROPERTIES:

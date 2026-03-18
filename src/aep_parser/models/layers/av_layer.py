@@ -105,7 +105,7 @@ class AVLayer(Layer):
     _matte_layer_id: int
     """
     The ID of the layer used as a track matte for this layer.
-    ``0`` when no track matte is applied.
+    `0` when no track matte is applied.
     """
 
     # Set after parsing - reference to source item (not serialized)

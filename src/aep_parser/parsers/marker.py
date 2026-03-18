@@ -26,8 +26,8 @@ def parse_markers(
     """
     Parse markers from an MRST chunk.
 
-    Returns the underlying [Property][] (the ``tdbs`` inside the
-    ``mrst`` chunk, with keyframes holding marker values).
+    Returns the underlying [Property][] (the `tdbs` inside the
+    `mrst` chunk, with keyframes holding marker values).
 
     Args:
         mrst_chunk: The MRST chunk to parse.
@@ -36,7 +36,7 @@ def parse_markers(
         frame_rate: The frame rate of the parent composition, used to compute
             marker duration in seconds.
     """
-    tdbs_chunk = find_by_list_type(chunks=mrst_chunk.chunks, list_type="tdbs")
+    tdbs_chunk = find_by_list_type(chunks=mrst_chunk.data.chunks, list_type="tdbs")
     marker_prop = parse_property(
         tdbs_chunk=tdbs_chunk,
         match_name="ADBE Marker",
@@ -44,8 +44,8 @@ def parse_markers(
         property_depth=1,
         frame_rate=frame_rate,
     )
-    mrky_chunk = find_by_list_type(chunks=mrst_chunk.chunks, list_type="mrky")
-    nmrd_chunks = filter_by_list_type(chunks=mrky_chunk.chunks, list_type="Nmrd")
+    mrky_chunk = find_by_list_type(chunks=mrst_chunk.data.chunks, list_type="mrky")
+    nmrd_chunks = filter_by_list_type(chunks=mrky_chunk.data.chunks, list_type="Nmrd")
     for i, nmrd_chunk in enumerate(nmrd_chunks):
         frame_time = marker_prop.keyframes[i].frame_time
         marker_prop.keyframes[i].value = parse_marker(
@@ -68,12 +68,12 @@ def parse_marker(
             for API consistency).
         frame_time: The time of the marker, in frames.
     """
-    nmhd_chunk = find_by_type(chunks=nmrd_chunk.chunks, chunk_type="NmHd")
+    nmhd_chunk = find_by_type(chunks=nmrd_chunk.data.chunks, chunk_type="NmHd")
 
-    utf8_chunks = filter_by_type(chunks=nmrd_chunk.chunks, chunk_type="Utf8")
+    utf8_chunks = filter_by_type(chunks=nmrd_chunk.data.chunks, chunk_type="Utf8")
 
     # Marker duration from Kaitai instance (stored in 600ths of a second)
-    duration = nmhd_chunk.duration
+    duration = nmhd_chunk.data.duration
 
     # Parse cue point params
     params = {}
@@ -85,12 +85,12 @@ def parse_marker(
         comment=str_contents(utf8_chunks[0]),
         cue_point_name=str_contents(utf8_chunks[4]),
         duration=duration,
-        navigation=nmhd_chunk.navigation,
+        navigation=nmhd_chunk.data.navigation,
         frame_target=str_contents(utf8_chunks[3]),
         url=str_contents(utf8_chunks[2]),
-        label=Label(int(nmhd_chunk.label)),
-        protected_region=nmhd_chunk.protected_region,
+        label=Label(int(nmhd_chunk.data.label)),
+        protected_region=nmhd_chunk.data.protected_region,
         params=params,
-        frame_duration=nmhd_chunk.frame_duration,
+        frame_duration=nmhd_chunk.data.frame_duration,
         frame_time=frame_time,
     )

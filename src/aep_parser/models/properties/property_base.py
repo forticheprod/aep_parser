@@ -85,7 +85,7 @@ class PropertyBase(ABC):
 
         Warning:
             Unlike ExtendScript (1-based), this uses Python's 0-based
-            convention so that ``group.properties[prop.property_index]``
+            convention so that `group.properties[prop.property_index]`
             works directly.
         """
         if self.property_depth == 0 or self.parent_property is None:
