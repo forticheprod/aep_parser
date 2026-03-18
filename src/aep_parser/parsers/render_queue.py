@@ -149,7 +149,7 @@ def parse_render_queue_item(
     elapsed_seconds: int = ldat_body.elapsed_seconds
     log_type_val = LogType.from_binary(ldat_body.log_type)
     queue_item_notify = ldat_body.queue_item_notify
-    template_name = ldat_body.template_name.rstrip("\x00")
+    template_name = ldat_body.template_name.split("\x00")[0]
     time_span_start_frames = ldat_body.time_span_start_frames
     time_span_duration_frames = ldat_body.time_span_duration_frames
 

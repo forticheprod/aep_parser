@@ -173,6 +173,7 @@ print(project.items[0].name)
 # Access raw Kaitai chunks (advanced)
 from aep_parser.kaitai.aep import Aep
 aep_data = Aep.from_file("samples/models/composition/bgColor_custom.aep")
+aep_data._read()
 chunks = aep_data.rifx.chunks
 ```
 
@@ -211,7 +212,8 @@ If the chunk isn't already parsed, add it to `aep.ksy`:
 ```bash
 kaitai-struct-compiler --target python \
   --outdir src/aep_parser/kaitai \
-  src/aep_parser/kaitai/aep.ksy
+  src/aep_parser/kaitai/aep.ksy \
+  --read-write --no-auto-read
 ```
 
 > **⚠️ Integer division pitfall:** In Kaitai Struct, `/` between two integers

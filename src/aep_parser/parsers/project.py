@@ -54,6 +54,7 @@ def parse_project(aep_file_path: str | os.PathLike[str]) -> Project:
     """
     file_path = os.fspath(aep_file_path)
     with Aep.from_file(file_path) as aep:
+        aep._read()
         project = _parse_project(aep, file_path)
         return parse_app(aep, project).project
 
@@ -117,6 +118,7 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
         time_display_type=TimeDisplayType.from_binary(nnhd_chunk.time_display_type),
         transparency_grid_thumbnails=bool(nnhd_chunk.transparency_grid_thumbnails),
         xmp_packet=xmp_packet,
+        _aep=aep,
     )
 
     project._effect_param_defs = _parse_effect_definitions(root_chunks)

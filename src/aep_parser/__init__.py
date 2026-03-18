@@ -316,5 +316,6 @@ def parse(aep_file_path: str | os.PathLike[str]) -> Application:
     """
     file_path = os.fspath(aep_file_path)
     with Aep.from_file(file_path) as aep:
+        aep._read()
         project = _parse_project(aep, file_path)
         return parse_app(aep, project)
