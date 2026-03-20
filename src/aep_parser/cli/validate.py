@@ -82,19 +82,27 @@ def _get_field_names(obj: Any) -> set[str] | None:
     """Get serializable field names for model objects.
 
     Supports both `@dataclass` models and plain-class models that use
-    type annotations (e.g. the Item hierarchy after the descriptor
-    conversion).
+    type annotations and/or chunk-backed descriptors (e.g. the Item
+    hierarchy after the descriptor conversion).
     """
     if is_dataclass(obj) and not isinstance(obj, type):
         return {f.name for f in fields(obj)}
     # Collect annotations from the full MRO for plain-class models
-    annotations: dict[str, Any] = {}
+    names: set[str] = set()
     for base in reversed(type(obj).__mro__):
         if base is object:
             continue
-        annotations.update(getattr(base, "__annotations__", {}))
-    if annotations:
-        return {name for name in annotations if not name.startswith("_")}
+        for name in getattr(base, "__annotations__", {}):
+            if not name.startswith("_"):
+                names.add(name)
+        # Also collect chunk-backed descriptor names
+        for name, attr in vars(base).items():
+            if name.startswith("_"):
+                continue
+            if hasattr(attr, "chunk_attr") and hasattr(attr, "__get__"):
+                names.add(name)
+    if names:
+        return names
     return None
 
 
@@ -423,7 +431,7 @@ def compare_layer(
         if parsed_index is not None and exp_index != parsed_index + 1:
             result.add_diff(f"{path}.index", exp_index, parsed_index + 1, "layers")
 
-    # Compare lightSource (Layer reference → compare by layer index)
+    # Compare lightSource (Layer reference -> compare by layer index)
     if "lightSource" in expected_layer:
         exp_ls = expected_layer["lightSource"]
         parsed_ls_id = parsed_layer.get("_light_source_id", 0)
@@ -626,7 +634,7 @@ def compare_keyframe(
             if isinstance(parsed_val, dict):
                 compare_shape_value(exp_val, parsed_val, f"{path}.value", result)
         elif isinstance(exp_val, dict) and isinstance(parsed_val, dict):
-            # Dict value (e.g. marker) — normalize keys and compare matching
+            # Dict value (e.g. marker) - normalize keys and compare matching
             normalized = _normalize_keys(exp_val)
             for key, nval in normalized.items():
                 pval = parsed_val.get(key)

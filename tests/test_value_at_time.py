@@ -23,7 +23,7 @@ from aep_parser import Property
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "property"
 VAT_DIR = SAMPLES_DIR / "value_at_time"
 
-# Maps matchName → function to find the property from a parsed layer
+# Maps matchName -> function to find the property from a parsed layer
 _FINDERS: dict[str, object] = {
     "ADBE Opacity": lambda ly: ly.transform.property(name="ADBE Opacity"),
     "ADBE Position": lambda ly: ly.transform.property(name="ADBE Position"),

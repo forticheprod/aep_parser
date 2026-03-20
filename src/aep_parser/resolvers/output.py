@@ -350,7 +350,7 @@ def resolve_effective_frame_rate(
     """
     if rq_settings["Frame Rate"]:
         return rq_settings["Use this frame rate"]
-    return comp.frame_rate
+    return comp.frame_rate  # type: ignore[no-any-return]
 
 
 def resolve_time_span(

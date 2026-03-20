@@ -61,6 +61,8 @@ types:
             '"ldat"': ldat_body # Data of a keyframe
             '"ldta"': ldta_body # Layer data
             '"lhd3"': lhd3_body # Number of keyframes and keyframe size for a property
+            '"lnrb"': lnrb_body # Linear blending flag
+            '"lnrp"': lnrp_body # Linearize working space flag
             '"LIST"': list_body # List of chunks
             '"mkif"': mkif_body # Mask info
             '"NmHd"': nmhd_body # Marker data
@@ -446,9 +448,9 @@ types:
         type: u2
       - id: height
         type: u2
-      - id: pixel_ratio_width
+      - id: pixel_ratio_dividend
         type: u4
-      - id: pixel_ratio_height
+      - id: pixel_ratio_divisor
         type: u4
       - size: 4
       - id: frame_rate_integer
@@ -491,7 +493,7 @@ types:
       frame_duration:
         value: 'duration * frame_rate'
       pixel_aspect:
-        value: 'pixel_ratio_width * 1.0 / pixel_ratio_height'
+        value: 'pixel_ratio_dividend * 1.0 / pixel_ratio_divisor'
       time:
         value: 'time_dividend * 1.0 / time_divisor'
       frame_time:
@@ -504,6 +506,18 @@ types:
         value: '(out_point_dividend == 0xffffffff ? display_start_frame + frame_duration : (display_start_time + out_point_dividend * 1.0 / out_point_divisor) * frame_rate)'
       out_point:
         value: '(out_point_dividend == 0xffffffff ? display_start_time + duration : display_start_time + out_point_dividend * 1.0 / out_point_divisor)'
+      work_area_start:
+        value: 'in_point - display_start_time'
+        doc: Work area start relative to composition start (seconds)
+      work_area_start_frame:
+        value: 'frame_in_point - display_start_frame'
+        doc: Work area start relative to composition start (frames)
+      work_area_duration:
+        value: 'out_point - in_point'
+        doc: Work area duration (seconds)
+      work_area_duration_frame:
+        value: 'frame_out_point - frame_in_point'
+        doc: Work area duration (frames)
   child_utf8_body:
     seq:
       - id: chunk
@@ -559,6 +573,8 @@ types:
       ae_version_beta:
         value: not ae_version_beta_flag
         doc: True if beta version
+      version:
+        value: f"{ae_version_major}.{ae_version_minor}x{ae_build_number}"
   idta_body:
     seq:
       - id: item_type
@@ -1374,8 +1390,10 @@ types:
         value: 'start_time_dividend * 1.0 / start_time_divisor'
       in_point:
         value: 'in_point_dividend * 1.0 / in_point_divisor'
+        doc: In point relative to start_time (seconds, before stretch)
       out_point:
         value: 'out_point_dividend * 1.0 / out_point_divisor'
+        doc: Out point relative to start_time (seconds, before stretch)
       stretch:
         value: 'stretch_divisor != 0 ? stretch_dividend * 100.0 / stretch_divisor : 0'
         doc: Layer time stretch as percentage (100 = normal speed)
@@ -1414,6 +1432,18 @@ types:
           item_type_raw == 4 and item_size == 16 ? ldat_item_type::marker :
           item_type_raw == 4 and item_size == 8 ? ldat_item_type::shape :
           ldat_item_type::unknown
+  lnrb_body:
+    doc: |
+      Linear blending flag. Presence of this chunk in the root chunk list
+      means linear blending is enabled for the project.
+    seq:
+      - contents: [0x01]
+  lnrp_body:
+    doc: |
+      Linearize working space flag. Presence of this chunk in the root
+      chunk list means the working color space is linearized.
+    seq:
+      - contents: [0x01]
   list_body:
     seq:
       - id: list_type
@@ -1600,11 +1630,15 @@ types:
         doc: Unknown bits 7-6
       - id: linearize_working_space
         type: b1
-        doc: Whether to linearize working space for blending (0=false, 1=true)
+        doc: Whether to linearize working space for blending (0=false, 1=true). Note - the lnrp chunk at root level is the source of truth for this setting.
       - type: b5
         doc: Unknown bits 4-0
       - size: 8
         doc: Unknown bytes 32-39
+    instances:
+      display_start_frame:
+        value: frames_count_type % 2
+        doc: "Alternate way of reading the Frame Count setting as 0 or 1."
   opti_body:
     seq:
       - id: asset_type
@@ -1896,9 +1930,9 @@ types:
         type: u1
         doc: Number of times to loop the footage (1 = no loop, 2+ = loop count)
       - size: 6
-      - id: pixel_ratio_width
+      - id: pixel_ratio_dividend
         type: u4
-      - id: pixel_ratio_height
+      - id: pixel_ratio_divisor
         type: u4
       - size: 5
       - id: conform_frame_rate
@@ -1929,7 +1963,7 @@ types:
       frame_duration:
         value: 'duration * frame_rate'
       pixel_aspect:
-        value: 'pixel_ratio_width * 1.0 / pixel_ratio_height'
+        value: 'pixel_ratio_dividend * 1.0 / pixel_ratio_divisor'
       has_alpha:
         value: alpha_mode_raw != 3
         doc: True if footage has an alpha channel (3 means no_alpha)

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ..enums import ChannelType
+from ..enums.mappings import map_fast_preview_type, map_viewer_type_from_string
 from ..kaitai.utils import (
     ChunkNotFoundError,
     filter_by_type,
@@ -12,7 +13,6 @@ from ..kaitai.utils import (
 from ..models.viewer.view import View
 from ..models.viewer.view_options import ViewOptions
 from ..models.viewer.viewer import Viewer
-from .mappings import map_fast_preview_type, map_viewer_type_from_string
 
 if TYPE_CHECKING:
     from ..kaitai import Aep

@@ -77,7 +77,7 @@ class Property(PropertyBase):
 
     can_vary_over_time: bool
     """
-    When `True`, the named property can vary over time — that is, keyframe
+    When `True`, the named property can vary over time - that is, keyframe
     values or expressions can be written to this property.
 
     Note:

@@ -90,15 +90,15 @@ class PropertyGroup(PropertyBase):
         # Avoid infinite recursion during __init__ (before
         # `properties` has been set on the instance).
         try:
-            properties: list[Property | PropertyGroup] = object.__getattribute__(
-                self, "properties"
-            )
+            object.__getattribute__(self, "properties")
         except AttributeError:
             raise AttributeError(name) from None
-        for prop in properties:
-            if prop.name.lower().replace(" ", "_") == name:
-                return prop
-        raise AttributeError(f"'{type(self).__name__}' has no property '{name}'")
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(
+                f"'{type(self).__name__}' has no property '{name}'"
+            ) from None
 
     @property
     def num_properties(self) -> int:
@@ -134,7 +134,11 @@ class PropertyGroup(PropertyBase):
             return self.properties[key]
         if isinstance(key, str):
             for prop in self.properties:
-                if prop.name == key or prop.match_name == key:
+                if (
+                    prop.name == key
+                    or prop.match_name == key
+                    or prop.name.lower().replace(" ", "_") == key
+                ):
                     return prop
             raise KeyError(key)
         raise TypeError(f"Property key must be int or str, not {type(key).__name__}")

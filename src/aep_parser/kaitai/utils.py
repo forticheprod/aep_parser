@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import typing
+from io import BytesIO
+from typing import Any
+
+from kaitaistruct import KaitaiStream
+
+from .aep_optimized import Aep
 
 if typing.TYPE_CHECKING:
     from typing import Callable
-
-    from .aep_optimized import Aep
 
 
 class ChunkNotFoundError(Exception):
@@ -54,7 +58,9 @@ def find_by_list_type(chunks: list[Aep.Chunk], list_type: str) -> Aep.Chunk:
     """
     return _find_chunk(
         chunks=chunks,
-        func=lambda chunk: chunk.chunk_type == "LIST" and chunk.data.list_type == list_type,
+        func=lambda chunk: (
+            chunk.chunk_type == "LIST" and chunk.data.list_type == list_type
+        ),
         description=f"LIST/{list_type} chunk",
     )
 
@@ -70,7 +76,9 @@ def filter_by_list_type(chunks: list[Aep.Chunk], list_type: str) -> list[Aep.Chu
     """Return LIST chunks that have the provided list_type."""
     return _filter_chunks(
         chunks=chunks,
-        func=lambda chunk: chunk.chunk_type == "LIST" and chunk.data.list_type == list_type,
+        func=lambda chunk: (
+            chunk.chunk_type == "LIST" and chunk.data.list_type == list_type
+        ),
     )
 
 
@@ -241,3 +249,135 @@ def recursive_find(
         if chunk.chunk_type == "LIST" and hasattr(chunk.data, "chunks"):
             results.extend(recursive_find(chunk.data.chunks, chunk_type, list_type))
     return results
+
+
+# ---------------------------------------------------------------------------
+# Serialization helpers
+# ---------------------------------------------------------------------------
+
+# Each chunk starts with a 4-byte type identifier and a 4-byte length field.
+CHUNK_HEADER_SIZE = 8
+
+
+def compute_body_size(body: Any) -> int:
+    """Return the serialized byte size of a Kaitai Chunk body.
+
+    The body must not be dirty - call `body._check()` first. `KaitaiStream`
+    requires a pre-allocated buffer so we size it from the chunk's `len_data`
+    with arbitrary headroom for growth, then write the body to it and check
+    the final position for size.
+    """
+    saved_io = body._io
+    current = getattr(body._parent, "len_data", 0)
+    buf = BytesIO(bytearray(current + 4096))
+    body._write__seq(KaitaiStream(buf))
+    size = buf.tell()
+    body._io = saved_io
+    return size
+
+
+def _update_len_chain(start: Any, delta: int) -> None:
+    """Walk up from *start*, adding *delta* to each ``len_data`` and calling ``_check()``."""
+    obj: Any = start
+    while obj is not None:
+        if hasattr(obj, "len_data"):
+            obj.len_data += delta
+            if hasattr(obj, "_check"):
+                obj._check()
+        obj = getattr(obj, "_parent", None)
+
+
+def propagate_check(body: Any) -> None:
+    """Call `_check()` bottom-up from `body` to root, updating `len_data`.
+
+    1. `body._check()` clears the body's `_dirty` flag.
+    2. We compute the body's new serialized size.
+    3. If the size changed, the delta is added to every ancestor `len_data`
+       (Chunk and root Aep) and `_check()` is called on every object up to the
+       root so no `ConsistencyNotCheckedError` is raised during `save()`.
+    """
+    body._check()
+
+    chunk = getattr(body, "_parent", None)
+    if chunk is None:
+        return
+
+    delta = compute_body_size(body) - chunk.len_data
+    if not delta:
+        return
+
+    _update_len_chain(chunk, delta)
+
+
+def create_chunk(
+    parent: Any,
+    root: Any,
+    chunk_type: str,
+    body: Any,
+    raw_data: bytes,
+) -> Any:
+    """Create a new Kaitai Chunk wired into the parent/root tree.
+
+    Args:
+        parent: The Chunks container that will hold this chunk.
+        root: The root Aep object.
+        chunk_type: 4-character chunk type identifier (e.g. ``"lnrb"``).
+        body: A pre-built Kaitai body instance.
+        raw_data: The raw bytes that represent the body.
+    """
+    chunk = Aep.Chunk()
+    chunk.chunk_type = chunk_type
+    chunk.len_data = len(raw_data)
+    chunk._raw_data = raw_data
+    chunk.padding = b"\x00" if len(raw_data) % 2 else b""
+    chunk.data = body
+
+    body._parent = chunk
+    body._root = root
+    chunk._parent = parent
+    chunk._root = root
+
+    body._check()
+    chunk._check()
+    return chunk
+
+
+def create_flag_chunk(aep: Any, chunk_type: str, body_cls_name: str) -> Any:
+    """Create a new 1-byte flag chunk ready for insertion into root chunks.
+
+    The body type is expected to have a single anonymous ``contents`` field.
+    """
+    from .aep import Aep as Aep  # type: ignore[attr-defined]
+
+    raw_data = b"\x01"
+    body_cls = getattr(Aep, body_cls_name)
+    body = body_cls()
+    body._unnamed0 = raw_data
+    body._dirty = False
+
+    return create_chunk(
+        parent=aep.data,
+        root=aep,
+        chunk_type=chunk_type,
+        body=body,
+        raw_data=raw_data,
+    )
+
+
+def toggle_flag_chunk(
+    aep: Any, chunk_type: str, body_cls_name: str, enable: bool
+) -> None:
+    """Add or remove a flag chunk from the root chunk list."""
+    chunks = aep.data.chunks
+    existing = [i for i, c in enumerate(chunks) if c.chunk_type == chunk_type]
+
+    if enable and not existing:
+        chunk = create_flag_chunk(aep, chunk_type, body_cls_name)
+        chunks.append(chunk)
+        delta = CHUNK_HEADER_SIZE + chunk.len_data + len(chunk.padding)
+    elif not enable and existing:
+        delta = 0
+        for i in reversed(existing):
+            c = chunks.pop(i)
+            delta -= CHUNK_HEADER_SIZE + c.len_data + len(c.padding)
+    _update_len_chain(aep, delta)

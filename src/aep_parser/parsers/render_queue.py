@@ -77,7 +77,9 @@ def parse_render_queue_items(
     # This ldat contains N × item_size bytes, one block per render queue item
     list_settings_chunk = find_by_list_type(chunks=lrdr_child_chunks, list_type="list")
 
-    settings_lhd3 = find_by_type(chunks=list_settings_chunk.data.chunks, chunk_type="lhd3")
+    settings_lhd3 = find_by_type(
+        chunks=list_settings_chunk.data.chunks, chunk_type="lhd3"
+    )
     num_items = settings_lhd3.data.count
     if num_items == 0:
         return []

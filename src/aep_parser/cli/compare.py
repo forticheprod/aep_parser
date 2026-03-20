@@ -1,7 +1,7 @@
 """
-AEP/AEPX File Comparison Tool.
+AEP File Comparison Tool.
 
-Compares After Effects project files (.aep or .aepx) and reports differences
+Compares After Effects project files (.aep) and reports differences
 at the byte level, including:
 - The hierarchical chunk path where the difference occurs
 - Byte position and hex values
@@ -20,7 +20,6 @@ import argparse
 import json
 import sys
 import traceback
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterator
@@ -107,75 +106,6 @@ class MultiChunkDifference:
     diffs: list[MultiFileDifference]
     sizes: list[int] = field(default_factory=list)
     """Chunk size per file. `0` if missing."""
-
-
-# ── AEPX parsing ────────────────────────────────────────────────────────────
-
-
-def parse_aepx(file_path: Path) -> dict[str, bytes]:
-    """
-    Parse an AEPX file and extract all bdata elements with their paths.
-
-    Returns a dict mapping element paths to their binary data.
-    """
-    tree = ET.parse(file_path)
-    root = tree.getroot()
-
-    # Remove namespace for easier navigation
-    for elem in root.iter():
-        if "}" in elem.tag:
-            elem.tag = elem.tag.split("}", 1)[1]
-
-    result: dict[str, bytes] = {}
-    _extract_bdata_recursive(root, "", result)
-    return result
-
-
-def _extract_bdata_recursive(
-    element: ET.Element,
-    parent_path: str,
-    result: dict[str, bytes],
-    counters: dict[str, int] | None = None,
-) -> None:
-    """Recursively extract bdata from all elements."""
-    if counters is None:
-        counters = {}
-
-    # Build current path with index for duplicates
-    tag = element.tag
-    counter_key = parent_path + "/" + tag if parent_path else tag
-
-    if counter_key not in counters:
-        counters[counter_key] = 0
-    else:
-        counters[counter_key] += 1
-
-    if counters[counter_key] > 0:
-        current_path = (
-            f"{parent_path}/{tag}[{counters[counter_key]}]"
-            if parent_path
-            else f"{tag}[{counters[counter_key]}]"
-        )
-    else:
-        current_path = f"{parent_path}/{tag}" if parent_path else tag
-
-    # Skip XML metadata elements
-    if tag in ("ProjectXMPMetadata", "xmpmeta"):
-        return
-
-    # Extract bdata if present
-    bdata = element.get("bdata")
-    if bdata:
-        try:
-            binary_data = bytes.fromhex(bdata)
-            result[current_path] = binary_data
-        except ValueError:
-            pass  # Skip invalid hex data
-
-    # Recurse into children
-    child_counters: dict[str, int] = {}
-    for child in element:
-        _extract_bdata_recursive(child, current_path, result, child_counters)
 
 
 # ── Binary comparison ───────────────────────────────────────────────────────
@@ -346,22 +276,6 @@ def _compare_chunk_dicts(
             )
 
     return differences, only_in_1, only_in_2
-
-
-def compare_aepx_files(
-    file1: Path, file2: Path
-) -> tuple[list[ChunkDifference], list[str], list[str]]:
-    """
-    Compare two AEPX files and return differences.
-
-    Returns:
-        - List of ChunkDifference for chunks that exist in both files
-        - List of paths that only exist in file1
-        - List of paths that only exist in file2
-    """
-    data1 = parse_aepx(file1)
-    data2 = parse_aepx(file2)
-    return _compare_chunk_dicts(data1, data2)
 
 
 def compare_aep_files(
@@ -902,13 +816,7 @@ Output shows for each different byte:
         "files",
         type=Path,
         nargs="+",
-        help=("AEP/AEPX files. One file for --list/--dump, two or more for comparison"),
-    )
-    parser.add_argument(
-        "--format",
-        choices=["auto", "aep", "aepx"],
-        default="auto",
-        help="File format (default: auto-detect from extension)",
+        help="AEP files. One file for --list/--dump, two or more for comparison",
     )
     parser.add_argument(
         "--json",
@@ -984,23 +892,9 @@ Output shows for each different byte:
         )
         return 1
 
-    # Determine format
-    file_format = args.format
-    if file_format == "auto":
-        extensions = {f.suffix.lower() for f in files}
-        if len(extensions) > 1:
-            print(
-                "Error: Files have different extensions. "
-                "Use --format to specify the format.",
-                file=sys.stderr,
-            )
-            return 1
-        ext = extensions.pop()
-        file_format = "aepx" if ext == ".aepx" else "aep"
+    # ── Multi-file comparison (3+ AEP files) ──────────────────────
 
-    # ── Multi-file comparison (3+ AEP files) ──────────────────────────
-
-    if len(files) > 2 and file_format == "aep":
+    if len(files) > 2:
         try:
             multi_diffs, missing, all_data = compare_multi_aep_files(files)
         except Exception as e:
@@ -1027,18 +921,12 @@ Output shows for each different byte:
     file1, file2 = files[0], files[1]
 
     try:
-        if file_format == "aepx":
-            diffs, only1, only2 = compare_aepx_files(file1, file2)
-            # No context data available for AEPX
-            ctx1: dict[str, bytes] | None = None
-            ctx2: dict[str, bytes] | None = None
-        else:
-            # Parse once and reuse for both comparison and context
-            data1 = parse_aep_chunks(file1)
-            data2 = parse_aep_chunks(file2)
-            diffs, only1, only2 = _compare_chunk_dicts(data1, data2)
-            ctx1 = data1 if args.context > 0 else None
-            ctx2 = data2 if args.context > 0 else None
+        # Parse once and reuse for both comparison and context
+        data1 = parse_aep_chunks(file1)
+        data2 = parse_aep_chunks(file2)
+        diffs, only1, only2 = _compare_chunk_dicts(data1, data2)
+        ctx1: dict[str, bytes] | None = data1 if args.context > 0 else None
+        ctx2: dict[str, bytes] | None = data2 if args.context > 0 else None
     except Exception as e:
         print(f"Error comparing files: {e}", file=sys.stderr)
         traceback.print_exc()

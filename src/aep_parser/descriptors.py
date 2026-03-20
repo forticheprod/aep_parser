@@ -4,7 +4,7 @@ Each descriptor reads from / writes to a Kaitai chunk body attribute,
 so that modifying a model field directly mutates the underlying binary
 data and `Project.save()` persists the change.
 
-After every `__set__`, :func:`_propagate_check` walks the Kaitai
+After every `__set__`, `propagate_check` walks the Kaitai
 parent chain bottom-up: it calls `_check()` on each object (clearing
 the `_dirty` flag) and updates every ancestor `Chunk.len_data` when
 the body's serialized size has changed.
@@ -12,79 +12,47 @@ the body's serialized size has changed.
 
 from __future__ import annotations
 
-from io import BytesIO
-from typing import Any, Callable
+from typing import Any, Callable, Generic, TypeVar, overload
 
-from kaitaistruct import KaitaiStream
+from .kaitai.utils import propagate_check
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+T = TypeVar("T")
 
-def _compute_body_size(body: Any) -> int:
-    """Return the serialized byte size of a Kaitai body (trial write).
-
-    The body must not be dirty — call `body._check()` first.
-    `KaitaiStream` requires a pre-allocated buffer; we size it from
-    the parent chunk's `len_data` with headroom for growth.
-    """
-    saved_io = body._io
-    current = getattr(body._parent, "len_data", 0)
-    buf = BytesIO(bytearray(current + 4096))
-    body._write__seq(KaitaiStream(buf))
-    size = buf.tell()
-    body._io = saved_io
-    return size
+_SENTINEL = object()
 
 
-def _propagate_check(body: Any) -> None:
-    """Call `_check()` bottom-up from *body* to root, updating `len_data`.
-
-    1. `body._check()` clears the body's `_dirty` flag.
-    2. A trial write computes the body's new serialized size.
-    3. If the size changed, the delta is added to every ancestor
-       `len_data` (Chunk and root Aep).
-    4. `_check()` is called on every object up to the root so no
-       `ConsistencyNotCheckedError` is raised during `save()`.
-    """
-    body._check()
-
-    chunk = getattr(body, "_parent", None)
-    if chunk is None:
-        return
-
-    new_size = _compute_body_size(body)
-    delta = new_size - chunk.len_data
-
-    obj: Any = chunk
-    while obj is not None:
-        if delta != 0 and hasattr(obj, "len_data"):
-            obj.len_data += delta
-        if hasattr(obj, "_check"):
-            obj._check()
-        obj = getattr(obj, "_parent", None)
+def _invalidate(body: Any, names: list[str]) -> None:
+    """Clear cached Kaitai instances so they recompute on next access."""
+    for name in names:
+        invalidator = getattr(body, f"_invalidate_{name}", None)
+        if invalidator is not None:
+            try:
+                invalidator()
+            except AttributeError:
+                pass
 
 
-class ChunkField:
+class ChunkField(Generic[T]):
     """Descriptor that proxies a single field on a chunk body.
 
     Args:
         chunk_attr: Name of the model attribute holding the chunk body
             reference (e.g. `"_cdta"`).
         field: Name of the field on the chunk body (e.g. `"width"`).
-        transform: Optional callable applied when *getting* (binary →
+        transform: Optional callable applied when *getting* (binary ->
             user-facing value).
-        reverse: Optional callable applied when *setting* (user-facing →
-            binary value).
+        reverse: Callable applied when *setting* (user-facing -> binary
+            value). Defaults to ``None`` (read-only). Pass a callable
+            (e.g. ``int``) to make the field writable.
         validate: Optional callable called with the user-facing value
-            before any `reverse` transform.  Must raise `ValueError`
+            before any `reverse` transform. Must raise `ValueError`
             or `TypeError` if the value is invalid.
         invalidates: Kaitai instance names to clear after a set so they
             are recomputed on next access.
-        doc: Docstring shown on the descriptor (used by Sphinx / mkdocstrings).
+        default: Optional default value returned when the chunk body is
+            `None`. If not given, accessing the field when the body is `None`
+            raises `AttributeError`.
     """
-
-    _sentinel = object()
 
     def __init__(
         self,
@@ -95,8 +63,7 @@ class ChunkField:
         reverse: Callable[..., Any] | None = None,
         validate: Callable[..., None] | None = None,
         invalidates: list[str] | None = None,
-        default: Any = _sentinel,
-        doc: str | None = None,
+        default: Any = _SENTINEL,
     ) -> None:
         self.chunk_attr = chunk_attr
         self.field = field
@@ -105,95 +72,48 @@ class ChunkField:
         self.validate = validate
         self.invalidates = invalidates or []
         self.default = default
-        if doc is not None:
-            self.__doc__ = doc
 
     def __set_name__(self, owner: type, name: str) -> None:
         self.public_name = name
 
-    def _get_body(self, obj: Any) -> Any:
-        return getattr(obj, self.chunk_attr)
+    @overload
+    def __get__(self, obj: None, objtype: type) -> ChunkField[T]: ...
 
-    def __get__(self, obj: Any, objtype: type | None = None) -> Any:
+    @overload
+    def __get__(self, obj: Any, objtype: type | None = None) -> T: ...
+
+    def __get__(self, obj: Any, objtype: type | None = None) -> T | ChunkField[T]:
         if obj is None:
             return self
-        body = self._get_body(obj)
+        body = getattr(obj, self.chunk_attr)
         if body is None:
-            if self.default is not self._sentinel:
-                return self.default
-            raise AttributeError(
-                f"chunk body {self.chunk_attr!r} is None"
-            )
+            if self.default is not _SENTINEL:
+                return self.default  # type: ignore[no-any-return,return-value]
+            raise AttributeError(f"chunk body {self.chunk_attr!r} is None")
         value = getattr(body, self.field)
-        if self.transform is not None:
-            return self.transform(value)
-        return value
+        return self.transform(value) if self.transform else value  # type: ignore[no-any-return,return-value]
 
-    def __set__(self, obj: Any, value: Any) -> None:
-        body = self._get_body(obj)
-        if body is None:
-            raise AttributeError(
-                f"cannot set {self.field!r}: chunk body {self.chunk_attr!r} is None"
-            )
-        if self.validate is not None:
-            self.validate(value)
-        if self.reverse is not None:
-            value = self.reverse(value)
+    def __set__(self, obj: Any, value: T) -> None:
+        if self.reverse is None:
+            raise AttributeError(f"{self.public_name!r} is read-only.")
+        body = getattr(obj, self.chunk_attr)
+        if self.validate:
+            self.validate(value, obj)
+        value = self.reverse(value)
         setattr(body, self.field, value)
-        for inst in self.invalidates:
-            invalidator = getattr(body, f"_invalidate_{inst}", None)
-            if invalidator is not None:
-                try:
-                    invalidator()
-                except AttributeError:
-                    pass
-        _propagate_check(body)
+        _invalidate(body, self.invalidates)
+        propagate_check(body)
 
 
-class ChunkFlagField(ChunkField):
-    """Descriptor for a boolean bit-flag field on a chunk body.
-
-    Always returns `bool` on get and writes `bool` on set.
-    """
-
-    def __get__(self, obj: Any, objtype: type | None = None) -> Any:
-        if obj is None:
-            return self
-        body = self._get_body(obj)
-        if body is None:
-            if self.default is not self._sentinel:
-                return self.default
-            raise AttributeError(
-                f"chunk body {self.chunk_attr!r} is None"
-            )
-        return bool(getattr(body, self.field))
-
-    def __set__(self, obj: Any, value: Any) -> None:
-        body = self._get_body(obj)
-        if body is None:
-            raise AttributeError(
-                f"cannot set {self.field!r}: chunk body {self.chunk_attr!r} is None"
-            )
-        setattr(body, self.field, bool(value))
-        for inst in self.invalidates:
-            invalidator = getattr(body, f"_invalidate_{inst}", None)
-            if invalidator is not None:
-                try:
-                    invalidator()
-                except AttributeError:
-                    pass
-        _propagate_check(body)
-
-
-class ChunkInstanceField:
+class ChunkInstanceField(Generic[T]):
     """Descriptor for a Kaitai computed instance backed by multiple fields.
 
     The *getter* reads the instance value directly (Kaitai computes it
     lazily from the underlying source fields).
 
     The *setter* calls `reverse(value)` which must return a dict mapping
-    source field names to their new binary values.  After writing them
-    all, every name in `invalidates` has its cached instance cleared.
+    source field names to their new binary values. After writing them all,
+    every name in `invalidates` has its cached instance cleared.
 
     Args:
         chunk_attr: Name of the model attribute holding the chunk body.
@@ -201,10 +121,9 @@ class ChunkInstanceField:
         reverse: Callable that decomposes a user value into a dict of
             `{field_name: binary_value}` pairs.
         validate: Optional callable called with the user-facing value
-            before any `reverse` transform.  Must raise `ValueError`
+            before any `reverse` transform. Must raise `ValueError`
             or `TypeError` if the value is invalid.
         invalidates: Kaitai instance names to clear after a set.
-        doc: Docstring shown on the descriptor.
     """
 
     def __init__(
@@ -216,7 +135,6 @@ class ChunkInstanceField:
         reverse: Callable[..., dict[str, Any]] | None = None,
         validate: Callable[..., None] | None = None,
         invalidates: list[str] | None = None,
-        doc: str | None = None,
     ) -> None:
         self.chunk_attr = chunk_attr
         self.instance = instance
@@ -224,83 +142,32 @@ class ChunkInstanceField:
         self.reverse = reverse
         self.validate = validate
         self.invalidates = invalidates or []
-        if doc is not None:
-            self.__doc__ = doc
 
     def __set_name__(self, owner: type, name: str) -> None:
         self.public_name = name
 
-    def _get_body(self, obj: Any) -> Any:
-        return getattr(obj, self.chunk_attr)
+    @overload
+    def __get__(self, obj: None, objtype: type) -> ChunkInstanceField[T]: ...
 
-    def __get__(self, obj: Any, objtype: type | None = None) -> Any:
+    @overload
+    def __get__(self, obj: Any, objtype: type | None = None) -> T: ...
+
+    def __get__(
+        self, obj: Any, objtype: type | None = None
+    ) -> T | ChunkInstanceField[T]:
         if obj is None:
             return self
-        body = self._get_body(obj)
+        body = getattr(obj, self.chunk_attr)
         value = getattr(body, self.instance)
-        if self.transform is not None:
-            return self.transform(value)
-        return value
+        return self.transform(value) if self.transform else value  # type: ignore[no-any-return,return-value]
 
-    def __set__(self, obj: Any, value: Any) -> None:
+    def __set__(self, obj: Any, value: T) -> None:
         if self.reverse is None:
-            raise AttributeError(
-                f"{self.public_name!r} is read-only (no reverse transform)"
-            )
-        body = self._get_body(obj)
-        if self.validate is not None:
-            self.validate(value)
-        fields = self.reverse(value)
-        for field_name, field_value in fields.items():
+            raise AttributeError(f"{self.public_name!r} is read-only.")
+        body = getattr(obj, self.chunk_attr)
+        if self.validate:
+            self.validate(value, obj)
+        for field_name, field_value in self.reverse(value, body).items():
             setattr(body, field_name, field_value)
-        for inst in self.invalidates:
-            invalidator = getattr(body, f"_invalidate_{inst}", None)
-            if invalidator is not None:
-                try:
-                    invalidator()
-                except AttributeError:
-                    pass
-        _propagate_check(body)
-
-
-class ChunkEnumField:
-    """Descriptor for an enum field using `from_binary` / `to_binary`.
-
-    Args:
-        chunk_attr: Name of the model attribute holding the chunk body.
-        field: Name of the field on the chunk body.
-        enum_class: The enum class with `from_binary()` classmethod.
-        doc: Docstring shown on the descriptor.
-    """
-
-    def __init__(
-        self,
-        chunk_attr: str,
-        field: str,
-        enum_class: type,
-        *,
-        doc: str | None = None,
-    ) -> None:
-        self.chunk_attr = chunk_attr
-        self.field = field
-        self.enum_class = enum_class
-        if doc is not None:
-            self.__doc__ = doc
-
-    def __set_name__(self, owner: type, name: str) -> None:
-        self.public_name = name
-
-    def _get_body(self, obj: Any) -> Any:
-        return getattr(obj, self.chunk_attr)
-
-    def __get__(self, obj: Any, objtype: type | None = None) -> Any:
-        if obj is None:
-            return self
-        body = self._get_body(obj)
-        raw = getattr(body, self.field)
-        return self.enum_class.from_binary(raw)
-
-    def __set__(self, obj: Any, value: Any) -> None:
-        body = self._get_body(obj)
-        setattr(body, self.field, value.to_binary())
-        _propagate_check(body)
+        _invalidate(body, self.invalidates)
+        propagate_check(body)

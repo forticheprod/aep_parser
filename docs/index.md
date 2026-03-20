@@ -33,7 +33,7 @@ project = app.project
 print(f"AE Version: {app.version}")
 
 # Access project information
-print(f"Frame Rate: {project.frame_rate}")
+print(f"Frame Rate: {project.bits_per_channel}")
 print(f"Bits per Channel: {project.bits_per_channel}")
 
 # Access project items

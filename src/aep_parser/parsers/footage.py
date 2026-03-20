@@ -5,6 +5,7 @@ import typing
 from pathlib import PurePosixPath, PureWindowsPath
 
 from ..enums import Label
+from ..enums.mappings import map_alpha_mode, map_field_separation_type
 from ..kaitai.utils import (
     ChunkNotFoundError,
     filter_by_type,
@@ -17,7 +18,6 @@ from ..models.items.footage import FootageItem
 from ..models.sources.file import FileSource
 from ..models.sources.placeholder import PlaceholderSource
 from ..models.sources.solid import SolidSource
-from .mappings import map_alpha_mode, map_field_separation_type
 from .utils import parse_alas_data
 
 #: Sentinel value indicating an undefined frame number in the binary format.
@@ -61,17 +61,22 @@ def parse_footage(
 
     source_attrs = {
         "has_alpha": sspc_chunk.data.has_alpha,
-        "alpha_mode": map_alpha_mode(sspc_chunk.data.alpha_mode_raw, sspc_chunk.data.has_alpha),
+        "alpha_mode": map_alpha_mode(
+            sspc_chunk.data.alpha_mode_raw, sspc_chunk.data.has_alpha
+        ),
         "invert_alpha": sspc_chunk.data.invert_alpha,
         "field_separation_type": map_field_separation_type(
             sspc_chunk.data.field_separation_type_raw,
             sspc_chunk.data.field_order,
         ),
-        "high_quality_field_separation": sspc_chunk.data.high_quality_field_separation % 2
+        "high_quality_field_separation": sspc_chunk.data.high_quality_field_separation
+        % 2
         != 0,
         "loop": sspc_chunk.data.loop,
         "conform_frame_rate": sspc_chunk.data.conform_frame_rate
-        or (sspc_chunk.data.frame_rate_base if sspc_chunk.data.frame_padding > 0 else 0),
+        or (
+            sspc_chunk.data.frame_rate_base if sspc_chunk.data.frame_padding > 0 else 0
+        ),
         "is_still": sspc_chunk.data.duration == 0,
         # premul_color: RGB bytes (0-255) converted to floats (0.0-1.0)
         "premul_color": [
@@ -129,9 +134,7 @@ def parse_footage(
                 prefix = str_contents(utf8_before_opti[-2])
                 extension = str_contents(utf8_before_opti[-1])
                 if prefix or extension:
-                    first_frame = (
-                        f"{prefix}{start_frame:0{sspc_chunk.data.frame_padding}d}{extension}"
-                    )
+                    first_frame = f"{prefix}{start_frame:0{sspc_chunk.data.frame_padding}d}{extension}"
                     file_source.file = str(
                         PurePosixPath(file_source.file) / first_frame
                     )

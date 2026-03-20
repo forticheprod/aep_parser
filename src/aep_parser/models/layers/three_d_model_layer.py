@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from .av_layer import AVLayer
 
 
-@dataclass(eq=False)
 class ThreeDModelLayer(AVLayer):
     """
     The `ThreeDModelLayer` object represents a 3D Model layer within a

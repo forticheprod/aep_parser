@@ -7,15 +7,16 @@ and the Python enum types that match ExtendScript.
 
 from __future__ import annotations
 
-from ..enums import (
+from .general import (
     AlphaMode,
     AutoOrientType,
     FastPreviewType,
     FieldSeparationType,
     FrameBlendingType,
-    GpuAccelType,
-    OutputAudio,
     ViewerType,
+)
+from .output_module import (
+    OutputAudio,
 )
 
 
@@ -170,26 +171,6 @@ def map_viewer_type_from_string(label: str) -> ViewerType:
         return mapping[label]
     except KeyError:
         raise ValueError(f"Unknown viewer type label: {label!r}") from None
-
-
-def map_gpu_accel_type(uuid: str) -> GpuAccelType | None:
-    """Map a gpuG UUID to a GpuAccelType enum value.
-
-    The GPU acceleration type is stored in the `gpuG` LIST chunk as a
-    UUID string.  Known UUIDs are mapped to their corresponding enum
-    value; unknown UUIDs default to `None`.
-
-    Args:
-        uuid: The UUID string from the gpuG Utf8 chunk.
-    """
-    mapping = {
-        "7ee0ab59-822d-44cc-ac10-16279d041016": GpuAccelType.CUDA,
-        "f33089e2-1ede-47c1-8a9e-b232bb1cc1a4": GpuAccelType.SOFTWARE,
-    }
-    try:
-        return mapping[uuid]
-    except KeyError:
-        return None
 
 
 def map_output_audio(

@@ -16,6 +16,7 @@ from ..enums import (
     PostRenderActionSetting,
     ResizeQuality,
 )
+from ..enums.mappings import map_output_audio, map_output_color_space
 from ..kaitai import Aep
 from ..kaitai.utils import filter_by_type, find_by_type, str_contents
 from ..models.items.composition import CompItem
@@ -23,7 +24,6 @@ from ..models.renderqueue.output_module import OutputModule
 from ..models.renderqueue.render_queue_item import RenderQueueItem
 from ..models.settings import OutputModuleSettings
 from .format_options import parse_format_options
-from .mappings import map_output_audio, map_output_color_space
 from .utils import parse_alas_data
 
 if TYPE_CHECKING:

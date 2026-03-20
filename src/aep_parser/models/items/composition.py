@@ -1,10 +1,22 @@
 from __future__ import annotations
 
 import typing
-from typing import List, cast
+from typing import Any, List, cast
 
-from ...descriptors import ChunkField, ChunkFlagField, ChunkInstanceField
-from ...validators import validate_number, validate_one_of, validate_sequence
+from ...descriptors import ChunkField, ChunkInstanceField
+from ...reverses import (
+    denormalize_values,
+    reverse_fractional,
+    reverse_frame_ticks,
+    reverse_ratio,
+)
+from ...transforms import normalize_values
+from ...validators import (
+    validate_all,
+    validate_gte_field,
+    validate_number,
+    validate_sequence,
+)
 from ..layers.av_layer import AVLayer
 from ..layers.camera_layer import CameraLayer
 from ..layers.light_layer import LightLayer
@@ -21,57 +33,34 @@ from .footage import FootageItem
 if typing.TYPE_CHECKING:
     from aep_parser.enums import Label
 
-    from ...kaitai.aep import Aep
+    from ...kaitai.aep import Aep  # type: ignore[attr-defined]
     from ..layers.layer import Layer
     from ..properties.property import Property
     from .folder import FolderItem
 
 
 # ---------------------------------------------------------------------------
-# Pixel aspect ratios allowed by After Effects (Composition Settings).
-# ---------------------------------------------------------------------------
-
-PIXEL_ASPECT_RATIOS: tuple[float, ...] = (
-    1.0,    # Square Pixels
-    0.91,   # D1/DV NTSC
-    1.21,   # D1/DV NTSC Widescreen
-    1.09,   # D1/DV PAL
-    1.46,   # D1/DV PAL Widescreen
-    1.33,   # HDV 1080/DVCPRO HD 720
-    1.5,    # DVCPRO HD 1080
-    2.0,    # Anamorphic 2:1
-)
-
-
-# ---------------------------------------------------------------------------
-# Transform / reverse helpers
+# Reverse helpers
 # ---------------------------------------------------------------------------
 
 
-def normalize_color(raw: list[int]) -> list[float]:
-    """Convert 0-255 integer list to 0.0-1.0 float list."""
-    return [c / 255 for c in raw]
+_reverse_frame_rate = reverse_fractional("frame_rate_integer", "frame_rate_fractional")
+_reverse_pixel_aspect = reverse_ratio("pixel_ratio")
+_reverse_display_start_time = reverse_ratio("display_start_time")
+_reverse_display_start_frame = reverse_frame_ticks("display_start_time")
+_reverse_duration = reverse_ratio("duration")
+_reverse_frame_duration = reverse_frame_ticks("duration")
+_reverse_work_area_start = reverse_ratio("in_point")
 
 
-def denormalize_color(value: list[float]) -> list[int]:
-    """Convert 0.0-1.0 float list to 0-255 integer list."""
-    return [round(c * 255) for c in value]
-
-
-def _reverse_frame_rate(value: float) -> dict[str, int]:
-    """Decompose a float frame rate into integer + fractional parts."""
-    integer = int(value)
-    fractional = round((value - integer) * 65536)
-    return {"frame_rate_integer": integer, "frame_rate_fractional": fractional}
-
-
-def _reverse_pixel_aspect(value: float) -> dict[str, int]:
-    """Decompose pixel aspect ratio into width/height ratio."""
-    # AE stores pixel_ratio_width / pixel_ratio_height
-    # Use a large denominator for precision
-    height = 100
-    width = round(value * height)
-    return {"pixel_ratio_width": width, "pixel_ratio_height": height}
+def _reverse_work_area_duration(value: float, body: Any) -> dict[str, int]:
+    """Reverse work area duration: sets out_point = in_point + value."""
+    _DIVISOR = 10000
+    work_start = body.in_point_dividend / body.in_point_divisor
+    return {
+        "out_point_dividend": round((work_start + value) * _DIVISOR),
+        "out_point_divisor": _DIVISOR,
+    }
 
 
 class CompItem(AVItem):
@@ -98,127 +87,129 @@ class CompItem(AVItem):
 
     See: https://ae-scripting.docsforadobe.dev/item/compitem/"""
 
-    # ---- Chunk-backed descriptors (cdta) ----
-
-    bg_color = ChunkField(
+    bg_color = ChunkField[list[float]](
         "_cdta",
         "bg_color",
-        transform=normalize_color,
-        reverse=denormalize_color,
+        transform=normalize_values,
+        reverse=denormalize_values,
         validate=validate_sequence(length=3, min=0.0, max=1.0),
-        doc="""The background color of the composition. The three array values specify
-the red, green, and blue components of the color.""",
     )
+    """The background color of the composition. The three array values specify
+the red, green, and blue components of the color. Read / Write."""
 
-    draft3d = ChunkFlagField(
-        "_cdta",
-        "draft3d",
-        doc="""When `True`, Draft 3D mode is enabled for the composition.
+    draft3d = ChunkField[bool]("_cdta", "draft3d", transform=bool, reverse=bool)
+    """When `True`, Draft 3D mode is enabled for the composition.
+    Read / Write.
 
 Warning:
-    Deprecated in After Effects 2024 in favor of the new Draft 3D mode.""",
-    )
+    Deprecated in After Effects 2024 in favor of the new Draft 3D mode."""
 
-    frame_blending = ChunkFlagField(
-        "_cdta",
-        "frame_blending",
-        doc="""When `True`, frame blending is enabled for this Composition. Corresponds to
-the value of the Frame Blending button in the Composition panel.""",
+    frame_blending = ChunkField[bool](
+        "_cdta", "frame_blending", transform=bool, reverse=bool
     )
+    """When `True`, frame blending is enabled for this Composition. Corresponds
+    to the value of the Frame Blending button in the Composition panel.
+    Read / Write."""
 
-    hide_shy_layers = ChunkFlagField(
-        "_cdta",
-        "hide_shy_layers",
-        doc="""When `True`, only layers with `shy` set to `False` are shown in the
-Timeline panel. When `False`, all layers are visible, including those whose
-`shy` value is `True`. Corresponds to the value of the Hide All Shy Layers
-button in the Composition panel.""",
+    hide_shy_layers = ChunkField[bool](
+        "_cdta", "hide_shy_layers", transform=bool, reverse=bool
     )
+    """When `True`, only layers with `shy` set to `False` are shown in the
+    Timeline panel. When `False`, all layers are visible, including those
+    whose `shy` value is `True`. Corresponds to the value of the Hide All
+    Shy Layers button in the Composition panel. Read / Write."""
 
-    motion_blur = ChunkFlagField(
-        "_cdta",
-        "motion_blur",
-        doc="""When `True`, motion blur is enabled for the composition. Corresponds to
-the value of the Motion Blur button in the Composition panel.""",
+    motion_blur = ChunkField[bool]("_cdta", "motion_blur", transform=bool, reverse=bool)
+    """When `True`, motion blur is enabled for the composition. Corresponds
+    to the value of the Motion Blur button in the Composition panel.
+    Read / Write."""
+
+    preserve_nested_frame_rate = ChunkField[bool](
+        "_cdta", "preserve_nested_frame_rate", transform=bool, reverse=bool
     )
+    """When `True`, the frame rate of nested compositions is preserved in
+    the current composition. Corresponds to the value of the "Preserve frame
+    rate when nested or in render queue" option in the Advanced tab of the
+    Composition Settings dialog box. Read / Write."""
 
-    preserve_nested_frame_rate = ChunkFlagField(
-        "_cdta",
-        "preserve_nested_frame_rate",
-        doc="""When `True`, the frame rate of nested compositions is preserved in the
-current composition. Corresponds to the value of the "Preserve frame rate
-when nested or in render queue" option in the Advanced tab of the
-Composition Settings dialog box.""",
+    preserve_nested_resolution = ChunkField[bool](
+        "_cdta", "preserve_nested_resolution", transform=bool, reverse=bool
     )
+    """When `True`, the resolution of nested compositions is preserved in
+    the current composition. Corresponds to the value of the "Preserve
+    Resolution When Nested" option in the Advanced tab of the Composition
+    Settings dialog box. Read / Write."""
 
-    preserve_nested_resolution = ChunkFlagField(
-        "_cdta",
-        "preserve_nested_resolution",
-        doc="""When `True`, the resolution of nested compositions is preserved in the
-current composition. Corresponds to the value of the "Preserve Resolution
-When Nested" option in the Advanced tab of the Composition Settings dialog
-box.""",
+    width = ChunkField[int](
+        "_cdta", "width", reverse=int, validate=validate_number(min=4, max=30000, integer=True)
     )
+    """The width of the item in pixels. Read / Write."""
 
-    width = ChunkField(
-        "_cdta",
-        "width",
-        doc="The width of the item in pixels.",
+    height = ChunkField[int](
+        "_cdta", "height", reverse=int, validate=validate_number(min=4, max=30000, integer=True)
     )
+    """The height of the item in pixels. Read / Write."""
 
-    height = ChunkField(
-        "_cdta",
-        "height",
-        doc="The height of the item in pixels.",
-    )
-
-    shutter_angle = ChunkField(
+    shutter_angle = ChunkField[int](
         "_cdta",
         "shutter_angle",
-        doc="""The shutter angle setting for the composition. This corresponds to the
-Shutter Angle setting in the Advanced tab of the Composition Settings
-dialog box.""",
+        reverse=int,
+        validate=validate_number(min=0, max=720, integer=True),
     )
+    """The shutter angle setting for the composition. This corresponds to the
+    Shutter Angle setting in the Advanced tab of the Composition Settings
+    dialog box. Read / Write."""
 
-    shutter_phase = ChunkField(
+    shutter_phase = ChunkField[int](
         "_cdta",
         "shutter_phase",
-        doc="""The shutter phase setting for the composition. This corresponds to the
-Shutter Phase setting in the Advanced tab of the Composition Settings
-dialog box.""",
+        reverse=int,
+        validate=validate_number(min=-360, max=360, integer=True),
     )
+    """The shutter phase setting for the composition. This corresponds to the
+    Shutter Phase setting in the Advanced tab of the Composition Settings
+    dialog box. Read / Write."""
 
-    resolution_factor = ChunkField(
+    resolution_factor = ChunkField[list[int]](
         "_cdta",
         "resolution_factor",
         transform=list,
+        reverse=list,
         validate=validate_sequence(length=2, min=0.0, max=1.0),
-        doc="""The x and y downsample resolution factors for rendering the composition.
-The two values in the array specify how many pixels to skip when sampling;
-the first number controls horizontal sampling, the second controls vertical
-sampling. Full resolution is [1, 1], half resolution is [2, 2], and quarter
-resolution is [4, 4]. The default is [1, 1].""",
     )
+    """The x and y downsample resolution factors for rendering the
+    composition. The two values in the array specify how many pixels to skip
+    when sampling; the first number controls horizontal sampling, the second
+    controls vertical sampling. Full resolution is [1, 1], half resolution
+    is [2, 2], and quarter resolution is [4, 4]. The default is [1, 1].
+    Read / Write."""
 
-    motion_blur_adaptive_sample_limit = ChunkField(
+    motion_blur_adaptive_sample_limit = ChunkField[int](
         "_cdta",
         "motion_blur_adaptive_sample_limit",
-        doc="""The maximum number of motion blur samples of 2D layer motion. This
-corresponds to the Adaptive Sample Limit setting in the Advanced tab of
-the Composition Settings dialog box.""",
+        reverse=int,
+        validate=validate_all(
+            validate_number(min=2, max=256, integer=True),
+            validate_gte_field("motion_blur_samples_per_frame"),
+        ),
     )
+    """The maximum number of motion blur samples of 2D layer motion. This
+    corresponds to the Adaptive Sample Limit setting in the Advanced tab of
+    the Composition Settings dialog box. Must be >= `samples_per_frame`.
+    Read / Write."""
 
-    motion_blur_samples_per_frame = ChunkField(
+    motion_blur_samples_per_frame = ChunkField[int](
         "_cdta",
         "motion_blur_samples_per_frame",
-        doc="""The minimum number of motion blur samples per frame for Classic 3D layers,
-shape layers, and certain effects. This corresponds to the Samples Per
-Frame setting in the Advanced tab of the Composition Settings dialog box.""",
+        reverse=int,
+        validate=validate_number(min=2, max=64, integer=True),
     )
+    """The minimum number of motion blur samples per frame for Classic 3D
+    layers, shape layers, and certain effects. This corresponds to the
+    Samples Per Frame setting in the Advanced tab of the Composition
+    Settings dialog box. Read / Write."""
 
-    # ---- Chunk-backed descriptors (cdta instances — computed) ----
-
-    frame_rate = ChunkInstanceField(
+    frame_rate = ChunkInstanceField[float](
         "_cdta",
         "frame_rate",
         reverse=_reverse_frame_rate,
@@ -231,105 +222,170 @@ Frame setting in the Advanced tab of the Composition Settings dialog box.""",
             "frame_out_point",
             "display_start_frame",
         ],
-        doc="The frame rate of the item in frames-per-second.",
     )
+    """The frame rate of the item in frames-per-second. Read / Write."""
 
-    duration = ChunkInstanceField(
+    duration = ChunkInstanceField[float](
         "_cdta",
         "duration",
-        doc="The duration of the item in seconds. Still footages have a duration of 0.",
+        reverse=_reverse_duration,
+        validate=validate_number(min=0.0, max=10800.0),
+        invalidates=["duration", "frame_duration"],
     )
+    """The duration of the item in seconds. Read / Write."""
 
-    frame_duration = ChunkInstanceField(
+    frame_duration = ChunkInstanceField[int](
         "_cdta",
         "frame_duration",
         transform=int,
-        doc="The duration of the item in frames. Still footages have a duration of 0.",
+        reverse=_reverse_frame_duration,
+        validate=validate_number(min=1, integer=True),
+        invalidates=["duration", "frame_duration"],
     )
+    """The duration of the item in frames. Read / Write."""
 
-    pixel_aspect = ChunkInstanceField(
+    pixel_aspect = ChunkInstanceField[float](
         "_cdta",
         "pixel_aspect",
         reverse=_reverse_pixel_aspect,
-        validate=validate_one_of(PIXEL_ASPECT_RATIOS),
+        validate=validate_number(min=0.01, max=100.0),
         invalidates=["pixel_aspect"],
-        doc="The pixel aspect ratio of the item (1.0 is square).",
     )
+    """The pixel aspect ratio of the item (1.0 is square). Read / Write."""
 
-    time_scale = ChunkInstanceField(
-        "_cdta",
-        "time_scale",
-        doc="""The time scale, used as a divisor for keyframe time values. For integer
-frame rates (e.g. 24fps) this is a whole number. For non-integer frame
-rates (e.g. 29.97fps) this includes a fractional part (e.g. 3.125).
+    time_scale = ChunkInstanceField[float]("_cdta", "time_scale")
+    """The time scale, used as a divisor for keyframe time values. For
+    integer frame rates (e.g. 24fps) this is a whole number. For non-integer
+    frame rates (e.g. 29.97fps) this includes a fractional part (e.g.
+    3.125). Read-only."""
 
-Note:
-    Read-only. Derived from the composition's frame rate.""",
-    )
-
-    display_start_time = ChunkInstanceField(
+    display_start_time = ChunkInstanceField[float](
         "_cdta",
         "display_start_time",
-        doc="""The time set as the beginning of the composition, in seconds. This is the
-equivalent of the Start Timecode or Start Frame setting in the Composition
-Settings dialog box.""",
+        reverse=_reverse_display_start_time,
+        validate=validate_number(min=-10800.0, max=86340.0),
+        invalidates=[
+            "display_start_time",
+            "display_start_frame",
+            "in_point",
+            "frame_in_point",
+            "out_point",
+            "frame_out_point",
+            "work_area_start",
+            "work_area_start_frame",
+            "work_area_duration",
+            "work_area_duration_frame",
+        ],
     )
+    """The time set as the beginning of the composition, in seconds. This
+    is the equivalent of the Start Timecode or Start Frame setting in the
+    Composition Settings dialog box. Read / Write."""
 
-    display_start_frame = ChunkInstanceField(
+    display_start_frame = ChunkInstanceField[int](
         "_cdta",
         "display_start_frame",
         transform=int,
-        doc="The frame value of the beginning of the composition.",
+        reverse=_reverse_display_start_frame,
+        invalidates=[
+            "display_start_time",
+            "display_start_frame",
+            "in_point",
+            "frame_in_point",
+            "out_point",
+            "frame_out_point",
+            "work_area_start",
+            "work_area_start_frame",
+            "work_area_duration",
+            "work_area_duration_frame",
+        ],
     )
+    """The frame value of the beginning of the composition. Read / Write."""
 
-    in_point = ChunkInstanceField(
+    in_point = ChunkInstanceField[float](
         "_cdta",
         "in_point",
-        doc='The composition "work area" start (seconds).',
     )
+    """The composition "work area" start (seconds). Read-only."""
 
-    frame_in_point = ChunkInstanceField(
+    frame_in_point = ChunkInstanceField[int](
         "_cdta",
         "frame_in_point",
         transform=int,
-        doc='The composition "work area" start (frames).',
     )
+    """The composition "work area" start (frames). Read-only."""
 
-    out_point = ChunkInstanceField(
+    out_point = ChunkInstanceField[float](
         "_cdta",
         "out_point",
-        doc='The composition "work area" end (seconds).',
     )
+    """The composition "work area" end (seconds). Read-only."""
 
-    frame_out_point = ChunkInstanceField(
+    frame_out_point = ChunkInstanceField[int](
         "_cdta",
         "frame_out_point",
         transform=int,
-        doc='The composition "work area" end (frames).',
     )
+    """The composition "work area" end (frames). Read-only."""
 
-    time = ChunkInstanceField(
+    work_area_start = ChunkInstanceField[float](
         "_cdta",
-        "time",
-        doc="The playhead timestamp, in composition time (seconds).",
+        "work_area_start",
+        reverse=_reverse_work_area_start,
+        invalidates=[
+            "in_point",
+            "frame_in_point",
+            "work_area_start",
+            "work_area_start_frame",
+            "work_area_duration",
+            "work_area_duration_frame",
+        ],
     )
+    """The work area start time relative to composition start.
+    Read / Write."""
 
-    frame_time = ChunkInstanceField(
+    work_area_start_frame = ChunkInstanceField[int](
         "_cdta",
-        "frame_time",
+        "work_area_start_frame",
         transform=int,
-        doc="The playhead timestamp, in composition time (frame).",
     )
+    """The work area start frame relative to composition start.
+    Read-only."""
+
+    work_area_duration = ChunkInstanceField[float](
+        "_cdta",
+        "work_area_duration",
+        reverse=_reverse_work_area_duration,
+        invalidates=[
+            "out_point",
+            "frame_out_point",
+            "work_area_start",
+            "work_area_start_frame",
+            "work_area_duration",
+            "work_area_duration_frame",
+        ],
+    )
+    """The work area duration in seconds. Read / Write."""
+
+    work_area_duration_frame = ChunkInstanceField[int](
+        "_cdta",
+        "work_area_duration_frame",
+        transform=int,
+    )
+    """The work area duration in frames. Read-only."""
+
+    time = ChunkInstanceField[float]("_cdta", "time")
+    """The playhead timestamp, in composition time (seconds). Read-only."""
+
+    frame_time = ChunkInstanceField[int]("_cdta", "frame_time", transform=int)
+    """The playhead timestamp, in composition time (frame). Read-only."""
 
     # ---- Chunk-backed descriptor (cdrp) ----
 
-    drop_frame = ChunkFlagField(
-        "_cdrp",
-        "drop_frame",
-        default=False,
-        doc="""When `True`, timecode is displayed in drop-frame format. Only applicable
-when `frameRate` is 29.97 or 59.94.""",
+    drop_frame = ChunkField[bool](
+        "_cdrp", "drop_frame", transform=bool, reverse=bool, default=False
     )
+    """When `True`, timecode is displayed in drop-frame format. Only
+    applicable when `frameRate` is 29.97 or 59.94. Read / Write."""
 
     # ---- Regular attributes set in __init__ ----
 
@@ -355,7 +411,7 @@ when `frameRate` is 29.97 or 59.94.""",
         self._cdta = cdta
         self._cdrp = cdrp
 
-        # Skip AVItem's extra params — they're all descriptor-backed on
+        # Skip AVItem's extra params - they're all descriptor-backed on
         # CompItem and read directly from the cdta chunk body.
         super().__init__(
             comment=comment,
@@ -406,26 +462,6 @@ when `frameRate` is 29.97 or 59.94.""",
             List[MarkerValue],  # Cannot use `list` for Py3.7`
             [kf.value for kf in self.marker_property.keyframes],
         )
-
-    @property
-    def work_area_start(self) -> float:
-        """The work area start time relative to composition start."""
-        return self.in_point - self.display_start_time
-
-    @property
-    def work_area_start_frame(self) -> int:
-        """The work area start frame relative to composition start."""
-        return self.frame_in_point - self.display_start_frame
-
-    @property
-    def work_area_duration(self) -> float:
-        """The work area duration in seconds."""
-        return self.out_point - self.in_point
-
-    @property
-    def work_area_duration_frame(self) -> int:
-        """The work area duration in frames."""
-        return self.frame_out_point - self.frame_in_point
 
     def __iter__(self) -> typing.Iterator[Layer]:
         """Return an iterator over the composition's layers."""

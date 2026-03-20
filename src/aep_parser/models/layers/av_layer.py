@@ -1,24 +1,29 @@
 from __future__ import annotations
 
 import typing
-from dataclasses import dataclass, field
 
-from aep_parser.enums import TrackMatteType
+from aep_parser.enums import (
+    BlendingMode,
+    FrameBlendingType,
+    LayerQuality,
+    LayerSamplingQuality,
+    TrackMatteType,
+)
 
+from ...descriptors import ChunkField
+from ...enums.mappings import map_frame_blending_type
 from .layer import Layer
 
 if typing.TYPE_CHECKING:
-    from aep_parser.enums import (
-        BlendingMode,
-        FrameBlendingType,
-        LayerQuality,
-        LayerSamplingQuality,
-    )
+    from aep_parser.enums import AutoOrientType
 
+    from ...kaitai.aep import Aep  # type: ignore[attr-defined]
+    from ..items.composition import CompItem
     from ..items.item import Item
+    from ..properties.property import Property
+    from ..properties.property_group import PropertyGroup
 
 
-@dataclass(eq=False)
 class AVLayer(Layer):
     """
     The `AVLayer` object provides an interface to those layers that contain
@@ -47,60 +52,86 @@ class AVLayer(Layer):
     See: https://ae-scripting.docsforadobe.dev/layer/avlayer/
     """
 
-    adjustment_layer: bool
-    """When `True`, the layer is an adjustment layer."""
+    # ---- Chunk-backed descriptors (ldta) ----
 
-    audio_enabled: bool
-    """When `True`, the layer's audio is enabled. This value corresponds to the audio toggle switch in the Timeline panel."""
+    adjustment_layer = ChunkField[bool]("_ldta", "adjustment_layer", reverse=int)
+    """When `True`, the layer is an adjustment layer. Read / Write."""
 
-    blending_mode: BlendingMode
-    """The blending mode of the layer."""
+    audio_enabled = ChunkField[bool]("_ldta", "audio_enabled", reverse=int)
+    """When `True`, the layer's audio is enabled. This value corresponds
+    to the audio toggle switch in the Timeline panel. Read / Write."""
 
-    collapse_transformation: bool
-    """`True` if collapse transformation is on for this layer."""
+    blending_mode = ChunkField[BlendingMode](
+        "_ldta",
+        "blending_mode",
+        transform=BlendingMode.from_binary,
+        reverse=BlendingMode.to_binary,
+    )
+    """The blending mode of the layer. Read / Write."""
 
-    effects_active: bool
-    """`True` if the layer's effects are active, as indicated by the <f> icon next to it in the user interface."""
+    collapse_transformation = ChunkField[bool]("_ldta", "collapse_transformation", reverse=int)
+    """`True` if collapse transformation is on for this layer.
+    Read / Write."""
 
-    environment_layer: bool
-    """`True` if this is an environment layer in a Ray-traced 3D composition."""
+    effects_active = ChunkField[bool]("_ldta", "effects_active", reverse=int)
+    """`True` if the layer's effects are active, as indicated by the
+    <f> icon next to it in the user interface. Read / Write."""
 
-    frame_blending: bool
-    """`True` if frame blending is enabled for this layer."""
+    environment_layer = ChunkField[bool]("_ldta", "environment_layer", reverse=int)
+    """`True` if this is an environment layer in a Ray-traced 3D
+    composition. Read / Write."""
 
-    frame_blending_type: FrameBlendingType
-    """The type of frame blending to perform when frame blending is enabled for the layer."""
+    frame_blending = ChunkField[bool]("_ldta", "frame_blending")
+    """`True` if frame blending is enabled for this layer. Read-only."""
 
-    guide_layer: bool
-    """`True` if the layer is a guide layer."""
+    guide_layer = ChunkField[bool]("_ldta", "guide_layer", reverse=int)
+    """`True` if the layer is a guide layer. Read / Write."""
 
-    motion_blur: bool
-    """`True` if motion blur is enabled for the layer."""
+    motion_blur = ChunkField[bool]("_ldta", "motion_blur", reverse=int)
+    """`True` if motion blur is enabled for the layer. Read / Write."""
 
-    preserve_transparency: bool
-    """`True` if preserve transparency is enabled for the layer."""
+    preserve_transparency = ChunkField[bool](
+        "_ldta", "preserve_transparency", transform=bool, reverse=int
+    )
+    """`True` if preserve transparency is enabled for the layer.
+    Read / Write."""
 
-    quality: LayerQuality
-    """The layer's draft quality setting."""
+    quality = ChunkField[LayerQuality](
+        "_ldta",
+        "quality",
+        transform=LayerQuality.from_binary,
+        reverse=LayerQuality.to_binary,
+    )
+    """The layer's draft quality setting. Read / Write."""
 
-    sampling_quality: LayerSamplingQuality
-    """The layer's sampling method."""
+    sampling_quality = ChunkField[LayerSamplingQuality](
+        "_ldta",
+        "sampling_quality",
+        transform=LayerSamplingQuality.from_binary,
+        reverse=LayerSamplingQuality.to_binary,
+    )
+    """The layer's sampling method. Read / Write."""
 
-    three_d_layer: bool
-    """`True` if this layer is a 3D layer."""
+    three_d_layer = ChunkField[bool]("_ldta", "three_d_layer", reverse=int)
+    """`True` if this layer is a 3D layer. Read / Write."""
 
-    three_d_per_char: bool
-    """
-    `True` if this layer has the Enable Per-character 3D switch set, allowing
-    its characters to be animated off the plane of the text layer. Applies
-    only to text layers.
-    """
+    three_d_per_char = ChunkField[bool]("_ldta", "three_d_per_char", reverse=int)
+    """`True` if this layer has the Enable Per-character 3D switch set,
+    allowing its characters to be animated off the plane of the text
+    layer. Applies only to text layers. Read / Write."""
 
-    track_matte_type: TrackMatteType
-    """Specifies the way the track matte is applied."""
+    track_matte_type = ChunkField[TrackMatteType](
+        "_ldta",
+        "track_matte_type",
+        transform=TrackMatteType.from_binary,
+        reverse=TrackMatteType.to_binary,
+    )
+    """Specifies the way the track matte is applied. Read / Write."""
 
-    _source_id: int
+    _source_id = ChunkField[int]("_ldta", "source_id", reverse=int)
     """The ID of the source item for this layer. 0 for a text layer."""
+
+    # ---- Regular attributes set in __init__ ----
 
     _matte_layer_id: int
     """
@@ -108,12 +139,41 @@ class AVLayer(Layer):
     `0` when no track matte is applied.
     """
 
-    # Set after parsing - reference to source item (not serialized)
-    _source: Item | None = field(default=None, init=False, repr=False)
+    def __init__(
+        self,
+        *,
+        _ldta: Aep.LdtaBody,
+        name: str,
+        comment: str,
+        containing_comp: CompItem,
+        properties: list[Property | PropertyGroup],
+        auto_orient: AutoOrientType,
+        layer_type: str,
+        match_name: str,
+        _matte_layer_id: int,
+    ) -> None:
+        super().__init__(
+            _ldta=_ldta,
+            name=name,
+            comment=comment,
+            containing_comp=containing_comp,
+            properties=properties,
+            auto_orient=auto_orient,
+            layer_type=layer_type,
+            match_name=match_name,
+        )
+        self._matte_layer_id = _matte_layer_id
+        self._source: Item | None = None
+        self._track_matte_layer: AVLayer | None = None
+        self._is_track_matte: bool = False
 
-    # Set after parsing - track matte references (not serialized)
-    _track_matte_layer: AVLayer | None = field(default=None, init=False, repr=False)
-    _is_track_matte: bool = field(default=False, init=False, repr=False)
+    @property
+    def frame_blending_type(self) -> FrameBlendingType:
+        """The type of frame blending for the layer."""
+        return map_frame_blending_type(
+            self._ldta.frame_blending_type,
+            self._ldta.frame_blending,
+        )
 
     @property
     def source(self) -> Item | None:

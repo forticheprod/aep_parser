@@ -49,7 +49,6 @@ def build_project_node(
         "version": app.version,
         "build_number": app.build_number,
         "bits_per_channel": project.bits_per_channel.name,
-        "frame_rate": project.frame_rate,
         "expression_engine": project.expression_engine,
     }
     if project.effect_names:

@@ -293,7 +293,9 @@ def _parse_mask_atom(
             int(mkif_chunk.data.mask_feather_falloff)
         ),
         mask_mode=MaskMode.from_binary(int(mkif_chunk.data.mode)),
-        mask_motion_blur=MaskMotionBlur.from_binary(int(mkif_chunk.data.mask_motion_blur)),
+        mask_motion_blur=MaskMotionBlur.from_binary(
+            int(mkif_chunk.data.mask_motion_blur)
+        ),
         roto_bezier=roto_bezier,
     )
     mask_group.property_type = base.property_type
@@ -1006,7 +1008,10 @@ def _parse_effect_parameter_def(parameter_chunks: list[Aep.Chunk]) -> dict[str, 
         result["property_value_type"] = PropertyValueType.ThreeD_SPATIAL
 
     elif control_type == PropertyControlType.TWO_D:
-        result["last_value"] = [pard_chunk.data.last_value_x, pard_chunk.data.last_value_y]
+        result["last_value"] = [
+            pard_chunk.data.last_value_x,
+            pard_chunk.data.last_value_y,
+        ]
         result["property_value_type"] = PropertyValueType.TwoD_SPATIAL
 
     elif control_type == PropertyControlType.LAYER:

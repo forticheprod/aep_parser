@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 """
-AEP/AEPX File Comparison Tool.
+AEP File Comparison Tool.
 
 This is a development wrapper script. After installing the package,
 use the `aep-compare` command instead.
 
 Usage:
-    python scripts/compare_aep.py file1.aepx file2.aepx
     python scripts/compare_aep.py file1.aep file2.aep
     python scripts/compare_aep.py file1.aep file2.aep --json
     python scripts/compare_aep.py file1.aep file2.aep --filter ldta

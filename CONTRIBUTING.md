@@ -52,8 +52,8 @@ AEP Parser transforms binary .aep files into typed Python objects through a thre
 - `filter_by_type()` - Get all chunks of a given type
 
 **Chunk data access**: Chunk attributes live on `chunk.data`, not on the chunk itself. Always use explicit `chunk.data.X` access:
-- `chunk.data.list_type` — the list_type of a LIST chunk
-- `cdta_chunk.data.time_scale` — a typed body field
+- `chunk.data.list_type` - the list_type of a LIST chunk
+- `cdta_chunk.data.time_scale` - a typed body field
 
 ## Development Workflow
 
@@ -169,11 +169,11 @@ app = parse("samples/models/composition/bgColor_custom.aep")
 project = app.project
 
 # Explore the data
-print(project.frame_rate)
+print(project.bits_per_channel)
 print(project.items[0].name)
 
 # Access raw Kaitai chunks (advanced)
-from aep_parser.kaitai.aep import Aep
+from aep_parser.kaitai import Aep
 aep_data = Aep.from_file("samples/models/composition/bgColor_custom.aep")
 aep_data._read()
 chunks = aep_data.rifx.chunks
@@ -223,9 +223,9 @@ kaitai-struct-compiler --target python \
 > multiply one operand by `1.0`:
 > ```yaml
 > # Wrong - truncates to integer (e.g. 3 / 4 = 0)
-> value: 'pixel_ratio_width / pixel_ratio_height'
+> value: 'pixel_ratio_dividend / pixel_ratio_divisor'
 > # Correct - produces float (e.g. 3 * 1.0 / 4 = 0.75)
-> value: 'pixel_ratio_width * 1.0 / pixel_ratio_height'
+> value: 'pixel_ratio_dividend * 1.0 / pixel_ratio_divisor'
 > ```
 
 #### 4. Update the Model

@@ -1,26 +1,16 @@
 from __future__ import annotations
 
 import contextlib
-import json
 import os
-import xml.etree.ElementTree as ET
 from typing import Any
 
 from ..enums import (
-    BitsPerChannel,
-    ColorManagementSystem,
-    FeetFramesFilmType,
-    FootageTimecodeDisplayStartType,
-    FramesCountType,
     Label,
-    LutInterpolationMethod,
-    TimeDisplayType,
 )
 from ..kaitai import Aep
 from ..kaitai.utils import (
     ChunkNotFoundError,
     filter_by_list_type,
-    filter_by_type,
     find_by_list_type,
     find_by_type,
     str_contents,
@@ -32,7 +22,6 @@ from ..utils import deprecated
 from .application import parse_app
 from .defaults import set_layer_property_defaults, set_transform_defaults
 from .item import parse_folder
-from .mappings import map_gpu_accel_type
 from .property import parse_effect_param_defs
 from .render_queue import parse_render_queue
 
@@ -66,59 +55,28 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
         aep: The parsed Kaitai RIFX structure.
         file_path: Path to the `.aep` file (stored on the Project).
     """
-    root_chunks = aep.data.chunks
+    root_chunks: list[Aep.Chunk] = aep.data.chunks
 
-    root_folder_chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")
-    head_chunk = find_by_type(chunks=root_chunks, chunk_type="head")
-    nnhd_chunk = find_by_type(chunks=root_chunks, chunk_type="nnhd")
-    acer_chunk = find_by_type(chunks=root_chunks, chunk_type="acer")
-    adfr_chunk = find_by_type(chunks=root_chunks, chunk_type="adfr")
-    dwga_chunk = find_by_type(chunks=root_chunks, chunk_type="dwga")
-    gpug_chunk = find_by_list_type(chunks=root_chunks, list_type="gpuG")
-    xmp_packet = ET.fromstring(aep.xmp_packet)
-
-    color_profile = _get_color_profile_settings(root_chunks)
+    root_folder_chunk: Aep.Chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")
+    head_chunk: Aep.Chunk = find_by_type(chunks=root_chunks, chunk_type="head")
+    nnhd_chunk: Aep.Chunk = find_by_type(chunks=root_chunks, chunk_type="nnhd")
+    acer_chunk: Aep.Chunk = find_by_type(chunks=root_chunks, chunk_type="acer")
+    adfr_chunk: Aep.Chunk = find_by_type(chunks=root_chunks, chunk_type="adfr")
+    dwga_chunk: Aep.Chunk = find_by_type(chunks=root_chunks, chunk_type="dwga")
+    gpug_chunk: Aep.Chunk = find_by_list_type(chunks=root_chunks, list_type="gpuG")
+    utf8_chunk: Aep.Chunk = find_by_type(chunks=gpug_chunk.data.chunks, chunk_type="Utf8")
 
     project = Project(
-        bits_per_channel=BitsPerChannel.from_binary(nnhd_chunk.data.bits_per_channel),
-        revision=head_chunk.data.file_revision,
-        color_management_system=ColorManagementSystem(
-            int(color_profile["colorManagementSystem"])
-        ),
-        compensate_for_scene_referred_profiles=bool(
-            acer_chunk.data.compensate_for_scene_referred_profiles
-        ),
-        effect_names=_get_effect_names(root_chunks),
-        expression_engine=_get_expression_engine(root_chunks),  # CC 2019+
-        feet_frames_film_type=FeetFramesFilmType.from_binary(
-            nnhd_chunk.data.feet_frames_film_type
-        ),
-        lut_interpolation_method=LutInterpolationMethod(
-            int(color_profile["lutInterpolationMethod"])
-        ),
-        ocio_configuration_file=str(color_profile["ocioConfigurationFile"]),
+        _nnhd=nnhd_chunk.data,
+        _head=head_chunk.data,
+        _acer=acer_chunk.data,
+        _adfr=adfr_chunk.data,
+        _dwga=dwga_chunk.data,
+        _utf8=utf8_chunk.data,
+        _aep=aep,
         file=file_path,
-        footage_timecode_display_start_type=FootageTimecodeDisplayStartType.from_binary(
-            nnhd_chunk.data.footage_timecode_display_start_type
-        ),
-        frame_rate=nnhd_chunk.data.frame_rate,
-        frames_count_type=FramesCountType.from_binary(nnhd_chunk.data.frames_count_type),
-        frames_use_feet_frames=nnhd_chunk.data.frames_use_feet_frames,
-        linear_blending=any(c.chunk_type == "lnrb" for c in root_chunks),
-        linearize_working_space=any(c.chunk_type == "lnrp" for c in root_chunks),
-        working_gamma=dwga_chunk.data.working_gamma,
-        working_space=_get_working_space(root_chunks),
-        display_color_space=_get_display_color_space(root_chunks),
-        gpu_accel_type=map_gpu_accel_type(
-            str_contents(find_by_type(chunks=gpug_chunk.data.chunks, chunk_type="Utf8"))
-        ),
-        audio_sample_rate=adfr_chunk.data.audio_sample_rate,
         items={},
         render_queue=None,
-        time_display_type=TimeDisplayType.from_binary(nnhd_chunk.data.time_display_type),
-        transparency_grid_thumbnails=bool(nnhd_chunk.data.transparency_grid_thumbnails),
-        xmp_packet=xmp_packet,
-        _aep=aep,
     )
 
     project._effect_param_defs = _parse_effect_definitions(root_chunks)
@@ -237,25 +195,6 @@ def _clamp_layer_times(
         layer.frame_out_point = round(max_out * frame_rate)
 
 
-def _get_expression_engine(root_chunks: list[Aep.Chunk]) -> str:
-    """
-    Get the expression engine used in the project.
-
-    Args:
-        root_chunks (Aep.Chunk): list of root chunks of the project
-    """
-    try:
-        expression_engine_chunk = find_by_list_type(
-            chunks=root_chunks, list_type="ExEn"
-        )
-        utf8_chunk = find_by_type(
-            chunks=expression_engine_chunk.data.chunks, chunk_type="Utf8"
-        )
-        return str_contents(utf8_chunk)
-    except ChunkNotFoundError:
-        return "extendscript"
-
-
 def _parse_effect_definitions(
     root_chunks: list[Aep.Chunk],
 ) -> dict[str, dict[str, dict[str, Any]]]:
@@ -292,100 +231,3 @@ def _parse_effect_definitions(
         effect_defs[effect_match_name] = param_defs
 
     return effect_defs
-
-
-def _get_effect_names(root_chunks: list[Aep.Chunk]) -> list[str]:
-    """
-    Get the list of effect names used in the project.
-
-    Args:
-        root_chunks (Aep.Chunk): list of root chunks of the project
-    """
-    pefl_chunk = find_by_list_type(chunks=root_chunks, list_type="Pefl")
-    pefl_child_chunks = pefl_chunk.data.chunks
-    pjef_chunks = filter_by_type(chunks=pefl_child_chunks, chunk_type="pjef")
-    return [str_contents(chunk) for chunk in pjef_chunks]
-
-
-def _get_color_profile_settings(root_chunks: list[Aep.Chunk]) -> dict[str, int | str]:
-    """
-    Get color profile settings from the project.
-
-    The settings are stored as JSON in a Utf8 chunk at the root level.
-
-    Args:
-        root_chunks: list of root chunks of the project
-
-    Returns:
-        Dict with colorManagementSystem, lutInterpolationMethod, and
-        ocioConfigurationFile values.
-    """
-    defaults: dict[str, int | str] = {
-        "colorManagementSystem": 0,  # Adobe
-        "lutInterpolationMethod": 0,  # Trilinear
-        "ocioConfigurationFile": "",
-    }
-    for chunk in filter_by_type(chunks=root_chunks, chunk_type="Utf8"):
-        utf8_content = str_contents(chunk)
-        if "lutInterpolationMethod" in utf8_content:
-            cms_data = json.loads(utf8_content)
-            # Merge with defaults so missing keys get default values
-            return {**defaults, **cms_data}
-
-    return defaults
-
-
-def _get_working_space(root_chunks: list[Aep.Chunk]) -> str:
-    """
-    Get the working color space name from the project.
-
-    The working space is stored in the first Utf8 chunk containing
-    JSON with baseColorProfile.colorProfileName.
-
-    Args:
-        root_chunks: list of root chunks of the project
-
-    Returns:
-        The working space name (e.g., "sRGB IEC61966-2.1") or "None" if not set.
-    """
-    for chunk in filter_by_type(chunks=root_chunks, chunk_type="Utf8"):
-        utf8_content = str_contents(chunk)
-        if "baseColorProfile" in utf8_content:
-            profile_data = json.loads(utf8_content)
-            base_profile = profile_data.get("baseColorProfile", {})
-            return str(base_profile.get("colorProfileName", "None"))
-    # Old AE format (no pcms chunk) defaults to sRGB
-    if not any(c.chunk_type == "pcms" for c in root_chunks):
-        return "sRGB IEC61966-2.1"
-    return "None"
-
-
-def _get_display_color_space(root_chunks: list[Aep.Chunk]) -> str:
-    """
-    Get the display color space name from the project.
-
-    The display color space is stored in the second Utf8 chunk that
-    follows the working space baseColorProfile chunk. When no display
-    color space is set, the chunk contains `{}`.
-
-    Args:
-        root_chunks: list of root chunks of the project
-
-    Returns:
-        The display color space name (e.g., "ACES/sRGB") or "None"
-        if not set.
-    """
-    found_working_space = False
-    for chunk in filter_by_type(chunks=root_chunks, chunk_type="Utf8"):
-        utf8_content = str_contents(chunk)
-        if not found_working_space:
-            if "baseColorProfile" in utf8_content:
-                found_working_space = True
-            continue
-        # This is the Utf8 chunk after the working space
-        if "baseColorProfile" in utf8_content:
-            profile_data = json.loads(utf8_content)
-            base_profile = profile_data.get("baseColorProfile", {})
-            return str(base_profile.get("colorProfileName", "None"))
-        return "None"
-    return "None"
