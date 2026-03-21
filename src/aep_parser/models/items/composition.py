@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 from typing import Any, List, cast
 
-from ...descriptors import ChunkField, ChunkInstanceField
+from ...kaitai.descriptors import ChunkField, ChunkInstanceField
 from ...reverses import (
     denormalize_values,
     reverse_fractional,

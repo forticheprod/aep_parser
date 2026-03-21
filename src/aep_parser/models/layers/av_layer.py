@@ -10,8 +10,8 @@ from aep_parser.enums import (
     TrackMatteType,
 )
 
-from ...descriptors import ChunkField
 from ...enums.mappings import map_frame_blending_type
+from ...kaitai.descriptors import ChunkField
 from .layer import Layer
 
 if typing.TYPE_CHECKING:

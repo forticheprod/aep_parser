@@ -5,7 +5,7 @@ from typing import Any, List, cast
 
 from aep_parser.enums import Label
 
-from ...descriptors import ChunkField, ChunkInstanceField
+from ...kaitai.descriptors import ChunkField, ChunkInstanceField
 from ...reverses import reverse_ratio
 from ..properties.marker import MarkerValue
 from ..properties.property import Property

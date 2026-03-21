@@ -259,6 +259,11 @@ def recursive_find(
 CHUNK_HEADER_SIZE = 8
 
 
+# Extra bytes added to the current len_data when allocating a write buffer,
+# so that a body whose size grows slightly still fits without reallocation.
+_WRITE_BUFFER_HEADROOM = 4096
+
+
 def compute_body_size(body: Any) -> int:
     """Return the serialized byte size of a Kaitai Chunk body.
 
@@ -269,7 +274,7 @@ def compute_body_size(body: Any) -> int:
     """
     saved_io = body._io
     current = getattr(body._parent, "len_data", 0)
-    buf = BytesIO(bytearray(current + 4096))
+    buf = BytesIO(bytearray(current + _WRITE_BUFFER_HEADROOM))
     body._write__seq(KaitaiStream(buf))
     size = buf.tell()
     body._io = saved_io
@@ -342,22 +347,30 @@ def create_chunk(
     return chunk
 
 
-def create_flag_chunk(aep: Any, chunk_type: str, body_cls_name: str) -> Any:
-    """Create a new 1-byte flag chunk ready for insertion into root chunks.
+def create_flag_chunk(
+    container: Any,
+    chunk_type: str,
+    body_cls_name: str,
+    raw_data: bytes,
+    body_attr: str = "_unnamed0",
+) -> Any:
+    """Create a new flag chunk ready for insertion into a Chunks container.
 
-    The body type is expected to have a single anonymous ``contents`` field.
+    Args:
+        container: A Kaitai Chunks object (has ``.chunks``).
+        chunk_type: 4-character chunk type identifier (e.g. ``"lnrb"``).
+        body_cls_name: Name of the Kaitai body class on ``Aep``.
+        raw_data: The raw bytes that represent the body.
+        body_attr: Name of the attribute to set on the body instance.
     """
-    from .aep import Aep as Aep  # type: ignore[attr-defined]
-
-    raw_data = b"\x01"
     body_cls = getattr(Aep, body_cls_name)
     body = body_cls()
-    body._unnamed0 = raw_data
+    setattr(body, body_attr, raw_data)
     body._dirty = False
 
     return create_chunk(
-        parent=aep.data,
-        root=aep,
+        parent=container,
+        root=container._root,
         chunk_type=chunk_type,
         body=body,
         raw_data=raw_data,
@@ -365,19 +378,29 @@ def create_flag_chunk(aep: Any, chunk_type: str, body_cls_name: str) -> Any:
 
 
 def toggle_flag_chunk(
-    aep: Any, chunk_type: str, body_cls_name: str, enable: bool
+    container: Any,
+    chunk_type: str,
+    body_cls_name: str,
+    enable: bool,
+    raw_data: bytes = b"\x01",
+    body_attr: str = "_unnamed0",
 ) -> None:
-    """Add or remove a flag chunk from the root chunk list."""
-    chunks = aep.data.chunks
+    """Add or remove a flag chunk from a Chunks container."""
+    chunks = container.chunks
     existing = [i for i, c in enumerate(chunks) if c.chunk_type == chunk_type]
 
     if enable and not existing:
-        chunk = create_flag_chunk(aep, chunk_type, body_cls_name)
+        chunk = create_flag_chunk(
+            container, chunk_type, body_cls_name, raw_data, body_attr
+        )
         chunks.append(chunk)
-        delta = CHUNK_HEADER_SIZE + chunk.len_data + len(chunk.padding)
+        _update_len_chain(
+            container._parent,
+            CHUNK_HEADER_SIZE + chunk.len_data + len(chunk.padding),
+        )
     elif not enable and existing:
         delta = 0
         for i in reversed(existing):
             c = chunks.pop(i)
             delta -= CHUNK_HEADER_SIZE + c.len_data + len(c.padding)
-    _update_len_chain(aep, delta)
+        _update_len_chain(container._parent, delta)

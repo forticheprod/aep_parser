@@ -4,7 +4,7 @@ import re
 import typing
 from typing import Any
 
-from ..descriptors import ChunkField, ChunkInstanceField
+from ..kaitai.descriptors import ChunkField, ChunkInstanceField
 
 if typing.TYPE_CHECKING:
     from ..kaitai.aep import Aep  # type: ignore[attr-defined]

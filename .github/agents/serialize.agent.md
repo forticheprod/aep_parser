@@ -84,7 +84,7 @@ For each model class to convert:
 1. Remove `@dataclass` decorator
 2. Replace `from dataclasses import dataclass` with descriptor imports:
    ```python
-   from ...descriptors import ChunkField, ChunkInstanceField
+   from ...kaitai.descriptors import ChunkField, ChunkInstanceField
    from ...validators import validate_number, validate_one_of, validate_sequence
    ```
 3. Convert each eligible field to a class-level descriptoruv

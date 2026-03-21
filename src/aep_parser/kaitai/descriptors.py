@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Generic, TypeVar, overload
 
-from .kaitai.utils import propagate_check
+from .utils import propagate_check
 
 T = TypeVar("T")
 

@@ -9,7 +9,6 @@ from typing import Any, cast
 
 from kaitaistruct import KaitaiStream
 
-from ..descriptors import ChunkField, ChunkInstanceField
 from ..enums import (
     BitsPerChannel,
     ColorManagementSystem,
@@ -20,6 +19,7 @@ from ..enums import (
     LutInterpolationMethod,
     TimeDisplayType,
 )
+from ..kaitai.descriptors import ChunkField, ChunkInstanceField
 from ..kaitai.utils import (
     ChunkNotFoundError,
     filter_by_type,
@@ -246,7 +246,7 @@ class Project:
 
     @linear_blending.setter
     def linear_blending(self, value: bool) -> None:
-        toggle_flag_chunk(self._aep, "lnrb", "LnrbBody", value)
+        toggle_flag_chunk(self._aep.data, "lnrb", "LnrbBody", value)
 
     @property
     def linearize_working_space(self) -> bool:
@@ -256,7 +256,7 @@ class Project:
 
     @linearize_working_space.setter
     def linearize_working_space(self, value: bool) -> None:
-        toggle_flag_chunk(self._aep, "lnrp", "LnrpBody", value)
+        toggle_flag_chunk(self._aep.data, "lnrp", "LnrpBody", value)
 
     @property
     def expression_engine(self) -> str:
