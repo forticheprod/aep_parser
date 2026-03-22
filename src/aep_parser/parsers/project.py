@@ -11,6 +11,7 @@ from ..kaitai import Aep
 from ..kaitai.utils import (
     ChunkNotFoundError,
     filter_by_list_type,
+    filter_by_type,
     find_by_list_type,
     find_by_type,
     str_contents,
@@ -57,22 +58,50 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
     """
     root_chunks: list[Aep.Chunk] = aep.data.chunks
 
-    root_folder_chunk: Aep.Chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")
-    head_chunk: Aep.Chunk = find_by_type(chunks=root_chunks, chunk_type="head")
-    nnhd_chunk: Aep.Chunk = find_by_type(chunks=root_chunks, chunk_type="nnhd")
-    acer_chunk: Aep.Chunk = find_by_type(chunks=root_chunks, chunk_type="acer")
-    adfr_chunk: Aep.Chunk = find_by_type(chunks=root_chunks, chunk_type="adfr")
-    dwga_chunk: Aep.Chunk = find_by_type(chunks=root_chunks, chunk_type="dwga")
+    root_folder_chunk: Aep.Chunk = find_by_list_type(
+        chunks=root_chunks, list_type="Fold"
+    )
+    head_chunk: Aep.HeadBody = find_by_type(chunks=root_chunks, chunk_type="head").data
+    nnhd_chunk: Aep.NnhdBody = find_by_type(chunks=root_chunks, chunk_type="nnhd").data
+    acer_chunk: Aep.AcerBody = find_by_type(chunks=root_chunks, chunk_type="acer").data
+    adfr_chunk: Aep.AdfrBody = find_by_type(chunks=root_chunks, chunk_type="adfr").data
+    dwga_chunk: Aep.DwgaBody = find_by_type(chunks=root_chunks, chunk_type="dwga").data
     gpug_chunk: Aep.Chunk = find_by_list_type(chunks=root_chunks, list_type="gpuG")
-    utf8_chunk: Aep.Chunk = find_by_type(chunks=gpug_chunk.data.chunks, chunk_type="Utf8")
+    gpug_utf8: Aep.Utf8Body = find_by_type(
+        chunks=gpug_chunk.data.chunks, chunk_type="Utf8"
+    ).data
+
+    # Expression engine: LIST:ExEn > Utf8
+    exen_utf8: Aep.Utf8Body | None = None
+    with contextlib.suppress(ChunkNotFoundError):
+        exen_chunk = find_by_list_type(chunks=root_chunks, list_type="ExEn")
+        exen_utf8 = find_by_type(chunks=exen_chunk.data.chunks, chunk_type="Utf8").data
+
+    # CMS settings JSON and baseColorProfile Utf8 chunks
+    cms_utf8: Aep.Utf8Body | None = None
+    ws_utf8: Aep.Utf8Body | None = None
+    dcs_utf8: Aep.Utf8Body | None = None
+    for c in filter_by_type(chunks=root_chunks, chunk_type="Utf8"):
+        content = str_contents(c)
+        if cms_utf8 is None and "lutInterpolationMethod" in content:
+            cms_utf8 = c.data
+        if "baseColorProfile" in content:
+            if ws_utf8 is None:
+                ws_utf8 = c.data
+            elif dcs_utf8 is None:
+                dcs_utf8 = c.data
 
     project = Project(
-        _nnhd=nnhd_chunk.data,
-        _head=head_chunk.data,
-        _acer=acer_chunk.data,
-        _adfr=adfr_chunk.data,
-        _dwga=dwga_chunk.data,
-        _utf8=utf8_chunk.data,
+        _nnhd=nnhd_chunk,
+        _head=head_chunk,
+        _acer=acer_chunk,
+        _adfr=adfr_chunk,
+        _dwga=dwga_chunk,
+        _gpug_utf8=gpug_utf8,
+        _exen_utf8=exen_utf8,
+        _cms_utf8=cms_utf8,
+        _ws_utf8=ws_utf8,
+        _dcs_utf8=dcs_utf8,
         _aep=aep,
         file=file_path,
         items={},

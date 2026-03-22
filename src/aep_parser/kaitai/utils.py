@@ -4,7 +4,7 @@ import typing
 from io import BytesIO
 from typing import Any
 
-from kaitaistruct import KaitaiStream
+from kaitaistruct import KaitaiStream, ReadWriteKaitaiStruct
 
 from .aep_optimized import Aep
 
@@ -255,152 +255,106 @@ def recursive_find(
 # Serialization helpers
 # ---------------------------------------------------------------------------
 
-# Each chunk starts with a 4-byte type identifier and a 4-byte length field.
+# 4-byte chunk_type + 4-byte len_data.
 CHUNK_HEADER_SIZE = 8
-
 
 # Extra bytes added to the current len_data when allocating a write buffer,
 # so that a body whose size grows slightly still fits without reallocation.
-_WRITE_BUFFER_HEADROOM = 4096
-
-
-def compute_body_size(body: Any) -> int:
-    """Return the serialized byte size of a Kaitai Chunk body.
-
-    The body must not be dirty - call `body._check()` first. `KaitaiStream`
-    requires a pre-allocated buffer so we size it from the chunk's `len_data`
-    with arbitrary headroom for growth, then write the body to it and check
-    the final position for size.
-    """
-    saved_io = body._io
-    current = getattr(body._parent, "len_data", 0)
-    buf = BytesIO(bytearray(current + _WRITE_BUFFER_HEADROOM))
-    body._write__seq(KaitaiStream(buf))
-    size = buf.tell()
-    body._io = saved_io
-    return size
-
-
-def _update_len_chain(start: Any, delta: int) -> None:
-    """Walk up from *start*, adding *delta* to each ``len_data`` and calling ``_check()``."""
-    obj: Any = start
-    while obj is not None:
-        if hasattr(obj, "len_data"):
-            obj.len_data += delta
-            if hasattr(obj, "_check"):
-                obj._check()
-        obj = getattr(obj, "_parent", None)
-
-
-def propagate_check(body: Any) -> None:
-    """Call `_check()` bottom-up from `body` to root, updating `len_data`.
-
-    1. `body._check()` clears the body's `_dirty` flag.
-    2. We compute the body's new serialized size.
-    3. If the size changed, the delta is added to every ancestor `len_data`
-       (Chunk and root Aep) and `_check()` is called on every object up to the
-       root so no `ConsistencyNotCheckedError` is raised during `save()`.
-    """
-    body._check()
-
-    chunk = getattr(body, "_parent", None)
-    if chunk is None:
-        return
-
-    delta = compute_body_size(body) - chunk.len_data
-    if not delta:
-        return
-
-    _update_len_chain(chunk, delta)
-
-
-def create_chunk(
-    parent: Any,
-    root: Any,
-    chunk_type: str,
-    body: Any,
-    raw_data: bytes,
-) -> Any:
-    """Create a new Kaitai Chunk wired into the parent/root tree.
-
-    Args:
-        parent: The Chunks container that will hold this chunk.
-        root: The root Aep object.
-        chunk_type: 4-character chunk type identifier (e.g. ``"lnrb"``).
-        body: A pre-built Kaitai body instance.
-        raw_data: The raw bytes that represent the body.
-    """
-    chunk = Aep.Chunk()
-    chunk.chunk_type = chunk_type
-    chunk.len_data = len(raw_data)
-    chunk._raw_data = raw_data
-    chunk.padding = b"\x00" if len(raw_data) % 2 else b""
-    chunk.data = body
-
-    body._parent = chunk
-    body._root = root
-    chunk._parent = parent
-    chunk._root = root
-
-    body._check()
-    chunk._check()
-    return chunk
-
-
-def create_flag_chunk(
-    container: Any,
-    chunk_type: str,
-    body_cls_name: str,
-    raw_data: bytes,
-    body_attr: str = "_unnamed0",
-) -> Any:
-    """Create a new flag chunk ready for insertion into a Chunks container.
-
-    Args:
-        container: A Kaitai Chunks object (has ``.chunks``).
-        chunk_type: 4-character chunk type identifier (e.g. ``"lnrb"``).
-        body_cls_name: Name of the Kaitai body class on ``Aep``.
-        raw_data: The raw bytes that represent the body.
-        body_attr: Name of the attribute to set on the body instance.
-    """
-    body_cls = getattr(Aep, body_cls_name)
-    body = body_cls()
-    setattr(body, body_attr, raw_data)
-    body._dirty = False
-
-    return create_chunk(
-        parent=container,
-        root=container._root,
-        chunk_type=chunk_type,
-        body=body,
-        raw_data=raw_data,
-    )
+WRITE_BUFFER_HEADROOM = 8096
 
 
 def toggle_flag_chunk(
-    container: Any,
+    container: ReadWriteKaitaiStruct,
     chunk_type: str,
     body_cls_name: str,
     enable: bool,
-    raw_data: bytes = b"\x01",
-    body_attr: str = "_unnamed0",
 ) -> None:
     """Add or remove a flag chunk from a Chunks container."""
     chunks = container.chunks
     existing = [i for i, c in enumerate(chunks) if c.chunk_type == chunk_type]
 
     if enable and not existing:
-        chunk = create_flag_chunk(
-            container, chunk_type, body_cls_name, raw_data, body_attr
-        )
-        chunks.append(chunk)
-        _update_len_chain(
-            container._parent,
-            CHUNK_HEADER_SIZE + chunk.len_data + len(chunk.padding),
-        )
+        body_cls = getattr(Aep, body_cls_name)
+        body = body_cls()
+        body._unnamed0 = b"\x01"
+        create_chunk(container, chunk_type, body)
     elif not enable and existing:
         delta = 0
         for i in reversed(existing):
             c = chunks.pop(i)
             delta -= CHUNK_HEADER_SIZE + c.len_data + len(c.padding)
         _update_len_chain(container._parent, delta)
+
+
+def create_chunk(
+    container: ReadWriteKaitaiStruct, chunk_type: str, body: ReadWriteKaitaiStruct
+) -> Aep.Chunk:
+    """Create a new Kaitai Chunk, insert it into *container* and propagate.
+
+    Args:
+        container: The Chunks container that will hold this chunk.
+        chunk_type: 4-character chunk type identifier (e.g. ``"lnrb"``).
+        body: A pre-built Kaitai body instance.
+    """
+    root = container._root
+    chunk = Aep.Chunk(_parent=container, _root=root)
+    chunk.chunk_type = chunk_type
+    chunk.len_data = 0
+    chunk._raw_data = b""
+    chunk.padding = b""
+    chunk.data = body
+
+    body._parent = chunk
+    body._root = root
+
+    container.chunks.append(chunk)
+    propagate_check(body)
+    _update_len_chain(container._parent, CHUNK_HEADER_SIZE)
+    return chunk
+
+
+def propagate_check(body: ReadWriteKaitaiStruct) -> None:
+    """Call `_check()` bottom-up from *body* to root, updating ``len_data``.
+
+    1. ``body._check()`` clears the body's ``_dirty`` flag.
+    2. The body is serialized to measure its new size.
+    3. ``_update_len_chain`` propagates any delta from the chunk upward,
+       fixing padding and ``len_data`` on every ancestor.  When the size
+       is unchanged the chunk is still validated and then the walk stops.
+    """
+    body._check()
+    chunk = body._parent
+
+    saved_io = body._io
+    if isinstance(body, Aep.Utf8Body):
+        buf_size = len(body.contents.encode("UTF-8"))
+    else:
+        buf_size = getattr(chunk, "len_data", 0) + WRITE_BUFFER_HEADROOM
+    buf = BytesIO(bytearray(buf_size))
+    body._write__seq(KaitaiStream(buf))
+    new_size = buf.tell()
+    body._io = saved_io
+
+    _update_len_chain(chunk, new_size - chunk.len_data)
+
+
+def _update_len_chain(start: Any, delta: int) -> None:
+    """Walk up from *start*, adding *delta* to each ``len_data``.
+
+    At each `Aep.Chunk`, padding is resynchronised and any padding-size
+    change is folded into *delta* so that ancestors see the correct total.
+    Stops early when *delta* reaches 0.
+    """
+    obj: Any = start
+    while obj is not None:
+        if hasattr(obj, "len_data"):
+            obj.len_data += delta
+            if isinstance(obj, Aep.Chunk):
+                old_pad = len(getattr(obj, "padding", b""))
+                new_pad: int = obj.len_data % 2
+                obj.padding = b"\x00" if new_pad else b""
+                delta += new_pad - old_pad
+            obj._check()
+            if not delta:
+                break
+        obj = getattr(obj, "_parent", None)
