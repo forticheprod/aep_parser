@@ -58,9 +58,9 @@ def _parse_output_module_settings(
         Dict with ExtendScript keys like "Video Output", "Audio Bit Depth",
         "Crop", "Channels", etc.
     """
-    audio_bit_depth = AudioBitDepth.from_binary(roou_chunk.data.audio_bit_depth)
-    audio_channels = AudioChannels.from_binary(roou_chunk.data.audio_channels)
-    color = OutputColorMode(roou_chunk.data.color_premultiplied)
+    audio_bit_depth = AudioBitDepth.from_binary(roou_chunk.body.audio_bit_depth)
+    audio_channels = AudioChannels.from_binary(roou_chunk.body.audio_channels)
+    color = OutputColorMode(roou_chunk.body.color_premultiplied)
 
     # Extract subfolder from file_name_template when it contains path
     # separators.  AE stores the subfolder prepended to the filename
@@ -78,7 +78,7 @@ def _parse_output_module_settings(
         "Audio Bit Depth": audio_bit_depth,
         "Audio Channels": audio_channels,
         "Audio Sample Rate": AudioSampleRate.from_binary(
-            int(roou_chunk.data.audio_sample_rate)
+            int(roou_chunk.body.audio_sample_rate)
         ),
         "Channels": OutputChannels(om_ldat_data.channels),
         "Color": color,
@@ -90,13 +90,13 @@ def _parse_output_module_settings(
         "Crop Right": om_ldat_data.crop_right,
         "Crop Top": om_ldat_data.crop_top,
         "Crop": om_ldat_data.crop,
-        "Depth": OutputColorDepth(roou_chunk.data.depth),
-        "Format": OutputFormat.from_format_id(roou_chunk.data.format_id),
+        "Depth": OutputColorDepth(roou_chunk.body.depth),
+        "Format": OutputFormat.from_format_id(roou_chunk.body.format_id),
         "Include Project Link": bool(om_ldat_data.include_project_link),
         "Include Source XMP Metadata": include_source_xmp,
         "Lock Aspect Ratio": bool(om_ldat_data.lock_aspect_ratio),
         "Output Audio": map_output_audio(
-            roou_chunk.data.output_audio, om_ldat_data.output_audio
+            roou_chunk.body.output_audio, om_ldat_data.output_audio
         ),
         "Output Color Space": output_color_space or "",
         "Output File Info": {
@@ -109,12 +109,12 @@ def _parse_output_module_settings(
         "Post-Render Action": PostRenderActionSetting(om_ldat_data.post_render_action),
         "Preserve RGB": bool(om_ldat_data.preserve_rgb),
         "Resize Quality": ResizeQuality(om_ldat_data.resize_quality),
-        "Resize to": [roou_chunk.data.width, roou_chunk.data.height],
+        "Resize to": [roou_chunk.body.width, roou_chunk.body.height],
         "Resize": bool(om_ldat_data.resize),
-        "Starting #": roou_chunk.data.starting_number,
+        "Starting #": roou_chunk.body.starting_number,
         "Use Comp Frame Number": bool(om_ldat_data.use_comp_frame_number),
         "Use Region of Interest": bool(om_ldat_data.use_region_of_interest),
-        "Video Output": roou_chunk.data.video_output,
+        "Video Output": roou_chunk.body.video_output,
     }
 
 
@@ -196,8 +196,8 @@ def parse_output_module(
             CompItem, project.items[post_render_target_comp_id]
         )
 
-    video_codec = roou_chunk.data.video_codec.strip("\x00") or None
-    frame_rate = roou_chunk.data.frame_rate
+    video_codec = roou_chunk.body.video_codec.strip("\x00") or None
+    frame_rate = roou_chunk.body.frame_rate
     output_color_space = map_output_color_space(
         om_ldat_data.output_profile_id,
         om_ldat_data.output_color_space_working,

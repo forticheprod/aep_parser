@@ -23,7 +23,6 @@ from ..enums import (
 from ..kaitai import Aep
 from ..kaitai.utils import (
     find_by_list_type,
-    find_by_type,
     split_on_type,
 )
 from ..models.items.composition import CompItem
@@ -31,7 +30,6 @@ from ..models.renderqueue.render_queue import RenderQueue
 from ..models.renderqueue.render_queue_item import RenderQueueItem
 from ..models.settings import RenderSettings
 from .output_module import parse_output_module
-from .utils import parse_ldat_items
 
 if TYPE_CHECKING:
     from ..models.project import Project
@@ -49,7 +47,7 @@ def parse_render_queue(root_chunks: list[Aep.Chunk], project: Project) -> Render
             references in render queue items.
     """
     lrdr_chunk = find_by_list_type(chunks=root_chunks, list_type="LRdr")
-    lrdr_child_chunks = lrdr_chunk.data.chunks
+    lrdr_child_chunks = lrdr_chunk.body.chunks
     items = parse_render_queue_items(lrdr_child_chunks, project)
     return RenderQueue(items=items)
 
@@ -77,15 +75,13 @@ def parse_render_queue_items(
     # This ldat contains N × item_size bytes, one block per render queue item
     list_settings_chunk = find_by_list_type(chunks=lrdr_child_chunks, list_type="list")
 
-    settings_lhd3 = find_by_type(
-        chunks=list_settings_chunk.data.chunks, chunk_type="lhd3"
-    )
-    num_items = settings_lhd3.data.count
+    settings_lhd3 = list_settings_chunk.body.lhd3
+    num_items = settings_lhd3.body.count
     if num_items == 0:
         return []
 
-    render_settings_chunks: list[Aep.RenderSettingsLdatBody] = parse_ldat_items(
-        list_settings_chunk
+    render_settings_chunks: list[Aep.RenderSettingsLdatBody] = (
+        list_settings_chunk.body.ldat.body.items
     )
 
     # LItm chunk is probably the RQItemCollection.
@@ -98,11 +94,11 @@ def parse_render_queue_items(
     comment = ""
     list_chunk = None
 
-    for chunk in litm_chunk.data.chunks:
+    for chunk in litm_chunk.body.chunks:
         if chunk.chunk_type == "RCom":
-            comment = chunk.data.chunk.data.contents
+            comment = chunk.body.chunk.body.contents
         elif chunk.chunk_type == "LIST":
-            list_type = chunk.data.list_type
+            list_type = chunk.body.list_type
             if list_type == "list":
                 list_chunk = chunk
             elif list_type == "LOm " and list_chunk is not None:
@@ -140,7 +136,7 @@ def parse_render_queue_item(
         project: The Project object being constructed, used to link comp
             references in render queue items.
     """
-    om_ldat_items: list[Aep.OutputModuleSettingsLdatBody] = parse_ldat_items(list_chunk)
+    om_ldat_items: list[Aep.OutputModuleSettingsLdatBody] = list_chunk.body.ldat.body.items
 
     # comp_id is stored in the render settings ldat
     comp_id = ldat_body.comp_id
@@ -160,7 +156,7 @@ def parse_render_queue_item(
     if ldat_body.start_time:
         start_time_val = AEP_EPOCH + timedelta(seconds=ldat_body.start_time)
 
-    lom_child_chunks = lom_chunk.data.chunks
+    lom_child_chunks = lom_chunk.body.chunks
 
     # Group chunks by Roou - each Roou starts a new output module
     om_groups = split_on_type(lom_child_chunks, "Roou")

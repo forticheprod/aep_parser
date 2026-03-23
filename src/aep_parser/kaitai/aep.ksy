@@ -6,13 +6,13 @@ meta:
 seq:
   - id: header
     contents: RIFX
-  - id: len_data
+  - id: len_body
     type: u4
   - id: format
     contents: "Egg!"
-  - id: data
+  - id: body
     type: chunks
-    size: len_data - format._sizeof
+    size: len_body - format._sizeof
   - id: xmp_packet
     type: str
     encoding: UTF-8
@@ -30,12 +30,12 @@ types:
         size: 4
         type: str
         encoding: ASCII
-      - id: len_data
+      - id: len_body
         type: u4
-      - id: data
-        size: 'len_data > _io.size - _io.pos ? _io.size - _io.pos : len_data'
+      - id: body
+        size: len_body
         type:
-          switch-on: 'chunk_type == "opti" and len_data == 0 ? "" : chunk_type'  # 3D Model Layers opti body is empty
+          switch-on: 'chunk_type == "opti" and len_body == 0 ? "" : chunk_type'  # 3D Model Layers opti body is empty
           cases:
             '"acer"': acer_body # Compensate for Scene-Referred Profiles setting
             '"adfr"': adfr_body # Audio sample rate settings
@@ -58,7 +58,7 @@ types:
             '"foac"': foac_body # Viewer outer tab active flag
             '"head"': head_body # Contains AE version and file revision
             '"idta"': idta_body # Item data
-            '"ldat"': ldat_body # Data of a keyframe
+            '"ldat"': ldat_body(_parent.as<list_body>.chunks[0].body.as<lhd3_body>.item_type, _parent.as<list_body>.chunks[0].body.as<lhd3_body>.item_size, _parent.as<list_body>.chunks[0].body.as<lhd3_body>.count) # Data of a keyframe
             '"ldta"': ldta_body # Layer data
             '"lhd3"': lhd3_body # Number of keyframes and keyframe size for a property
             '"lnrb"': lnrb_body # Linear blending flag
@@ -92,9 +92,9 @@ types:
             '"tdsn"': child_utf8_body # User-defined name of a property. Contains a single utf-8 chunk but no list_type
             '"Utf8"': utf8_body # Contains text
             _: ascii_body
-      - id: padding
+      - id: pad_byte
         size: 1
-        if: (len_data % 2) != 0
+        if: (len_body % 2) != 0
   ewot_body:
     doc: |
       Effect workspace outline entries inside LIST Ewst.
@@ -209,7 +209,7 @@ types:
       - id: value
         type: f8
         repeat: expr
-        repeat-expr: '_parent.len_data / 8'
+        repeat-expr: '_parent.len_body / 8'
   cdrp_body:
     doc: |
       Composition drop frame setting.
@@ -589,9 +589,45 @@ types:
         enum: label
       - size-eos: true
   ldat_body:
+    doc: |
+      Keyframe / shape / settings data items. Typed via params from sibling lhd3.
+      Automatically promotes three_d to three_d_spatial when the parent tdbs
+      context indicates the property is spatial (tdb4.is_spatial).
+    params:
+      - id: item_type
+        type: u1
+        enum: ldat_item_type
+      - id: item_size
+        type: u2
+      - id: count
+        type: u2
+    instances:
+      is_spatial:
+        value: >-
+          _parent.as<chunk>._parent.as<list_body>._parent.as<chunk>._parent.as<list_body>.list_type == "tdbs"
+          and _parent.as<chunk>._parent.as<list_body>._parent.as<chunk>._parent.as<list_body>.chunks[2].body.as<tdb4_body>.is_spatial
+        doc: Whether the parent property is spatial (from tdb4 in the grandparent LIST:tdbs).
+      effective_item_type:
+        value: >-
+          item_type == ldat_item_type::three_d and is_spatial
+          ? ldat_item_type::three_d_spatial
+          : item_type
+        doc: |
+          Promotes three_d to three_d_spatial for spatial properties.
+          Both have item_size=128 but different binary layouts (kf_multi_dimensional vs kf_position).
     seq:
       - id: items
-        size-eos: true
+        type:
+          switch-on: effective_item_type
+          cases:
+            'ldat_item_type::lrdr': render_settings_ldat_body
+            'ldat_item_type::litm': output_module_settings_ldat_body
+            'ldat_item_type::shape': shape_point
+            'ldat_item_type::gide': kf_unknown_data
+            _: ldat_item(effective_item_type)
+        size: item_size
+        repeat: expr
+        repeat-expr: count
   roou_body:
     doc: Output module settings (154 bytes)
     seq:
@@ -1162,8 +1198,6 @@ types:
           switch-on: item_type
           cases:
             'ldat_item_type::unknown': kf_unknown_data
-            'ldat_item_type::lrdr': render_settings_ldat_body
-            'ldat_item_type::litm': output_module_settings_ldat_body
             'ldat_item_type::gide': kf_unknown_data
             'ldat_item_type::color': kf_color
             'ldat_item_type::three_d_spatial': kf_position(3)
@@ -1457,6 +1491,29 @@ types:
       - id: binary_data
         size-eos: true
         if: list_type == "btdk"
+    instances:
+      # LIST:list — keyframe / shape data (always lhd3 first, ldat second when present)
+      lhd3:
+        value: chunks[0]
+        if: 'list_type == "list"'
+        doc: Header chunk (count + item size). Always the first child.
+      ldat:
+        value: chunks[1]
+        if: 'list_type == "list" and chunks.size >= 2'
+        doc: Data chunk (keyframe / shape binary items). Absent when property has no keyframes.
+      # LIST:tdbs — leaf property container (always tdsb, tdsn, tdb4 in that order)
+      tdsb:
+        value: chunks[0]
+        if: 'list_type == "tdbs"'
+        doc: Property flags chunk. Always the first child.
+      tdsn:
+        value: chunks[1]
+        if: 'list_type == "tdbs"'
+        doc: Property name chunk (tdsn wraps a Utf8 child). Always the second child.
+      tdb4:
+        value: chunks[2]
+        if: 'list_type == "tdbs"'
+        doc: Property metadata chunk. Always the third child.
   mkif_body:
     doc: |
       Mask info. Contains inverted flag, locked flag, mask mode,

@@ -60,8 +60,8 @@ JSX scripts run in After Effects via VS Code debugger - see `.vscode/launch.json
 3. Add parser in `parsers/`:
    ```python
    def parse_thing(chunk: Aep.Chunk, context: ...) -> ThingModel:
-       data_chunk = find_by_type(chunks=chunk.data.chunks, chunk_type="xxxx")
-       return ThingModel(field=data_chunk.data.field)
+       data_chunk = find_by_type(chunks=chunk.body.chunks, chunk_type="xxxx")
+       return ThingModel(field=data_chunk.body.field)
    ```
 4. Validate parsed values against ExtendScript using `aep-validate` (see [CLI Tools](#cli-tools))
 5. Add test case in `tests/test_models_*.py` using sample .aep files
@@ -90,11 +90,27 @@ layer_chunks = filter_by_list_type(chunks=comp_chunks, list_type="Layr")
 
 For debugging, `chunk_tree(chunks, depth)` prints the chunk hierarchy and `recursive_find(chunks, chunk_type, list_type)` searches the entire tree recursively.
 
-### Chunk Data Access
-Chunk attributes live on `chunk.data`, not on the chunk itself. Always use explicit `chunk.data.X` access:
+### Typed LIST Instances
+Some LIST types have children at **fixed positions**. For these, `list_body` in `aep.ksy` defines Kaitai instances that provide direct access by name instead of `find_by_type`:
+
 ```python
-chunk.data.list_type     # the list_type of a LIST chunk
-cdta_chunk.data.time_scale  # a typed body field
+# LIST:list — keyframe/shape data
+list_chunk.body.lhd3          # chunks[0] — header (count + item size)
+list_chunk.body.ldat          # chunks[1] — data items (None if no keyframes)
+
+# LIST:tdbs — leaf property container
+tdbs_chunk.body.tdsb          # chunks[0] — property flags
+tdbs_chunk.body.tdsn          # chunks[1] — property name
+tdbs_chunk.body.tdb4          # chunks[2] — property metadata
+```
+
+Each instance has an `if` guard on `list_type`, so accessing e.g. `.lhd3` on a non-`list` LIST returns `None`. Use `find_by_type` when the LIST type is unknown or when a function handles multiple LIST types (e.g. `parse_layer` handles both `Layr` and `SecL`).
+
+### Chunk Data Access
+Chunk attributes live on `chunk.body`, not on the chunk itself. Always use explicit `chunk.body.X` access:
+```python
+chunk.body.list_type     # the list_type of a LIST chunk
+cdta_chunk.body.time_scale  # a typed body field
 ```
 
 ### Value Mapping Pattern

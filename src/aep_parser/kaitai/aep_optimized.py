@@ -49,7 +49,7 @@ def _extract_on_comparison(test: ast.expr) -> str | None:
 
 
 def _extract_class_name(stmts: list[ast.stmt]) -> str | None:
-    """Find `self.data = Aep.ClassName(...)` in a list of statements.
+    """Find `self.body = Aep.ClassName(...)` in a list of statements.
 
     Returns the *ClassName* portion, or `None` if no matching
     assignment is found.
@@ -60,7 +60,7 @@ def _extract_class_name(stmts: list[ast.stmt]) -> str | None:
         target = stmt.targets[0]
         if not (
             isinstance(target, ast.Attribute)
-            and target.attr == "data"
+            and target.attr == "body"
             and isinstance(target.value, ast.Name)
             and target.value.id == "self"
         ):
@@ -177,29 +177,33 @@ _CHUNK_TYPE_TO_CLASS, _FALLBACK_CLASS = _build_chunk_type_mapping()
 def _optimized_chunk_read(self: Aep.Chunk) -> None:
     """Optimized _read method for Chunk using dict lookup instead of if/elif."""
     self.chunk_type = (self._io.read_bytes(4)).decode("ascii")
-    self.len_data = self._io.read_u4be()
-    self._raw_data = self._io.read_bytes(
-        (self._io.size() - self._io.pos())
-        if self.len_data > (self._io.size() - self._io.pos())
-        else self.len_data
-    )
-    _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+    self.len_body = self._io.read_u4be()
+    self._raw_body = self._io.read_bytes(self.len_body)
+    _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
 
     # Use dict lookup instead of if/elif chain.
     # Skip typed parsing for empty opti chunks (e.g. 3D-model footage).
     # Mirrors the opti guard in aep.ksy.
-    if self.len_data == 0 and self.chunk_type == "opti":
+    if self.len_body == 0 and self.chunk_type == "opti":
         chunk_class = _FALLBACK_CLASS
+        self.body = chunk_class(_io__raw_body, self, self._root)
+    elif self.chunk_type == "ldat":
+        # ldat needs params from sibling lhd3 (first chunk in parent LIST:list)
+        lhd3_body = self._parent.chunks[0].body
+        self.body = Aep.LdatBody(
+            lhd3_body.item_type, lhd3_body.item_size, lhd3_body.count,
+            _io__raw_body, self, self._root,
+        )
     else:
         try:
             chunk_class = _CHUNK_TYPE_TO_CLASS[self.chunk_type]
         except KeyError:
             chunk_class = _FALLBACK_CLASS
-    self.data = chunk_class(_io__raw_data, self, self._root)
-    self.data._read()
+        self.body = chunk_class(_io__raw_body, self, self._root)
+    self.body._read()
 
-    if (self.len_data % 2) != 0:
-        self.padding = self._io.read_bytes(1)
+    if (self.len_body % 2) != 0:
+        self.pad_byte = self._io.read_bytes(1)
 
     self._dirty = False
 

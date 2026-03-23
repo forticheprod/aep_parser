@@ -248,7 +248,7 @@ class Project:
 
     @property
     def _root_chunks(self) -> list[Aep.Chunk]:
-        chunks: list[Aep.Chunk] = self._aep.data.chunks
+        chunks: list[Aep.Chunk] = self._aep.body.chunks
         return chunks
 
     @property
@@ -259,7 +259,7 @@ class Project:
 
     @linear_blending.setter
     def linear_blending(self, value: bool) -> None:
-        toggle_flag_chunk(self._aep.data, "lnrb", "LnrbBody", value)
+        toggle_flag_chunk(self._aep.body, "lnrb", "LnrbBody", value)
 
     @property
     def linearize_working_space(self) -> bool:
@@ -269,7 +269,7 @@ class Project:
 
     @linearize_working_space.setter
     def linearize_working_space(self, value: bool) -> None:
-        toggle_flag_chunk(self._aep.data, "lnrp", "LnrpBody", value)
+        toggle_flag_chunk(self._aep.body, "lnrp", "LnrpBody", value)
 
     @property
     def expression_engine(self) -> str:
@@ -293,11 +293,11 @@ class Project:
             list_body = Aep.ListBody()
             list_body.list_type = "ExEn"
             list_body.chunks = []
-            list_chunk = create_chunk(self._aep.data, "LIST", list_body)
+            list_chunk = create_chunk(self._aep.body, "LIST", list_body)
             utf8_body = Aep.Utf8Body()
             utf8_body.contents = value
-            utf8_child = create_chunk(list_chunk.data, "Utf8", utf8_body)
-            self._exen_utf8 = utf8_child.data
+            utf8_child = create_chunk(list_chunk.body, "Utf8", utf8_body)
+            self._exen_utf8 = utf8_child.body
 
     @property
     def effect_names(self) -> list[str]:
@@ -509,7 +509,7 @@ class Project:
         aep = self._aep
 
         xmp_bytes = aep.xmp_packet.encode("UTF-8")
-        output_size = 8 + aep.len_data + len(xmp_bytes)
+        output_size = 8 + aep.len_body + len(xmp_bytes)
         buf = BytesIO(bytearray(output_size))
 
         with KaitaiStream(buf) as io:
@@ -549,8 +549,8 @@ class Project:
             defaults[key] = value
             utf8_body = Aep.Utf8Body()
             utf8_body.contents = json.dumps(defaults)
-            chunk = create_chunk(self._aep.data, "Utf8", utf8_body)
-            self._cms_utf8 = chunk.data
+            chunk = create_chunk(self._aep.body, "Utf8", utf8_body)
+            self._cms_utf8 = chunk.body
 
 
 # ---------------------------------------------------------------------------
@@ -561,5 +561,5 @@ class Project:
 def _get_effect_names(root_chunks: list[Any]) -> list[str]:
     """Get the list of effect names used in the project."""
     pefl_chunk = find_by_list_type(chunks=root_chunks, list_type="Pefl")
-    pjef_chunks = filter_by_type(chunks=pefl_chunk.data.chunks, chunk_type="pjef")
+    pjef_chunks = filter_by_type(chunks=pefl_chunk.body.chunks, chunk_type="pjef")
     return [str_contents(chunk) for chunk in pjef_chunks]

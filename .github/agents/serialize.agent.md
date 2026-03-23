@@ -27,7 +27,7 @@ Parser extracts primitives and discards chunks:
 ```python
 def parse_thing(chunks):
     cdta = find_by_type(chunks, "cdta")
-    return Thing(width=cdta.data.width, frame_rate=cdta.data.frame_rate)
+    return Thing(width=cdta.body.width, frame_rate=cdta.body.frame_rate)
 ```
 
 ### After (chunk-backed descriptor pattern)
@@ -57,7 +57,7 @@ Parser becomes a thin chunk-locator:
 ```python
 def parse_thing(chunks):
     cdta = find_by_type(chunks, "cdta")
-    return Thing(cdta=cdta.data, ...)
+    return Thing(cdta=cdta.body, ...)
 ```
 
 ## Step-by-Step Procedure
@@ -68,7 +68,7 @@ For each model class to convert:
 - Read the **model** file completely.
 - Read the **parser** function that constructs this model.
 - Read the **Kaitai chunk body** type in `aep.ksy` that provides the data. Pay close attention to `instances:` sections — these are computed properties that cache values. When a `seq:` field is modified that an instance depends on, you must list that instance in `invalidates=[]` so the cached value is cleared.
-- If the parser does NOT currently retain chunk body references, you must **update the parser** to pass `chunk.data` to the model constructor instead of extracting primitives.
+- If the parser does NOT currently retain chunk body references, you must **update the parser** to pass `chunk.body` to the model constructor instead of extracting primitives.
 - Identify which fields come from which chunk body attributes.
 - For fields not in `aep.ksy`, check ExtendScript docs (`C:\Users\aurore.delaunay\git\after-effects-scripting-guide\docs`) to determine if they are read-only or read/write.
 
@@ -106,9 +106,9 @@ The parser must become a "thin chunk-locator" that finds chunks and passes bodie
 1. Instead of extracting primitives, pass chunk bodies directly:
    ```python
    # Before
-   Thing(width=cdta.data.width, frame_rate=cdta.data.frame_rate)
+   Thing(width=cdta.body.width, frame_rate=cdta.body.frame_rate)
    # After
-   Thing(_cdta=cdta.data, ...)
+   Thing(_cdta=cdta.body, ...)
    ```
 2. Remove extraction code for fields now handled by descriptors
 3. Keep extraction of non-chunk fields (tree relationships, read-only computed values)

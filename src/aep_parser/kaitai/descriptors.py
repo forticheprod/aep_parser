@@ -6,7 +6,7 @@ data and `Project.save()` persists the change.
 
 After every `__set__`, `propagate_check` walks the Kaitai
 parent chain bottom-up: it calls `_check()` on each object (clearing
-the `_dirty` flag) and updates every ancestor `Chunk.len_data` when
+the `_dirty` flag) and updates every ancestor `Chunk.len_body` when
 the body's serialized size has changed.
 """
 

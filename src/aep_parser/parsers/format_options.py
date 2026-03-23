@@ -374,24 +374,24 @@ def parse_format_options(
         return None
 
     ropt_chunk = ropt_chunks[0]
-    format_code = ropt_chunk.data.format_code
+    format_code = ropt_chunk.body.format_code
 
     if format_code == "sDPX":
-        return _parse_cineon_format_options(ropt_chunk.data.body)
+        return _parse_cineon_format_options(ropt_chunk.body.body)
     if format_code == "JPEG":
-        return _parse_jpeg_format_options(ropt_chunk.data.body)
+        return _parse_jpeg_format_options(ropt_chunk.body.body)
     if format_code == "TPIC":
-        return _parse_targa_format_options(ropt_chunk.data.body)
+        return _parse_targa_format_options(ropt_chunk.body.body)
     if format_code == "TIF ":
-        return _parse_tiff_format_options(ropt_chunk.data.body)
+        return _parse_tiff_format_options(ropt_chunk.body.body)
     if format_code == "oEXR":
-        return _parse_openexr_format_options(ropt_chunk.data.body)
+        return _parse_openexr_format_options(ropt_chunk.body.body)
     if format_code == "png!":
         # Utf8[0] is a JSON chunk containing HDR10 metadata settings.
         utf8_chunks = filter_by_type(chunks=chunks, chunk_type="Utf8")
         hdr10_json = str_contents(utf8_chunks[0]) if utf8_chunks else "{}"
-        return _parse_png_format_options(ropt_chunk.data.body, hdr10_json)
+        return _parse_png_format_options(ropt_chunk.body.body, hdr10_json)
     if format_code in _XML_FORMAT_CODES:
-        return _parse_xml_format_options(format_code, ropt_chunk.data.body)
+        return _parse_xml_format_options(format_code, ropt_chunk.body.body)
 
     return None

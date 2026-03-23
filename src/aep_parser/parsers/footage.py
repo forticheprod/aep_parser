@@ -51,57 +51,57 @@ def parse_footage(
     """
     pin_chunk = find_by_list_type(chunks=child_chunks, list_type="Pin ")
 
-    pin_child_chunks = pin_chunk.data.chunks
+    pin_child_chunks = pin_chunk.body.chunks
     sspc_chunk = find_by_type(chunks=pin_child_chunks, chunk_type="sspc")
     opti_chunk = find_by_type(chunks=pin_child_chunks, chunk_type="opti")
 
-    asset_type = getattr(opti_chunk.data, "asset_type", "").split("\x00")[0]
-    start_frame = sspc_chunk.data.start_frame
-    end_frame = sspc_chunk.data.end_frame
+    asset_type = getattr(opti_chunk.body, "asset_type", "").split("\x00")[0]
+    start_frame = sspc_chunk.body.start_frame
+    end_frame = sspc_chunk.body.end_frame
 
     source_attrs = {
-        "has_alpha": sspc_chunk.data.has_alpha,
+        "has_alpha": sspc_chunk.body.has_alpha,
         "alpha_mode": map_alpha_mode(
-            sspc_chunk.data.alpha_mode_raw, sspc_chunk.data.has_alpha
+            sspc_chunk.body.alpha_mode_raw, sspc_chunk.body.has_alpha
         ),
-        "invert_alpha": sspc_chunk.data.invert_alpha,
+        "invert_alpha": sspc_chunk.body.invert_alpha,
         "field_separation_type": map_field_separation_type(
-            sspc_chunk.data.field_separation_type_raw,
-            sspc_chunk.data.field_order,
+            sspc_chunk.body.field_separation_type_raw,
+            sspc_chunk.body.field_order,
         ),
-        "high_quality_field_separation": sspc_chunk.data.high_quality_field_separation
+        "high_quality_field_separation": sspc_chunk.body.high_quality_field_separation
         % 2
         != 0,
-        "loop": sspc_chunk.data.loop,
-        "conform_frame_rate": sspc_chunk.data.conform_frame_rate
+        "loop": sspc_chunk.body.loop,
+        "conform_frame_rate": sspc_chunk.body.conform_frame_rate
         or (
-            sspc_chunk.data.frame_rate_base if sspc_chunk.data.frame_padding > 0 else 0
+            sspc_chunk.body.frame_rate_base if sspc_chunk.body.frame_padding > 0 else 0
         ),
-        "is_still": sspc_chunk.data.duration == 0,
+        "is_still": sspc_chunk.body.duration == 0,
         # premul_color: RGB bytes (0-255) converted to floats (0.0-1.0)
         "premul_color": [
-            sspc_chunk.data.premul_color_r / 255.0,
-            sspc_chunk.data.premul_color_g / 255.0,
-            sspc_chunk.data.premul_color_b / 255.0,
+            sspc_chunk.body.premul_color_r / 255.0,
+            sspc_chunk.body.premul_color_g / 255.0,
+            sspc_chunk.body.premul_color_b / 255.0,
         ],
     }
 
     main_source: FileSource | SolidSource | PlaceholderSource
-    if not asset_type and hasattr(opti_chunk.data, "placeholder_name"):
+    if not asset_type and hasattr(opti_chunk.body, "placeholder_name"):
         asset_type = "placeholder"
-        item_name = opti_chunk.data.placeholder_name.split("\x00")[0]
+        item_name = opti_chunk.body.placeholder_name.split("\x00")[0]
         main_source = PlaceholderSource(**source_attrs)
     elif asset_type == "Soli":
         asset_type = "solid"
-        item_name = opti_chunk.data.solid_name.split("\x00")[0]
-        color = [opti_chunk.data.red, opti_chunk.data.green, opti_chunk.data.blue]
+        item_name = opti_chunk.body.solid_name.split("\x00")[0]
+        color = [opti_chunk.body.red, opti_chunk.body.green, opti_chunk.body.blue]
         main_source = SolidSource(color=color, **source_attrs)
     else:
         asset_type = "file"
         file_source = _parse_file_source(pin_child_chunks, source_attrs)
 
         # Extract PSD-specific metadata into file_attributes
-        if getattr(opti_chunk.data, "asset_type", "") == "8BPS":
+        if getattr(opti_chunk.body, "asset_type", "") == "8BPS":
             file_source.file_attributes = _parse_psd_attributes(opti_chunk)
 
         # If start frame or end frame is undefined, derive from StVc filenames.
@@ -119,7 +119,7 @@ def parse_footage(
         # from the Utf8 prefix/extension chunks stored before opti.
         if (
             not file_source.file_names
-            and sspc_chunk.data.frame_padding > 0
+            and sspc_chunk.body.frame_padding > 0
             and start_frame != UNDEFINED_FRAME
         ):
             try:
@@ -134,7 +134,7 @@ def parse_footage(
                 prefix = str_contents(utf8_before_opti[-2])
                 extension = str_contents(utf8_before_opti[-1])
                 if prefix or extension:
-                    first_frame = f"{prefix}{start_frame:0{sspc_chunk.data.frame_padding}d}{extension}"
+                    first_frame = f"{prefix}{start_frame:0{sspc_chunk.body.frame_padding}d}{extension}"
                     file_source.file = str(
                         PurePosixPath(file_source.file) / first_frame
                     )
@@ -145,12 +145,12 @@ def parse_footage(
             is_still=source_attrs["is_still"],
             start_frame=start_frame,
             end_frame=end_frame,
-            frame_padding=sspc_chunk.data.frame_padding,
+            frame_padding=sspc_chunk.body.frame_padding,
             pin_child_chunks=pin_child_chunks,
-            psd_group=getattr(opti_chunk.data, "psd_group_name", ""),
+            psd_group=getattr(opti_chunk.body, "psd_group_name", ""),
         )
 
-        if sspc_chunk.data.footage_missing_at_save:
+        if sspc_chunk.body.footage_missing_at_save:
             file_source.missing_footage_path = file_source.file
 
         main_source = file_source
@@ -161,18 +161,18 @@ def parse_footage(
         label=label,
         name=item_name,
         parent_folder=parent_folder,
-        duration=sspc_chunk.data.duration,
-        frame_duration=int(sspc_chunk.data.frame_duration),
-        frame_rate=sspc_chunk.data.frame_rate,
-        height=sspc_chunk.data.height,
-        pixel_aspect=sspc_chunk.data.pixel_aspect,
-        width=sspc_chunk.data.width,
+        duration=sspc_chunk.body.duration,
+        frame_duration=int(sspc_chunk.body.frame_duration),
+        frame_rate=sspc_chunk.body.frame_rate,
+        height=sspc_chunk.body.height,
+        pixel_aspect=sspc_chunk.body.pixel_aspect,
+        width=sspc_chunk.body.width,
         main_source=main_source,
         asset_type=asset_type,
         end_frame=end_frame,
         start_frame=start_frame,
     )
-    item.footage_missing = bool(sspc_chunk.data.footage_missing_at_save)
+    item.footage_missing = bool(sspc_chunk.body.footage_missing_at_save)
     return item
 
 
@@ -188,7 +188,7 @@ def _parse_file_source(
     """
     try:
         stvc_chunk = find_by_list_type(chunks=pin_child_chunks, list_type="StVc")
-        stvc_child_chunks = stvc_chunk.data.chunks
+        stvc_child_chunks = stvc_chunk.body.chunks
         utf8_chunks = filter_by_type(chunks=stvc_child_chunks, chunk_type="Utf8")
         file_names = [str_contents(chunk) for chunk in utf8_chunks]
     except ChunkNotFoundError:
@@ -271,17 +271,17 @@ def _parse_psd_attributes(opti_chunk: Aep.OptiBody) -> dict[str, object]:
         [FileSource.file_attributes][aep_parser.models.sources.file.FileSource.file_attributes].
     """
     attrs: dict[str, object] = {
-        "psd_layer_index": opti_chunk.data.psd_layer_index,
-        "psd_group_name": (opti_chunk.data.psd_group_name or "").split("\x00")[0],
-        "psd_layer_count": opti_chunk.data.psd_layer_count,
-        "psd_canvas_width": opti_chunk.data.psd_canvas_width,
-        "psd_canvas_height": opti_chunk.data.psd_canvas_height,
-        "psd_bit_depth": opti_chunk.data.psd_bit_depth,
-        "psd_channels": opti_chunk.data.psd_channels,
-        "psd_layer_top": opti_chunk.data.psd_layer_top,
-        "psd_layer_left": opti_chunk.data.psd_layer_left,
-        "psd_layer_bottom": opti_chunk.data.psd_layer_bottom,
-        "psd_layer_right": opti_chunk.data.psd_layer_right,
+        "psd_layer_index": opti_chunk.body.psd_layer_index,
+        "psd_group_name": (opti_chunk.body.psd_group_name or "").split("\x00")[0],
+        "psd_layer_count": opti_chunk.body.psd_layer_count,
+        "psd_canvas_width": opti_chunk.body.psd_canvas_width,
+        "psd_canvas_height": opti_chunk.body.psd_canvas_height,
+        "psd_bit_depth": opti_chunk.body.psd_bit_depth,
+        "psd_channels": opti_chunk.body.psd_channels,
+        "psd_layer_top": opti_chunk.body.psd_layer_top,
+        "psd_layer_left": opti_chunk.body.psd_layer_left,
+        "psd_layer_bottom": opti_chunk.body.psd_layer_bottom,
+        "psd_layer_right": opti_chunk.body.psd_layer_right,
     }
     return attrs
 

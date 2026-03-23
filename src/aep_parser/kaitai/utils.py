@@ -59,7 +59,7 @@ def find_by_list_type(chunks: list[Aep.Chunk], list_type: str) -> Aep.Chunk:
     return _find_chunk(
         chunks=chunks,
         func=lambda chunk: (
-            chunk.chunk_type == "LIST" and chunk.data.list_type == list_type
+            chunk.chunk_type == "LIST" and chunk.body.list_type == list_type
         ),
         description=f"LIST/{list_type} chunk",
     )
@@ -77,7 +77,7 @@ def filter_by_list_type(chunks: list[Aep.Chunk], list_type: str) -> list[Aep.Chu
     return _filter_chunks(
         chunks=chunks,
         func=lambda chunk: (
-            chunk.chunk_type == "LIST" and chunk.data.list_type == list_type
+            chunk.chunk_type == "LIST" and chunk.body.list_type == list_type
         ),
     )
 
@@ -180,7 +180,7 @@ def split_on_type(
 
 def str_contents(chunk: Aep.Chunk) -> str:
     """Return the string contents of a chunk whose chunk_type is Utf8."""
-    text: str = chunk.data.contents
+    text: str = chunk.body.contents
     return text.rstrip("\x00")
 
 
@@ -209,12 +209,12 @@ def chunk_tree(
     prefix = "  " * indent
     for chunk in chunks:
         if chunk.chunk_type == "LIST":
-            label = f"LIST:{chunk.data.list_type}"
-            lines.append(f"{prefix}{label} ({chunk.len_data} B)")
-            if depth != 0 and hasattr(chunk.data, "chunks"):
-                lines.append(chunk_tree(chunk.data.chunks, depth - 1, indent + 1))
+            label = f"LIST:{chunk.body.list_type}"
+            lines.append(f"{prefix}{label} ({chunk.len_body} B)")
+            if depth != 0 and hasattr(chunk.body, "chunks"):
+                lines.append(chunk_tree(chunk.body.chunks, depth - 1, indent + 1))
         else:
-            lines.append(f"{prefix}{chunk.chunk_type} ({chunk.len_data} B)")
+            lines.append(f"{prefix}{chunk.chunk_type} ({chunk.len_body} B)")
     return "\n".join(lines)
 
 
@@ -241,13 +241,13 @@ def recursive_find(
     results: list[Aep.Chunk] = []
     for chunk in chunks:
         if list_type is not None:
-            if chunk.chunk_type == "LIST" and chunk.data.list_type == list_type:
+            if chunk.chunk_type == "LIST" and chunk.body.list_type == list_type:
                 results.append(chunk)
         elif chunk.chunk_type == chunk_type:
             results.append(chunk)
         # Recurse into LIST children
-        if chunk.chunk_type == "LIST" and hasattr(chunk.data, "chunks"):
-            results.extend(recursive_find(chunk.data.chunks, chunk_type, list_type))
+        if chunk.chunk_type == "LIST" and hasattr(chunk.body, "chunks"):
+            results.extend(recursive_find(chunk.body.chunks, chunk_type, list_type))
     return results
 
 
@@ -255,10 +255,10 @@ def recursive_find(
 # Serialization helpers
 # ---------------------------------------------------------------------------
 
-# 4-byte chunk_type + 4-byte len_data.
+# 4-byte chunk_type + 4-byte len_body.
 CHUNK_HEADER_SIZE = 8
 
-# Extra bytes added to the current len_data when allocating a write buffer,
+# Extra bytes added to the current len_body when allocating a write buffer,
 # so that a body whose size grows slightly still fits without reallocation.
 WRITE_BUFFER_HEADROOM = 8096
 
@@ -282,7 +282,7 @@ def toggle_flag_chunk(
         delta = 0
         for i in reversed(existing):
             c = chunks.pop(i)
-            delta -= CHUNK_HEADER_SIZE + c.len_data + len(c.padding)
+            delta -= CHUNK_HEADER_SIZE + c.len_body + len(c.pad_byte)
         _update_len_chain(container._parent, delta)
 
 
@@ -299,10 +299,10 @@ def create_chunk(
     root = container._root
     chunk = Aep.Chunk(_parent=container, _root=root)
     chunk.chunk_type = chunk_type
-    chunk.len_data = 0
-    chunk._raw_data = b""
-    chunk.padding = b""
-    chunk.data = body
+    chunk.len_body = 0
+    chunk._raw_body = b""
+    chunk.pad_byte = b""
+    chunk.body = body
 
     body._parent = chunk
     body._root = root
@@ -314,45 +314,48 @@ def create_chunk(
 
 
 def propagate_check(body: ReadWriteKaitaiStruct) -> None:
-    """Call `_check()` bottom-up from *body* to root, updating ``len_data``.
+    """Call `_check()` bottom-up from *body* to root, updating ``len_body``.
 
     1. ``body._check()`` clears the body's ``_dirty`` flag.
     2. The body is serialized to measure its new size.
     3. ``_update_len_chain`` propagates any delta from the chunk upward,
-       fixing padding and ``len_data`` on every ancestor.  When the size
+       fixing pad_byte and ``len_body`` on every ancestor.  When the size
        is unchanged the chunk is still validated and then the walk stops.
     """
     body._check()
     chunk = body._parent
 
-    saved_io = body._io
     if isinstance(body, Aep.Utf8Body):
-        buf_size = len(body.contents.encode("UTF-8"))
+        new_size = len(body.contents.encode("UTF-8"))
+    elif chunk.len_body == 0:
+        # Newly created chunk — must serialize to measure.
+        saved_io = body._io
+        buf = BytesIO(bytearray(WRITE_BUFFER_HEADROOM))
+        body._write__seq(KaitaiStream(buf))
+        new_size = buf.tell()
+        body._io = saved_io
     else:
-        buf_size = getattr(chunk, "len_data", 0) + WRITE_BUFFER_HEADROOM
-    buf = BytesIO(bytearray(buf_size))
-    body._write__seq(KaitaiStream(buf))
-    new_size = buf.tell()
-    body._io = saved_io
+        # Fixed-size body — size unchanged.
+        new_size = chunk.len_body
 
-    _update_len_chain(chunk, new_size - chunk.len_data)
+    _update_len_chain(chunk, new_size - chunk.len_body)
 
 
 def _update_len_chain(start: Any, delta: int) -> None:
-    """Walk up from *start*, adding *delta* to each ``len_data``.
+    """Walk up from *start*, adding *delta* to each ``len_body``.
 
-    At each `Aep.Chunk`, padding is resynchronised and any padding-size
+    At each `Aep.Chunk`, pad_byte is resynchronised and any padding-size
     change is folded into *delta* so that ancestors see the correct total.
     Stops early when *delta* reaches 0.
     """
     obj: Any = start
     while obj is not None:
-        if hasattr(obj, "len_data"):
-            obj.len_data += delta
+        if hasattr(obj, "len_body"):
+            obj.len_body += delta
             if isinstance(obj, Aep.Chunk):
-                old_pad = len(getattr(obj, "padding", b""))
-                new_pad: int = obj.len_data % 2
-                obj.padding = b"\x00" if new_pad else b""
+                old_pad = len(getattr(obj, "pad_byte", b""))
+                new_pad: int = obj.len_body % 2
+                obj.pad_byte = b"\x00" if new_pad else b""
                 delta += new_pad - old_pad
             obj._check()
             if not delta:

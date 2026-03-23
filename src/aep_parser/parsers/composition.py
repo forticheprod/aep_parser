@@ -46,7 +46,7 @@ def parse_composition(
     cdta_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     try:
         cdrp_chunk = find_by_type(chunks=child_chunks, chunk_type="cdrp")
-        cdrp_body = cdrp_chunk.data
+        cdrp_body = cdrp_chunk.body
     except ChunkNotFoundError:
         cdrp_body = None
 
@@ -56,7 +56,7 @@ def parse_composition(
         label=label,
         name=item_name,
         parent_folder=parent_folder,
-        cdta=cdta_chunk.data,
+        cdta=cdta_chunk.body,
         cdrp=cdrp_body,
     )
 
@@ -74,8 +74,8 @@ def parse_composition(
     # is available when parsing effect properties.
     layer_id_to_index: dict[int, int] = {}
     for idx, lc in enumerate(layer_sub_chunks, 1):
-        ldta = find_by_type(chunks=lc.data.chunks, chunk_type="ldta")
-        layer_id_to_index[ldta.data.layer_id] = idx
+        ldta = find_by_type(chunks=lc.body.chunks, chunk_type="ldta")
+        layer_id_to_index[ldta.body.layer_id] = idx
 
     for layer_chunk in layer_sub_chunks:
         layer = parse_layer(
@@ -120,11 +120,11 @@ def _parse_effect_selected(child_chunks: list[Aep.Chunk]) -> list[bool]:
     ewst_chunks = filter_by_list_type(chunks=child_chunks, list_type="Ewst")
     for ewst_chunk in ewst_chunks:
         try:
-            ewot_chunk = find_by_type(chunks=ewst_chunk.data.chunks, chunk_type="ewot")
+            ewot_chunk = find_by_type(chunks=ewst_chunk.body.chunks, chunk_type="ewot")
         except ChunkNotFoundError:
             continue
 
-        for entry in ewot_chunk.data.entries:
+        for entry in ewot_chunk.body.entries:
             # Entries without is_child_property are effect group nodes
             if not entry.is_child_property:
                 selected.append(entry.selected)

@@ -102,7 +102,21 @@ ldta_chunk = find_by_type(chunks=child_chunks, chunk_type="ldta")
 
 `chunk_tree(chunks, depth)` prints the chunk hierarchy; `recursive_find(chunks, chunk_type, list_type)` searches the tree recursively.
 
-Chunk attribute proxy: `chunk.field` delegates to `chunk.data.field` via `__getattr__`.
+Chunk attribute proxy: `chunk.field` delegates to `chunk.body.field` via `__getattr__`.
+
+### Typed LIST Instances
+
+Some LIST types (`list`, `tdbs`) have children at fixed positions. `list_body` in `aep.ksy` defines Kaitai instances for direct access:
+
+```python
+list_chunk.body.lhd3   # LIST:list chunks[0] — header
+list_chunk.body.ldat   # LIST:list chunks[1] — data items (None if absent)
+tdbs_chunk.body.tdsb   # LIST:tdbs chunks[0] — property flags
+tdbs_chunk.body.tdsn   # LIST:tdbs chunks[1] — property name
+tdbs_chunk.body.tdb4   # LIST:tdbs chunks[2] — property metadata
+```
+
+Use `find_by_type` when the LIST type is unknown or when a function handles multiple LIST types.
 
 ## Output Format
 

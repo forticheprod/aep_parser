@@ -154,7 +154,7 @@ def parse_aep_chunks(file_path: Path) -> dict[str, bytes]:
     aep = Aep.from_file(str(file_path))
     aep._read()
     result: dict[str, bytes] = {}
-    _extract_chunks_recursive(aep.data.chunks, "", result)
+    _extract_chunks_recursive(aep.body.chunks, "", result)
     return result
 
 
@@ -163,8 +163,8 @@ def _get_chunk_identifier(chunk: Any) -> str:
     chunk_type = str(chunk.chunk_type)
 
     # For LIST chunks, include the list_type
-    if chunk_type == "LIST" and hasattr(chunk.data, "list_type"):
-        return f"LIST:{chunk.data.list_type}"
+    if chunk_type == "LIST" and hasattr(chunk.body, "list_type"):
+        return f"LIST:{chunk.body.list_type}"
 
     return chunk_type
 
@@ -221,16 +221,16 @@ def _extract_chunks_recursive(
 
         # Recurse into LIST chunks without storing their raw data
         if chunk.chunk_type == "LIST":
-            if hasattr(chunk.data, "chunks") and chunk.data.chunks:
+            if hasattr(chunk.body, "chunks") and chunk.body.chunks:
                 child_counters: dict[str, int] = {}
                 _extract_chunks_recursive(
-                    chunk.data.chunks, current_path, result, child_counters
+                    chunk.body.chunks, current_path, result, child_counters
                 )
             # Skip LIST chunks entirely (even empty ones)
         else:
             # Only store raw data for leaf chunks
             try:
-                raw_data = chunk._raw_data
+                raw_data = chunk._raw_body
                 if raw_data:
                     result[current_path] = raw_data
             except (AttributeError, TypeError):
@@ -320,7 +320,7 @@ def _walk_chunks_tree(
 
         size = 0
         try:
-            raw = chunk._raw_data
+            raw = chunk._raw_body
             if raw:
                 size = len(raw)
         except (AttributeError, TypeError):
@@ -328,13 +328,13 @@ def _walk_chunks_tree(
 
         is_list = (
             chunk.chunk_type == "LIST"
-            and hasattr(chunk.data, "chunks")
-            and chunk.data.chunks is not None
+            and hasattr(chunk.body, "chunks")
+            and chunk.body.chunks is not None
         )
         yield current_path, identifier, size, depth, is_list
 
         if is_list:
-            yield from _walk_chunks_tree(chunk.data.chunks, current_path, depth + 1)
+            yield from _walk_chunks_tree(chunk.body.chunks, current_path, depth + 1)
 
 
 def list_aep_chunks(file_path: Path) -> None:
@@ -347,7 +347,7 @@ def list_aep_chunks(file_path: Path) -> None:
     aep._read()
     print(f"\nChunk tree: {file_path.name}\n")
 
-    for _path, identifier, size, depth, is_list in _walk_chunks_tree(aep.data.chunks):
+    for _path, identifier, size, depth, is_list in _walk_chunks_tree(aep.body.chunks):
         indent = "  " * depth
         if is_list:
             print(f"{indent}{identifier}/")

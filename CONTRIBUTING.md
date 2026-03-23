@@ -51,9 +51,9 @@ AEP Parser transforms binary .aep files into typed Python objects through a thre
 - `find_by_list_type()` - Find a LIST chunk by its list_type
 - `filter_by_type()` - Get all chunks of a given type
 
-**Chunk data access**: Chunk attributes live on `chunk.data`, not on the chunk itself. Always use explicit `chunk.data.X` access:
-- `chunk.data.list_type` - the list_type of a LIST chunk
-- `cdta_chunk.data.time_scale` - a typed body field
+**Chunk data access**: Chunk attributes live on `chunk.body`, not on the chunk itself. Always use explicit `chunk.body.X` access:
+- `chunk.body.list_type` - the list_type of a LIST chunk
+- `cdta_chunk.body.time_scale` - a typed body field
 
 ## Development Workflow
 
@@ -262,7 +262,7 @@ def parse_comp_item(chunk: Aep.Chunk, context: Context) -> CompItem:
     
     return CompItem(
         # ... other arguments ...
-        shutter_angle=cdta_chunk.data.shutter_angle,  # <-- Add this
+        shutter_angle=cdta_chunk.body.shutter_angle,  # <-- Add this
     )
 ```
 
@@ -345,7 +345,7 @@ motion_blur: bool
 """When True, motion blur is enabled for the composition."""
 
 # In parser
-motion_blur=flags_chunk.data.motion_blur,
+motion_blur=flags_chunk.body.motion_blur,
 ```
 
 ### Adding a New Layer Type
@@ -540,6 +540,27 @@ comp_chunk = find_by_list_type(chunks=root_chunks, list_type="Comp")
 layer_chunks = filter_by_list_type(chunks=comp_chunks, list_type="Layr")
 ```
 
+### Typed LIST Instances
+
+Some LIST types have children at fixed positions. `list_body` in `aep.ksy` defines
+Kaitai instances for direct access by name instead of `find_by_type`:
+
+```python
+# LIST:list — keyframe/shape data
+list_chunk.body.lhd3          # chunks[0] — header (count + item size)
+list_chunk.body.ldat          # chunks[1] — data items (None if no keyframes)
+
+# LIST:tdbs — leaf property container
+tdbs_chunk.body.tdsb          # chunks[0] — property flags
+tdbs_chunk.body.tdsn          # chunks[1] — property name
+tdbs_chunk.body.tdb4          # chunks[2] — property metadata
+```
+
+Each instance has an `if` guard on `list_type`, so accessing e.g. `.lhd3` on a
+non-`list` LIST returns `None`. Use `find_by_type` when the LIST type is unknown
+or when a function handles multiple LIST types (e.g. `parse_layer` handles both
+`Layr` and `SecL`).
+
 ### Parser Pattern
 
 ```python
@@ -547,19 +568,19 @@ def parse_thing(chunk: Aep.Chunk, context: Context) -> ThingModel:
     """Parse a Thing from AEP chunk data."""
     
     # Get child chunks
-    child_chunks = chunk.data.chunks
+    child_chunks = chunk.body.chunks
     
     # Find specific chunks
     data_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     name_chunk = find_by_type(chunks=child_chunks, chunk_type="tdgp")
     
     # Parse name (common pattern)
-    name = name_chunk.data.name.decode("utf-8") if name_chunk else ""
+    name = name_chunk.body.name.decode("utf-8") if name_chunk else ""
     
     # Return model instance
     return ThingModel(
         name=name,
-        some_value=data_chunk.data.some_value,
+        some_value=data_chunk.body.some_value,
     )
 ```
 

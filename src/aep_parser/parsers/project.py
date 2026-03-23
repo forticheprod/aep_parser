@@ -56,26 +56,26 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
         aep: The parsed Kaitai RIFX structure.
         file_path: Path to the `.aep` file (stored on the Project).
     """
-    root_chunks: list[Aep.Chunk] = aep.data.chunks
+    root_chunks: list[Aep.Chunk] = aep.body.chunks
 
     root_folder_chunk: Aep.Chunk = find_by_list_type(
         chunks=root_chunks, list_type="Fold"
     )
-    head_chunk: Aep.HeadBody = find_by_type(chunks=root_chunks, chunk_type="head").data
-    nnhd_chunk: Aep.NnhdBody = find_by_type(chunks=root_chunks, chunk_type="nnhd").data
-    acer_chunk: Aep.AcerBody = find_by_type(chunks=root_chunks, chunk_type="acer").data
-    adfr_chunk: Aep.AdfrBody = find_by_type(chunks=root_chunks, chunk_type="adfr").data
-    dwga_chunk: Aep.DwgaBody = find_by_type(chunks=root_chunks, chunk_type="dwga").data
+    head_chunk: Aep.HeadBody = find_by_type(chunks=root_chunks, chunk_type="head").body
+    nnhd_chunk: Aep.NnhdBody = find_by_type(chunks=root_chunks, chunk_type="nnhd").body
+    acer_chunk: Aep.AcerBody = find_by_type(chunks=root_chunks, chunk_type="acer").body
+    adfr_chunk: Aep.AdfrBody = find_by_type(chunks=root_chunks, chunk_type="adfr").body
+    dwga_chunk: Aep.DwgaBody = find_by_type(chunks=root_chunks, chunk_type="dwga").body
     gpug_chunk: Aep.Chunk = find_by_list_type(chunks=root_chunks, list_type="gpuG")
     gpug_utf8: Aep.Utf8Body = find_by_type(
-        chunks=gpug_chunk.data.chunks, chunk_type="Utf8"
-    ).data
+        chunks=gpug_chunk.body.chunks, chunk_type="Utf8"
+    ).body
 
     # Expression engine: LIST:ExEn > Utf8
     exen_utf8: Aep.Utf8Body | None = None
     with contextlib.suppress(ChunkNotFoundError):
         exen_chunk = find_by_list_type(chunks=root_chunks, list_type="ExEn")
-        exen_utf8 = find_by_type(chunks=exen_chunk.data.chunks, chunk_type="Utf8").data
+        exen_utf8 = find_by_type(chunks=exen_chunk.body.chunks, chunk_type="Utf8").body
 
     # CMS settings JSON and baseColorProfile Utf8 chunks
     cms_utf8: Aep.Utf8Body | None = None
@@ -84,12 +84,12 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
     for c in filter_by_type(chunks=root_chunks, chunk_type="Utf8"):
         content = str_contents(c)
         if cms_utf8 is None and "lutInterpolationMethod" in content:
-            cms_utf8 = c.data
+            cms_utf8 = c.body
         if "baseColorProfile" in content:
             if ws_utf8 is None:
-                ws_utf8 = c.data
+                ws_utf8 = c.body
             elif dcs_utf8 is None:
-                dcs_utf8 = c.data
+                dcs_utf8 = c.body
 
     project = Project(
         _nnhd=nnhd_chunk,
@@ -112,7 +112,7 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
 
     root_folder = parse_folder(
         is_root=True,
-        child_chunks=root_folder_chunk.data.chunks,
+        child_chunks=root_folder_chunk.body.chunks,
         project=project,
         item_id=0,
         item_name="root",
@@ -129,7 +129,7 @@ def _parse_project(aep: Aep, file_path: str) -> Project:
 
     with contextlib.suppress(ChunkNotFoundError):
         fcid_chunk = find_by_type(chunks=root_chunks, chunk_type="fcid")
-        project.active_item = project.items[fcid_chunk.data.active_item_id]
+        project.active_item = project.items[fcid_chunk.body.active_item_id]
 
     return project
 
@@ -246,17 +246,17 @@ def _parse_effect_definitions(
         return {}
 
     effect_defs: dict[str, dict[str, dict[str, Any]]] = {}
-    efdf_chunks = filter_by_list_type(chunks=efdg_chunk.data.chunks, list_type="EfDf")
+    efdf_chunks = filter_by_list_type(chunks=efdg_chunk.body.chunks, list_type="EfDf")
 
     for efdf_chunk in efdf_chunks:
-        efdf_child_chunks = efdf_chunk.data.chunks
+        efdf_child_chunks = efdf_chunk.body.chunks
         # First tdmn in EfDf contains the effect match name
         tdmn_chunk = find_by_type(chunks=efdf_child_chunks, chunk_type="tdmn")
         effect_match_name = str_contents(tdmn_chunk)
 
         # Parse param defs from the sspc chunk
         sspc_chunk = find_by_list_type(chunks=efdf_child_chunks, list_type="sspc")
-        param_defs = parse_effect_param_defs(sspc_chunk.data.chunks)
+        param_defs = parse_effect_param_defs(sspc_chunk.body.chunks)
         effect_defs[effect_match_name] = param_defs
 
     return effect_defs

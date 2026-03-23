@@ -25,25 +25,25 @@ def _parse_view_options(fips_chunk: Aep.Chunk) -> ViewOptions:
         fips_chunk: A chunk whose type is `fips`.
     """
     return ViewOptions(
-        channels=ChannelType.from_binary(fips_chunk.data.channels),
-        checkerboards=fips_chunk.data.transparency_grid,
-        draft3d=fips_chunk.data.draft3d,
-        exposure=fips_chunk.data.exposure,
+        channels=ChannelType.from_binary(fips_chunk.body.channels),
+        checkerboards=fips_chunk.body.transparency_grid,
+        draft3d=fips_chunk.body.draft3d,
+        exposure=fips_chunk.body.exposure,
         fast_preview=map_fast_preview_type(
-            adaptive=fips_chunk.data.fast_preview_adaptive,
-            wireframe=fips_chunk.data.fast_preview_wireframe,
+            adaptive=fips_chunk.body.fast_preview_adaptive,
+            wireframe=fips_chunk.body.fast_preview_wireframe,
         ),
-        grid=fips_chunk.data.grid,
-        guides_locked=fips_chunk.data.guides_locked,
-        guides_snap=fips_chunk.data.guides_snap,
-        guides_visibility=fips_chunk.data.guides_visibility,
-        mask_and_shape_path=fips_chunk.data.mask_and_shape_path,
-        proportional_grid=fips_chunk.data.proportional_grid,
-        region_of_interest=fips_chunk.data.region_of_interest,
-        rulers=fips_chunk.data.rulers,
-        title_action_safe=fips_chunk.data.title_action_safe,
-        use_display_color_management=fips_chunk.data.use_display_color_management,
-        zoom=fips_chunk.data.zoom,
+        grid=fips_chunk.body.grid,
+        guides_locked=fips_chunk.body.guides_locked,
+        guides_snap=fips_chunk.body.guides_snap,
+        guides_visibility=fips_chunk.body.guides_visibility,
+        mask_and_shape_path=fips_chunk.body.mask_and_shape_path,
+        proportional_grid=fips_chunk.body.proportional_grid,
+        region_of_interest=fips_chunk.body.region_of_interest,
+        rulers=fips_chunk.body.rulers,
+        title_action_safe=fips_chunk.body.title_action_safe,
+        use_display_color_management=fips_chunk.body.use_display_color_management,
+        zoom=fips_chunk.body.zoom,
     )
 
 
@@ -67,7 +67,7 @@ def parse_viewers(
     Returns:
         A list of parsed [Viewer][aep_parser.models.viewer.viewer.Viewer] objects.
     """
-    blocks = group_chunks(root_folder_chunk.data.chunks, "fvdv", "fifl")
+    blocks = group_chunks(root_folder_chunk.body.chunks, "fvdv", "fifl")
     viewers = [_build_viewer(block) for block in blocks]
     return [v for v in viewers if v is not None]
 
@@ -87,7 +87,7 @@ def _build_viewer(block: list[Aep.Chunk]) -> Viewer | None:
     except ChunkNotFoundError:
         return None
 
-    viewer_type = map_viewer_type_from_string(fitt.data.label)
+    viewer_type = map_viewer_type_from_string(fitt.body.label)
     if viewer_type is None:
         return None
 
@@ -110,9 +110,9 @@ def _build_viewer(block: list[Aep.Chunk]) -> Viewer | None:
     fips_chunks = filter_by_type(block, "fips")
 
     if fivc is not None:
-        fips_chunks = fips_chunks[: fivc.data.view_count]
+        fips_chunks = fips_chunks[: fivc.body.view_count]
 
-    active_view_index = fivi.data.active_view_index if fivi else 0
+    active_view_index = fivi.body.active_view_index if fivi else 0
     views = [
         View(
             active=(i == active_view_index),
@@ -122,7 +122,7 @@ def _build_viewer(block: list[Aep.Chunk]) -> Viewer | None:
     ]
 
     return Viewer(
-        active=bool(foac and foac.data.active and fiac and fiac.data.active),
+        active=bool(foac and foac.body.active and fiac and fiac.body.active),
         active_view_index=active_view_index,
         type=viewer_type,
         views=views,

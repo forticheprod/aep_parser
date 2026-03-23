@@ -23,7 +23,7 @@ def parse_app(aep: Aep, project: Project) -> Application:
         aep: The parsed Kaitai RIFX structure.
         project: The already-parsed [Project][].
     """
-    root_chunks = aep.data.chunks
+    root_chunks = aep.body.chunks
     root_folder_chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")
     head_chunk = find_by_type(chunks=root_chunks, chunk_type="head")
 
@@ -33,7 +33,7 @@ def parse_app(aep: Aep, project: Project) -> Application:
     active_viewer = active_viewers[0] if active_viewers else None
 
     return Application(
-        _head=head_chunk.data,
+        _head=head_chunk.body,
         project=project,
         active_viewer=active_viewer,
     )

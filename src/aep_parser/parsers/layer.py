@@ -208,7 +208,7 @@ def _parse_layer_property_groups(
             first_list = find_by_type(chunks=sub_chunks, chunk_type="LIST")
         except ChunkNotFoundError:
             continue
-        if first_list.data.list_type == "tdgp":
+        if first_list.body.list_type == "tdgp":
             prop_group = parse_property_group(
                 tdgp_chunk=first_list,
                 group_match_name=match_name,
@@ -220,7 +220,7 @@ def _parse_layer_property_groups(
                 layer_id_to_index=layer_id_to_index,
             )
             properties.append(prop_group)
-        elif first_list.data.list_type == "tdbs":
+        elif first_list.body.list_type == "tdbs":
             # Leaf property at layer level (e.g. Time Remap)
             prop = parse_property(
                 tdbs_chunk=first_list,
@@ -230,7 +230,7 @@ def _parse_layer_property_groups(
                 frame_rate=composition.frame_rate,
             )
             properties.append(prop)
-        elif first_list.data.list_type == "mrst":
+        elif first_list.body.list_type == "mrst":
             # Marker property
             marker_prop = parse_markers(
                 mrst_chunk=first_list,
@@ -265,7 +265,7 @@ def parse_layer(
     Returns:
         An [AVLayer][] for most layers, or a [LightLayer][] for light layers.
     """
-    child_chunks = layer_chunk.data.chunks
+    child_chunks = layer_chunk.body.chunks
 
     comment = get_comment(child_chunks)
 
@@ -274,7 +274,7 @@ def parse_layer(
     name_chunk = find_by_type(chunks=child_chunks, chunk_type="Utf8")
     name = str_contents(name_chunk)
 
-    layer_type_name = ldta_chunk.data.layer_type.name
+    layer_type_name = ldta_chunk.body.layer_type.name
 
     properties = _parse_layer_property_groups(
         child_chunks, composition, effect_param_defs, layer_id_to_index
@@ -283,7 +283,7 @@ def parse_layer(
     # Adjust keyframe times from layer-relative to composition-relative
     # time.  Binary keyframe times are stored relative to the layer;
     # ExtendScript reports them in comp time.
-    start_time: float = ldta_chunk.data.start_time
+    start_time: float = ldta_chunk.body.start_time
     if start_time != 0.0:
         _offset_keyframe_times(properties, start_time, composition.frame_rate)
 
@@ -291,16 +291,16 @@ def parse_layer(
     _denormalize_effect_points(properties, composition.width, composition.height)
 
     layer_attrs = {
-        "_ldta": ldta_chunk.data,
+        "_ldta": ldta_chunk.body,
         "match_name": _LAYER_MATCH_NAMES.get(layer_type_name, "ADBE AV Layer"),
         "name": name,
         "properties": properties,
         "auto_orient": map_auto_orient_type(
-            auto_orient_along_path=ldta_chunk.data.auto_orient_along_path,
-            camera_or_poi_auto_orient=ldta_chunk.data.camera_or_poi_auto_orient,
-            three_d_layer=ldta_chunk.data.three_d_layer,
-            characters_toward_camera=ldta_chunk.data.characters_toward_camera,
-            three_d_per_char=ldta_chunk.data.three_d_per_char,
+            auto_orient_along_path=ldta_chunk.body.auto_orient_along_path,
+            camera_or_poi_auto_orient=ldta_chunk.body.camera_or_poi_auto_orient,
+            three_d_layer=ldta_chunk.body.three_d_layer,
+            characters_toward_camera=ldta_chunk.body.characters_toward_camera,
+            three_d_per_char=ldta_chunk.body.three_d_per_char,
         ),
         "comment": comment,
         "containing_comp": composition,
@@ -308,15 +308,15 @@ def parse_layer(
     }
 
     av_layer_attrs = {
-        "_matte_layer_id": getattr(ldta_chunk.data, "matte_layer_id", 0) or 0,
+        "_matte_layer_id": getattr(ldta_chunk.body, "matte_layer_id", 0) or 0,
     }
 
     layer: Layer
     if layer_type_name == "light":
-        light_source_id = ldta_chunk.data.source_id
+        light_source_id = ldta_chunk.body.source_id
         layer = LightLayer(
             **layer_attrs,  # type: ignore[arg-type]
-            light_type=LightType.from_binary(ldta_chunk.data.light_type),
+            light_type=LightType.from_binary(ldta_chunk.body.light_type),
             _light_source_id=light_source_id if light_source_id != UNDEFINED_ID else 0,
         )
     elif layer_type_name == "camera":

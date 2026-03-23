@@ -3,10 +3,7 @@ from __future__ import annotations
 import json
 import struct
 import typing
-from io import BytesIO
 from typing import Any, List, TypeVar
-
-from kaitaistruct import KaitaiStream
 
 from ..kaitai import Aep
 from ..kaitai.utils import (
@@ -52,7 +49,7 @@ def get_chunks_by_match_name(
     if root_chunk:
         skip_to_next_tdmn_flag = True
         match_name = ""
-        for chunk in root_chunk.data.chunks:
+        for chunk in root_chunk.body.chunks:
             if chunk.chunk_type == "tdmn":
                 match_name = str_contents(chunk)
                 if match_name == "ADBE Group End":
@@ -89,10 +86,10 @@ def property_has_keyframes(property_chunk: Aep.Chunk) -> bool:
     """
     if property_chunk.chunk_type != "LIST":
         return False
-    if property_chunk.data.list_type != "tdbs":
+    if property_chunk.body.list_type != "tdbs":
         return False
-    for chunk in property_chunk.data.chunks:
-        if chunk.chunk_type == "LIST" and chunk.data.list_type == "list":
+    for chunk in property_chunk.body.chunks:
+        if chunk.chunk_type == "LIST" and chunk.body.list_type == "list":
             return True  # Has keyframes
     return False  # Has cdat (constant) or other structure
 
@@ -113,7 +110,7 @@ def parse_alas_data(parent_chunks: list[Aep.Chunk]) -> dict[str, Any]:
     """
     try:
         als2_chunk = find_by_list_type(chunks=parent_chunks, list_type="Als2")
-        alas_chunk = find_by_type(chunks=als2_chunk.data.chunks, chunk_type="alas")
+        alas_chunk = find_by_type(chunks=als2_chunk.body.chunks, chunk_type="alas")
     except ChunkNotFoundError:
         return {}
     alas_text = str_contents(alas_chunk)
@@ -121,57 +118,6 @@ def parse_alas_data(parent_chunks: list[Aep.Chunk]) -> dict[str, Any]:
         return {}
     result = json.loads(alas_text)
     return result if isinstance(result, dict) else {}
-
-
-def parse_ldat_items(
-    list_chunk: Aep.Chunk,
-    is_spatial: bool = False,
-) -> list:
-    """Parse items from a LIST chunk containing lhd3 and ldat.
-
-    Uses lhd3.item_type to determine the correct parser class:
-    - lrdr: RenderSettingsLdatBody (2246 bytes per item)
-    - litm: OutputModuleSettingsLdatBody (128 bytes per item)
-    - shape: ShapePoint (8 bytes per item)
-    - keyframe types: LdatItem (variable size per item)
-
-    Args:
-        list_chunk: A LIST chunk containing lhd3 and ldat child chunks.
-        is_spatial: Whether the property is spatial (affects 3D type
-            interpretation for keyframe items).
-
-    Returns:
-        List of parsed items (type depends on item_type).
-    """
-    lhd3 = find_by_type(chunks=list_chunk.data.chunks, chunk_type="lhd3")
-    ldat = find_by_type(chunks=list_chunk.data.chunks, chunk_type="ldat")
-
-    count = lhd3.data.count
-    if not count:
-        return []
-
-    item_size = lhd3.data.item_size
-    item_type = lhd3.data.item_type
-
-    # Adjust type for spatial 3D properties
-    if item_type == Aep.LdatItemType.three_d and is_spatial:
-        item_type = Aep.LdatItemType.three_d_spatial
-
-    items = []
-    for item_bytes in split_into_batches(ldat.data.items, item_size):
-        stream = KaitaiStream(BytesIO(item_bytes))
-        if item_type == Aep.LdatItemType.lrdr:
-            item = Aep.RenderSettingsLdatBody(stream)
-        elif item_type == Aep.LdatItemType.litm:
-            item = Aep.OutputModuleSettingsLdatBody(stream)
-        elif item_type == Aep.LdatItemType.shape:
-            item = Aep.ShapePoint(stream)
-        else:
-            item = Aep.LdatItem(item_type=item_type, _io=stream)
-        item._read()
-        items.append(item)
-
-    return items
 
 
 def read_tdum(
@@ -196,7 +142,7 @@ def read_tdum(
         chunk = find_by_type(chunks=chunks, chunk_type=chunk_type)
     except ChunkNotFoundError:
         return None
-    raw = chunk.data.data
+    raw = chunk.body.data
     size = len(raw)
     if color and size == 16:
         return list(struct.unpack(">4f", raw))
