@@ -1,18 +1,18 @@
 """Interpolation utilities for keyframe-based property evaluation.
 
 Implements HOLD, LINEAR, and BEZIER interpolation for
-``Property.value_at_time()``.  Pure Python with no external dependencies.
+`Property.value_at_time()`.  Pure Python with no external dependencies.
 
 The algorithms are ported from `lottie-web <https://github.com/airbnb/
 lottie-web>`_, the industry-standard renderer for Lottie/bodymovin
 animations exported from After Effects:
 
-- **Temporal ease** uses a normalised [0, 1] → [0, 1] cubic-bezier
-  easing function (``BezierEasing``), with an 11-point sample table,
+- **Temporal ease** uses a normalised [0, 1] -> [0, 1] cubic-bezier
+  easing function (`BezierEasing`), with an 11-point sample table,
   Newton-Raphson refinement, and binary-subdivision fallback (ported
-  from ``BezierEaser.js``).
+  from `BezierEaser.js`).
 - **Spatial paths** are pre-sampled into a 150-segment polyline with
-  per-segment partial lengths (ported from ``bez.js``).
+  per-segment partial lengths (ported from `bez.js`).
 - **Arc-length reparameterisation** walks the segment table linearly,
   interpolating between adjacent sample points.
 """
@@ -40,7 +40,7 @@ _CURVE_SEGMENTS = 150
 # BezierEasing - port of lottie-web 3rd_party/BezierEaser.js
 # ---------------------------------------------------------------------------
 # Implements a cached unit-square bezier easing function.
-# Given control points (cx1, cy1, cx2, cy2), maps x in [0,1] → y in [0,1].
+# Given control points (cx1, cy1, cx2, cy2), maps x in [0,1] -> y in [0,1].
 # Uses precomputed sample table + Newton-Raphson with binary subdivision
 # fallback, matching Firefox's nsSMILKeySpline.
 
@@ -180,7 +180,7 @@ def _get_bezier_easing(cx1: float, cy1: float, cx2: float, cy2: float) -> _Bezie
 
 
 # ---------------------------------------------------------------------------
-# Speed/influence → bezier control points conversion
+# Speed/influence -> bezier control points conversion
 # ---------------------------------------------------------------------------
 # AEP stores temporal ease as (speed, influence) pairs.
 # Lottie JSON stores temporal ease as bezier control points (o.x, o.y, i.x, i.y)
@@ -278,7 +278,7 @@ def _point_on_line_2d(
     x3: float,
     y3: float,
 ) -> bool:
-    """Check if (x3,y3) is collinear with segment (x1,y1)→(x2,y2).
+    """Check if (x3,y3) is collinear with segment (x1,y1)->(x2,y2).
 
     Port of lottie-web's pointOnLine2D.
     """
@@ -463,7 +463,7 @@ def _tangents_are_zero(tangent: list[float] | None) -> bool:
 def _compute_auto_spatial_tangents(
     keyframes: list[Keyframe],
 ) -> list[tuple[list[float] | None, list[float] | None]]:
-    """Compute spatial tangents for keyframes with ``spatial_auto_bezier``.
+    """Compute spatial tangents for keyframes with `spatial_auto_bezier`.
 
     Returns a list of (out_tangent, in_tangent) per keyframe.
     """
@@ -532,7 +532,7 @@ def _compute_auto_spatial_tangents(
 def _compute_auto_temporal_ease(
     keyframes: list[Keyframe],
 ) -> list[tuple[float, float, float, float]]:
-    """Compute temporal ease for keyframes with ``temporal_auto_bezier``.
+    """Compute temporal ease for keyframes with `temporal_auto_bezier`.
 
     Returns (out_speed, out_influence, in_speed, in_influence) per keyframe.
     """
@@ -651,7 +651,7 @@ def _interpolate_spatial_bezier(
 
     1. Builds a polyline approximation of the spatial bezier path
     2. Converts temporal ease to a BezierEasing function
-    3. Maps time → eased arc-length fraction
+    3. Maps time -> eased arc-length fraction
     4. Walks the polyline to find the position
     """
     v0 = kf0.value
@@ -697,7 +697,7 @@ def _interpolate_spatial_bezier(
                 sum((v1[d] - p2[d]) ** 2 for d in range(ndim))
             )
 
-        # Convert to normalized speed (progress/sec → progress fraction)
+        # Convert to normalized speed (progress/sec -> progress fraction)
         out_inf_frac = out_ease.influence / 100.0
         in_inf_frac = in_ease.influence / 100.0
 
@@ -756,7 +756,7 @@ def interpolate_keyframes(
         is_spatial: Whether the property is spatial.
 
     Returns:
-        Interpolated value, or ``None`` if no keyframes.
+        Interpolated value, or `None` if no keyframes.
     """
     if not keyframes:
         return None

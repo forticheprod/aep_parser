@@ -1,7 +1,7 @@
 ---
 description: "Use when implementing new AEP binary parsing features, reverse-engineering After Effects .aep file format, adding ExtendScript API attributes/methods to the parser, comparing binary chunks, or investigating unknown bytes/bits in .aep files."
 tools: [execute, read, edit, search, agent, todo, web]
-model: ["Claude Opus 4.6", "Claude Sonnet 4.6"]
+model: ["Claude Opus 4.6", "Claude Sonnet 4.6", "Claude Haiku 4.5"]
 argument-hint: "Describe the attribute, method, or binary field to implement or investigate and samples to use"
 ---
 
@@ -19,13 +19,13 @@ Always consult the ExtendScript scripting guide for accurate docstrings, types, 
 .aep file > Kaitai (kaitai/aep.ksy) > Raw chunks > Parsers > Model dataclasses
 ```
 
-- **`src/aep_parser/kaitai/aep.ksy`** — Binary schema (Kaitai Struct). All binary decoding lives here. Never use the `struct` module.
-- **`src/aep_parser/kaitai/aep.py`** — Auto-generated from `aep.ksy`. Never edit directly.
-- **`src/aep_parser/parsers/`** — Transform raw chunks into model instances.
-- **`src/aep_parser/models/`** — Typed dataclasses mirroring AE's object model.
-- **`src/aep_parser/enums/`** — Enumerations matching ExtendScript values.
-- **`samples/`** — Test `.aep` files and their `.json` ExtendScript exports.
-- **`scripts/`** — CLI and investigation scripts.
+- **`src/aep_parser/kaitai/aep.ksy`** - Binary schema (Kaitai Struct). All binary decoding lives here. Never use the `struct` module.
+- **`src/aep_parser/kaitai/aep.py`** - Auto-generated from `aep.ksy`. Never edit directly.
+- **`src/aep_parser/parsers/`** - Transform raw chunks into model instances.
+- **`src/aep_parser/models/`** - Typed dataclasses mirroring AE's object model.
+- **`src/aep_parser/enums/`** - Enumerations matching ExtendScript values.
+- **`samples/`** - Test `.aep` files and their `.json` ExtendScript exports.
+- **`scripts/`** - CLI and investigation scripts.
 
 ## Standard Workflow
 
@@ -73,15 +73,15 @@ uv run aep-validate sample.aep sample.json --verbose
 
 ## Constraints
 
-- DO NOT edit `src/aep_parser/kaitai/aep.py` — it is auto-generated from `aep.ksy`
-- DO NOT use the `struct` module for binary decoding — all binary parsing must be in `aep.ksy`
-- DO NOT use `python.exe -c` — run Python code through temporary files
-- DO NOT use `List[int]` — use `list[int]` with `from __future__ import annotations`
-- DO NOT add Sphinx-style cross-references (`:class:`) — use mkdocstrings style (`[CompItem][]`)
-- DO NOT switch to plan agent prematurely — exhaust terminal-based investigation first
+- DO NOT edit `src/aep_parser/kaitai/aep.py` - it is auto-generated from `aep.ksy`
+- DO NOT use the `struct` module for binary decoding - all binary parsing must be in `aep.ksy`
+- DO NOT use `python.exe -c` - run Python code through temporary files
+- DO NOT use `List[int]` - use `list[int]` with `from __future__ import annotations`
+- DO NOT add Sphinx-style cross-references (`:class:`) - use mkdocstrings style (`[CompItem][]`)
+- DO NOT switch to plan agent prematurely - exhaust terminal-based investigation first
 - ALWAYS use `from __future__ import annotations` and type hints on all functions
 - ALWAYS validate parsed output against ExtendScript ground truth after any parsing change
-- Kaitai integer division (`/`) compiles to `//` — multiply by `1.0` for true division
+- Kaitai integer division (`/`) compiles to `//` - multiply by `1.0` for true division
 
 ## Code Conventions
 
@@ -102,7 +102,21 @@ ldta_chunk = find_by_type(chunks=child_chunks, chunk_type="ldta")
 
 `chunk_tree(chunks, depth)` prints the chunk hierarchy; `recursive_find(chunks, chunk_type, list_type)` searches the tree recursively.
 
-Chunk attribute proxy: `chunk.field` delegates to `chunk.data.field` via `__getattr__`.
+Chunk attribute proxy: `chunk.field` delegates to `chunk.body.field` via `__getattr__`.
+
+### Typed LIST Instances
+
+Some LIST types (`list`, `tdbs`) have children at fixed positions. `list_body` in `aep.ksy` defines Kaitai instances for direct access:
+
+```python
+list_chunk.body.lhd3   # LIST:list chunks[0] — header
+list_chunk.body.ldat   # LIST:list chunks[1] — data items (None if absent)
+tdbs_chunk.body.tdsb   # LIST:tdbs chunks[0] — property flags
+tdbs_chunk.body.tdsn   # LIST:tdbs chunks[1] — property name
+tdbs_chunk.body.tdb4   # LIST:tdbs chunks[2] — property metadata
+```
+
+Use `find_by_type` when the LIST type is unknown or when a function handles multiple LIST types.
 
 ## Output Format
 

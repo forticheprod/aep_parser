@@ -60,8 +60,8 @@ JSX scripts run in After Effects via VS Code debugger - see `.vscode/launch.json
 3. Add parser in `parsers/`:
    ```python
    def parse_thing(chunk: Aep.Chunk, context: ...) -> ThingModel:
-       data_chunk = find_by_type(chunks=chunk.chunks, chunk_type="xxxx")
-       return ThingModel(field=data_chunk.field)
+       data_chunk = find_by_type(chunks=chunk.body.chunks, chunk_type="xxxx")
+       return ThingModel(field=data_chunk.body.field)
    ```
 4. Validate parsed values against ExtendScript using `aep-validate` (see [CLI Tools](#cli-tools))
 5. Add test case in `tests/test_models_*.py` using sample .aep files
@@ -90,14 +90,28 @@ layer_chunks = filter_by_list_type(chunks=comp_chunks, list_type="Layr")
 
 For debugging, `chunk_tree(chunks, depth)` prints the chunk hierarchy and `recursive_find(chunks, chunk_type, list_type)` searches the entire tree recursively.
 
-### Chunk Attribute Proxy (`__getattr__` override)
-`aep_optimized.py` monkey-patches `Aep.Chunk.__getattr__` so attribute access on a chunk delegates to `chunk.data` when not found on the chunk itself:
+### Typed LIST Instances
+Some LIST types have children at **fixed positions**. For these, `list_body` in `aep.ksy` defines Kaitai instances that provide direct access by name instead of `find_by_type`:
+
 ```python
-chunk.list_type          # shorter - uses __getattr__ proxy
-chunk.data.list_type     # equivalent explicit access
-cdta_chunk.time_scale    # proxied from cdta_chunk.data.time_scale
+# LIST:list — keyframe/shape data
+list_chunk.body.lhd3          # chunks[0] — header (count + item size)
+list_chunk.body.ldat          # chunks[1] — data items (None if no keyframes)
+
+# LIST:tdbs — leaf property container
+tdbs_chunk.body.tdsb          # chunks[0] — property flags
+tdbs_chunk.body.tdsn          # chunks[1] — property name
+tdbs_chunk.body.tdb4          # chunks[2] — property metadata
 ```
-Any attribute access on a `Chunk` object may actually come from `chunk.data`.
+
+Each instance has an `if` guard on `list_type`, so accessing e.g. `.lhd3` on a non-`list` LIST returns `None`. Use `find_by_type` when the LIST type is unknown or when a function handles multiple LIST types (e.g. `parse_layer` handles both `Layr` and `SecL`).
+
+### Chunk Data Access
+Chunk attributes live on `chunk.body`, not on the chunk itself. Always use explicit `chunk.body.X` access:
+```python
+chunk.body.list_type     # the list_type of a LIST chunk
+cdta_chunk.body.time_scale  # a typed body field
+```
 
 ### Value Mapping Pattern
 Binary values often differ from ExtendScript values. Single-param mappings use a `from_binary` classmethod on the enum (`enums/general.py` or relevant module):
@@ -121,7 +135,7 @@ When adding new mappings:
 ## Regenerating Kaitai Parser
 When modifying `aep.ksy`, regenerate:
 ```powershell
-kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_parser/kaitai/aep.ksy
+kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_parser/kaitai/aep.ksy --read-write --no-auto-read
 ```
 No manual edits needed after regeneration - `aep_optimized.py` applies optimizations automatically.
 

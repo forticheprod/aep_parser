@@ -5,13 +5,11 @@ import typing
 from typing import Any
 
 from ..enums import (
-    BlendingMode,
-    Label,
-    LayerQuality,
-    LayerSamplingQuality,
     LightType,
     PropertyControlType,
-    TrackMatteType,
+)
+from ..enums.mappings import (
+    map_auto_orient_type,
 )
 from ..kaitai.utils import (
     ChunkNotFoundError,
@@ -27,10 +25,6 @@ from ..models.layers.text_layer import TextLayer
 from ..models.layers.three_d_model_layer import ThreeDModelLayer
 from ..models.properties.property import Property
 from ..models.properties.property_group import PropertyGroup
-from .mappings import (
-    map_auto_orient_type,
-    map_frame_blending_type,
-)
 from .marker import parse_markers
 from .property import parse_property_group
 from .property_value import parse_property
@@ -77,10 +71,10 @@ def _offset_keyframe_times(
 ) -> None:
     """Offset all keyframe times by *start_time* (layer > comp time).
 
-    Recursively walks the property tree and shifts ``frame_time`` on every
-    keyframe, then recomputes ``time`` from the new frame number so that
-    both fields are expressed in composition time.  Recomputing ``time``
-    from the integer ``frame_time`` avoids precision loss when *start_time*
+    Recursively walks the property tree and shifts `frame_time` on every
+    keyframe, then recomputes `time` from the new frame number so that
+    both fields are expressed in composition time.  Recomputing `time`
+    from the integer `frame_time` avoids precision loss when *start_time*
     does not sit on an exact frame boundary.
     """
     frame_offset = round(start_time * frame_rate)
@@ -109,7 +103,7 @@ def _scale_effect_point_speeds(
 
     For BEZIER keyframes the stored speed is already non-zero and just
     needs rescaling.  LINEAR/HOLD speeds are computed later by
-    ``_compute_linear_hold_ease`` which already sees pixel values, so
+    `_compute_linear_hold_ease` which already sees pixel values, so
     they don't need adjustment here.
     """
     n = len(keyframes)
@@ -157,7 +151,7 @@ def _denormalize_effect_points(
     Effect point properties (PropertyControlType.TWO_D) inside effects
     store 2D values as fractions of composition dimensions.  ExtendScript
     reports them as absolute pixel coordinates.  This function multiplies
-    static values and keyframe values by ``[width, height]``.
+    static values and keyframe values by `[width, height]`.
 
     Temporal ease speeds for spatial 2D effect properties are also
     scaled.  The binary stores speed in normalized units/second;
@@ -214,7 +208,7 @@ def _parse_layer_property_groups(
             first_list = find_by_type(chunks=sub_chunks, chunk_type="LIST")
         except ChunkNotFoundError:
             continue
-        if first_list.list_type == "tdgp":
+        if first_list.body.list_type == "tdgp":
             prop_group = parse_property_group(
                 tdgp_chunk=first_list,
                 group_match_name=match_name,
@@ -226,7 +220,7 @@ def _parse_layer_property_groups(
                 layer_id_to_index=layer_id_to_index,
             )
             properties.append(prop_group)
-        elif first_list.list_type == "tdbs":
+        elif first_list.body.list_type == "tdbs":
             # Leaf property at layer level (e.g. Time Remap)
             prop = parse_property(
                 tdbs_chunk=first_list,
@@ -236,7 +230,7 @@ def _parse_layer_property_groups(
                 frame_rate=composition.frame_rate,
             )
             properties.append(prop)
-        elif first_list.list_type == "mrst":
+        elif first_list.body.list_type == "mrst":
             # Marker property
             marker_prop = parse_markers(
                 mrst_chunk=first_list,
@@ -271,7 +265,7 @@ def parse_layer(
     Returns:
         An [AVLayer][] for most layers, or a [LightLayer][] for light layers.
     """
-    child_chunks = layer_chunk.chunks
+    child_chunks = layer_chunk.body.chunks
 
     comment = get_comment(child_chunks)
 
@@ -280,16 +274,7 @@ def parse_layer(
     name_chunk = find_by_type(chunks=child_chunks, chunk_type="Utf8")
     name = str_contents(name_chunk)
 
-    layer_type_name = ldta_chunk.layer_type.name
-    # ExtendScript stretch is a percentage: 100 = normal, 200 = half speed, -100 = reverse
-    stretch = ldta_chunk.stretch
-
-    # Calculate absolute in_point and out_point from relative binary values
-    # Binary stores in_point/out_point relative to start_time
-    # When stretch != 100%, AE scales the relative offsets by stretch factor
-    stretch_factor = stretch / 100.0 if stretch != 0.0 else 1.0
-    in_point = ldta_chunk.start_time + ldta_chunk.in_point * stretch_factor
-    out_point = ldta_chunk.start_time + ldta_chunk.out_point * stretch_factor
+    layer_type_name = ldta_chunk.body.layer_type.name
 
     properties = _parse_layer_property_groups(
         child_chunks, composition, effect_param_defs, layer_id_to_index
@@ -298,7 +283,7 @@ def parse_layer(
     # Adjust keyframe times from layer-relative to composition-relative
     # time.  Binary keyframe times are stored relative to the layer;
     # ExtendScript reports them in comp time.
-    start_time: float = ldta_chunk.start_time
+    start_time: float = ldta_chunk.body.start_time
     if start_time != 0.0:
         _offset_keyframe_times(properties, start_time, composition.frame_rate)
 
@@ -306,81 +291,43 @@ def parse_layer(
     _denormalize_effect_points(properties, composition.width, composition.height)
 
     layer_attrs = {
-        "enabled": ldta_chunk.enabled,
+        "_ldta": ldta_chunk.body,
         "match_name": _LAYER_MATCH_NAMES.get(layer_type_name, "ADBE AV Layer"),
         "name": name,
-        "property_depth": 0,
         "properties": properties,
         "auto_orient": map_auto_orient_type(
-            auto_orient_along_path=ldta_chunk.auto_orient_along_path,
-            camera_or_poi_auto_orient=ldta_chunk.camera_or_poi_auto_orient,
-            three_d_layer=ldta_chunk.three_d_layer,
-            characters_toward_camera=ldta_chunk.characters_toward_camera,
-            three_d_per_char=ldta_chunk.three_d_per_char,
+            auto_orient_along_path=ldta_chunk.body.auto_orient_along_path,
+            camera_or_poi_auto_orient=ldta_chunk.body.camera_or_poi_auto_orient,
+            three_d_layer=ldta_chunk.body.three_d_layer,
+            characters_toward_camera=ldta_chunk.body.characters_toward_camera,
+            three_d_per_char=ldta_chunk.body.three_d_per_char,
         ),
         "comment": comment,
         "containing_comp": composition,
-        "frame_in_point": round(in_point * composition.frame_rate),
-        "frame_out_point": round(out_point * composition.frame_rate),
-        "frame_start_time": round(ldta_chunk.start_time * composition.frame_rate),
-        "id": ldta_chunk.layer_id,
-        "in_point": in_point,
-        "label": Label(int(ldta_chunk.label)),
         "layer_type": _LAYER_TYPE_NAMES.get(layer_type_name, "AVLayer"),
-        "locked": ldta_chunk.locked,
-        "null_layer": ldta_chunk.null_layer,
-        "out_point": out_point,
-        "_parent_id": ldta_chunk.parent_id,
-        "shy": ldta_chunk.shy,
-        "solo": ldta_chunk.solo,
-        "start_time": ldta_chunk.start_time,
-        "stretch": stretch,
-        "time": 0,
     }
 
     av_layer_attrs = {
-        "adjustment_layer": ldta_chunk.adjustment_layer,
-        "audio_enabled": ldta_chunk.audio_enabled,
-        "blending_mode": BlendingMode.from_binary(ldta_chunk.blending_mode),
-        "collapse_transformation": ldta_chunk.collapse_transformation,
-        "effects_active": ldta_chunk.effects_active,
-        "environment_layer": ldta_chunk.environment_layer,
-        "frame_blending": ldta_chunk.frame_blending,
-        "frame_blending_type": map_frame_blending_type(
-            ldta_chunk.frame_blending_type,
-            ldta_chunk.frame_blending,
-        ),
-        "guide_layer": ldta_chunk.guide_layer,
-        "motion_blur": ldta_chunk.motion_blur,
-        "preserve_transparency": bool(ldta_chunk.preserve_transparency),
-        "quality": LayerQuality.from_binary(ldta_chunk.quality),
-        "sampling_quality": LayerSamplingQuality.from_binary(
-            ldta_chunk.sampling_quality
-        ),
-        "_source_id": ldta_chunk.source_id,
-        "three_d_layer": ldta_chunk.three_d_layer,
-        "three_d_per_char": ldta_chunk.three_d_per_char,
-        "track_matte_type": TrackMatteType.from_binary(ldta_chunk.track_matte_type),
-        "_matte_layer_id": getattr(ldta_chunk, "matte_layer_id", 0) or 0,
+        "_matte_layer_id": getattr(ldta_chunk.body, "matte_layer_id", 0) or 0,
     }
 
     layer: Layer
     if layer_type_name == "light":
-        light_source_id = ldta_chunk.source_id
+        light_source_id = ldta_chunk.body.source_id
         layer = LightLayer(
-            **layer_attrs,
-            light_type=LightType.from_binary(ldta_chunk.light_type),
+            **layer_attrs,  # type: ignore[arg-type]
+            light_type=LightType.from_binary(ldta_chunk.body.light_type),
             _light_source_id=light_source_id if light_source_id != UNDEFINED_ID else 0,
         )
     elif layer_type_name == "camera":
-        layer = CameraLayer(**layer_attrs)
+        layer = CameraLayer(**layer_attrs)  # type: ignore[arg-type]
     elif layer_type_name == "shape":
-        layer = ShapeLayer(**layer_attrs, **av_layer_attrs)
+        layer = ShapeLayer(**layer_attrs, **av_layer_attrs)  # type: ignore[arg-type]
     elif layer_type_name == "text":
-        layer = TextLayer(**layer_attrs, **av_layer_attrs)
+        layer = TextLayer(**layer_attrs, **av_layer_attrs)  # type: ignore[arg-type]
     elif layer_type_name == "three_d_model":
-        layer = ThreeDModelLayer(**layer_attrs, **av_layer_attrs)
+        layer = ThreeDModelLayer(**layer_attrs, **av_layer_attrs)  # type: ignore[arg-type]
     else:
-        layer = AVLayer(**layer_attrs, **av_layer_attrs)
+        layer = AVLayer(**layer_attrs, **av_layer_attrs)  # type: ignore[arg-type]
 
     return layer

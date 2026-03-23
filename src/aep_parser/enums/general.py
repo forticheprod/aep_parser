@@ -67,6 +67,15 @@ class BitsPerChannel(IntEnum):
         }
         return _mapping.get(value, cls.EIGHT)
 
+    def to_binary(self) -> int:
+        """Convert BitsPerChannel to binary value."""
+        _mapping = {
+            BitsPerChannel.EIGHT: 0,
+            BitsPerChannel.SIXTEEN: 1,
+            BitsPerChannel.THIRTY_TWO: 2,
+        }
+        return _mapping[self]
+
 
 class AutoOrientType(IntEnum):
     """Auto-orientation mode for a layer.
@@ -170,6 +179,49 @@ class BlendingMode(IntEnum):
         }
         return _mapping.get(value, cls.NORMAL)
 
+    def to_binary(self) -> int:
+        """Convert BlendingMode to binary value."""
+        _reverse = {
+            BlendingMode.NORMAL: 2,
+            BlendingMode.DISSOLVE: 3,
+            BlendingMode.ADD: 4,
+            BlendingMode.MULTIPLY: 5,
+            BlendingMode.SCREEN: 6,
+            BlendingMode.OVERLAY: 7,
+            BlendingMode.SOFT_LIGHT: 8,
+            BlendingMode.HARD_LIGHT: 9,
+            BlendingMode.DARKEN: 10,
+            BlendingMode.LIGHTEN: 11,
+            BlendingMode.CLASSIC_DIFFERENCE: 12,
+            BlendingMode.HUE: 13,
+            BlendingMode.SATURATION: 14,
+            BlendingMode.COLOR: 15,
+            BlendingMode.LUMINOSITY: 16,
+            BlendingMode.STENCIL_ALPHA: 17,
+            BlendingMode.STENCIL_LUMA: 18,
+            BlendingMode.SILHOUETE_ALPHA: 19,
+            BlendingMode.SILHOUETTE_LUMA: 20,
+            BlendingMode.LUMINESCENT_PREMUL: 21,
+            BlendingMode.ALPHA_ADD: 22,
+            BlendingMode.CLASSIC_COLOR_DODGE: 23,
+            BlendingMode.CLASSIC_COLOR_BURN: 24,
+            BlendingMode.EXCLUSION: 25,
+            BlendingMode.DIFFERENCE: 26,
+            BlendingMode.COLOR_DODGE: 27,
+            BlendingMode.COLOR_BURN: 28,
+            BlendingMode.LINEAR_DODGE: 29,
+            BlendingMode.LINEAR_BURN: 30,
+            BlendingMode.LINEAR_LIGHT: 31,
+            BlendingMode.VIVID_LIGHT: 32,
+            BlendingMode.PIN_LIGHT: 33,
+            BlendingMode.HARD_MIX: 34,
+            BlendingMode.LIGHTER_COLOR: 35,
+            BlendingMode.DARKER_COLOR: 36,
+            BlendingMode.SUBTRACT: 37,
+            BlendingMode.DIVIDE: 38,
+        }
+        return _reverse[self]
+
 
 class ChannelType(IntEnum):
     """Channel display type for a viewer.
@@ -251,6 +303,10 @@ class FeetFramesFilmType(IntEnum):
         # Binary 0 = MM35 (2413), Binary 1 = MM16 (2412)
         return cls(2413 - value)
 
+    def to_binary(self) -> int:
+        """Convert FeetFramesFilmType to binary value."""
+        return 2413 - int(self)
+
 
 class FieldSeparationType(IntEnum):
     """How fields are separated in interlaced footage.
@@ -280,6 +336,14 @@ class FootageTimecodeDisplayStartType(IntEnum):
             1: cls.FTCS_USE_SOURCE_MEDIA,
         }
         return _mapping.get(value, cls.FTCS_START_0)
+
+    def to_binary(self) -> int:
+        """Convert FootageTimecodeDisplayStartType to binary value."""
+        _mapping = {
+            FootageTimecodeDisplayStartType.FTCS_START_0: 0,
+            FootageTimecodeDisplayStartType.FTCS_USE_SOURCE_MEDIA: 1,
+        }
+        return _mapping[self]
 
 
 class FrameBlendingType(IntEnum):
@@ -311,6 +375,10 @@ class FramesCountType(IntEnum):
         except ValueError:
             return cls.FC_START_0
 
+    def to_binary(self) -> int:
+        """Convert FramesCountType to binary value."""
+        return int(self) - 2612
+
 
 class GpuAccelType(IntEnum):
     """GPU acceleration type.
@@ -324,6 +392,33 @@ class GpuAccelType(IntEnum):
     VULKAN = 1815
     SOFTWARE = 1816
     DIRECTX = 1817
+
+    @classmethod
+    def from_binary(cls, uuid: str) -> GpuAccelType | str:
+        """Map a gpuG UUID string to a GpuAccelType enum value.
+
+        Returns the UUID string itself if the UUID is not recognized.
+        """
+        return _GPU_UUID_TO_ENUM.get(uuid, uuid)  # type: ignore[return-value]
+
+    @staticmethod
+    def to_binary(value: GpuAccelType | str) -> str:
+        """Map a GpuAccelType enum value back to its UUID string.
+
+        If value is already a UUID string, returns it as-is.
+        """
+        if isinstance(value, GpuAccelType):
+            return _GPU_ENUM_TO_UUID[value]
+        return value
+
+
+_GPU_UUID_TO_ENUM: dict[str, GpuAccelType] = {
+    "7ee0ab59-822d-44cc-ac10-16279d041016": GpuAccelType.CUDA,
+    "f33089e2-1ede-47c1-8a9e-b232bb1cc1a4": GpuAccelType.SOFTWARE,
+}
+_GPU_ENUM_TO_UUID: dict[GpuAccelType, str] = {
+    v: k for k, v in _GPU_UUID_TO_ENUM.items()
+}
 
 
 class ImportAsType(IntEnum):
@@ -374,6 +469,10 @@ class LayerQuality(IntEnum):
         except ValueError:
             return cls.BEST
 
+    def to_binary(self) -> int:
+        """Convert LayerQuality to binary value."""
+        return int(self) - 4612
+
 
 class LayerSamplingQuality(IntEnum):
     """Sampling quality for a layer.
@@ -391,6 +490,10 @@ class LayerSamplingQuality(IntEnum):
             return cls(value + 4812)
         except ValueError:
             return cls.BILINEAR
+
+    def to_binary(self) -> int:
+        """Convert LayerSamplingQuality to binary value."""
+        return int(self) - 4812
 
 
 class LightType(IntEnum):
@@ -593,6 +696,10 @@ class TimeDisplayType(IntEnum):
         except ValueError:
             return cls.TIMECODE
 
+    def to_binary(self) -> int:
+        """Convert TimeDisplayType to binary value."""
+        return int(self) - 2012
+
 
 class ToolType(IntEnum):
     """Tool type in the application.
@@ -660,6 +767,10 @@ class TrackMatteType(IntEnum):
             return cls(value + 5012)
         except ValueError:
             return cls.NO_TRACK_MATTE
+
+    def to_binary(self) -> int:
+        """Convert TrackMatteType to binary value."""
+        return int(self) - 5012
 
 
 class ViewerType(IntEnum):

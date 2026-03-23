@@ -34,16 +34,16 @@ def parse_item(
         project: The project.
         parent_folder: The parent folder.
     """
-    child_chunks = item_chunk.chunks
+    child_chunks = item_chunk.body.chunks
     comment = get_comment(child_chunks)
 
     item_name = get_name(child_chunks)
 
     idta_chunk = find_by_type(chunks=child_chunks, chunk_type="idta")
 
-    item_id = idta_chunk.id
-    item_type = idta_chunk.item_type
-    label = Label(int(idta_chunk.label))
+    item_id = idta_chunk.body.id
+    item_type = idta_chunk.body.item_type
+    label = Label(int(idta_chunk.body.label))
 
     item: CompItem | FolderItem | FootageItem
     if item_type == Aep.ItemType.folder:
@@ -117,7 +117,6 @@ def parse_folder(
         id=item_id,
         label=label,
         name=item_name,
-        type_name="Folder",
         parent_folder=parent_folder,
     )
     if is_root:
@@ -125,7 +124,7 @@ def parse_folder(
     else:
         sfdr_chunk = find_by_list_type(chunks=child_chunks, list_type="Sfdr")
         child_item_chunks = filter_by_list_type(
-            chunks=sfdr_chunk.chunks, list_type="Item"
+            chunks=sfdr_chunk.body.chunks, list_type="Item"
         )
     for child_item_chunk in child_item_chunks:
         child_item = parse_item(

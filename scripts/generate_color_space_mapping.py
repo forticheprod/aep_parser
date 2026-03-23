@@ -3,16 +3,16 @@
 
 Scans directories containing ICC/ICM files and computes the ICC Profile ID
 (per ISO 15076-1 §7.2.18) for each profile.  The UID is
-``MD5(icc_data)`` with bytes 44-47, 64-67 and 84-99 zeroed before hashing.
+`MD5(icc_data)` with bytes 44-47, 64-67 and 84-99 zeroed before hashing.
 
 This is the algorithm Adobe After Effects uses internally to identify
-output color space profiles stored in the ``output_profile_id`` field of
-output-module ``ldat`` chunks.
+output color space profiles stored in the `output_profile_id` field of
+output-module `ldat` chunks.
 
-Note: Two profiles (``* wsRGB`` and ``* wscRGB``) are WCS (Windows Color
+Note: Two profiles (`* wsRGB` and `* wscRGB`) are WCS (Windows Color
 System) CDMP profiles for which Adobe Color Engine generates ICC wrappers
 at runtime.  They have no ICC files on disk and will not be found by this
-script.  ``e-sRGB`` is also a WCS CDMP profile but Adobe ships an ICC
+script.  `e-sRGB` is also a WCS CDMP profile but Adobe ships an ICC
 version in ACE.dll.
 
 Usage (Windows)::
@@ -32,7 +32,7 @@ Usage (macOS)::
         "/Library/Application Support/Adobe/Color/Profiles/Recommended"
 
 Output is a Python dict literal that can be pasted into
-``src/aep_parser/parsers/mappings.py``.
+`src/aep_parser/parsers/mappings.py`.
 """
 
 from __future__ import annotations
@@ -64,16 +64,16 @@ def icc_profile_id(data: bytes) -> str:
 
 
 def icc_profile_description(data: bytes) -> str | None:
-    """Extract the ``desc`` tag text from an ICC profile.
+    """Extract the `desc` tag text from an ICC profile.
 
-    Supports both ICCv2 ``textDescriptionType`` and ICCv4
-    ``multiLocalizedUnicodeType`` tag formats.
+    Supports both ICCv2 `textDescriptionType` and ICCv4
+    `multiLocalizedUnicodeType` tag formats.
 
     Args:
         data: Raw ICC profile bytes.
 
     Returns:
-        The profile description string, or ``None`` if not found.
+        The profile description string, or `None` if not found.
     """
     if len(data) < 132:
         return None

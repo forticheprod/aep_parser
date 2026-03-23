@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import typing
 from abc import ABC
-from dataclasses import dataclass, field
 
 from aep_parser.enums import Label
 
@@ -10,7 +9,6 @@ if typing.TYPE_CHECKING:
     from .folder import FolderItem
 
 
-@dataclass(eq=False)
 class Item(ABC):
     """
     The `Item` object represents an item that can appear in the Project panel.
@@ -39,7 +37,7 @@ class Item(ABC):
     name: str
     """The name of the item, as shown in the Project panel."""
 
-    parent_folder: FolderItem | None = field(repr=False)
+    parent_folder: FolderItem | None
     """The parent folder of this item. `None` for the root folder."""
 
     type_name: str
@@ -48,6 +46,23 @@ class Item(ABC):
     "Composition"). These names are application locale-dependent, meaning that
     they are different depending on the application's UI language.
     """
+
+    def __init__(
+        self,
+        *,
+        comment: str,
+        id: int,
+        label: Label,
+        name: str,
+        parent_folder: FolderItem | None,
+        type_name: str,
+    ) -> None:
+        self.comment = comment
+        self.id = id
+        self.label = label
+        self.name = name
+        self.parent_folder = parent_folder
+        self.type_name = type_name
 
     @property
     def is_folder(self) -> bool:

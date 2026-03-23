@@ -117,7 +117,7 @@ class TextDocument:
     """
     The Text layer's baseline direction option. This is significant for
     Japanese language in vertical texts.
-    ``BASELINE_VERTICAL_CROSS_STREAM`` is also known as Tate-Chu-Yoko.
+    `BASELINE_VERTICAL_CROSS_STREAM` is also known as Tate-Chu-Yoko.
 
     Note:
         This functionality was added in After Effects 24.0.
@@ -134,14 +134,14 @@ class TextDocument:
     paragraph text box are treated as multiple lines.
 
     The array contains groups of four floats per line:
-    ``[line0.start_x, line0.start_y, line0.end_x, line0.end_y, ...]``.
+    `[line0.start_x, line0.start_y, line0.end_x, line0.end_y, ...]`.
 
     Note:
         This functionality was added in After Effects 13.6 (CC 2015).
 
     Tip:
         If a line has no characters, the x and y values for start and end
-        will be the maximum float value (``3.402823466e+38``).
+        will be the maximum float value (`3.402823466e+38`).
     """
 
     baseline_shift: float | None = None
@@ -162,11 +162,11 @@ class TextDocument:
     Enables the automated change of the box height to fit the text content
     in the box. The box only grows down.
 
-    Defaults to ``BoxAutoFitPolicy.NONE``.
+    Defaults to `BoxAutoFitPolicy.NONE`.
 
     Will be disabled if
     [box_vertical_alignment][TextDocument.box_vertical_alignment] is
-    anything other than ``BoxVerticalAlignment.TOP``.
+    anything other than `BoxVerticalAlignment.TOP`.
 
     Note:
         This functionality was added in After Effects 24.6.
@@ -181,7 +181,7 @@ class TextDocument:
     [box_first_baseline_alignment_minimum][TextDocument.box_first_baseline_alignment_minimum]
     is anything other than zero.
 
-    Defaults to ``BoxFirstBaselineAlignment.ASCENT``.
+    Defaults to `BoxFirstBaselineAlignment.ASCENT`.
 
     Note:
         This functionality was added in After Effects 24.6.
@@ -227,7 +227,7 @@ class TextDocument:
     box_text_pos: list[float] | None = None
     """
     The layer coordinates from a paragraph (box) Text layer's anchor point
-    as a ``[width, height]`` array of pixel dimensions.
+    as a `[width, height]` array of pixel dimensions.
 
     Note:
         This functionality was added in After Effects 13.2 (CC 2014.2).
@@ -238,7 +238,7 @@ class TextDocument:
 
     box_text_size: list[int] | None = None
     """
-    The size of a paragraph (box) Text layer as a ``[width, height]`` array
+    The size of a paragraph (box) Text layer as a `[width, height]` array
     of pixel dimensions.
 
     Warning:
@@ -248,7 +248,7 @@ class TextDocument:
     box_vertical_alignment: BoxVerticalAlignment | None = None
     """
     Enables the automated vertical alignment of the composed text in the
-    box. Defaults to ``BoxVerticalAlignment.TOP``.
+    box. Defaults to `BoxVerticalAlignment.TOP`.
 
     Note:
         This functionality was added in After Effects 24.6.
@@ -259,16 +259,16 @@ class TextDocument:
     The number of composed lines in the Text layer, may be zero if all text
     is overset.
 
-    The [TextDocument][] instance is initialized from the composed state
-    and subsequent changes to the [TextDocument][] instance does not cause
-    recomposition. Even if you remove all the text from the [TextDocument][]
+    The `TextDocument` instance is initialized from the composed state
+    and subsequent changes to the `TextDocument` instance does not cause
+    recomposition. Even if you remove all the text from the `TextDocument`
     instance, the value returned here remains unchanged.
     """
 
     composer_engine: ComposerEngine | None = None
     """
     The Text layer's paragraph composer engine option. By default new Text
-    layers will use ``ComposerEngine.UNIVERSAL_TYPE_ENGINE``; the other
+    layers will use `ComposerEngine.UNIVERSAL_TYPE_ENGINE`; the other
     enum value will only be encountered in projects created before the
     Universal Type Engine became the default in After Effects 22.1.1.
 
@@ -372,7 +372,7 @@ class TextDocument:
 
     fill_color: list[float] | None = None
     """
-    The Text layer's fill color, as an array of ``[r, g, b]``
+    The Text layer's fill color, as an array of `[r, g, b]`
     floating-point values. For example, in an 8-bpc project, a red value
     of 255 would be 1.0, and in a 32-bpc project, an overbright blue value
     can be something like 3.2.
@@ -532,11 +532,11 @@ class TextDocument:
     The paragraph justification for the Text layer.
 
     Text layers with mixed justification values will be read as
-    ``ParagraphJustification.MULTIPLE_JUSTIFICATIONS``.
+    `ParagraphJustification.MULTIPLE_JUSTIFICATIONS`.
 
     Setting a [TextDocument][] to use
-    ``ParagraphJustification.MULTIPLE_JUSTIFICATIONS`` will result in
-    ``ParagraphJustification.CENTER_JUSTIFY`` instead.
+    `ParagraphJustification.MULTIPLE_JUSTIFICATIONS` will result in
+    `ParagraphJustification.CENTER_JUSTIFY` instead.
 
     Warning:
         This value reflects all paragraphs in the Text layer. If you change
@@ -548,10 +548,10 @@ class TextDocument:
     """
     The Text layer's kerning option.
 
-    Returns zero for ``AutoKernType.METRIC_KERN`` and
-    ``AutoKernType.OPTICAL_KERN``.
+    Returns zero for `AutoKernType.METRIC_KERN` and
+    `AutoKernType.OPTICAL_KERN`.
 
-    Setting this value will also set ``AutoKernType.NO_AUTO_KERN`` to
+    Setting this value will also set `AutoKernType.NO_AUTO_KERN` to
     `True` across the affected characters.
 
     Note:
@@ -718,7 +718,7 @@ class TextDocument:
 
     stroke_color: list[float] | None = None
     """
-    The Text layer's stroke color, as an array of ``[r, g, b]``
+    The Text layer's stroke color, as an array of `[r, g, b]`
     floating-point values. For example, in an 8-bpc project, a red value
     of 255 would be 1.0, and in a 32-bpc project, an overbright blue value
     can be something like 3.2.

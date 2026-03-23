@@ -47,7 +47,7 @@ _XML_FORMAT_CODES = {".AVI", "H264", "Mp3 ", "MooV", "wao_"}
 def _parse_exporter_params(xml_text: str) -> dict[str, str]:
     """Extract parameter key-value pairs from PremiereData XML.
 
-    Parses ``ExporterParam`` elements regardless of child-tag order and
+    Parses `ExporterParam` elements regardless of child-tag order and
     returns a mapping of identifier to value. Container groups (numeric
     identifiers) are skipped.
 
@@ -124,7 +124,7 @@ def _parse_xml_format_options(
     """Parse XML-based format options from a generic Ropt body.
 
     The raw bytes contain a short binary header followed by XML
-    ``PremiereData`` with ``ExporterParam`` elements. Shared by AVI,
+    `PremiereData` with `ExporterParam` elements. Shared by AVI,
     H.264, MP3, QuickTime, and WAV formats.
 
     Args:
@@ -273,7 +273,7 @@ def _parse_openexr_format_options(
 def _parse_png_hdr10_json(utf8_json: str) -> dict[str, Any]:
     """Parse HDR10 metadata from the Utf8 JSON chunk.
 
-    Parses the JSON string stored in the first ``Utf8`` chunk of the
+    Parses the JSON string stored in the first `Utf8` chunk of the
     output module, which holds HDR10/color-metadata settings for PNG
     exports. Returns an empty dict when the JSON is empty or invalid.
 
@@ -282,9 +282,9 @@ def _parse_png_hdr10_json(utf8_json: str) -> dict[str, Any]:
 
     Returns:
         Parsed dict with any of the following keys:
-        ``colorMetadataPresent``, ``displayPrimaries``,
-        ``minLuminance``, ``maxLuminance``,
-        ``maxContentLightLevel``, ``maxFrameAverageLightLevel``.
+        `colorMetadataPresent`, `displayPrimaries`,
+        `minLuminance`, `maxLuminance`,
+        `maxContentLightLevel`, `maxFrameAverageLightLevel`.
     """
     try:
         result = json.loads(utf8_json)
@@ -304,7 +304,7 @@ def _parse_png_format_options(
     Args:
         body: The Kaitai-parsed PNG Ropt data with width, height, and
             bit depth fields.
-        hdr10_json: JSON string from the first ``Utf8`` chunk in the
+        hdr10_json: JSON string from the first `Utf8` chunk in the
             output module, containing HDR10 metadata settings.
 
     Returns:
@@ -366,7 +366,7 @@ def parse_format_options(
         chunks: List of chunks belonging to an output module.
 
     Returns:
-        A format-specific options object, or ``None`` when the Ropt chunk
+        A format-specific options object, or `None` when the Ropt chunk
         is absent or the format is not yet supported.
     """
     ropt_chunks = filter_by_type(chunks=chunks, chunk_type="Ropt")
@@ -374,24 +374,24 @@ def parse_format_options(
         return None
 
     ropt_chunk = ropt_chunks[0]
-    format_code = ropt_chunk.format_code
+    format_code = ropt_chunk.body.format_code
 
     if format_code == "sDPX":
-        return _parse_cineon_format_options(ropt_chunk.body)
+        return _parse_cineon_format_options(ropt_chunk.body.body)
     if format_code == "JPEG":
-        return _parse_jpeg_format_options(ropt_chunk.body)
+        return _parse_jpeg_format_options(ropt_chunk.body.body)
     if format_code == "TPIC":
-        return _parse_targa_format_options(ropt_chunk.body)
+        return _parse_targa_format_options(ropt_chunk.body.body)
     if format_code == "TIF ":
-        return _parse_tiff_format_options(ropt_chunk.body)
+        return _parse_tiff_format_options(ropt_chunk.body.body)
     if format_code == "oEXR":
-        return _parse_openexr_format_options(ropt_chunk.body)
+        return _parse_openexr_format_options(ropt_chunk.body.body)
     if format_code == "png!":
         # Utf8[0] is a JSON chunk containing HDR10 metadata settings.
         utf8_chunks = filter_by_type(chunks=chunks, chunk_type="Utf8")
         hdr10_json = str_contents(utf8_chunks[0]) if utf8_chunks else "{}"
-        return _parse_png_format_options(ropt_chunk.body, hdr10_json)
+        return _parse_png_format_options(ropt_chunk.body.body, hdr10_json)
     if format_code in _XML_FORMAT_CODES:
-        return _parse_xml_format_options(format_code, ropt_chunk.body)
+        return _parse_xml_format_options(format_code, ropt_chunk.body.body)
 
     return None

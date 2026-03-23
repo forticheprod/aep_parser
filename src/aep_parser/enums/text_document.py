@@ -23,7 +23,7 @@ class BaselineDirection(IntEnum):
     """Baseline direction option for text characters.
 
     This is significant for Japanese language in vertical texts.
-    ``BASELINE_VERTICAL_CROSS_STREAM`` is also known as Tate-Chu-Yoko.
+    `BASELINE_VERTICAL_CROSS_STREAM` is also known as Tate-Chu-Yoko.
 
     See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentbaselinedirection
     """

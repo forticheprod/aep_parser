@@ -24,7 +24,6 @@ from ..models.properties.keyframe_ease import KeyframeEase
 from ..models.properties.property import Property
 from .match_names import MATCH_NAME_TO_NICE_NAME
 from .utils import (
-    parse_ldat_items,
     read_tdum,
 )
 
@@ -470,12 +469,12 @@ def parse_property(
             to 1-based layer indices. Used to convert tdpi values to the
             layer index reported by ExtendScript.
     """
-    tdbs_child_chunks = tdbs_chunk.chunks
+    tdbs_child_chunks = tdbs_chunk.body.chunks
 
-    tdsb_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdsb")
+    tdsb_chunk = tdbs_chunk.body.tdsb
 
-    locked_ratio = tdsb_chunk.locked_ratio
-    enabled = tdsb_chunk.enabled
+    locked_ratio = tdsb_chunk.body.locked_ratio
+    enabled = tdsb_chunk.body.enabled
     # ExtendScript only reports dimensionsSeparated=True on the
     # Position property ("ADBE Position") when separation is active.
     # The binary stores the flag on many other properties, but
@@ -483,7 +482,7 @@ def parse_property(
     # the individual dimension children ("ADBE Position_0" etc.).
     is_position_parent = match_name == "ADBE Position"
     dimensions_separated = (
-        tdsb_chunk.dimensions_separated if is_position_parent else False
+        tdsb_chunk.body.dimensions_separated if is_position_parent else False
     )
 
     user_name = get_user_defined_name(tdbs_chunk)
@@ -492,19 +491,19 @@ def parse_property(
     else:
         name = MATCH_NAME_TO_NICE_NAME.get(match_name, match_name)
 
-    tdb4_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdb4")
+    tdb4_chunk = tdbs_chunk.body.tdb4
 
-    is_spatial = tdb4_chunk.is_spatial
-    raw_expression_enabled = tdb4_chunk.expression_enabled
-    animated = tdb4_chunk.animated
-    dimensions = tdb4_chunk.dimensions
-    integer = tdb4_chunk.integer
-    vector = tdb4_chunk.vector
-    no_value = tdb4_chunk.no_value
-    color = tdb4_chunk.color
+    is_spatial = tdb4_chunk.body.is_spatial
+    raw_expression_enabled = tdb4_chunk.body.expression_enabled
+    animated = tdb4_chunk.body.animated
+    dimensions = tdb4_chunk.body.dimensions
+    integer = tdb4_chunk.body.integer
+    vector = tdb4_chunk.body.vector
+    no_value = tdb4_chunk.body.no_value
+    color = tdb4_chunk.body.color
     # NO_VALUE properties always report canVaryOverTime=True in AE,
     # even though byte 11 says otherwise.
-    can_vary_over_time = tdb4_chunk.can_vary_over_time or no_value
+    can_vary_over_time = tdb4_chunk.body.can_vary_over_time or no_value
 
     # Override remaining match names where the binary is wrong.
     _CANVARY_OVERRIDES: dict[str, bool] = {
@@ -528,7 +527,7 @@ def parse_property(
 
     try:
         cdat_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="cdat")
-        values = cdat_chunk.value[:dimensions]
+        values = cdat_chunk.body.value[:dimensions]
         # ExtendScript returns a scalar for 1D non-color properties
         if not values:
             value = None
@@ -545,7 +544,7 @@ def parse_property(
     # tdli stores the 1-based mask index directly.
     try:
         tdpi_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdpi")
-        layer_id = tdpi_chunk.value
+        layer_id = tdpi_chunk.body.value
         if layer_id == 0 or layer_id_to_index is None:
             value = 0
         else:
@@ -554,7 +553,7 @@ def parse_property(
         pass
     try:
         tdli_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdli")
-        value = tdli_chunk.value
+        value = tdli_chunk.body.value
     except ChunkNotFoundError:
         pass
 
@@ -665,7 +664,12 @@ def _parse_keyframes(
     except ChunkNotFoundError:
         return []
 
-    kf_items = parse_ldat_items(list_chunk, is_spatial=is_spatial)
+    ldat = list_chunk.body.ldat
+    if ldat is None:
+        return []
+
+    ldat_body = ldat.body
+    kf_items = ldat_body.items
 
     keyframes: list[Keyframe] = []
     for kf in kf_items:
@@ -706,10 +710,10 @@ def _extract_temporal_ease(
     """Extract in/out temporal ease from a keyframe data payload.
 
     Returns:
-        A ``(in_ease, out_ease)`` tuple.  Each element is a list of
+        A `(in_ease, out_ease)` tuple.  Each element is a list of
         [KeyframeEase][] objects - one per dimension for
         multi-dimensional properties, or a single element for scalar /
-        spatial types.  Returns ``([], [])`` when the keyframe type
+        spatial types.  Returns `([], [])` when the keyframe type
         carries no ease data (e.g. markers).
     """
     if not hasattr(kf_data, "in_speed"):
@@ -748,9 +752,9 @@ def _extract_spatial_tangents(
     """Extract in/out spatial tangent vectors from a keyframe data payload.
 
     Returns:
-        A ``(in_tangent, out_tangent)`` tuple.  Each is a list of floats
-        (one per dimension) for spatial keyframe types (``kf_position``),
-        or ``None`` for non-spatial types.
+        A `(in_tangent, out_tangent)` tuple.  Each is a list of floats
+        (one per dimension) for spatial keyframe types (`kf_position`),
+        or `None` for non-spatial types.
     """
     if hasattr(kf_data, "in_spatial_tangents"):
         return kf_data.in_spatial_tangents, kf_data.out_spatial_tangents
@@ -763,7 +767,7 @@ def _extract_keyframe_value(
     """Extract the value from a keyframe's data payload.
 
     Returns a scalar for 1-dimensional properties, a list for
-    multi-dimensional or color properties, and ``None`` when the
+    multi-dimensional or color properties, and `None` when the
     keyframe type carries no value (e.g. markers).
     """
     kf_data = kf.kf_data
@@ -835,12 +839,12 @@ def _compute_linear_hold_ease(
     already parsed.  For LINEAR and HOLD interpolation the binary stores
     zeros, but ExtendScript computes and reports default values:
 
-    - **Influence** is always ``100 / 6`` (approx. 16.667 %).
+    - **Influence** is always `100 / 6` (approx. 16.667 %).
     - **Speed** for LINEAR equals the constant rate of change between
       adjacent keyframes (*value delta / time in seconds*).  For spatial
       properties a single scalar speed is reported (the magnitude of the
       velocity vector).
-    - **Speed** for HOLD is always ``0``.
+    - **Speed** for HOLD is always `0`.
 
     Modifies *keyframes* in place.
 
@@ -916,8 +920,8 @@ def get_user_defined_name(root_chunk: Aep.Chunk) -> str | None:
         The user-defined name (possibly empty string), or None when
         the property uses the default sentinel name.
     """
-    tdsn_chunk = find_by_type(chunks=root_chunk.chunks, chunk_type="tdsn")
-    utf8_chunk = tdsn_chunk.chunk
+    tdsn_chunk = find_by_type(chunks=root_chunk.body.chunks, chunk_type="tdsn")
+    utf8_chunk = tdsn_chunk.body.chunk
     name = str_contents(utf8_chunk)
 
     # Check if there is a custom user defined name added.

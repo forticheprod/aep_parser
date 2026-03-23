@@ -51,7 +51,9 @@ AEP Parser transforms binary .aep files into typed Python objects through a thre
 - `find_by_list_type()` - Find a LIST chunk by its list_type
 - `filter_by_type()` - Get all chunks of a given type
 
-**Chunk attribute proxy**: `aep_optimized.py` monkey-patches `Aep.Chunk.__getattr__` so that attribute access on a chunk transparently delegates to `chunk.data` when the attribute is not found on the chunk itself. This means you can write `chunk.list_type` instead of `chunk.data.list_type`, and `cdta_chunk.time_scale` instead of `cdta_chunk.data.time_scale`. Keep this in mind when reading parser code - any attribute on a `Chunk` may actually come from its `.data`.
+**Chunk data access**: Chunk attributes live on `chunk.body`, not on the chunk itself. Always use explicit `chunk.body.X` access:
+- `chunk.body.list_type` - the list_type of a LIST chunk
+- `cdta_chunk.body.time_scale` - a typed body field
 
 ## Development Workflow
 
@@ -167,12 +169,13 @@ app = parse("samples/models/composition/bgColor_custom.aep")
 project = app.project
 
 # Explore the data
-print(project.frame_rate)
+print(project.bits_per_channel)
 print(project.items[0].name)
 
 # Access raw Kaitai chunks (advanced)
-from aep_parser.kaitai.aep import Aep
+from aep_parser.kaitai import Aep
 aep_data = Aep.from_file("samples/models/composition/bgColor_custom.aep")
+aep_data._read()
 chunks = aep_data.rifx.chunks
 ```
 
@@ -211,7 +214,8 @@ If the chunk isn't already parsed, add it to `aep.ksy`:
 ```bash
 kaitai-struct-compiler --target python \
   --outdir src/aep_parser/kaitai \
-  src/aep_parser/kaitai/aep.ksy
+  src/aep_parser/kaitai/aep.ksy \
+  --read-write --no-auto-read
 ```
 
 > **⚠️ Integer division pitfall:** In Kaitai Struct, `/` between two integers
@@ -219,9 +223,9 @@ kaitai-struct-compiler --target python \
 > multiply one operand by `1.0`:
 > ```yaml
 > # Wrong - truncates to integer (e.g. 3 / 4 = 0)
-> value: 'pixel_ratio_width / pixel_ratio_height'
+> value: 'pixel_ratio_dividend / pixel_ratio_divisor'
 > # Correct - produces float (e.g. 3 * 1.0 / 4 = 0.75)
-> value: 'pixel_ratio_width * 1.0 / pixel_ratio_height'
+> value: 'pixel_ratio_dividend * 1.0 / pixel_ratio_divisor'
 > ```
 
 #### 4. Update the Model
@@ -258,7 +262,7 @@ def parse_comp_item(chunk: Aep.Chunk, context: Context) -> CompItem:
     
     return CompItem(
         # ... other arguments ...
-        shutter_angle=cdta_chunk.shutter_angle,  # <-- Add this
+        shutter_angle=cdta_chunk.body.shutter_angle,  # <-- Add this
     )
 ```
 
@@ -341,7 +345,7 @@ motion_blur: bool
 """When True, motion blur is enabled for the composition."""
 
 # In parser
-motion_blur=flags_chunk.motion_blur,
+motion_blur=flags_chunk.body.motion_blur,
 ```
 
 ### Adding a New Layer Type
@@ -536,6 +540,27 @@ comp_chunk = find_by_list_type(chunks=root_chunks, list_type="Comp")
 layer_chunks = filter_by_list_type(chunks=comp_chunks, list_type="Layr")
 ```
 
+### Typed LIST Instances
+
+Some LIST types have children at fixed positions. `list_body` in `aep.ksy` defines
+Kaitai instances for direct access by name instead of `find_by_type`:
+
+```python
+# LIST:list — keyframe/shape data
+list_chunk.body.lhd3          # chunks[0] — header (count + item size)
+list_chunk.body.ldat          # chunks[1] — data items (None if no keyframes)
+
+# LIST:tdbs — leaf property container
+tdbs_chunk.body.tdsb          # chunks[0] — property flags
+tdbs_chunk.body.tdsn          # chunks[1] — property name
+tdbs_chunk.body.tdb4          # chunks[2] — property metadata
+```
+
+Each instance has an `if` guard on `list_type`, so accessing e.g. `.lhd3` on a
+non-`list` LIST returns `None`. Use `find_by_type` when the LIST type is unknown
+or when a function handles multiple LIST types (e.g. `parse_layer` handles both
+`Layr` and `SecL`).
+
 ### Parser Pattern
 
 ```python
@@ -543,19 +568,19 @@ def parse_thing(chunk: Aep.Chunk, context: Context) -> ThingModel:
     """Parse a Thing from AEP chunk data."""
     
     # Get child chunks
-    child_chunks = chunk.chunks
+    child_chunks = chunk.body.chunks
     
     # Find specific chunks
     data_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     name_chunk = find_by_type(chunks=child_chunks, chunk_type="tdgp")
     
     # Parse name (common pattern)
-    name = name_chunk.name.decode("utf-8") if name_chunk else ""
+    name = name_chunk.body.name.decode("utf-8") if name_chunk else ""
     
     # Return model instance
     return ThingModel(
         name=name,
-        some_value=data_chunk.some_value,
+        some_value=data_chunk.body.some_value,
     )
 ```
 

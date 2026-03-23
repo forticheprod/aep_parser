@@ -77,7 +77,7 @@ class Property(PropertyBase):
 
     can_vary_over_time: bool
     """
-    When `True`, the named property can vary over time — that is, keyframe
+    When `True`, the named property can vary over time - that is, keyframe
     values or expressions can be written to this property.
 
     Note:
@@ -549,12 +549,12 @@ class Property(PropertyBase):
         Args:
             time: The composition time in seconds at which to evaluate
                 the property.
-            pre_expression: When ``True`` the value is evaluated before
+            pre_expression: When `True` the value is evaluated before
                 any expression is applied (the only mode supported by
                 the parser).
 
         Raises:
-            NotImplementedError: If *pre_expression* is ``False``,
+            NotImplementedError: If *pre_expression* is `False`,
                 because the parser cannot evaluate expressions.
         """
         if not pre_expression:

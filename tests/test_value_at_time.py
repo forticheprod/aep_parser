@@ -1,7 +1,7 @@
 """Tests for Property.value_at_time() interpolation against ExtendScript ground truth.
 
-Ground truth comes from ``export_value_at_time.jsx`` which evaluates
-``prop.valueAtTime(frame * comp.frameDuration)`` in After Effects and stores
+Ground truth comes from `export_value_at_time.jsx` which evaluates
+`prop.valueAtTime(frame * comp.frameDuration)` in After Effects and stores
 the result alongside the frame number and full-precision evaluation time.
 
 Spatial properties (position, 2D/3D) exhibit a systematic ±0.015 deviation
@@ -23,7 +23,7 @@ from aep_parser import Property
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "property"
 VAT_DIR = SAMPLES_DIR / "value_at_time"
 
-# Maps matchName → function to find the property from a parsed layer
+# Maps matchName -> function to find the property from a parsed layer
 _FINDERS: dict[str, object] = {
     "ADBE Opacity": lambda ly: ly.transform.property(name="ADBE Opacity"),
     "ADBE Position": lambda ly: ly.transform.property(name="ADBE Position"),

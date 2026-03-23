@@ -24,7 +24,7 @@ from .aep import Aep
 def _get_string_value(node: ast.expr) -> str | None:
     """Extract a string value from an AST expression node.
 
-    Handles ``ast.Constant`` (Python 3.8+) and the legacy ``ast.Str``
+    Handles `ast.Constant` (Python 3.8+) and the legacy `ast.Str`
     (Python 3.7) transparently.
     """
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
@@ -36,7 +36,7 @@ def _get_string_value(node: ast.expr) -> str | None:
 
 
 def _extract_on_comparison(test: ast.expr) -> str | None:
-    """Extract the string from an ``_on == "..."`` comparison node."""
+    """Extract the string from an `_on == "..."` comparison node."""
     if not isinstance(test, ast.Compare):
         return None
     if len(test.ops) != 1 or not isinstance(test.ops[0], ast.Eq):
@@ -49,9 +49,9 @@ def _extract_on_comparison(test: ast.expr) -> str | None:
 
 
 def _extract_class_name(stmts: list[ast.stmt]) -> str | None:
-    """Find ``self.data = Aep.ClassName(...)`` in a list of statements.
+    """Find `self.body = Aep.ClassName(...)` in a list of statements.
 
-    Returns the *ClassName* portion, or ``None`` if no matching
+    Returns the *ClassName* portion, or `None` if no matching
     assignment is found.
     """
     for stmt in stmts:
@@ -60,7 +60,7 @@ def _extract_class_name(stmts: list[ast.stmt]) -> str | None:
         target = stmt.targets[0]
         if not (
             isinstance(target, ast.Attribute)
-            and target.attr == "data"
+            and target.attr == "body"
             and isinstance(target.value, ast.Name)
             and target.value.id == "self"
         ):
@@ -84,7 +84,7 @@ def _walk_if_chain(
 
     Returns:
         Tuple of (mapping from chunk_type to class_name, fallback
-        class_name from the ``else`` clause or ``None``).
+        class_name from the `else` clause or `None`).
     """
     mapping: dict[str, str] = {}
     fallback: str | None = None
@@ -113,7 +113,7 @@ def _walk_if_chain(
 def _build_chunk_type_mapping() -> tuple[dict[str, type], type]:
     """Build chunk type to class mapping by introspecting Chunk._read.
 
-    Parses the AST of ``Chunk._read`` and walks the if/elif/else chain
+    Parses the AST of `Chunk._read` and walks the if/elif/else chain
     to extract (chunk_type, Aep subclass) pairs structurally -- no
     regular expressions involved.
 
@@ -177,46 +177,38 @@ _CHUNK_TYPE_TO_CLASS, _FALLBACK_CLASS = _build_chunk_type_mapping()
 def _optimized_chunk_read(self: Aep.Chunk) -> None:
     """Optimized _read method for Chunk using dict lookup instead of if/elif."""
     self.chunk_type = (self._io.read_bytes(4)).decode("ascii")
-    self.len_data = self._io.read_u4be()
-    self._raw_data = self._io.read_bytes(
-        (self._io.size() - self._io.pos())
-        if self.len_data > (self._io.size() - self._io.pos())
-        else self.len_data
-    )
-    _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
+    self.len_body = self._io.read_u4be()
+    self._raw_body = self._io.read_bytes(self.len_body)
+    _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
 
     # Use dict lookup instead of if/elif chain.
     # Skip typed parsing for empty opti chunks (e.g. 3D-model footage).
     # Mirrors the opti guard in aep.ksy.
-    if self.len_data == 0 and self.chunk_type == "opti":
+    if self.len_body == 0 and self.chunk_type == "opti":
         chunk_class = _FALLBACK_CLASS
+        self.body = chunk_class(_io__raw_body, self, self._root)
+    elif self.chunk_type == "ldat":
+        # ldat needs params from sibling lhd3 (first chunk in parent LIST:list)
+        lhd3_body = self._parent.chunks[0].body
+        self.body = Aep.LdatBody(
+            lhd3_body.item_type, lhd3_body.item_size, lhd3_body.count,
+            _io__raw_body, self, self._root,
+        )
     else:
         try:
             chunk_class = _CHUNK_TYPE_TO_CLASS[self.chunk_type]
         except KeyError:
             chunk_class = _FALLBACK_CLASS
-    self.data = chunk_class(_io__raw_data, self, self._root)
+        self.body = chunk_class(_io__raw_body, self, self._root)
+    self.body._read()
 
-    if (self.len_data % 2) != 0:
-        self.padding = self._io.read_bytes(1)
+    if (self.len_body % 2) != 0:
+        self.pad_byte = self._io.read_bytes(1)
 
-
-def _chunk_getattr(self: Aep.Chunk, name: str) -> object:
-    """Delegate attribute access to chunk.data if not found on chunk itself.
-
-    This allows writing ``chunk.list_type`` instead of
-    ``chunk.data.list_type``.  ``__getattr__`` is only invoked after
-    normal lookup has already failed, so ``self.data`` is safe to
-    access directly (it is always set by ``_read``).
-    """
-    data = object.__getattribute__(self, "data")
-    if data is not None and hasattr(data, name):
-        return getattr(data, name)
-    raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+    self._dirty = False
 
 
 # Apply optimizations on import
 Aep.Chunk._read = _optimized_chunk_read
-Aep.Chunk.__getattr__ = _chunk_getattr
 
 __all__ = ["Aep"]

@@ -46,52 +46,18 @@ def parse_composition(
     cdta_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     try:
         cdrp_chunk = find_by_type(chunks=child_chunks, chunk_type="cdrp")
-        drop_frame = bool(cdrp_chunk.drop_frame)
+        cdrp_body = cdrp_chunk.body
     except ChunkNotFoundError:
-        drop_frame = False
-
-    # Normalize bg_color from 0-255 to 0-1 range to match ExtendScript output
-    bg_color = [c / 255 for c in cdta_chunk.bg_color]
+        cdrp_body = None
 
     composition = CompItem(
         comment=comment,
         id=item_id,
         label=label,
         name=item_name,
-        type_name="Composition",
         parent_folder=parent_folder,
-        draft3d=cdta_chunk.draft3d,
-        duration=cdta_chunk.duration,
-        frame_duration=int(
-            cdta_chunk.frame_duration
-        ),  # in JSX API, this value is 1 / frame_rate (the duration of a frame). Here, duration * frame_rate
-        frame_rate=cdta_chunk.frame_rate,
-        height=cdta_chunk.height,
-        pixel_aspect=cdta_chunk.pixel_aspect,
-        width=cdta_chunk.width,
-        bg_color=bg_color,
-        frame_blending=cdta_chunk.frame_blending,
-        hide_shy_layers=cdta_chunk.hide_shy_layers,
-        layers=[],
-        marker_property=None,
-        motion_blur=cdta_chunk.motion_blur,
-        motion_blur_adaptive_sample_limit=cdta_chunk.motion_blur_adaptive_sample_limit,
-        motion_blur_samples_per_frame=cdta_chunk.motion_blur_samples_per_frame,
-        preserve_nested_frame_rate=cdta_chunk.preserve_nested_frame_rate,
-        preserve_nested_resolution=cdta_chunk.preserve_nested_resolution,
-        shutter_angle=cdta_chunk.shutter_angle,
-        shutter_phase=cdta_chunk.shutter_phase,
-        resolution_factor=cdta_chunk.resolution_factor,
-        time_scale=cdta_chunk.time_scale,
-        in_point=cdta_chunk.in_point,
-        frame_in_point=int(cdta_chunk.frame_in_point),
-        out_point=cdta_chunk.out_point,
-        frame_out_point=int(cdta_chunk.frame_out_point),
-        frame_time=int(cdta_chunk.frame_time),
-        time=cdta_chunk.time,
-        display_start_time=cdta_chunk.display_start_time,
-        display_start_frame=int(cdta_chunk.display_start_frame),
-        drop_frame=drop_frame,
+        cdta=cdta_chunk.body,
+        cdrp=cdrp_body,
     )
 
     composition.marker_property = _get_markers(
@@ -108,8 +74,8 @@ def parse_composition(
     # is available when parsing effect properties.
     layer_id_to_index: dict[int, int] = {}
     for idx, lc in enumerate(layer_sub_chunks, 1):
-        ldta = find_by_type(chunks=lc.chunks, chunk_type="ldta")
-        layer_id_to_index[ldta.layer_id] = idx
+        ldta = find_by_type(chunks=lc.body.chunks, chunk_type="ldta")
+        layer_id_to_index[ldta.body.layer_id] = idx
 
     for layer_chunk in layer_sub_chunks:
         layer = parse_layer(
@@ -137,10 +103,10 @@ def parse_composition(
 def _parse_effect_selected(child_chunks: list[Aep.Chunk]) -> list[bool]:
     """Parse effect selected states from LIST:Ewst / ewot chunks.
 
-    The ``ewot`` chunk inside ``LIST:Ewst`` stores per-property flags for
+    The `ewot` chunk inside `LIST:Ewst` stores per-property flags for
     the effect workspace.  Each entry is 4 bytes: the first byte contains
-    flags where bit 6 (``0x40``) indicates *selected*.  Entries whose first
-    byte has bit 7 (``0x80``) set are child properties of an effect; entries
+    flags where bit 6 (`0x40`) indicates *selected*.  Entries whose first
+    byte has bit 7 (`0x80`) set are child properties of an effect; entries
     **without** bit 7 are effect-group-level entries.  By filtering to the
     group-level entries and checking bit 6 we obtain a boolean per effect.
 
@@ -154,11 +120,11 @@ def _parse_effect_selected(child_chunks: list[Aep.Chunk]) -> list[bool]:
     ewst_chunks = filter_by_list_type(chunks=child_chunks, list_type="Ewst")
     for ewst_chunk in ewst_chunks:
         try:
-            ewot_chunk = find_by_type(chunks=ewst_chunk.chunks, chunk_type="ewot")
+            ewot_chunk = find_by_type(chunks=ewst_chunk.body.chunks, chunk_type="ewot")
         except ChunkNotFoundError:
             continue
 
-        for entry in ewot_chunk.entries:
+        for entry in ewot_chunk.body.entries:
             # Entries without is_child_property are effect group nodes
             if not entry.is_child_property:
                 selected.append(entry.selected)

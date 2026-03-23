@@ -16,6 +16,7 @@ from ..enums import (
     PostRenderActionSetting,
     ResizeQuality,
 )
+from ..enums.mappings import map_output_audio, map_output_color_space
 from ..kaitai import Aep
 from ..kaitai.utils import filter_by_type, find_by_type, str_contents
 from ..models.items.composition import CompItem
@@ -23,7 +24,6 @@ from ..models.renderqueue.output_module import OutputModule
 from ..models.renderqueue.render_queue_item import RenderQueueItem
 from ..models.settings import OutputModuleSettings
 from .format_options import parse_format_options
-from .mappings import map_output_audio, map_output_color_space
 from .utils import parse_alas_data
 
 if TYPE_CHECKING:
@@ -52,15 +52,15 @@ def _parse_output_module_settings(
         include_source_xmp: Whether source XMP metadata is included.
         post_render_action: The post-render action setting.
         output_color_space: The resolved output color space name, or
-            ``None`` if unknown.
+            `None` if unknown.
 
     Returns:
         Dict with ExtendScript keys like "Video Output", "Audio Bit Depth",
         "Crop", "Channels", etc.
     """
-    audio_bit_depth = AudioBitDepth.from_binary(roou_chunk.audio_bit_depth)
-    audio_channels = AudioChannels.from_binary(roou_chunk.audio_channels)
-    color = OutputColorMode(roou_chunk.color_premultiplied)
+    audio_bit_depth = AudioBitDepth.from_binary(roou_chunk.body.audio_bit_depth)
+    audio_channels = AudioChannels.from_binary(roou_chunk.body.audio_channels)
+    color = OutputColorMode(roou_chunk.body.color_premultiplied)
 
     # Extract subfolder from file_name_template when it contains path
     # separators.  AE stores the subfolder prepended to the filename
@@ -78,7 +78,7 @@ def _parse_output_module_settings(
         "Audio Bit Depth": audio_bit_depth,
         "Audio Channels": audio_channels,
         "Audio Sample Rate": AudioSampleRate.from_binary(
-            int(roou_chunk.audio_sample_rate)
+            int(roou_chunk.body.audio_sample_rate)
         ),
         "Channels": OutputChannels(om_ldat_data.channels),
         "Color": color,
@@ -90,13 +90,13 @@ def _parse_output_module_settings(
         "Crop Right": om_ldat_data.crop_right,
         "Crop Top": om_ldat_data.crop_top,
         "Crop": om_ldat_data.crop,
-        "Depth": OutputColorDepth(roou_chunk.depth),
-        "Format": OutputFormat.from_format_id(roou_chunk.format_id),
+        "Depth": OutputColorDepth(roou_chunk.body.depth),
+        "Format": OutputFormat.from_format_id(roou_chunk.body.format_id),
         "Include Project Link": bool(om_ldat_data.include_project_link),
         "Include Source XMP Metadata": include_source_xmp,
         "Lock Aspect Ratio": bool(om_ldat_data.lock_aspect_ratio),
         "Output Audio": map_output_audio(
-            roou_chunk.output_audio, om_ldat_data.output_audio
+            roou_chunk.body.output_audio, om_ldat_data.output_audio
         ),
         "Output Color Space": output_color_space or "",
         "Output File Info": {
@@ -109,12 +109,12 @@ def _parse_output_module_settings(
         "Post-Render Action": PostRenderActionSetting(om_ldat_data.post_render_action),
         "Preserve RGB": bool(om_ldat_data.preserve_rgb),
         "Resize Quality": ResizeQuality(om_ldat_data.resize_quality),
-        "Resize to": [roou_chunk.width, roou_chunk.height],
+        "Resize to": [roou_chunk.body.width, roou_chunk.body.height],
         "Resize": bool(om_ldat_data.resize),
-        "Starting #": roou_chunk.starting_number,
+        "Starting #": roou_chunk.body.starting_number,
         "Use Comp Frame Number": bool(om_ldat_data.use_comp_frame_number),
         "Use Region of Interest": bool(om_ldat_data.use_region_of_interest),
-        "Video Output": roou_chunk.video_output,
+        "Video Output": roou_chunk.body.video_output,
     }
 
 
@@ -131,7 +131,7 @@ def _build_file_template(
     Args:
         folder_path: The output folder path from alas data.
         file_name_template: The file name template
-            (e.g., ``[compName].[fileExtension]``).
+            (e.g., `[compName].[fileExtension]`).
         is_folder: Whether the alas path points to a folder.
 
     Returns:
@@ -168,7 +168,7 @@ def parse_output_module(
     - Roou: Output options (binary data)
     - Ropt: Render options (binary data)
     - hdrm: HDR metadata
-    - Utf8: HDR10 / color metadata JSON (e.g. ``{"colorMetadataPresent":true}``)
+    - Utf8: HDR10 / color metadata JSON (e.g. `{"colorMetadataPresent":true}`)
     - LIST Als2: Output file path info
       - alas: JSON with fullpath and target_is_folder
     - Utf8: Template/format name (e.g., "H.264 - Match Render Settings - 15 Mbps")
@@ -196,8 +196,8 @@ def parse_output_module(
             CompItem, project.items[post_render_target_comp_id]
         )
 
-    video_codec = roou_chunk.video_codec.strip("\x00") or None
-    frame_rate = roou_chunk.frame_rate
+    video_codec = roou_chunk.body.video_codec.strip("\x00") or None
+    frame_rate = roou_chunk.body.frame_rate
     output_color_space = map_output_color_space(
         om_ldat_data.output_profile_id,
         om_ldat_data.output_color_space_working,

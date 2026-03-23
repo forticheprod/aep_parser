@@ -73,7 +73,7 @@ class PropertyGroup(PropertyBase):
     def __getattr__(self, name: str) -> Property | PropertyGroup:
         """Look up a child property by attribute access.
 
-        Converts the Python ``snake_case`` attribute name to match
+        Converts the Python `snake_case` attribute name to match
         against the lowered, underscore-separated display names of
         child properties.  This allows natural syntax such as:
 
@@ -84,27 +84,27 @@ class PropertyGroup(PropertyBase):
 
         Note:
             Only invoked when normal attribute lookup has already
-            failed, so dataclass fields and ``@property`` descriptors
+            failed, so dataclass fields and `@property` descriptors
             always take priority.
         """
         # Avoid infinite recursion during __init__ (before
-        # ``properties`` has been set on the instance).
+        # `properties` has been set on the instance).
         try:
-            properties: list[Property | PropertyGroup] = object.__getattribute__(
-                self, "properties"
-            )
+            object.__getattribute__(self, "properties")
         except AttributeError:
             raise AttributeError(name) from None
-        for prop in properties:
-            if prop.name.lower().replace(" ", "_") == name:
-                return prop
-        raise AttributeError(f"'{type(self).__name__}' has no property '{name}'")
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(
+                f"'{type(self).__name__}' has no property '{name}'"
+            ) from None
 
     @property
     def num_properties(self) -> int:
         """The number of child properties in this group.
 
-        Equivalent to ExtendScript ``PropertyGroup.numProperties``.
+        Equivalent to ExtendScript `PropertyGroup.numProperties`.
         """
         return len(self.properties)
 
@@ -112,8 +112,8 @@ class PropertyGroup(PropertyBase):
         """Look up a child property by index or name.
 
         Supports both integer indices and string keys (display name or
-        match name), mirroring ExtendScript's ``property()`` accessor with
-        Python's ``[]`` operator.
+        match name), mirroring ExtendScript's `property()` accessor with
+        Python's `[]` operator.
 
         Example:
             ```python
@@ -134,7 +134,11 @@ class PropertyGroup(PropertyBase):
             return self.properties[key]
         if isinstance(key, str):
             for prop in self.properties:
-                if prop.name == key or prop.match_name == key:
+                if (
+                    prop.name == key
+                    or prop.match_name == key
+                    or prop.name.lower().replace(" ", "_") == key
+                ):
                     return prop
             raise KeyError(key)
         raise TypeError(f"Property key must be int or str, not {type(key).__name__}")

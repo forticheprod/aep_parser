@@ -2,11 +2,11 @@
 
 This module contains all the logic for:
 
-* Setting ``default_value`` on transform properties parsed from the binary.
+* Setting `default_value` on transform properties parsed from the binary.
 * Synthesizing missing transform properties (AE always exposes twelve).
 * Synthesizing missing children in standard property groups
   (Material Options, Geometry Options, Layer Styles, Mask atoms, etc.).
-* Setting ``min_value`` / ``max_value`` on properties with known bounds.
+* Setting `min_value` / `max_value` on properties with known bounds.
 * Reordering top-level layer groups to match the canonical ExtendScript order.
 
 The two public entry points are:
@@ -141,16 +141,16 @@ def set_transform_defaults(layer: Layer) -> None:
     regardless of whether the layer is 2-D or 3-D.  The binary format, however,
     only stores properties relevant to the current layer state.  This function:
 
-    1. Sets ``default_value`` on every transform property already parsed from
+    1. Sets `default_value` on every transform property already parsed from
        the binary so that `Property.is_modified` works correctly.
-    2. Creates ``Property`` objects for any of the twelve canonical properties
+    2. Creates `Property` objects for any of the twelve canonical properties
        that are absent from the binary.
-    3. Re-orders ``transform.properties`` to match the canonical ExtendScript
+    3. Re-orders `transform.properties` to match the canonical ExtendScript
        order.
 
     Spatial defaults (Anchor Point, Position, and the X / Y separated followers)
     depend on layer dimensions and are computed here; all other defaults are
-    fixed constants defined in ``_TRANSFORM_FIXED_DEFAULTS``.
+    fixed constants defined in `_TRANSFORM_FIXED_DEFAULTS`.
     """
     transform = layer.transform
     if transform is None:
@@ -308,12 +308,12 @@ _PROPERTY_MIN_MAX: dict[str, tuple[float, float]] = {
 
 
 def _apply_min_max_defaults(group: PropertyGroup) -> None:
-    """Set ``min_value`` / ``max_value`` on properties with known bounds.
+    """Set `min_value` / `max_value` on properties with known bounds.
 
     ExtendScript exposes fixed min/max on certain standard properties whose
-    binary bounds (``tdum``/``tduM`` chunks) may differ from the values
+    binary bounds (`tdum`/`tduM` chunks) may differ from the values
     reported by ExtendScript.  This function walks all children of *group*
-    and applies ``_PROPERTY_MIN_MAX`` overrides unconditionally.
+    and applies `_PROPERTY_MIN_MAX` overrides unconditionally.
 
     Args:
         group: The property group whose children should be updated.
@@ -331,10 +331,10 @@ def _apply_min_max_defaults(group: PropertyGroup) -> None:
 def _derive_layer_styles_enabled(layer: Layer) -> None:
     """Derive `enabled` for the Layer Styles group and Blend Options.
 
-    ExtendScript reports the Layer Styles group as ``enabled=False`` when
+    ExtendScript reports the Layer Styles group as `enabled=False` when
     no individual style (Drop Shadow, Inner Glow, etc.) is enabled.
     Blend Options mirrors the Layer Styles group's enabled state.
-    The binary stores ``enabled=True`` for both regardless.
+    The binary stores `enabled=True` for both regardless.
 
     Args:
         layer: The layer to fix up.
@@ -401,7 +401,7 @@ def set_layer_property_defaults(layer: Layer) -> None:
 # ---------------------------------------------------------------------------
 
 _USE_VALUE = object()
-"""Sentinel indicating ``_PropSpec.default_value`` should mirror ``value``."""
+"""Sentinel indicating `_PropSpec.default_value` should mirror `value`."""
 
 
 class _PropSpec(NamedTuple):
@@ -657,7 +657,7 @@ _SOURCE_OPTIONS_SPECS: list[_PropSpec] = [
 
 # Canonical children of "ADBE Effect Built In Params" (Compositing Options)
 # that are simple properties.  The Masks indexed group is synthesized
-# separately by ``_fill_compositing_options``.
+# separately by `_fill_compositing_options`.
 _COMPOSITING_OPTIONS_PROPERTY_SPECS: list[_PropSpec] = [
     _PropSpec(
         "ADBE Effect Mask Opacity",
@@ -1627,7 +1627,7 @@ def _make_property_from_spec(
     spec: _PropSpec,
     property_depth: int,
 ) -> Property:
-    """Create a Property instance from a ``_PropSpec``."""
+    """Create a Property instance from a `_PropSpec`."""
     no_value = spec.pvt == PropertyValueType.NO_VALUE
     if spec.can_vary_over_time is not None:
         can_vary = spec.can_vary_over_time
@@ -1846,8 +1846,8 @@ def _fill_mask_atom(group: PropertyGroup) -> None:
     exist (it carries shape data).  The remaining three are synthesized
     when absent.
 
-    Also sets ``default_value`` on existing binary-parsed mask properties
-    so that ``is_modified`` works correctly.
+    Also sets `default_value` on existing binary-parsed mask properties
+    so that `is_modified` works correctly.
 
     Args:
         group: The mask atom group to fill.

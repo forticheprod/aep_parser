@@ -1,11 +1,11 @@
 """Typed dictionaries for render queue settings.
 
-These TypedDicts replace ``dict[str, Any]`` for render settings and
+These TypedDicts replace `dict[str, Any]` for render settings and
 output module settings, giving type-checking for the
 ExtendScript-compatible key names used throughout the render queue code.
 
-The functional TypedDict syntax is used because keys like ``"3:2 Pulldown"``
-and ``"Time Span Duration"`` are not valid Python identifiers.
+The functional TypedDict syntax is used because keys like `"3:2 Pulldown"`
+and `"Time Span Duration"` are not valid Python identifiers.
 """
 
 from __future__ import annotations
@@ -73,7 +73,7 @@ RenderSettings = TypedDict(
 """Render settings for a render queue item.
 
 Keys match the ExtendScript
-``RenderQueueItem.getSettings(GetSettingsFormat.NUMBER)`` output.
+`RenderQueueItem.getSettings(GetSettingsFormat.NUMBER)` output.
 
 Example:
     ```python
@@ -125,7 +125,7 @@ OutputModuleSettings = TypedDict(
 """Output module settings for a render queue item.
 
 Keys match the ExtendScript
-``OutputModule.getSettings(GetSettingsFormat.NUMBER)`` output.
+`OutputModule.getSettings(GetSettingsFormat.NUMBER)` output.
 
 Example:
     ```python

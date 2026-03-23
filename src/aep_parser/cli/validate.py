@@ -78,15 +78,47 @@ SKIP_PROPERTIES = {
 }
 
 
+def _get_field_names(obj: Any) -> set[str] | None:
+    """Get serializable field names for model objects.
+
+    Supports both `@dataclass` models and plain-class models that use
+    type annotations and/or chunk-backed descriptors (e.g. the Item
+    hierarchy after the descriptor conversion).
+    """
+    if is_dataclass(obj) and not isinstance(obj, type):
+        return {f.name for f in fields(obj)}
+    # Collect annotations from the full MRO for plain-class models
+    names: set[str] = set()
+    for base in reversed(type(obj).__mro__):
+        if base is object:
+            continue
+        for name in getattr(base, "__annotations__", {}):
+            if not name.startswith("_"):
+                names.add(name)
+        # Also collect chunk-backed descriptor names
+        for name, attr in vars(base).items():
+            if name.startswith("_"):
+                continue
+            if hasattr(attr, "chunk_attr") and hasattr(attr, "__get__"):
+                names.add(name)
+    if names:
+        return names
+    return None
+
+
 def to_dict(obj: Any) -> Any:
     """Convert dataclass/enum to dict recursively, skipping circular reference fields."""
-    if is_dataclass(obj) and not isinstance(obj, type):
+    field_names = _get_field_names(obj)
+    if field_names is not None:
         result = {}
-        for field in fields(obj):
-            if field.name in SKIP_FIELDS:
+        for name in field_names:
+            if name in SKIP_FIELDS:
                 continue
-            value = getattr(obj, field.name)
-            result[field.name] = to_dict(value)
+            try:
+                value = getattr(obj, name)
+            except AttributeError:
+                continue
+            result[name] = to_dict(value)
         # Include @property attributes (non-private, non-skipped)
         for name in dir(type(obj)):
             if name.startswith("_") or name in SKIP_FIELDS or name in SKIP_PROPERTIES:
@@ -399,7 +431,7 @@ def compare_layer(
         if parsed_index is not None and exp_index != parsed_index + 1:
             result.add_diff(f"{path}.index", exp_index, parsed_index + 1, "layers")
 
-    # Compare lightSource (Layer reference → compare by layer index)
+    # Compare lightSource (Layer reference -> compare by layer index)
     if "lightSource" in expected_layer:
         exp_ls = expected_layer["lightSource"]
         parsed_ls_id = parsed_layer.get("_light_source_id", 0)
@@ -602,7 +634,7 @@ def compare_keyframe(
             if isinstance(parsed_val, dict):
                 compare_shape_value(exp_val, parsed_val, f"{path}.value", result)
         elif isinstance(exp_val, dict) and isinstance(parsed_val, dict):
-            # Dict value (e.g. marker) — normalize keys and compare matching
+            # Dict value (e.g. marker) - normalize keys and compare matching
             normalized = _normalize_keys(exp_val)
             for key, nval in normalized.items():
                 pval = parsed_val.get(key)

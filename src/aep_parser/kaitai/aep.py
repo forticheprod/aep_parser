@@ -2,14 +2,14 @@
 # type: ignore
 
 import kaitaistruct
-from kaitaistruct import KaitaiStruct, KaitaiStream, BytesIO
+from kaitaistruct import ReadWriteKaitaiStruct, KaitaiStream, BytesIO
 from enum import IntEnum
 
 
 if getattr(kaitaistruct, 'API_VERSION', (0, 9)) < (0, 11):
     raise Exception("Incompatible Kaitai Struct Python API: 0.11 or later is required, but you have %s" % (kaitaistruct.__version__))
 
-class Aep(KaitaiStruct):
+class Aep(ReadWriteKaitaiStruct):
 
     class AssetType(IntEnum):
         placeholder = 2
@@ -81,90 +81,157 @@ class Aep(KaitaiStruct):
         group = 13
         unknown = 15
         three_d = 18
-    def __init__(self, _io, _parent=None, _root=None):
+    def __init__(self, _io=None, _parent=None, _root=None):
         super(Aep, self).__init__(_io)
         self._parent = _parent
         self._root = _root or self
-        self._read()
 
     def _read(self):
         self.header = self._io.read_bytes(4)
         if not self.header == b"\x52\x49\x46\x58":
             raise kaitaistruct.ValidationNotEqualError(b"\x52\x49\x46\x58", self.header, self._io, u"/seq/0")
-        self.len_data = self._io.read_u4be()
+        self.len_body = self._io.read_u4be()
         self.format = self._io.read_bytes(4)
         if not self.format == b"\x45\x67\x67\x21":
             raise kaitaistruct.ValidationNotEqualError(b"\x45\x67\x67\x21", self.format, self._io, u"/seq/2")
-        self._raw_data = self._io.read_bytes(self.len_data - 4)
-        _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-        self.data = Aep.Chunks(_io__raw_data, self, self._root)
+        self._raw_body = self._io.read_bytes(self.len_body - 4)
+        _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+        self.body = Aep.Chunks(_io__raw_body, self, self._root)
+        self.body._read()
         self.xmp_packet = (self._io.read_bytes_full()).decode(u"UTF-8")
+        self._dirty = False
 
 
     def _fetch_instances(self):
         pass
-        self.data._fetch_instances()
+        self.body._fetch_instances()
 
-    class AcerBody(KaitaiStruct):
+
+    def _write__seq(self, io=None):
+        super(Aep, self)._write__seq(io)
+        self._io.write_bytes(self.header)
+        self._io.write_u4be(self.len_body)
+        self._io.write_bytes(self.format)
+        _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body - 4)))
+        self._io.add_child_stream(_io__raw_body)
+        _pos2 = self._io.pos()
+        self._io.seek(self._io.pos() + (self.len_body - 4))
+        def handler(parent, _io__raw_body=_io__raw_body):
+            self._raw_body = _io__raw_body.to_byte_array()
+            if len(self._raw_body) != self.len_body - 4:
+                raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body - 4, len(self._raw_body))
+            parent.write_bytes(self._raw_body)
+        _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+        self.body._write__seq(_io__raw_body)
+        self._io.write_bytes((self.xmp_packet).encode(u"UTF-8"))
+        if not self._io.is_eof():
+            raise kaitaistruct.ConsistencyError(u"xmp_packet", 0, self._io.size() - self._io.pos())
+
+
+    def _check(self):
+        if len(self.header) != 4:
+            raise kaitaistruct.ConsistencyError(u"header", 4, len(self.header))
+        if not self.header == b"\x52\x49\x46\x58":
+            raise kaitaistruct.ValidationNotEqualError(b"\x52\x49\x46\x58", self.header, None, u"/seq/0")
+        if len(self.format) != 4:
+            raise kaitaistruct.ConsistencyError(u"format", 4, len(self.format))
+        if not self.format == b"\x45\x67\x67\x21":
+            raise kaitaistruct.ValidationNotEqualError(b"\x45\x67\x67\x21", self.format, None, u"/seq/2")
+        if self.body._root != self._root:
+            raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+        if self.body._parent != self:
+            raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+        self._dirty = False
+
+    class AcerBody(ReadWriteKaitaiStruct):
         """Compensate for Scene-Referred Profiles setting in Project Settings.
         This setting affects how scene-referred color profiles are handled.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.AcerBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.compensate_for_scene_referred_profiles = self._io.read_u1()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class AdfrBody(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.AcerBody, self)._write__seq(io)
+            self._io.write_u1(self.compensate_for_scene_referred_profiles)
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class AdfrBody(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.AdfrBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.audio_sample_rate = self._io.read_f8be()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class AsciiBody(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.AdfrBody, self)._write__seq(io)
+            self._io.write_f8be(self.audio_sample_rate)
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class AsciiBody(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.AsciiBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.contents = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class CdatBody(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.AsciiBody, self)._write__seq(io)
+            self._io.write_bytes(self.contents)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"contents", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class CdatBody(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.CdatBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.value = []
-            for i in range(self._parent.len_data // 8):
+            for i in range(self._parent.len_body // 8):
                 self.value.append(self._io.read_f8be())
 
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -174,30 +241,55 @@ class Aep(KaitaiStruct):
 
 
 
-    class CdrpBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.CdatBody, self)._write__seq(io)
+            for i in range(len(self.value)):
+                pass
+                self._io.write_f8be(self.value[i])
+
+
+
+        def _check(self):
+            if len(self.value) != self._parent.len_body // 8:
+                raise kaitaistruct.ConsistencyError(u"value", self._parent.len_body // 8, len(self.value))
+            for i in range(len(self.value)):
+                pass
+
+            self._dirty = False
+
+
+    class CdrpBody(ReadWriteKaitaiStruct):
         """Composition drop frame setting.
         When true, the composition uses drop-frame timecode.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.CdrpBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.drop_frame = self._io.read_u1()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class CdtaBody(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.CdrpBody, self)._write__seq(io)
+            self._io.write_u1(self.drop_frame)
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class CdtaBody(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.CdtaBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.resolution_factor = []
@@ -232,8 +324,8 @@ class Aep(KaitaiStruct):
             self.hide_shy_layers = self._io.read_bits_int_be(1) != 0
             self.width = self._io.read_u2be()
             self.height = self._io.read_u2be()
-            self.pixel_ratio_width = self._io.read_u4be()
-            self.pixel_ratio_height = self._io.read_u4be()
+            self.pixel_ratio_dividend = self._io.read_u4be()
+            self.pixel_ratio_divisor = self._io.read_u4be()
             self._unnamed28 = self._io.read_bytes(4)
             self.frame_rate_integer = self._io.read_u2be()
             self.frame_rate_fractional = self._io.read_u2be()
@@ -247,6 +339,7 @@ class Aep(KaitaiStruct):
             self._unnamed38 = self._io.read_bytes(12)
             self.motion_blur_adaptive_sample_limit = self._io.read_s4be()
             self.motion_blur_samples_per_frame = self._io.read_s4be()
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -258,6 +351,87 @@ class Aep(KaitaiStruct):
                 pass
 
 
+
+        def _write__seq(self, io=None):
+            super(Aep.CdtaBody, self)._write__seq(io)
+            for i in range(len(self.resolution_factor)):
+                pass
+                self._io.write_u2be(self.resolution_factor[i])
+
+            self._io.write_bytes(self._unnamed1)
+            self._io.write_u2be(self.time_scale_integer)
+            self._io.write_u1(self.time_scale_fractional)
+            self._io.write_bytes(self._unnamed4)
+            self._io.write_s4be(self.time_dividend)
+            self._io.write_u4be(self.time_divisor)
+            self._io.write_u4be(self.in_point_dividend)
+            self._io.write_u4be(self.in_point_divisor)
+            self._io.write_u4be(self.out_point_dividend)
+            self._io.write_u4be(self.out_point_divisor)
+            self._io.write_u4be(self.duration_dividend)
+            self._io.write_u4be(self.duration_divisor)
+            for i in range(len(self.bg_color)):
+                pass
+                self._io.write_u1(self.bg_color[i])
+
+            self._io.write_bytes(self._unnamed14)
+            self._io.write_bits_int_be(1, int(self.draft3d))
+            self._io.write_bits_int_be(7, self._unnamed16)
+            self._io.write_bits_int_be(1, int(self.preserve_nested_resolution))
+            self._io.write_bits_int_be(1, int(self._unnamed18))
+            self._io.write_bits_int_be(1, int(self.preserve_nested_frame_rate))
+            self._io.write_bits_int_be(1, int(self.frame_blending))
+            self._io.write_bits_int_be(1, int(self.motion_blur))
+            self._io.write_bits_int_be(2, self._unnamed22)
+            self._io.write_bits_int_be(1, int(self.hide_shy_layers))
+            self._io.write_u2be(self.width)
+            self._io.write_u2be(self.height)
+            self._io.write_u4be(self.pixel_ratio_dividend)
+            self._io.write_u4be(self.pixel_ratio_divisor)
+            self._io.write_bytes(self._unnamed28)
+            self._io.write_u2be(self.frame_rate_integer)
+            self._io.write_u2be(self.frame_rate_fractional)
+            self._io.write_bytes(self._unnamed31)
+            self._io.write_s4be(self.display_start_time_dividend)
+            self._io.write_u4be(self.display_start_time_divisor)
+            self._io.write_bytes(self._unnamed34)
+            self._io.write_u2be(self.shutter_angle)
+            self._io.write_bytes(self._unnamed36)
+            self._io.write_s4be(self.shutter_phase)
+            self._io.write_bytes(self._unnamed38)
+            self._io.write_s4be(self.motion_blur_adaptive_sample_limit)
+            self._io.write_s4be(self.motion_blur_samples_per_frame)
+
+
+        def _check(self):
+            if len(self.resolution_factor) != 2:
+                raise kaitaistruct.ConsistencyError(u"resolution_factor", 2, len(self.resolution_factor))
+            for i in range(len(self.resolution_factor)):
+                pass
+
+            if len(self._unnamed1) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed1", 1, len(self._unnamed1))
+            if len(self._unnamed4) != 12:
+                raise kaitaistruct.ConsistencyError(u"_unnamed4", 12, len(self._unnamed4))
+            if len(self.bg_color) != 3:
+                raise kaitaistruct.ConsistencyError(u"bg_color", 3, len(self.bg_color))
+            for i in range(len(self.bg_color)):
+                pass
+
+            if len(self._unnamed14) != 83:
+                raise kaitaistruct.ConsistencyError(u"_unnamed14", 83, len(self._unnamed14))
+            if len(self._unnamed28) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed28", 4, len(self._unnamed28))
+            if len(self._unnamed31) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed31", 4, len(self._unnamed31))
+            if len(self._unnamed34) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed34", 2, len(self._unnamed34))
+            if len(self._unnamed36) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed36", 4, len(self._unnamed36))
+            if len(self._unnamed38) != 12:
+                raise kaitaistruct.ConsistencyError(u"_unnamed38", 12, len(self._unnamed38))
+            self._dirty = False
+
         @property
         def display_start_frame(self):
             if hasattr(self, '_m_display_start_frame'):
@@ -266,6 +440,8 @@ class Aep(KaitaiStruct):
             self._m_display_start_frame = self.display_start_time * self.frame_rate
             return getattr(self, '_m_display_start_frame', None)
 
+        def _invalidate_display_start_frame(self):
+            del self._m_display_start_frame
         @property
         def display_start_time(self):
             if hasattr(self, '_m_display_start_time'):
@@ -274,6 +450,8 @@ class Aep(KaitaiStruct):
             self._m_display_start_time = (self.display_start_time_dividend * 1.0) / self.display_start_time_divisor
             return getattr(self, '_m_display_start_time', None)
 
+        def _invalidate_display_start_time(self):
+            del self._m_display_start_time
         @property
         def duration(self):
             if hasattr(self, '_m_duration'):
@@ -282,6 +460,8 @@ class Aep(KaitaiStruct):
             self._m_duration = (self.duration_dividend * 1.0) / self.duration_divisor
             return getattr(self, '_m_duration', None)
 
+        def _invalidate_duration(self):
+            del self._m_duration
         @property
         def frame_duration(self):
             if hasattr(self, '_m_frame_duration'):
@@ -290,6 +470,8 @@ class Aep(KaitaiStruct):
             self._m_frame_duration = self.duration * self.frame_rate
             return getattr(self, '_m_frame_duration', None)
 
+        def _invalidate_frame_duration(self):
+            del self._m_frame_duration
         @property
         def frame_in_point(self):
             if hasattr(self, '_m_frame_in_point'):
@@ -298,6 +480,8 @@ class Aep(KaitaiStruct):
             self._m_frame_in_point = (self.display_start_time + (self.in_point_dividend * 1.0) / self.in_point_divisor) * self.frame_rate
             return getattr(self, '_m_frame_in_point', None)
 
+        def _invalidate_frame_in_point(self):
+            del self._m_frame_in_point
         @property
         def frame_out_point(self):
             if hasattr(self, '_m_frame_out_point'):
@@ -306,6 +490,8 @@ class Aep(KaitaiStruct):
             self._m_frame_out_point = (self.display_start_frame + self.frame_duration if self.out_point_dividend == 4294967295 else (self.display_start_time + (self.out_point_dividend * 1.0) / self.out_point_divisor) * self.frame_rate)
             return getattr(self, '_m_frame_out_point', None)
 
+        def _invalidate_frame_out_point(self):
+            del self._m_frame_out_point
         @property
         def frame_rate(self):
             if hasattr(self, '_m_frame_rate'):
@@ -314,6 +500,8 @@ class Aep(KaitaiStruct):
             self._m_frame_rate = self.frame_rate_integer + (self.frame_rate_fractional * 1.0) / 65536
             return getattr(self, '_m_frame_rate', None)
 
+        def _invalidate_frame_rate(self):
+            del self._m_frame_rate
         @property
         def frame_time(self):
             if hasattr(self, '_m_frame_time'):
@@ -322,6 +510,8 @@ class Aep(KaitaiStruct):
             self._m_frame_time = self.time * self.frame_rate
             return getattr(self, '_m_frame_time', None)
 
+        def _invalidate_frame_time(self):
+            del self._m_frame_time
         @property
         def in_point(self):
             if hasattr(self, '_m_in_point'):
@@ -330,6 +520,8 @@ class Aep(KaitaiStruct):
             self._m_in_point = self.display_start_time + (self.in_point_dividend * 1.0) / self.in_point_divisor
             return getattr(self, '_m_in_point', None)
 
+        def _invalidate_in_point(self):
+            del self._m_in_point
         @property
         def out_point(self):
             if hasattr(self, '_m_out_point'):
@@ -338,14 +530,18 @@ class Aep(KaitaiStruct):
             self._m_out_point = (self.display_start_time + self.duration if self.out_point_dividend == 4294967295 else self.display_start_time + (self.out_point_dividend * 1.0) / self.out_point_divisor)
             return getattr(self, '_m_out_point', None)
 
+        def _invalidate_out_point(self):
+            del self._m_out_point
         @property
         def pixel_aspect(self):
             if hasattr(self, '_m_pixel_aspect'):
                 return self._m_pixel_aspect
 
-            self._m_pixel_aspect = (self.pixel_ratio_width * 1.0) / self.pixel_ratio_height
+            self._m_pixel_aspect = (self.pixel_ratio_dividend * 1.0) / self.pixel_ratio_divisor
             return getattr(self, '_m_pixel_aspect', None)
 
+        def _invalidate_pixel_aspect(self):
+            del self._m_pixel_aspect
         @property
         def time(self):
             if hasattr(self, '_m_time'):
@@ -354,6 +550,8 @@ class Aep(KaitaiStruct):
             self._m_time = (self.time_dividend * 1.0) / self.time_divisor
             return getattr(self, '_m_time', None)
 
+        def _invalidate_time(self):
+            del self._m_time
         @property
         def time_scale(self):
             """Effective time scale combining integer and fractional parts.
@@ -365,16 +563,63 @@ class Aep(KaitaiStruct):
             self._m_time_scale = self.time_scale_integer + (self.time_scale_fractional * 1.0) / 256
             return getattr(self, '_m_time_scale', None)
 
+        def _invalidate_time_scale(self):
+            del self._m_time_scale
+        @property
+        def work_area_duration(self):
+            """Work area duration (seconds)."""
+            if hasattr(self, '_m_work_area_duration'):
+                return self._m_work_area_duration
 
-    class ChildUtf8Body(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+            self._m_work_area_duration = self.out_point - self.in_point
+            return getattr(self, '_m_work_area_duration', None)
+
+        def _invalidate_work_area_duration(self):
+            del self._m_work_area_duration
+        @property
+        def work_area_duration_frame(self):
+            """Work area duration (frames)."""
+            if hasattr(self, '_m_work_area_duration_frame'):
+                return self._m_work_area_duration_frame
+
+            self._m_work_area_duration_frame = self.frame_out_point - self.frame_in_point
+            return getattr(self, '_m_work_area_duration_frame', None)
+
+        def _invalidate_work_area_duration_frame(self):
+            del self._m_work_area_duration_frame
+        @property
+        def work_area_start(self):
+            """Work area start relative to composition start (seconds)."""
+            if hasattr(self, '_m_work_area_start'):
+                return self._m_work_area_start
+
+            self._m_work_area_start = self.in_point - self.display_start_time
+            return getattr(self, '_m_work_area_start', None)
+
+        def _invalidate_work_area_start(self):
+            del self._m_work_area_start
+        @property
+        def work_area_start_frame(self):
+            """Work area start relative to composition start (frames)."""
+            if hasattr(self, '_m_work_area_start_frame'):
+                return self._m_work_area_start_frame
+
+            self._m_work_area_start_frame = self.frame_in_point - self.display_start_frame
+            return getattr(self, '_m_work_area_start_frame', None)
+
+        def _invalidate_work_area_start_frame(self):
+            del self._m_work_area_start_frame
+
+    class ChildUtf8Body(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.ChildUtf8Body, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.chunk = Aep.Chunk(self._io, self, self._root)
+            self.chunk._read()
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -382,469 +627,1631 @@ class Aep(KaitaiStruct):
             self.chunk._fetch_instances()
 
 
-    class Chunk(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.ChildUtf8Body, self)._write__seq(io)
+            self.chunk._write__seq(self._io)
+
+
+        def _check(self):
+            if self.chunk._root != self._root:
+                raise kaitaistruct.ConsistencyError(u"chunk", self._root, self.chunk._root)
+            if self.chunk._parent != self:
+                raise kaitaistruct.ConsistencyError(u"chunk", self, self.chunk._parent)
+            self._dirty = False
+
+
+    class Chunk(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.Chunk, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.chunk_type = (self._io.read_bytes(4)).decode(u"ASCII")
-            self.len_data = self._io.read_u4be()
-            _on = (u"" if  ((self.chunk_type == u"opti") and (self.len_data == 0))  else self.chunk_type)
+            self.len_body = self._io.read_u4be()
+            _on = (u"" if  ((self.chunk_type == u"opti") and (self.len_body == 0))  else self.chunk_type)
             if _on == u"EfDC":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.EfdcBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.EfdcBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"LIST":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.ListBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.ListBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"NmHd":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.NmhdBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.NmhdBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"RCom":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.ChildUtf8Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.ChildUtf8Body(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"Roou":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.RoouBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.RoouBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"Ropt":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.RoptBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.RoptBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"Rout":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.RoutBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.RoutBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"Utf8":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.Utf8Body(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"acer":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.AcerBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.AcerBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"adfr":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.AdfrBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.AdfrBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"alas":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.Utf8Body(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"cdat":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.CdatBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.CdatBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"cdrp":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.CdrpBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.CdrpBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"cdta":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.CdtaBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.CdtaBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"cmta":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.Utf8Body(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"dwga":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.DwgaBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.DwgaBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"ewot":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.EwotBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.EwotBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"fcid":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.FcidBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.FcidBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"fdta":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.FdtaBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.FdtaBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"fiac":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.FiacBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.FiacBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"fips":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.FipsBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.FipsBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"fitt":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.FittBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.FittBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"fivc":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.FivcBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.FivcBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"fivi":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.FiviBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.FiviBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"fnam":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.ChildUtf8Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.ChildUtf8Body(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"foac":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.FoacBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.FoacBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"fth5":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.Fth5Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.Fth5Body(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"head":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.HeadBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.HeadBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"idta":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.IdtaBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.IdtaBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"ldat":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.LdatBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.LdatBody(self._parent.chunks[0].body.item_type, self._parent.chunks[0].body.item_size, self._parent.chunks[0].body.count, _io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"ldta":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.LdtaBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.LdtaBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"lhd3":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.Lhd3Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.Lhd3Body(_io__raw_body, self, self._root)
+                self.body._read()
+            elif _on == u"lnrb":
+                pass
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.LnrbBody(_io__raw_body, self, self._root)
+                self.body._read()
+            elif _on == u"lnrp":
+                pass
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.LnrpBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"mkif":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.MkifBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.MkifBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"nnhd":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.NnhdBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.NnhdBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"opti":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.OptiBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.OptiBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"otda":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.CdatBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.CdatBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"otln":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.OtlnBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.OtlnBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"pard":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.PardBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.PardBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"parn":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.ParnBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.ParnBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"pdnm":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.ChildUtf8Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.ChildUtf8Body(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"pjef":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.Utf8Body(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"shph":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.ShphBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.ShphBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"sspc":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.SspcBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.SspcBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"tdb4":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.Tdb4Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.Tdb4Body(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"tdli":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.S4Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.S4Body(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"tdmn":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.Utf8Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.Utf8Body(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"tdpi":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.S4Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.S4Body(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"tdps":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.S4Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.S4Body(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"tdsb":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.TdsbBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.TdsbBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"tdsn":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.ChildUtf8Body(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.ChildUtf8Body(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"tduM":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.TdumBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.TdumBody(_io__raw_body, self, self._root)
+                self.body._read()
             elif _on == u"tdum":
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.TdumBody(_io__raw_data, self, self._root)
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.TdumBody(_io__raw_body, self, self._root)
+                self.body._read()
             else:
                 pass
-                self._raw_data = self._io.read_bytes((self._io.size() - self._io.pos() if self.len_data > self._io.size() - self._io.pos() else self.len_data))
-                _io__raw_data = KaitaiStream(BytesIO(self._raw_data))
-                self.data = Aep.AsciiBody(_io__raw_data, self, self._root)
-            if self.len_data % 2 != 0:
+                self._raw_body = self._io.read_bytes(self.len_body)
+                _io__raw_body = KaitaiStream(BytesIO(self._raw_body))
+                self.body = Aep.AsciiBody(_io__raw_body, self, self._root)
+                self.body._read()
+            if self.len_body % 2 != 0:
                 pass
-                self.padding = self._io.read_bytes(1)
+                self.pad_byte = self._io.read_bytes(1)
 
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
-            _on = (u"" if  ((self.chunk_type == u"opti") and (self.len_data == 0))  else self.chunk_type)
+            _on = (u"" if  ((self.chunk_type == u"opti") and (self.len_body == 0))  else self.chunk_type)
             if _on == u"EfDC":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"LIST":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"NmHd":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"RCom":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"Roou":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"Ropt":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"Rout":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"Utf8":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"acer":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"adfr":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"alas":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"cdat":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"cdrp":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"cdta":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"cmta":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"dwga":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"ewot":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"fcid":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"fdta":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"fiac":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"fips":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"fitt":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"fivc":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"fivi":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"fnam":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"foac":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"fth5":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"head":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"idta":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"ldat":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"ldta":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"lhd3":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
+            elif _on == u"lnrb":
+                pass
+                self.body._fetch_instances()
+            elif _on == u"lnrp":
+                pass
+                self.body._fetch_instances()
             elif _on == u"mkif":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"nnhd":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"opti":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"otda":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"otln":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"pard":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"parn":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"pdnm":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"pjef":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"shph":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"sspc":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"tdb4":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"tdli":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"tdmn":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"tdpi":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"tdps":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"tdsb":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"tdsn":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"tduM":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             elif _on == u"tdum":
                 pass
-                self.data._fetch_instances()
+                self.body._fetch_instances()
             else:
                 pass
-                self.data._fetch_instances()
-            if self.len_data % 2 != 0:
+                self.body._fetch_instances()
+            if self.len_body % 2 != 0:
                 pass
 
 
 
-    class Chunks(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.Chunk, self)._write__seq(io)
+            self._io.write_bytes((self.chunk_type).encode(u"ASCII"))
+            self._io.write_u4be(self.len_body)
+            _on = (u"" if  ((self.chunk_type == u"opti") and (self.len_body == 0))  else self.chunk_type)
+            if _on == u"EfDC":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"LIST":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"NmHd":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"RCom":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"Roou":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"Ropt":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"Rout":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"Utf8":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"acer":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"adfr":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"alas":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"cdat":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"cdrp":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"cdta":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"cmta":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"dwga":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"ewot":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"fcid":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"fdta":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"fiac":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"fips":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"fitt":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"fivc":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"fivi":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"fnam":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"foac":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"fth5":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"head":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"idta":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"ldat":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"ldta":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"lhd3":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"lnrb":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"lnrp":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"mkif":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"nnhd":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"opti":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"otda":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"otln":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"pard":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"parn":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"pdnm":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"pjef":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"shph":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"sspc":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"tdb4":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"tdli":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"tdmn":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"tdpi":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"tdps":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"tdsb":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"tdsn":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"tduM":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            elif _on == u"tdum":
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            else:
+                pass
+                _io__raw_body = KaitaiStream(BytesIO(bytearray(self.len_body)))
+                self._io.add_child_stream(_io__raw_body)
+                _pos2 = self._io.pos()
+                self._io.seek(self._io.pos() + (self.len_body))
+                def handler(parent, _io__raw_body=_io__raw_body):
+                    self._raw_body = _io__raw_body.to_byte_array()
+                    if len(self._raw_body) != self.len_body:
+                        raise kaitaistruct.ConsistencyError(u"raw(body)", self.len_body, len(self._raw_body))
+                    parent.write_bytes(self._raw_body)
+                _io__raw_body.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                self.body._write__seq(_io__raw_body)
+            if self.len_body % 2 != 0:
+                pass
+                self._io.write_bytes(self.pad_byte)
+
+
+
+        def _check(self):
+            if len((self.chunk_type).encode(u"ASCII")) != 4:
+                raise kaitaistruct.ConsistencyError(u"chunk_type", 4, len((self.chunk_type).encode(u"ASCII")))
+            _on = (u"" if  ((self.chunk_type == u"opti") and (self.len_body == 0))  else self.chunk_type)
+            if _on == u"EfDC":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"LIST":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"NmHd":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"RCom":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"Roou":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"Ropt":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"Rout":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"Utf8":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"acer":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"adfr":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"alas":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"cdat":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"cdrp":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"cdta":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"cmta":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"dwga":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"ewot":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"fcid":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"fdta":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"fiac":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"fips":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"fitt":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"fivc":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"fivi":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"fnam":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"foac":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"fth5":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"head":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"idta":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"ldat":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+                if self.body.item_type != self._parent.chunks[0].body.item_type:
+                    raise kaitaistruct.ConsistencyError(u"body", self._parent.chunks[0].body.item_type, self.body.item_type)
+                if self.body.item_size != self._parent.chunks[0].body.item_size:
+                    raise kaitaistruct.ConsistencyError(u"body", self._parent.chunks[0].body.item_size, self.body.item_size)
+                if self.body.count != self._parent.chunks[0].body.count:
+                    raise kaitaistruct.ConsistencyError(u"body", self._parent.chunks[0].body.count, self.body.count)
+            elif _on == u"ldta":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"lhd3":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"lnrb":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"lnrp":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"mkif":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"nnhd":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"opti":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"otda":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"otln":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"pard":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"parn":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"pdnm":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"pjef":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"shph":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"sspc":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"tdb4":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"tdli":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"tdmn":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"tdpi":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"tdps":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"tdsb":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"tdsn":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"tduM":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"tdum":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            else:
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            if self.len_body % 2 != 0:
+                pass
+                if len(self.pad_byte) != 1:
+                    raise kaitaistruct.ConsistencyError(u"pad_byte", 1, len(self.pad_byte))
+
+            self._dirty = False
+
+
+    class Chunks(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.Chunks, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.chunks = []
             i = 0
             while not self._io.is_eof():
-                self.chunks.append(Aep.Chunk(self._io, self, self._root))
+                _t_chunks = Aep.Chunk(self._io, self, self._root)
+                try:
+                    _t_chunks._read()
+                finally:
+                    self.chunks.append(_t_chunks)
                 i += 1
 
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -855,15 +2262,37 @@ class Aep(KaitaiStruct):
 
 
 
-    class CineonRoptData(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.Chunks, self)._write__seq(io)
+            for i in range(len(self.chunks)):
+                pass
+                if self._io.is_eof():
+                    raise kaitaistruct.ConsistencyError(u"chunks", 0, self._io.size() - self._io.pos())
+                self.chunks[i]._write__seq(self._io)
+
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"chunks", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            for i in range(len(self.chunks)):
+                pass
+                if self.chunks[i]._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"chunks", self._root, self.chunks[i]._root)
+                if self.chunks[i]._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"chunks", self, self.chunks[i]._parent)
+
+            self._dirty = False
+
+
+    class CineonRoptData(ReadWriteKaitaiStruct):
         """Cineon/DPX format-specific render options (44 bytes after format code).
         These correspond to the Cineon Settings dialog in After Effects.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.CineonRoptData, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(6)
@@ -878,28 +2307,67 @@ class Aep(KaitaiStruct):
             self.file_format = self._io.read_u1()
             self.bit_depth = self._io.read_u1()
             self._unnamed11 = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class DwgaBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.CineonRoptData, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_bytes(self._unnamed1)
+            self._io.write_u2be(self.ten_bit_black_point)
+            self._io.write_u2be(self.ten_bit_white_point)
+            self._io.write_f8be(self.converted_black_point)
+            self._io.write_f8be(self.converted_white_point)
+            self._io.write_f8be(self.current_gamma)
+            self._io.write_u2be(self.highlight_expansion)
+            self._io.write_u1(self.logarithmic_conversion)
+            self._io.write_u1(self.file_format)
+            self._io.write_u1(self.bit_depth)
+            self._io.write_bytes(self._unnamed11)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"_unnamed11", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            if len(self._unnamed0) != 6:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 6, len(self._unnamed0))
+            if len(self._unnamed1) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed1", 4, len(self._unnamed1))
+            self._dirty = False
+
+
+    class DwgaBody(ReadWriteKaitaiStruct):
         """Working gamma setting. Indicates the gamma value used for color management.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.DwgaBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.working_gamma_selector = self._io.read_u1()
             self._unnamed1 = self._io.read_bytes(3)
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
+
+
+        def _write__seq(self, io=None):
+            super(Aep.DwgaBody, self)._write__seq(io)
+            self._io.write_u1(self.working_gamma_selector)
+            self._io.write_bytes(self._unnamed1)
+
+
+        def _check(self):
+            if len(self._unnamed1) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed1", 3, len(self._unnamed1))
+            self._dirty = False
 
         @property
         def working_gamma(self):
@@ -910,44 +2378,59 @@ class Aep(KaitaiStruct):
             self._m_working_gamma = (2.4 if self.working_gamma_selector != 0 else 2.2)
             return getattr(self, '_m_working_gamma', None)
 
+        def _invalidate_working_gamma(self):
+            del self._m_working_gamma
 
-    class EfdcBody(KaitaiStruct):
+    class EfdcBody(ReadWriteKaitaiStruct):
         """Effect definition count. The first byte contains the number of
         LIST EfDf definitions inside LIST EfdG.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.EfdcBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.count = self._io.read_u1()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class EwotBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.EfdcBody, self)._write__seq(io)
+            self._io.write_u1(self.count)
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class EwotBody(ReadWriteKaitaiStruct):
         """Effect workspace outline entries inside LIST Ewst.
         Each entry is 4 bytes. The first byte contains flags:
           - bit 7 (0x80): child property of an effect (not an effect group)
           - bit 6 (0x40): selected
         Entries without bit 7 are effect-group-level nodes.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.EwotBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.num_entries = self._io.read_u4be()
             self.entries = []
             for i in range(self.num_entries):
-                self.entries.append(Aep.EwotEntry(self._io, self, self._root))
+                _t_entries = Aep.EwotEntry(self._io, self, self._root)
+                try:
+                    _t_entries._read()
+                finally:
+                    self.entries.append(_t_entries)
 
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -958,68 +2441,127 @@ class Aep(KaitaiStruct):
 
 
 
-    class EwotEntry(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.EwotBody, self)._write__seq(io)
+            self._io.write_u4be(self.num_entries)
+            for i in range(len(self.entries)):
+                pass
+                self.entries[i]._write__seq(self._io)
+
+
+
+        def _check(self):
+            if len(self.entries) != self.num_entries:
+                raise kaitaistruct.ConsistencyError(u"entries", self.num_entries, len(self.entries))
+            for i in range(len(self.entries)):
+                pass
+                if self.entries[i]._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"entries", self._root, self.entries[i]._root)
+                if self.entries[i]._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"entries", self, self.entries[i]._parent)
+
+            self._dirty = False
+
+
+    class EwotEntry(ReadWriteKaitaiStruct):
         """Single effect workspace outline entry."""
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.EwotEntry, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.is_child_property = self._io.read_bits_int_be(1) != 0
             self.selected = self._io.read_bits_int_be(1) != 0
             self.reserved_flags = self._io.read_bits_int_be(6)
             self.data = self._io.read_bytes(3)
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class FcidBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.EwotEntry, self)._write__seq(io)
+            self._io.write_bits_int_be(1, int(self.is_child_property))
+            self._io.write_bits_int_be(1, int(self.selected))
+            self._io.write_bits_int_be(6, self.reserved_flags)
+            self._io.write_bytes(self.data)
+
+
+        def _check(self):
+            if len(self.data) != 3:
+                raise kaitaistruct.ConsistencyError(u"data", 3, len(self.data))
+            self._dirty = False
+
+
+    class FcidBody(ReadWriteKaitaiStruct):
         """Active composition item ID. Stores the item ID of the currently
         active (most recently focused) composition in the project.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.FcidBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.active_item_id = self._io.read_u4be()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class FdtaBody(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.FcidBody, self)._write__seq(io)
+            self._io.write_u4be(self.active_item_id)
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class FdtaBody(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.FdtaBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(1)
+            self._unnamed1 = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class FeatherPoint(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.FdtaBody, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_bytes(self._unnamed1)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"_unnamed1", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            if len(self._unnamed0) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 1, len(self._unnamed0))
+            self._dirty = False
+
+
+    class FeatherPoint(ReadWriteKaitaiStruct):
         """A single variable-width mask feather point (32 bytes).
         The feather type (inner/outer) is derived from the sign of the radius:
         negative radius = inner feather (type 1), positive = outer (type 0).
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.FeatherPoint, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.seg_loc = self._io.read_u4le()
@@ -1028,42 +2570,65 @@ class Aep(KaitaiStruct):
             self.radius = self._io.read_f8be()
             self.corner_angle = self._io.read_f4be()
             self.tension = self._io.read_f4be()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class FiacBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.FeatherPoint, self)._write__seq(io)
+            self._io.write_u4le(self.seg_loc)
+            self._io.write_u4le(self.interp_raw)
+            self._io.write_f8be(self.rel_seg_loc)
+            self._io.write_f8be(self.radius)
+            self._io.write_f4be(self.corner_angle)
+            self._io.write_f4be(self.tension)
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class FiacBody(ReadWriteKaitaiStruct):
         """Viewer inner tab active flag. When non-zero, the inner tab
         (e.g. Composition, Layer, Footage) is focused.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.FiacBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.active = self._io.read_u1()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class FipsBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.FiacBody, self)._write__seq(io)
+            self._io.write_u1(self.active)
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class FipsBody(ReadWriteKaitaiStruct):
         """Folder item panel settings. Stores viewer panel state including
         Draft 3D mode, view options (channels, exposure, zoom, etc.), and
         toggle flags (guides, rulers, grid, etc.). There are typically 4
         fips chunks per viewer group, one for each AE composition viewer
         panel. Total size is 96 bytes.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.FipsBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(7)
@@ -1103,84 +2668,182 @@ class Aep(KaitaiStruct):
             self._unnamed34 = self._io.read_bits_int_be(7)
             self.auto_resolution = self._io.read_bits_int_be(1) != 0
             self._unnamed36 = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class FittBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.FipsBody, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_u1(self.channels)
+            self._io.write_bytes(self._unnamed2)
+            self._io.write_bits_int_be(6, self._unnamed3)
+            self._io.write_bits_int_be(1, int(self.proportional_grid))
+            self._io.write_bits_int_be(1, int(self.title_action_safe))
+            self._io.write_bits_int_be(5, self._unnamed6)
+            self._io.write_bits_int_be(1, int(self.draft3d))
+            self._io.write_bits_int_be(2, self._unnamed8)
+            self._io.write_bits_int_be(7, self._unnamed9)
+            self._io.write_bits_int_be(1, int(self.fast_preview_adaptive))
+            self._io.write_bits_int_be(1, int(self.region_of_interest))
+            self._io.write_bits_int_be(1, int(self.rulers))
+            self._io.write_bits_int_be(1, int(self._unnamed13))
+            self._io.write_bits_int_be(1, int(self.fast_preview_wireframe))
+            self._io.write_bits_int_be(4, self._unnamed15)
+            self._io.write_bits_int_be(1, int(self.transparency_grid))
+            self._io.write_bits_int_be(2, self._unnamed17)
+            self._io.write_bits_int_be(1, int(self.mask_and_shape_path))
+            self._io.write_bits_int_be(4, self._unnamed19)
+            self._io.write_bytes(self._unnamed20)
+            self._io.write_bits_int_be(4, self._unnamed21)
+            self._io.write_bits_int_be(1, int(self.grid))
+            self._io.write_bits_int_be(1, int(self.guides_snap))
+            self._io.write_bits_int_be(1, int(self.guides_locked))
+            self._io.write_bits_int_be(1, int(self.guides_visibility))
+            self._io.write_bytes(self._unnamed26)
+            self._io.write_u1(self.zoom_type)
+            self._io.write_bytes(self._unnamed28)
+            self._io.write_f8be(self.zoom)
+            self._io.write_f4be(self.exposure)
+            self._io.write_bytes(self._unnamed31)
+            self._io.write_bits_int_be(7, self._unnamed32)
+            self._io.write_bits_int_be(1, int(self.use_display_color_management))
+            self._io.write_bits_int_be(7, self._unnamed34)
+            self._io.write_bits_int_be(1, int(self.auto_resolution))
+            self._io.write_bytes(self._unnamed36)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"_unnamed36", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            if len(self._unnamed0) != 7:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 7, len(self._unnamed0))
+            if len(self._unnamed2) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed2", 3, len(self._unnamed2))
+            if len(self._unnamed20) != 7:
+                raise kaitaistruct.ConsistencyError(u"_unnamed20", 7, len(self._unnamed20))
+            if len(self._unnamed26) != 45:
+                raise kaitaistruct.ConsistencyError(u"_unnamed26", 45, len(self._unnamed26))
+            if len(self._unnamed28) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed28", 2, len(self._unnamed28))
+            if len(self._unnamed31) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed31", 1, len(self._unnamed31))
+            self._dirty = False
+
+
+    class FittBody(ReadWriteKaitaiStruct):
         """Viewer inner tab type label. An ASCII string identifying the
         viewer type (e.g. "AE Composition", "AE Layer", "AE Footage").
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.FittBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.label = (self._io.read_bytes_full()).decode(u"ASCII")
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class FivcBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.FittBody, self)._write__seq(io)
+            self._io.write_bytes((self.label).encode(u"ASCII"))
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"label", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class FivcBody(ReadWriteKaitaiStruct):
         """Viewer inner view count. The number of views in the inner tab.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.FivcBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.view_count = self._io.read_u2be()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class FiviBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.FivcBody, self)._write__seq(io)
+            self._io.write_u2be(self.view_count)
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class FiviBody(ReadWriteKaitaiStruct):
         """Viewer inner active view index. The zero-based index of the
         currently active view within the inner tab.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.FiviBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.active_view_index = self._io.read_u4be()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class FoacBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.FiviBody, self)._write__seq(io)
+            self._io.write_u4be(self.active_view_index)
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class FoacBody(ReadWriteKaitaiStruct):
         """Viewer outer tab active flag. When non-zero, the outer panel
         (e.g. Timeline) is focused.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.FoacBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.active = self._io.read_u1()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class Fth5Body(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.FoacBody, self)._write__seq(io)
+            self._io.write_u1(self.active)
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class Fth5Body(ReadWriteKaitaiStruct):
         """Variable-width mask feather points.  Each feather point is 32 bytes.
         Feather points can be placed anywhere along a closed mask path to vary
         the feather radius at different positions.  The number of points is
@@ -1189,19 +2852,23 @@ class Aep(KaitaiStruct):
         Integer fields use little-endian byte order despite the big-endian
         RIFX container (similar to OTST cdat).  Float fields remain big-endian.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.Fth5Body, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.points = []
             i = 0
             while not self._io.is_eof():
-                self.points.append(Aep.FeatherPoint(self._io, self, self._root))
+                _t_points = Aep.FeatherPoint(self._io, self, self._root)
+                try:
+                    _t_points._read()
+                finally:
+                    self.points.append(_t_points)
                 i += 1
 
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -1212,16 +2879,38 @@ class Aep(KaitaiStruct):
 
 
 
-    class HeadBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.Fth5Body, self)._write__seq(io)
+            for i in range(len(self.points)):
+                pass
+                if self._io.is_eof():
+                    raise kaitaistruct.ConsistencyError(u"points", 0, self._io.size() - self._io.pos())
+                self.points[i]._write__seq(self._io)
+
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"points", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            for i in range(len(self.points)):
+                pass
+                if self.points[i]._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"points", self._root, self.points[i]._root)
+                if self.points[i]._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"points", self, self.points[i]._parent)
+
+            self._dirty = False
+
+
+    class HeadBody(ReadWriteKaitaiStruct):
         """After Effects file header. Contains version info encoded as a 32-bit value.
         Major version = MAJOR-A * 8 + MAJOR-B
         See: https://github.com/tinogithub/aftereffects-version-check
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.HeadBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(4)
@@ -1237,10 +2926,36 @@ class Aep(KaitaiStruct):
             self.ae_build_number = self._io.read_bits_int_be(8)
             self._unnamed11 = self._io.read_bytes(10)
             self.file_revision = self._io.read_u2be()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
+
+
+        def _write__seq(self, io=None):
+            super(Aep.HeadBody, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_bits_int_be(1, int(self._unnamed1))
+            self._io.write_bits_int_be(5, self.ae_version_major_a)
+            self._io.write_bits_int_be(4, self.ae_version_os)
+            self._io.write_bits_int_be(3, self.ae_version_major_b)
+            self._io.write_bits_int_be(4, self.ae_version_minor)
+            self._io.write_bits_int_be(4, self.ae_version_patch)
+            self._io.write_bits_int_be(1, int(self._unnamed7))
+            self._io.write_bits_int_be(1, int(self.ae_version_beta_flag))
+            self._io.write_bits_int_be(1, int(self._unnamed9))
+            self._io.write_bits_int_be(8, self.ae_build_number)
+            self._io.write_bytes(self._unnamed11)
+            self._io.write_u2be(self.file_revision)
+
+
+        def _check(self):
+            if len(self._unnamed0) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 4, len(self._unnamed0))
+            if len(self._unnamed11) != 10:
+                raise kaitaistruct.ConsistencyError(u"_unnamed11", 10, len(self._unnamed11))
+            self._dirty = False
 
         @property
         def ae_version_beta(self):
@@ -1251,6 +2966,8 @@ class Aep(KaitaiStruct):
             self._m_ae_version_beta = (not (self.ae_version_beta_flag))
             return getattr(self, '_m_ae_version_beta', None)
 
+        def _invalidate_ae_version_beta(self):
+            del self._m_ae_version_beta
         @property
         def ae_version_major(self):
             """Full major version number (e.g., 25)."""
@@ -1260,13 +2977,24 @@ class Aep(KaitaiStruct):
             self._m_ae_version_major = self.ae_version_major_a * 8 + self.ae_version_major_b
             return getattr(self, '_m_ae_version_major', None)
 
+        def _invalidate_ae_version_major(self):
+            del self._m_ae_version_major
+        @property
+        def version(self):
+            if hasattr(self, '_m_version'):
+                return self._m_version
 
-    class IdtaBody(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+            self._m_version = str(self.ae_version_major) + u"." + str(self.ae_version_minor) + u"x" + str(self.ae_build_number)
+            return getattr(self, '_m_version', None)
+
+        def _invalidate_version(self):
+            del self._m_version
+
+    class IdtaBody(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.IdtaBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.item_type = KaitaiStream.resolve_enum(Aep.ItemType, self._io.read_u2be())
@@ -1274,40 +3002,75 @@ class Aep(KaitaiStruct):
             self.id = self._io.read_u4be()
             self._unnamed3 = self._io.read_bytes(38)
             self.label = KaitaiStream.resolve_enum(Aep.Label, self._io.read_u1())
+            self._unnamed5 = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class JpegRoptData(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.IdtaBody, self)._write__seq(io)
+            self._io.write_u2be(int(self.item_type))
+            self._io.write_bytes(self._unnamed1)
+            self._io.write_u4be(self.id)
+            self._io.write_bytes(self._unnamed3)
+            self._io.write_u1(int(self.label))
+            self._io.write_bytes(self._unnamed5)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"_unnamed5", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            if len(self._unnamed1) != 14:
+                raise kaitaistruct.ConsistencyError(u"_unnamed1", 14, len(self._unnamed1))
+            if len(self._unnamed3) != 38:
+                raise kaitaistruct.ConsistencyError(u"_unnamed3", 38, len(self._unnamed3))
+            self._dirty = False
+
+
+    class JpegRoptData(ReadWriteKaitaiStruct):
         """JPEG format-specific render options (54 bytes after format code).
         The first 48 bytes are a static header/magic block. The last 6 bytes
         hold quality, format type, and scans as big-endian u16 values.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.JpegRoptData, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(48)
             self.quality = self._io.read_u2be()
             self.format_type = self._io.read_u2be()
             self.scans = self._io.read_u2be()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class KfColor(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.JpegRoptData, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_u2be(self.quality)
+            self._io.write_u2be(self.format_type)
+            self._io.write_u2be(self.scans)
+
+
+        def _check(self):
+            if len(self._unnamed0) != 48:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 48, len(self._unnamed0))
+            self._dirty = False
+
+
+    class KfColor(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.KfColor, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_u8be()
@@ -1324,6 +3087,7 @@ class Aep(KaitaiStruct):
             for i in range(8):
                 self._unnamed7.append(self._io.read_f8be())
 
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -1336,13 +3100,44 @@ class Aep(KaitaiStruct):
 
 
 
-    class KfMultiDimensional(KaitaiStruct):
-        def __init__(self, num_value, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.KfColor, self)._write__seq(io)
+            self._io.write_u8be(self._unnamed0)
+            self._io.write_f8be(self._unnamed1)
+            self._io.write_f8be(self.in_speed)
+            self._io.write_f8be(self.in_influence)
+            self._io.write_f8be(self.out_speed)
+            self._io.write_f8be(self.out_influence)
+            for i in range(len(self.value)):
+                pass
+                self._io.write_f8be(self.value[i])
+
+            for i in range(len(self._unnamed7)):
+                pass
+                self._io.write_f8be(self._unnamed7[i])
+
+
+
+        def _check(self):
+            if len(self.value) != 4:
+                raise kaitaistruct.ConsistencyError(u"value", 4, len(self.value))
+            for i in range(len(self.value)):
+                pass
+
+            if len(self._unnamed7) != 8:
+                raise kaitaistruct.ConsistencyError(u"_unnamed7", 8, len(self._unnamed7))
+            for i in range(len(self._unnamed7)):
+                pass
+
+            self._dirty = False
+
+
+    class KfMultiDimensional(ReadWriteKaitaiStruct):
+        def __init__(self, num_value, _io=None, _parent=None, _root=None):
             super(Aep.KfMultiDimensional, self).__init__(_io)
             self._parent = _parent
             self._root = _root
             self.num_value = num_value
-            self._read()
 
         def _read(self):
             self.value = []
@@ -1365,6 +3160,7 @@ class Aep(KaitaiStruct):
             for i in range(self.num_value):
                 self.out_influence.append(self._io.read_f8be())
 
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -1386,12 +3182,64 @@ class Aep(KaitaiStruct):
 
 
 
-    class KfNoValue(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.KfMultiDimensional, self)._write__seq(io)
+            for i in range(len(self.value)):
+                pass
+                self._io.write_f8be(self.value[i])
+
+            for i in range(len(self.in_speed)):
+                pass
+                self._io.write_f8be(self.in_speed[i])
+
+            for i in range(len(self.in_influence)):
+                pass
+                self._io.write_f8be(self.in_influence[i])
+
+            for i in range(len(self.out_speed)):
+                pass
+                self._io.write_f8be(self.out_speed[i])
+
+            for i in range(len(self.out_influence)):
+                pass
+                self._io.write_f8be(self.out_influence[i])
+
+
+
+        def _check(self):
+            if len(self.value) != self.num_value:
+                raise kaitaistruct.ConsistencyError(u"value", self.num_value, len(self.value))
+            for i in range(len(self.value)):
+                pass
+
+            if len(self.in_speed) != self.num_value:
+                raise kaitaistruct.ConsistencyError(u"in_speed", self.num_value, len(self.in_speed))
+            for i in range(len(self.in_speed)):
+                pass
+
+            if len(self.in_influence) != self.num_value:
+                raise kaitaistruct.ConsistencyError(u"in_influence", self.num_value, len(self.in_influence))
+            for i in range(len(self.in_influence)):
+                pass
+
+            if len(self.out_speed) != self.num_value:
+                raise kaitaistruct.ConsistencyError(u"out_speed", self.num_value, len(self.out_speed))
+            for i in range(len(self.out_speed)):
+                pass
+
+            if len(self.out_influence) != self.num_value:
+                raise kaitaistruct.ConsistencyError(u"out_influence", self.num_value, len(self.out_influence))
+            for i in range(len(self.out_influence)):
+                pass
+
+            self._dirty = False
+
+
+    class KfNoValue(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.KfNoValue, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_u8be()
@@ -1400,19 +3248,33 @@ class Aep(KaitaiStruct):
             self.in_influence = self._io.read_f8be()
             self.out_speed = self._io.read_f8be()
             self.out_influence = self._io.read_f8be()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class KfPosition(KaitaiStruct):
-        def __init__(self, num_value, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.KfNoValue, self)._write__seq(io)
+            self._io.write_u8be(self._unnamed0)
+            self._io.write_f8be(self._unnamed1)
+            self._io.write_f8be(self.in_speed)
+            self._io.write_f8be(self.in_influence)
+            self._io.write_f8be(self.out_speed)
+            self._io.write_f8be(self.out_influence)
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class KfPosition(ReadWriteKaitaiStruct):
+        def __init__(self, num_value, _io=None, _parent=None, _root=None):
             super(Aep.KfPosition, self).__init__(_io)
             self._parent = _parent
             self._root = _root
             self.num_value = num_value
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(3)
@@ -1437,6 +3299,7 @@ class Aep(KaitaiStruct):
             for i in range(self.num_value):
                 self.out_spatial_tangents.append(self._io.read_f8be())
 
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -1452,43 +3315,317 @@ class Aep(KaitaiStruct):
 
 
 
-    class KfUnknownData(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.KfPosition, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_bits_int_be(6, self._unnamed1)
+            self._io.write_bits_int_be(1, int(self.spatial_auto_bezier))
+            self._io.write_bits_int_be(1, int(self.spatial_continuous))
+            self._io.write_bytes(self._unnamed4)
+            self._io.write_f8be(self._unnamed5)
+            self._io.write_f8be(self.in_speed)
+            self._io.write_f8be(self.in_influence)
+            self._io.write_f8be(self.out_speed)
+            self._io.write_f8be(self.out_influence)
+            for i in range(len(self.value)):
+                pass
+                self._io.write_f8be(self.value[i])
+
+            for i in range(len(self.in_spatial_tangents)):
+                pass
+                self._io.write_f8be(self.in_spatial_tangents[i])
+
+            for i in range(len(self.out_spatial_tangents)):
+                pass
+                self._io.write_f8be(self.out_spatial_tangents[i])
+
+
+
+        def _check(self):
+            if len(self._unnamed0) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 3, len(self._unnamed0))
+            if len(self._unnamed4) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed4", 4, len(self._unnamed4))
+            if len(self.value) != self.num_value:
+                raise kaitaistruct.ConsistencyError(u"value", self.num_value, len(self.value))
+            for i in range(len(self.value)):
+                pass
+
+            if len(self.in_spatial_tangents) != self.num_value:
+                raise kaitaistruct.ConsistencyError(u"in_spatial_tangents", self.num_value, len(self.in_spatial_tangents))
+            for i in range(len(self.in_spatial_tangents)):
+                pass
+
+            if len(self.out_spatial_tangents) != self.num_value:
+                raise kaitaistruct.ConsistencyError(u"out_spatial_tangents", self.num_value, len(self.out_spatial_tangents))
+            for i in range(len(self.out_spatial_tangents)):
+                pass
+
+            self._dirty = False
+
+
+    class KfUnknownData(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.KfUnknownData, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.contents = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class LdatBody(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.KfUnknownData, self)._write__seq(io)
+            self._io.write_bytes(self.contents)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"contents", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class LdatBody(ReadWriteKaitaiStruct):
+        """Keyframe / shape / settings data items. Typed via params from sibling lhd3.
+        Automatically promotes three_d to three_d_spatial when the parent tdbs
+        context indicates the property is spatial (tdb4.is_spatial).
+        """
+        def __init__(self, item_type, item_size, count, _io=None, _parent=None, _root=None):
             super(Aep.LdatBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
+            self.item_type = item_type
+            self.item_size = item_size
+            self.count = count
 
         def _read(self):
-            self.items = self._io.read_bytes_full()
+            self._raw_items = []
+            self.items = []
+            for i in range(self.count):
+                _on = self.effective_item_type
+                if _on == Aep.LdatItemType.gide:
+                    pass
+                    self._raw_items.append(self._io.read_bytes(self.item_size))
+                    _io__raw_items = KaitaiStream(BytesIO(self._raw_items[i]))
+                    _t_items = Aep.KfUnknownData(_io__raw_items, self, self._root)
+                    try:
+                        _t_items._read()
+                    finally:
+                        self.items.append(_t_items)
+                elif _on == Aep.LdatItemType.litm:
+                    pass
+                    self._raw_items.append(self._io.read_bytes(self.item_size))
+                    _io__raw_items = KaitaiStream(BytesIO(self._raw_items[i]))
+                    _t_items = Aep.OutputModuleSettingsLdatBody(_io__raw_items, self, self._root)
+                    try:
+                        _t_items._read()
+                    finally:
+                        self.items.append(_t_items)
+                elif _on == Aep.LdatItemType.lrdr:
+                    pass
+                    self._raw_items.append(self._io.read_bytes(self.item_size))
+                    _io__raw_items = KaitaiStream(BytesIO(self._raw_items[i]))
+                    _t_items = Aep.RenderSettingsLdatBody(_io__raw_items, self, self._root)
+                    try:
+                        _t_items._read()
+                    finally:
+                        self.items.append(_t_items)
+                elif _on == Aep.LdatItemType.shape:
+                    pass
+                    self._raw_items.append(self._io.read_bytes(self.item_size))
+                    _io__raw_items = KaitaiStream(BytesIO(self._raw_items[i]))
+                    _t_items = Aep.ShapePoint(_io__raw_items, self, self._root)
+                    try:
+                        _t_items._read()
+                    finally:
+                        self.items.append(_t_items)
+                else:
+                    pass
+                    self._raw_items.append(self._io.read_bytes(self.item_size))
+                    _io__raw_items = KaitaiStream(BytesIO(self._raw_items[i]))
+                    _t_items = Aep.LdatItem(self.effective_item_type, _io__raw_items, self, self._root)
+                    try:
+                        _t_items._read()
+                    finally:
+                        self.items.append(_t_items)
+
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
+            for i in range(len(self.items)):
+                pass
+                _on = self.effective_item_type
+                if _on == Aep.LdatItemType.gide:
+                    pass
+                    self.items[i]._fetch_instances()
+                elif _on == Aep.LdatItemType.litm:
+                    pass
+                    self.items[i]._fetch_instances()
+                elif _on == Aep.LdatItemType.lrdr:
+                    pass
+                    self.items[i]._fetch_instances()
+                elif _on == Aep.LdatItemType.shape:
+                    pass
+                    self.items[i]._fetch_instances()
+                else:
+                    pass
+                    self.items[i]._fetch_instances()
 
 
-    class LdatItem(KaitaiStruct):
-        def __init__(self, item_type, _io, _parent=None, _root=None):
+
+        def _write__seq(self, io=None):
+            super(Aep.LdatBody, self)._write__seq(io)
+            self._raw_items = []
+            for i in range(len(self.items)):
+                pass
+                _on = self.effective_item_type
+                if _on == Aep.LdatItemType.gide:
+                    pass
+                    _io__raw_items = KaitaiStream(BytesIO(bytearray(self.item_size)))
+                    self._io.add_child_stream(_io__raw_items)
+                    _pos2 = self._io.pos()
+                    self._io.seek(self._io.pos() + (self.item_size))
+                    def handler(parent, _io__raw_items=_io__raw_items, i=i):
+                        self._raw_items.append(_io__raw_items.to_byte_array())
+                        if len(self._raw_items[i]) != self.item_size:
+                            raise kaitaistruct.ConsistencyError(u"raw(items)", self.item_size, len(self._raw_items[i]))
+                        parent.write_bytes(self._raw_items[i])
+                    _io__raw_items.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                    self.items[i]._write__seq(_io__raw_items)
+                elif _on == Aep.LdatItemType.litm:
+                    pass
+                    _io__raw_items = KaitaiStream(BytesIO(bytearray(self.item_size)))
+                    self._io.add_child_stream(_io__raw_items)
+                    _pos2 = self._io.pos()
+                    self._io.seek(self._io.pos() + (self.item_size))
+                    def handler(parent, _io__raw_items=_io__raw_items, i=i):
+                        self._raw_items.append(_io__raw_items.to_byte_array())
+                        if len(self._raw_items[i]) != self.item_size:
+                            raise kaitaistruct.ConsistencyError(u"raw(items)", self.item_size, len(self._raw_items[i]))
+                        parent.write_bytes(self._raw_items[i])
+                    _io__raw_items.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                    self.items[i]._write__seq(_io__raw_items)
+                elif _on == Aep.LdatItemType.lrdr:
+                    pass
+                    _io__raw_items = KaitaiStream(BytesIO(bytearray(self.item_size)))
+                    self._io.add_child_stream(_io__raw_items)
+                    _pos2 = self._io.pos()
+                    self._io.seek(self._io.pos() + (self.item_size))
+                    def handler(parent, _io__raw_items=_io__raw_items, i=i):
+                        self._raw_items.append(_io__raw_items.to_byte_array())
+                        if len(self._raw_items[i]) != self.item_size:
+                            raise kaitaistruct.ConsistencyError(u"raw(items)", self.item_size, len(self._raw_items[i]))
+                        parent.write_bytes(self._raw_items[i])
+                    _io__raw_items.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                    self.items[i]._write__seq(_io__raw_items)
+                elif _on == Aep.LdatItemType.shape:
+                    pass
+                    _io__raw_items = KaitaiStream(BytesIO(bytearray(self.item_size)))
+                    self._io.add_child_stream(_io__raw_items)
+                    _pos2 = self._io.pos()
+                    self._io.seek(self._io.pos() + (self.item_size))
+                    def handler(parent, _io__raw_items=_io__raw_items, i=i):
+                        self._raw_items.append(_io__raw_items.to_byte_array())
+                        if len(self._raw_items[i]) != self.item_size:
+                            raise kaitaistruct.ConsistencyError(u"raw(items)", self.item_size, len(self._raw_items[i]))
+                        parent.write_bytes(self._raw_items[i])
+                    _io__raw_items.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                    self.items[i]._write__seq(_io__raw_items)
+                else:
+                    pass
+                    _io__raw_items = KaitaiStream(BytesIO(bytearray(self.item_size)))
+                    self._io.add_child_stream(_io__raw_items)
+                    _pos2 = self._io.pos()
+                    self._io.seek(self._io.pos() + (self.item_size))
+                    def handler(parent, _io__raw_items=_io__raw_items, i=i):
+                        self._raw_items.append(_io__raw_items.to_byte_array())
+                        if len(self._raw_items[i]) != self.item_size:
+                            raise kaitaistruct.ConsistencyError(u"raw(items)", self.item_size, len(self._raw_items[i]))
+                        parent.write_bytes(self._raw_items[i])
+                    _io__raw_items.write_back_handler = KaitaiStream.WriteBackHandler(_pos2, handler)
+                    self.items[i]._write__seq(_io__raw_items)
+
+
+
+        def _check(self):
+            if len(self.items) != self.count:
+                raise kaitaistruct.ConsistencyError(u"items", self.count, len(self.items))
+            for i in range(len(self.items)):
+                pass
+                _on = self.effective_item_type
+                if _on == Aep.LdatItemType.gide:
+                    pass
+                    if self.items[i]._root != self._root:
+                        raise kaitaistruct.ConsistencyError(u"items", self._root, self.items[i]._root)
+                    if self.items[i]._parent != self:
+                        raise kaitaistruct.ConsistencyError(u"items", self, self.items[i]._parent)
+                elif _on == Aep.LdatItemType.litm:
+                    pass
+                    if self.items[i]._root != self._root:
+                        raise kaitaistruct.ConsistencyError(u"items", self._root, self.items[i]._root)
+                    if self.items[i]._parent != self:
+                        raise kaitaistruct.ConsistencyError(u"items", self, self.items[i]._parent)
+                elif _on == Aep.LdatItemType.lrdr:
+                    pass
+                    if self.items[i]._root != self._root:
+                        raise kaitaistruct.ConsistencyError(u"items", self._root, self.items[i]._root)
+                    if self.items[i]._parent != self:
+                        raise kaitaistruct.ConsistencyError(u"items", self, self.items[i]._parent)
+                elif _on == Aep.LdatItemType.shape:
+                    pass
+                    if self.items[i]._root != self._root:
+                        raise kaitaistruct.ConsistencyError(u"items", self._root, self.items[i]._root)
+                    if self.items[i]._parent != self:
+                        raise kaitaistruct.ConsistencyError(u"items", self, self.items[i]._parent)
+                else:
+                    pass
+                    if self.items[i]._root != self._root:
+                        raise kaitaistruct.ConsistencyError(u"items", self._root, self.items[i]._root)
+                    if self.items[i]._parent != self:
+                        raise kaitaistruct.ConsistencyError(u"items", self, self.items[i]._parent)
+                    if self.items[i].item_type != self.effective_item_type:
+                        raise kaitaistruct.ConsistencyError(u"items", self.effective_item_type, self.items[i].item_type)
+
+            self._dirty = False
+
+        @property
+        def effective_item_type(self):
+            """Promotes three_d to three_d_spatial for spatial properties.
+            Both have item_size=128 but different binary layouts (kf_multi_dimensional vs kf_position).
+            """
+            if hasattr(self, '_m_effective_item_type'):
+                return self._m_effective_item_type
+
+            self._m_effective_item_type = (Aep.LdatItemType.three_d_spatial if  ((self.item_type == Aep.LdatItemType.three_d) and (self.is_spatial))  else self.item_type)
+            return getattr(self, '_m_effective_item_type', None)
+
+        def _invalidate_effective_item_type(self):
+            del self._m_effective_item_type
+        @property
+        def is_spatial(self):
+            """Whether the parent property is spatial (from tdb4 in the grandparent LIST:tdbs)."""
+            if hasattr(self, '_m_is_spatial'):
+                return self._m_is_spatial
+
+            self._m_is_spatial =  ((self._parent._parent._parent._parent.list_type == u"tdbs") and (self._parent._parent._parent._parent.chunks[2].body.is_spatial)) 
+            return getattr(self, '_m_is_spatial', None)
+
+        def _invalidate_is_spatial(self):
+            del self._m_is_spatial
+
+    class LdatItem(ReadWriteKaitaiStruct):
+        def __init__(self, item_type, _io=None, _parent=None, _root=None):
             super(Aep.LdatItem, self).__init__(_io)
             self._parent = _parent
             self._root = _root
             self.item_type = item_type
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(1)
@@ -1506,42 +3643,48 @@ class Aep(KaitaiStruct):
             if _on == Aep.LdatItemType.color:
                 pass
                 self.kf_data = Aep.KfColor(self._io, self, self._root)
+                self.kf_data._read()
             elif _on == Aep.LdatItemType.gide:
                 pass
                 self.kf_data = Aep.KfUnknownData(self._io, self, self._root)
-            elif _on == Aep.LdatItemType.litm:
-                pass
-                self.kf_data = Aep.OutputModuleSettingsLdatBody(self._io, self, self._root)
-            elif _on == Aep.LdatItemType.lrdr:
-                pass
-                self.kf_data = Aep.RenderSettingsLdatBody(self._io, self, self._root)
+                self.kf_data._read()
             elif _on == Aep.LdatItemType.marker:
                 pass
                 self.kf_data = Aep.KfUnknownData(self._io, self, self._root)
+                self.kf_data._read()
             elif _on == Aep.LdatItemType.no_value:
                 pass
                 self.kf_data = Aep.KfNoValue(self._io, self, self._root)
+                self.kf_data._read()
             elif _on == Aep.LdatItemType.one_d:
                 pass
                 self.kf_data = Aep.KfMultiDimensional(1, self._io, self, self._root)
+                self.kf_data._read()
             elif _on == Aep.LdatItemType.orientation:
                 pass
                 self.kf_data = Aep.KfMultiDimensional(1, self._io, self, self._root)
+                self.kf_data._read()
             elif _on == Aep.LdatItemType.three_d:
                 pass
                 self.kf_data = Aep.KfMultiDimensional(3, self._io, self, self._root)
+                self.kf_data._read()
             elif _on == Aep.LdatItemType.three_d_spatial:
                 pass
                 self.kf_data = Aep.KfPosition(3, self._io, self, self._root)
+                self.kf_data._read()
             elif _on == Aep.LdatItemType.two_d:
                 pass
                 self.kf_data = Aep.KfMultiDimensional(2, self._io, self, self._root)
+                self.kf_data._read()
             elif _on == Aep.LdatItemType.two_d_spatial:
                 pass
                 self.kf_data = Aep.KfPosition(2, self._io, self, self._root)
+                self.kf_data._read()
             elif _on == Aep.LdatItemType.unknown:
                 pass
                 self.kf_data = Aep.KfUnknownData(self._io, self, self._root)
+                self.kf_data._read()
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -1553,12 +3696,6 @@ class Aep(KaitaiStruct):
             elif _on == Aep.LdatItemType.gide:
                 pass
                 self.kf_data._fetch_instances()
-            elif _on == Aep.LdatItemType.litm:
-                pass
-                self.kf_data._fetch_instances()
-            elif _on == Aep.LdatItemType.lrdr:
-                pass
-                self.kf_data._fetch_instances()
             elif _on == Aep.LdatItemType.marker:
                 pass
                 self.kf_data._fetch_instances()
@@ -1588,12 +3725,147 @@ class Aep(KaitaiStruct):
                 self.kf_data._fetch_instances()
 
 
-    class LdtaBody(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.LdatItem, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_s2be(self.time_raw)
+            self._io.write_bytes(self._unnamed2)
+            self._io.write_u1(self.in_interpolation_type)
+            self._io.write_u1(self.out_interpolation_type)
+            self._io.write_u1(int(self.label))
+            self._io.write_bits_int_be(2, self._unnamed6)
+            self._io.write_bits_int_be(1, int(self.roving))
+            self._io.write_bits_int_be(1, int(self.temporal_auto_bezier))
+            self._io.write_bits_int_be(1, int(self.temporal_continuous))
+            self._io.write_bits_int_be(3, self._unnamed10)
+            _on = self.item_type
+            if _on == Aep.LdatItemType.color:
+                pass
+                self.kf_data._write__seq(self._io)
+            elif _on == Aep.LdatItemType.gide:
+                pass
+                self.kf_data._write__seq(self._io)
+            elif _on == Aep.LdatItemType.marker:
+                pass
+                self.kf_data._write__seq(self._io)
+            elif _on == Aep.LdatItemType.no_value:
+                pass
+                self.kf_data._write__seq(self._io)
+            elif _on == Aep.LdatItemType.one_d:
+                pass
+                self.kf_data._write__seq(self._io)
+            elif _on == Aep.LdatItemType.orientation:
+                pass
+                self.kf_data._write__seq(self._io)
+            elif _on == Aep.LdatItemType.three_d:
+                pass
+                self.kf_data._write__seq(self._io)
+            elif _on == Aep.LdatItemType.three_d_spatial:
+                pass
+                self.kf_data._write__seq(self._io)
+            elif _on == Aep.LdatItemType.two_d:
+                pass
+                self.kf_data._write__seq(self._io)
+            elif _on == Aep.LdatItemType.two_d_spatial:
+                pass
+                self.kf_data._write__seq(self._io)
+            elif _on == Aep.LdatItemType.unknown:
+                pass
+                self.kf_data._write__seq(self._io)
+
+
+        def _check(self):
+            if len(self._unnamed0) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 1, len(self._unnamed0))
+            if len(self._unnamed2) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed2", 1, len(self._unnamed2))
+            _on = self.item_type
+            if _on == Aep.LdatItemType.color:
+                pass
+                if self.kf_data._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self._root, self.kf_data._root)
+                if self.kf_data._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self, self.kf_data._parent)
+            elif _on == Aep.LdatItemType.gide:
+                pass
+                if self.kf_data._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self._root, self.kf_data._root)
+                if self.kf_data._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self, self.kf_data._parent)
+            elif _on == Aep.LdatItemType.marker:
+                pass
+                if self.kf_data._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self._root, self.kf_data._root)
+                if self.kf_data._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self, self.kf_data._parent)
+            elif _on == Aep.LdatItemType.no_value:
+                pass
+                if self.kf_data._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self._root, self.kf_data._root)
+                if self.kf_data._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self, self.kf_data._parent)
+            elif _on == Aep.LdatItemType.one_d:
+                pass
+                if self.kf_data._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self._root, self.kf_data._root)
+                if self.kf_data._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self, self.kf_data._parent)
+                if self.kf_data.num_value != 1:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", 1, self.kf_data.num_value)
+            elif _on == Aep.LdatItemType.orientation:
+                pass
+                if self.kf_data._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self._root, self.kf_data._root)
+                if self.kf_data._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self, self.kf_data._parent)
+                if self.kf_data.num_value != 1:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", 1, self.kf_data.num_value)
+            elif _on == Aep.LdatItemType.three_d:
+                pass
+                if self.kf_data._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self._root, self.kf_data._root)
+                if self.kf_data._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self, self.kf_data._parent)
+                if self.kf_data.num_value != 3:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", 3, self.kf_data.num_value)
+            elif _on == Aep.LdatItemType.three_d_spatial:
+                pass
+                if self.kf_data._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self._root, self.kf_data._root)
+                if self.kf_data._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self, self.kf_data._parent)
+                if self.kf_data.num_value != 3:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", 3, self.kf_data.num_value)
+            elif _on == Aep.LdatItemType.two_d:
+                pass
+                if self.kf_data._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self._root, self.kf_data._root)
+                if self.kf_data._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self, self.kf_data._parent)
+                if self.kf_data.num_value != 2:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", 2, self.kf_data.num_value)
+            elif _on == Aep.LdatItemType.two_d_spatial:
+                pass
+                if self.kf_data._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self._root, self.kf_data._root)
+                if self.kf_data._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self, self.kf_data._parent)
+                if self.kf_data.num_value != 2:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", 2, self.kf_data.num_value)
+            elif _on == Aep.LdatItemType.unknown:
+                pass
+                if self.kf_data._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self._root, self.kf_data._root)
+                if self.kf_data._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"kf_data", self, self.kf_data._parent)
+            self._dirty = False
+
+
+    class LdtaBody(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.LdtaBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.layer_id = self._io.read_u4be()
@@ -1653,6 +3925,7 @@ class Aep(KaitaiStruct):
                 pass
                 self.matte_layer_id = self._io.read_u4be()
 
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -1661,22 +3934,115 @@ class Aep(KaitaiStruct):
                 pass
 
 
+
+        def _write__seq(self, io=None):
+            super(Aep.LdtaBody, self)._write__seq(io)
+            self._io.write_u4be(self.layer_id)
+            self._io.write_u2be(self.quality)
+            self._io.write_bytes(self._unnamed2)
+            self._io.write_s4be(self.stretch_dividend)
+            self._io.write_s4be(self.start_time_dividend)
+            self._io.write_u4be(self.start_time_divisor)
+            self._io.write_s4be(self.in_point_dividend)
+            self._io.write_u4be(self.in_point_divisor)
+            self._io.write_s4be(self.out_point_dividend)
+            self._io.write_u4be(self.out_point_divisor)
+            self._io.write_bytes(self._unnamed10)
+            self._io.write_bits_int_be(1, int(self._unnamed11))
+            self._io.write_bits_int_be(1, int(self.sampling_quality))
+            self._io.write_bits_int_be(1, int(self.environment_layer))
+            self._io.write_bits_int_be(1, int(self.characters_toward_camera))
+            self._io.write_bits_int_be(1, int(self.three_d_per_char))
+            self._io.write_bits_int_be(1, int(self.frame_blending_type))
+            self._io.write_bits_int_be(1, int(self.guide_layer))
+            self._io.write_bits_int_be(1, int(self._unnamed18))
+            self._io.write_bits_int_be(1, int(self.null_layer))
+            self._io.write_bits_int_be(1, int(self._unnamed20))
+            self._io.write_bits_int_be(1, int(self.camera_or_poi_auto_orient))
+            self._io.write_bits_int_be(1, int(self.markers_locked))
+            self._io.write_bits_int_be(1, int(self.solo))
+            self._io.write_bits_int_be(1, int(self.three_d_layer))
+            self._io.write_bits_int_be(1, int(self.adjustment_layer))
+            self._io.write_bits_int_be(1, int(self.auto_orient_along_path))
+            self._io.write_bits_int_be(1, int(self.collapse_transformation))
+            self._io.write_bits_int_be(1, int(self.shy))
+            self._io.write_bits_int_be(1, int(self.locked))
+            self._io.write_bits_int_be(1, int(self.frame_blending))
+            self._io.write_bits_int_be(1, int(self.motion_blur))
+            self._io.write_bits_int_be(1, int(self.effects_active))
+            self._io.write_bits_int_be(1, int(self.audio_enabled))
+            self._io.write_bits_int_be(1, int(self.enabled))
+            self._io.write_u4be(self.source_id)
+            self._io.write_bytes(self._unnamed36)
+            self._io.write_u1(int(self.label))
+            self._io.write_bytes(self._unnamed38)
+            self._io.write_bytes((self.layer_name).encode(u"windows-1252"))
+            self._io.write_bytes(self._unnamed40)
+            self._io.write_u1(self.blending_mode)
+            self._io.write_bytes(self._unnamed42)
+            self._io.write_u1(self.preserve_transparency)
+            self._io.write_bytes(self._unnamed44)
+            self._io.write_u1(self.track_matte_type)
+            self._io.write_u4be(self.stretch_divisor)
+            self._io.write_bytes(self._unnamed47)
+            self._io.write_u1(int(self.layer_type))
+            self._io.write_u4be(self.parent_id)
+            self._io.write_bytes(self._unnamed50)
+            self._io.write_u1(self.light_type)
+            self._io.write_bytes(self._unnamed52)
+            if self._io.size() - self._io.pos() >= 4:
+                pass
+                self._io.write_u4be(self.matte_layer_id)
+
+
+
+        def _check(self):
+            if len(self._unnamed2) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed2", 2, len(self._unnamed2))
+            if len(self._unnamed10) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed10", 1, len(self._unnamed10))
+            if len(self._unnamed36) != 17:
+                raise kaitaistruct.ConsistencyError(u"_unnamed36", 17, len(self._unnamed36))
+            if len(self._unnamed38) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed38", 2, len(self._unnamed38))
+            if len((self.layer_name).encode(u"windows-1252")) != 32:
+                raise kaitaistruct.ConsistencyError(u"layer_name", 32, len((self.layer_name).encode(u"windows-1252")))
+            if len(self._unnamed40) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed40", 3, len(self._unnamed40))
+            if len(self._unnamed42) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed42", 3, len(self._unnamed42))
+            if len(self._unnamed44) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed44", 3, len(self._unnamed44))
+            if len(self._unnamed47) != 19:
+                raise kaitaistruct.ConsistencyError(u"_unnamed47", 19, len(self._unnamed47))
+            if len(self._unnamed50) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed50", 3, len(self._unnamed50))
+            if len(self._unnamed52) != 20:
+                raise kaitaistruct.ConsistencyError(u"_unnamed52", 20, len(self._unnamed52))
+            self._dirty = False
+
         @property
         def in_point(self):
+            """In point relative to start_time (seconds, before stretch)."""
             if hasattr(self, '_m_in_point'):
                 return self._m_in_point
 
             self._m_in_point = (self.in_point_dividend * 1.0) / self.in_point_divisor
             return getattr(self, '_m_in_point', None)
 
+        def _invalidate_in_point(self):
+            del self._m_in_point
         @property
         def out_point(self):
+            """Out point relative to start_time (seconds, before stretch)."""
             if hasattr(self, '_m_out_point'):
                 return self._m_out_point
 
             self._m_out_point = (self.out_point_dividend * 1.0) / self.out_point_divisor
             return getattr(self, '_m_out_point', None)
 
+        def _invalidate_out_point(self):
+            del self._m_out_point
         @property
         def start_time(self):
             if hasattr(self, '_m_start_time'):
@@ -1685,6 +4051,8 @@ class Aep(KaitaiStruct):
             self._m_start_time = (self.start_time_dividend * 1.0) / self.start_time_divisor
             return getattr(self, '_m_start_time', None)
 
+        def _invalidate_start_time(self):
+            del self._m_start_time
         @property
         def stretch(self):
             """Layer time stretch as percentage (100 = normal speed)."""
@@ -1694,18 +4062,19 @@ class Aep(KaitaiStruct):
             self._m_stretch = ((self.stretch_dividend * 100.0) / self.stretch_divisor if self.stretch_divisor != 0 else 0)
             return getattr(self, '_m_stretch', None)
 
+        def _invalidate_stretch(self):
+            del self._m_stretch
 
-    class Lhd3Body(KaitaiStruct):
+    class Lhd3Body(ReadWriteKaitaiStruct):
         """Header for item/keyframe lists. AE reuses this structure for:
         - Property keyframes (count = keyframe count, item_size = keyframe data size)
         - Render queue items (count = item count, item_size = 2246 for settings)
         - Output module items (count = item count, item_size = 128 for settings)
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.Lhd3Body, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(10)
@@ -1714,10 +4083,35 @@ class Aep(KaitaiStruct):
             self.item_size = self._io.read_u2be()
             self._unnamed4 = self._io.read_bytes(3)
             self.item_type_raw = self._io.read_u1()
+            self._unnamed6 = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
+
+
+        def _write__seq(self, io=None):
+            super(Aep.Lhd3Body, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_u2be(self.count)
+            self._io.write_bytes(self._unnamed2)
+            self._io.write_u2be(self.item_size)
+            self._io.write_bytes(self._unnamed4)
+            self._io.write_u1(self.item_type_raw)
+            self._io.write_bytes(self._unnamed6)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"_unnamed6", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            if len(self._unnamed0) != 10:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 10, len(self._unnamed0))
+            if len(self._unnamed2) != 6:
+                raise kaitaistruct.ConsistencyError(u"_unnamed2", 6, len(self._unnamed2))
+            if len(self._unnamed4) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed4", 3, len(self._unnamed4))
+            self._dirty = False
 
         @property
         def item_type(self):
@@ -1727,13 +4121,14 @@ class Aep(KaitaiStruct):
             self._m_item_type = (Aep.LdatItemType.lrdr if  ((self.item_type_raw == 1) and (self.item_size == 2246))  else (Aep.LdatItemType.litm if  ((self.item_type_raw == 1) and (self.item_size == 128))  else (Aep.LdatItemType.gide if  ((self.item_type_raw == 2) and (self.item_size == 1))  else (Aep.LdatItemType.color if  ((self.item_type_raw == 4) and (self.item_size == 152))  else (Aep.LdatItemType.three_d if  ((self.item_type_raw == 4) and (self.item_size == 128))  else (Aep.LdatItemType.two_d_spatial if  ((self.item_type_raw == 4) and (self.item_size == 104))  else (Aep.LdatItemType.two_d if  ((self.item_type_raw == 4) and (self.item_size == 88))  else (Aep.LdatItemType.orientation if  ((self.item_type_raw == 4) and (self.item_size == 80))  else (Aep.LdatItemType.no_value if  ((self.item_type_raw == 4) and (self.item_size == 64))  else (Aep.LdatItemType.one_d if  ((self.item_type_raw == 4) and (self.item_size == 48))  else (Aep.LdatItemType.marker if  ((self.item_type_raw == 4) and (self.item_size == 16))  else (Aep.LdatItemType.shape if  ((self.item_type_raw == 4) and (self.item_size == 8))  else Aep.LdatItemType.unknown))))))))))))
             return getattr(self, '_m_item_type', None)
 
+        def _invalidate_item_type(self):
+            del self._m_item_type
 
-    class ListBody(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+    class ListBody(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.ListBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.list_type = (self._io.read_bytes(4)).decode(u"windows-1252")
@@ -1742,7 +4137,11 @@ class Aep(KaitaiStruct):
                 self.chunks = []
                 i = 0
                 while not self._io.is_eof():
-                    self.chunks.append(Aep.Chunk(self._io, self, self._root))
+                    _t_chunks = Aep.Chunk(self._io, self, self._root)
+                    try:
+                        _t_chunks._read()
+                    finally:
+                        self.chunks.append(_t_chunks)
                     i += 1
 
 
@@ -1750,6 +4149,7 @@ class Aep(KaitaiStruct):
                 pass
                 self.binary_data = self._io.read_bytes_full()
 
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -1766,15 +4166,191 @@ class Aep(KaitaiStruct):
 
 
 
-    class MkifBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.ListBody, self)._write__seq(io)
+            self._io.write_bytes((self.list_type).encode(u"windows-1252"))
+            if self.list_type != u"btdk":
+                pass
+                for i in range(len(self.chunks)):
+                    pass
+                    if self._io.is_eof():
+                        raise kaitaistruct.ConsistencyError(u"chunks", 0, self._io.size() - self._io.pos())
+                    self.chunks[i]._write__seq(self._io)
+
+                if not self._io.is_eof():
+                    raise kaitaistruct.ConsistencyError(u"chunks", 0, self._io.size() - self._io.pos())
+
+            if self.list_type == u"btdk":
+                pass
+                self._io.write_bytes(self.binary_data)
+                if not self._io.is_eof():
+                    raise kaitaistruct.ConsistencyError(u"binary_data", 0, self._io.size() - self._io.pos())
+
+
+
+        def _check(self):
+            if len((self.list_type).encode(u"windows-1252")) != 4:
+                raise kaitaistruct.ConsistencyError(u"list_type", 4, len((self.list_type).encode(u"windows-1252")))
+            if self.list_type != u"btdk":
+                pass
+                for i in range(len(self.chunks)):
+                    pass
+                    if self.chunks[i]._root != self._root:
+                        raise kaitaistruct.ConsistencyError(u"chunks", self._root, self.chunks[i]._root)
+                    if self.chunks[i]._parent != self:
+                        raise kaitaistruct.ConsistencyError(u"chunks", self, self.chunks[i]._parent)
+
+
+            if self.list_type == u"btdk":
+                pass
+
+            self._dirty = False
+
+        @property
+        def ldat(self):
+            """Data chunk (keyframe / shape binary items). Absent when property has no keyframes."""
+            if hasattr(self, '_m_ldat'):
+                return self._m_ldat
+
+            if  ((self.list_type == u"list") and (len(self.chunks) >= 2)) :
+                pass
+                self._m_ldat = self.chunks[1]
+
+            return getattr(self, '_m_ldat', None)
+
+        def _invalidate_ldat(self):
+            del self._m_ldat
+        @property
+        def lhd3(self):
+            """Header chunk (count + item size). Always the first child."""
+            if hasattr(self, '_m_lhd3'):
+                return self._m_lhd3
+
+            if self.list_type == u"list":
+                pass
+                self._m_lhd3 = self.chunks[0]
+
+            return getattr(self, '_m_lhd3', None)
+
+        def _invalidate_lhd3(self):
+            del self._m_lhd3
+        @property
+        def tdb4(self):
+            """Property metadata chunk. Always the third child."""
+            if hasattr(self, '_m_tdb4'):
+                return self._m_tdb4
+
+            if self.list_type == u"tdbs":
+                pass
+                self._m_tdb4 = self.chunks[2]
+
+            return getattr(self, '_m_tdb4', None)
+
+        def _invalidate_tdb4(self):
+            del self._m_tdb4
+        @property
+        def tdsb(self):
+            """Property flags chunk. Always the first child."""
+            if hasattr(self, '_m_tdsb'):
+                return self._m_tdsb
+
+            if self.list_type == u"tdbs":
+                pass
+                self._m_tdsb = self.chunks[0]
+
+            return getattr(self, '_m_tdsb', None)
+
+        def _invalidate_tdsb(self):
+            del self._m_tdsb
+        @property
+        def tdsn(self):
+            """Property name chunk (tdsn wraps a Utf8 child). Always the second child."""
+            if hasattr(self, '_m_tdsn'):
+                return self._m_tdsn
+
+            if self.list_type == u"tdbs":
+                pass
+                self._m_tdsn = self.chunks[1]
+
+            return getattr(self, '_m_tdsn', None)
+
+        def _invalidate_tdsn(self):
+            del self._m_tdsn
+
+    class LnrbBody(ReadWriteKaitaiStruct):
+        """Linear blending flag. Presence of this chunk in the root chunk list
+        means linear blending is enabled for the project.
+        """
+        def __init__(self, _io=None, _parent=None, _root=None):
+            super(Aep.LnrbBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+
+        def _read(self):
+            self._unnamed0 = self._io.read_bytes(1)
+            if not self._unnamed0 == b"\x01":
+                raise kaitaistruct.ValidationNotEqualError(b"\x01", self._unnamed0, self._io, u"/types/lnrb_body/seq/0")
+            self._dirty = False
+
+
+        def _fetch_instances(self):
+            pass
+
+
+        def _write__seq(self, io=None):
+            super(Aep.LnrbBody, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+
+
+        def _check(self):
+            if len(self._unnamed0) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 1, len(self._unnamed0))
+            if not self._unnamed0 == b"\x01":
+                raise kaitaistruct.ValidationNotEqualError(b"\x01", self._unnamed0, None, u"/types/lnrb_body/seq/0")
+            self._dirty = False
+
+
+    class LnrpBody(ReadWriteKaitaiStruct):
+        """Linearize working space flag. Presence of this chunk in the root
+        chunk list means the working color space is linearized.
+        """
+        def __init__(self, _io=None, _parent=None, _root=None):
+            super(Aep.LnrpBody, self).__init__(_io)
+            self._parent = _parent
+            self._root = _root
+
+        def _read(self):
+            self._unnamed0 = self._io.read_bytes(1)
+            if not self._unnamed0 == b"\x01":
+                raise kaitaistruct.ValidationNotEqualError(b"\x01", self._unnamed0, self._io, u"/types/lnrp_body/seq/0")
+            self._dirty = False
+
+
+        def _fetch_instances(self):
+            pass
+
+
+        def _write__seq(self, io=None):
+            super(Aep.LnrpBody, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+
+
+        def _check(self):
+            if len(self._unnamed0) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 1, len(self._unnamed0))
+            if not self._unnamed0 == b"\x01":
+                raise kaitaistruct.ValidationNotEqualError(b"\x01", self._unnamed0, None, u"/types/lnrp_body/seq/0")
+            self._dirty = False
+
+
+    class MkifBody(ReadWriteKaitaiStruct):
         """Mask info. Contains inverted flag, locked flag, mask mode,
         motion blur, feather falloff and color.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.MkifBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.inverted = self._io.read_u1()
@@ -1787,18 +4363,40 @@ class Aep(KaitaiStruct):
             self.color_red = self._io.read_u1()
             self.color_green = self._io.read_u1()
             self.color_blue = self._io.read_u1()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class NmhdBody(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.MkifBody, self)._write__seq(io)
+            self._io.write_u1(self.inverted)
+            self._io.write_u1(self.locked)
+            self._io.write_u1(self.mask_motion_blur)
+            self._io.write_u1(self.mask_feather_falloff)
+            self._io.write_bytes(self._unnamed4)
+            self._io.write_u2be(self.mode)
+            self._io.write_bytes(self._unnamed6)
+            self._io.write_u1(self.color_red)
+            self._io.write_u1(self.color_green)
+            self._io.write_u1(self.color_blue)
+
+
+        def _check(self):
+            if len(self._unnamed4) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed4", 2, len(self._unnamed4))
+            if len(self._unnamed6) != 37:
+                raise kaitaistruct.ConsistencyError(u"_unnamed6", 37, len(self._unnamed6))
+            self._dirty = False
+
+
+    class NmhdBody(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.NmhdBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(3)
@@ -1810,10 +4408,34 @@ class Aep(KaitaiStruct):
             self.frame_duration = self._io.read_u4be()
             self._unnamed7 = self._io.read_bytes(4)
             self.label = KaitaiStream.resolve_enum(Aep.Label, self._io.read_u1())
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
+
+
+        def _write__seq(self, io=None):
+            super(Aep.NmhdBody, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_bits_int_be(5, self._unnamed1)
+            self._io.write_bits_int_be(1, int(self.unknown))
+            self._io.write_bits_int_be(1, int(self.protected_region))
+            self._io.write_bits_int_be(1, int(self.navigation))
+            self._io.write_bytes(self._unnamed5)
+            self._io.write_u4be(self.frame_duration)
+            self._io.write_bytes(self._unnamed7)
+            self._io.write_u1(int(self.label))
+
+
+        def _check(self):
+            if len(self._unnamed0) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 3, len(self._unnamed0))
+            if len(self._unnamed5) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed5", 4, len(self._unnamed5))
+            if len(self._unnamed7) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed7", 4, len(self._unnamed7))
+            self._dirty = False
 
         @property
         def duration(self):
@@ -1824,13 +4446,14 @@ class Aep(KaitaiStruct):
             self._m_duration = (self.frame_duration * 1.0) / 600
             return getattr(self, '_m_duration', None)
 
+        def _invalidate_duration(self):
+            del self._m_duration
 
-    class NnhdBody(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+    class NnhdBody(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.NnhdBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(8)
@@ -1852,21 +4475,73 @@ class Aep(KaitaiStruct):
             self.linearize_working_space = self._io.read_bits_int_be(1) != 0
             self._unnamed17 = self._io.read_bits_int_be(5)
             self._unnamed18 = self._io.read_bytes(8)
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class OpenexrRoptData(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.NnhdBody, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_bits_int_be(1, int(self.feet_frames_film_type))
+            self._io.write_bits_int_be(7, self.time_display_type)
+            self._io.write_u1(self.footage_timecode_display_start_type)
+            self._io.write_bytes(self._unnamed4)
+            self._io.write_bits_int_be(7, self._unnamed5)
+            self._io.write_bits_int_be(1, int(self.frames_use_feet_frames))
+            self._io.write_bytes(self._unnamed7)
+            self._io.write_u2be(self.frame_rate)
+            self._io.write_bytes(self._unnamed9)
+            self._io.write_u1(self.frames_count_type)
+            self._io.write_bytes(self._unnamed11)
+            self._io.write_u1(self.bits_per_channel)
+            self._io.write_u1(self.transparency_grid_thumbnails)
+            self._io.write_bytes(self._unnamed14)
+            self._io.write_bits_int_be(2, self._unnamed15)
+            self._io.write_bits_int_be(1, int(self.linearize_working_space))
+            self._io.write_bits_int_be(5, self._unnamed17)
+            self._io.write_bytes(self._unnamed18)
+
+
+        def _check(self):
+            if len(self._unnamed0) != 8:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 8, len(self._unnamed0))
+            if len(self._unnamed4) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed4", 1, len(self._unnamed4))
+            if len(self._unnamed7) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed7", 2, len(self._unnamed7))
+            if len(self._unnamed9) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed9", 4, len(self._unnamed9))
+            if len(self._unnamed11) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed11", 3, len(self._unnamed11))
+            if len(self._unnamed14) != 5:
+                raise kaitaistruct.ConsistencyError(u"_unnamed14", 5, len(self._unnamed14))
+            if len(self._unnamed18) != 8:
+                raise kaitaistruct.ConsistencyError(u"_unnamed18", 8, len(self._unnamed18))
+            self._dirty = False
+
+        @property
+        def display_start_frame(self):
+            """Alternate way of reading the Frame Count setting as 0 or 1."""
+            if hasattr(self, '_m_display_start_frame'):
+                return self._m_display_start_frame
+
+            self._m_display_start_frame = self.frames_count_type % 2
+            return getattr(self, '_m_display_start_frame', None)
+
+        def _invalidate_display_start_frame(self):
+            del self._m_display_start_frame
+
+    class OpenexrRoptData(ReadWriteKaitaiStruct):
         """OpenEXR format-specific render options.
         These correspond to the OpenEXR Options dialog in After Effects.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.OpenexrRoptData, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(8)
@@ -1877,21 +4552,45 @@ class Aep(KaitaiStruct):
             self._unnamed5 = self._io.read_bytes(1)
             self.dwa_compression_level = self._io.read_f4le()
             self._unnamed7 = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class OptiBody(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.OpenexrRoptData, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_bytes(self._unnamed1)
+            self._io.write_u1(self.compression)
+            self._io.write_u1(self.thirty_two_bit_float)
+            self._io.write_u1(self.luminance_chroma)
+            self._io.write_bytes(self._unnamed5)
+            self._io.write_f4le(self.dwa_compression_level)
+            self._io.write_bytes(self._unnamed7)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"_unnamed7", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            if len(self._unnamed0) != 8:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 8, len(self._unnamed0))
+            if len(self._unnamed1) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed1", 2, len(self._unnamed1))
+            if len(self._unnamed5) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed5", 1, len(self._unnamed5))
+            self._dirty = False
+
+
+    class OptiBody(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.OptiBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
-            self.asset_type = (KaitaiStream.bytes_terminate(self._io.read_bytes(4), 0, False)).decode(u"ASCII")
+            self.asset_type = (self._io.read_bytes(4)).decode(u"ASCII")
             self.asset_type_int = self._io.read_u2be()
             if self.asset_type == u"Soli":
                 pass
@@ -1906,7 +4605,7 @@ class Aep(KaitaiStruct):
 
             if self.asset_type == u"Soli":
                 pass
-                self.solid_name = (KaitaiStream.bytes_terminate(self._io.read_bytes(256), 0, False)).decode(u"windows-1252")
+                self.solid_name = (self._io.read_bytes(256)).decode(u"windows-1252")
 
             if self.asset_type_int == 2:
                 pass
@@ -1914,7 +4613,7 @@ class Aep(KaitaiStruct):
 
             if self.asset_type_int == 2:
                 pass
-                self.placeholder_name = (KaitaiStream.bytes_terminate(self._io.read_bytes_full(), 0, False)).decode(u"windows-1252")
+                self.placeholder_name = (self._io.read_bytes_full()).decode(u"windows-1252")
 
             if self.asset_type == u"8BPS":
                 pass
@@ -1998,8 +4697,10 @@ class Aep(KaitaiStruct):
 
             if self.asset_type == u"8BPS":
                 pass
-                self.psd_group_name = (KaitaiStream.bytes_terminate(self._io.read_bytes_full(), 0, False)).decode(u"UTF-8")
+                self.psd_group_name = (self._io.read_bytes_full()).decode(u"UTF-8")
 
+            self._unnamed28 = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -2086,6 +4787,241 @@ class Aep(KaitaiStruct):
                 pass
 
 
+
+        def _write__seq(self, io=None):
+            super(Aep.OptiBody, self)._write__seq(io)
+            self._io.write_bytes((self.asset_type).encode(u"ASCII"))
+            self._io.write_u2be(self.asset_type_int)
+            if self.asset_type == u"Soli":
+                pass
+                self._io.write_bytes(self._unnamed2)
+
+            if self.asset_type == u"Soli":
+                pass
+                for i in range(len(self.color)):
+                    pass
+                    self._io.write_f4be(self.color[i])
+
+
+            if self.asset_type == u"Soli":
+                pass
+                self._io.write_bytes((self.solid_name).encode(u"windows-1252"))
+
+            if self.asset_type_int == 2:
+                pass
+                self._io.write_bytes(self._unnamed5)
+
+            if self.asset_type_int == 2:
+                pass
+                self._io.write_bytes((self.placeholder_name).encode(u"windows-1252"))
+                if not self._io.is_eof():
+                    raise kaitaistruct.ConsistencyError(u"placeholder_name", 0, self._io.size() - self._io.pos())
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_bytes(self._unnamed7)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_u2be(self.psd_layer_index)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_bytes(self._unnamed9)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_bytes(self._unnamed10)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_bytes(self._unnamed11)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_u1(self.psd_channels)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_bytes(self._unnamed13)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_u2le(self.psd_canvas_height)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_bytes(self._unnamed15)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_u2le(self.psd_canvas_width)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_bytes(self._unnamed17)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_u1(self.psd_bit_depth)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_bytes(self._unnamed19)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_u1(self.psd_layer_count)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_bytes(self._unnamed21)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_s4le(self.psd_layer_top)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_s4le(self.psd_layer_left)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_s4le(self.psd_layer_bottom)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_s4le(self.psd_layer_right)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_bytes(self._unnamed26)
+
+            if self.asset_type == u"8BPS":
+                pass
+                self._io.write_bytes((self.psd_group_name).encode(u"UTF-8"))
+                if not self._io.is_eof():
+                    raise kaitaistruct.ConsistencyError(u"psd_group_name", 0, self._io.size() - self._io.pos())
+
+            self._io.write_bytes(self._unnamed28)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"_unnamed28", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            if len((self.asset_type).encode(u"ASCII")) != 4:
+                raise kaitaistruct.ConsistencyError(u"asset_type", 4, len((self.asset_type).encode(u"ASCII")))
+            if self.asset_type == u"Soli":
+                pass
+                if len(self._unnamed2) != 4:
+                    raise kaitaistruct.ConsistencyError(u"_unnamed2", 4, len(self._unnamed2))
+
+            if self.asset_type == u"Soli":
+                pass
+                if len(self.color) != 4:
+                    raise kaitaistruct.ConsistencyError(u"color", 4, len(self.color))
+                for i in range(len(self.color)):
+                    pass
+
+
+            if self.asset_type == u"Soli":
+                pass
+                if len((self.solid_name).encode(u"windows-1252")) != 256:
+                    raise kaitaistruct.ConsistencyError(u"solid_name", 256, len((self.solid_name).encode(u"windows-1252")))
+
+            if self.asset_type_int == 2:
+                pass
+                if len(self._unnamed5) != 4:
+                    raise kaitaistruct.ConsistencyError(u"_unnamed5", 4, len(self._unnamed5))
+
+            if self.asset_type_int == 2:
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+                if len(self._unnamed7) != 10:
+                    raise kaitaistruct.ConsistencyError(u"_unnamed7", 10, len(self._unnamed7))
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+                if len(self._unnamed9) != 4:
+                    raise kaitaistruct.ConsistencyError(u"_unnamed9", 4, len(self._unnamed9))
+
+            if self.asset_type == u"8BPS":
+                pass
+                if len(self._unnamed10) != 4:
+                    raise kaitaistruct.ConsistencyError(u"_unnamed10", 4, len(self._unnamed10))
+
+            if self.asset_type == u"8BPS":
+                pass
+                if len(self._unnamed11) != 4:
+                    raise kaitaistruct.ConsistencyError(u"_unnamed11", 4, len(self._unnamed11))
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+                if len(self._unnamed13) != 1:
+                    raise kaitaistruct.ConsistencyError(u"_unnamed13", 1, len(self._unnamed13))
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+                if len(self._unnamed15) != 2:
+                    raise kaitaistruct.ConsistencyError(u"_unnamed15", 2, len(self._unnamed15))
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+                if len(self._unnamed17) != 2:
+                    raise kaitaistruct.ConsistencyError(u"_unnamed17", 2, len(self._unnamed17))
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+                if len(self._unnamed19) != 7:
+                    raise kaitaistruct.ConsistencyError(u"_unnamed19", 7, len(self._unnamed19))
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+                if len(self._unnamed21) != 29:
+                    raise kaitaistruct.ConsistencyError(u"_unnamed21", 29, len(self._unnamed21))
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            if self.asset_type == u"8BPS":
+                pass
+                if len(self._unnamed26) != 250:
+                    raise kaitaistruct.ConsistencyError(u"_unnamed26", 250, len(self._unnamed26))
+
+            if self.asset_type == u"8BPS":
+                pass
+
+            self._dirty = False
+
         @property
         def blue(self):
             if hasattr(self, '_m_blue'):
@@ -2097,6 +5033,8 @@ class Aep(KaitaiStruct):
 
             return getattr(self, '_m_blue', None)
 
+        def _invalidate_blue(self):
+            del self._m_blue
         @property
         def green(self):
             if hasattr(self, '_m_green'):
@@ -2108,6 +5046,8 @@ class Aep(KaitaiStruct):
 
             return getattr(self, '_m_green', None)
 
+        def _invalidate_green(self):
+            del self._m_green
         @property
         def red(self):
             if hasattr(self, '_m_red'):
@@ -2119,8 +5059,10 @@ class Aep(KaitaiStruct):
 
             return getattr(self, '_m_red', None)
 
+        def _invalidate_red(self):
+            del self._m_red
 
-    class OtlnBody(KaitaiStruct):
+    class OtlnBody(ReadWriteKaitaiStruct):
         """Comp panel outline entries inside LIST FEE (composition timeline).
         Each entry is 4 bytes. The first byte contains flags:
           - bit 7 (0x80): collapsed in the timeline
@@ -2128,18 +5070,22 @@ class Aep(KaitaiStruct):
         Entries correspond 1:1 to layers and their property-tree nodes
         in DFS order across all visible layers of the active composition.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.OtlnBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.num_entries = self._io.read_u4be()
             self.entries = []
             for i in range(self.num_entries):
-                self.entries.append(Aep.OtlnEntry(self._io, self, self._root))
+                _t_entries = Aep.OtlnEntry(self._io, self, self._root)
+                try:
+                    _t_entries._read()
+                finally:
+                    self.entries.append(_t_entries)
 
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -2150,35 +5096,70 @@ class Aep(KaitaiStruct):
 
 
 
-    class OtlnEntry(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.OtlnBody, self)._write__seq(io)
+            self._io.write_u4be(self.num_entries)
+            for i in range(len(self.entries)):
+                pass
+                self.entries[i]._write__seq(self._io)
+
+
+
+        def _check(self):
+            if len(self.entries) != self.num_entries:
+                raise kaitaistruct.ConsistencyError(u"entries", self.num_entries, len(self.entries))
+            for i in range(len(self.entries)):
+                pass
+                if self.entries[i]._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"entries", self._root, self.entries[i]._root)
+                if self.entries[i]._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"entries", self, self.entries[i]._parent)
+
+            self._dirty = False
+
+
+    class OtlnEntry(ReadWriteKaitaiStruct):
         """Single comp panel outline entry."""
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.OtlnEntry, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.collapsed = self._io.read_bits_int_be(1) != 0
             self.selected = self._io.read_bits_int_be(1) != 0
             self.reserved_flags = self._io.read_bits_int_be(6)
             self.data = self._io.read_bytes(3)
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class OutputModuleSettingsLdatBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.OtlnEntry, self)._write__seq(io)
+            self._io.write_bits_int_be(1, int(self.collapsed))
+            self._io.write_bits_int_be(1, int(self.selected))
+            self._io.write_bits_int_be(6, self.reserved_flags)
+            self._io.write_bytes(self.data)
+
+
+        def _check(self):
+            if len(self.data) != 3:
+                raise kaitaistruct.ConsistencyError(u"data", 3, len(self.data))
+            self._dirty = False
+
+
+    class OutputModuleSettingsLdatBody(ReadWriteKaitaiStruct):
         """Per-output-module settings chunk (128 bytes).
         Used under LIST:list within LIST:LItm for each render queue item.
         Note: The actual comp_id is stored in render_settings_ldat_body, not here.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.OutputModuleSettingsLdatBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(7)
@@ -2218,23 +5199,96 @@ class Aep(KaitaiStruct):
             self._unnamed34 = self._io.read_bytes(1)
             self.output_color_space_working = self._io.read_u1()
             self._unnamed36 = self._io.read_bytes(34)
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class PardBody(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.OutputModuleSettingsLdatBody, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_bits_int_be(1, int(self.preserve_rgb))
+            self._io.write_bits_int_be(1, int(self.include_source_xmp))
+            self._io.write_bits_int_be(1, int(self._unnamed3))
+            self._io.write_bits_int_be(1, int(self.use_region_of_interest))
+            self._io.write_bits_int_be(1, int(self.use_comp_frame_number))
+            self._io.write_bits_int_be(3, self._unnamed6)
+            self._io.write_u4be(self.post_render_target_comp_id)
+            self._io.write_bytes(self._unnamed8)
+            self._io.write_bytes(self._unnamed9)
+            self._io.write_u1(self.channels)
+            self._io.write_bytes(self._unnamed11)
+            self._io.write_u1(self.resize_quality)
+            self._io.write_bytes(self._unnamed13)
+            self._io.write_u1(self.resize)
+            self._io.write_bytes(self._unnamed15)
+            self._io.write_u1(self.lock_aspect_ratio)
+            self._io.write_bytes(self._unnamed17)
+            self._io.write_bits_int_be(7, self._unnamed18)
+            self._io.write_bits_int_be(1, int(self.crop))
+            self._io.write_u2be(self.crop_top)
+            self._io.write_u2be(self.crop_left)
+            self._io.write_u2be(self.crop_bottom)
+            self._io.write_u2be(self.crop_right)
+            self._io.write_bytes(self._unnamed24)
+            self._io.write_u1(self.output_audio)
+            self._io.write_bytes(self._unnamed26)
+            self._io.write_u1(self.include_project_link)
+            self._io.write_u4be(self.post_render_action)
+            self._io.write_u4be(self.post_render_use_comp)
+            self._io.write_bytes(self._unnamed30)
+            self._io.write_bytes(self.output_profile_id)
+            self._io.write_bytes(self._unnamed32)
+            self._io.write_u1(self.convert_to_linear_light)
+            self._io.write_bytes(self._unnamed34)
+            self._io.write_u1(self.output_color_space_working)
+            self._io.write_bytes(self._unnamed36)
+
+
+        def _check(self):
+            if len(self._unnamed0) != 7:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 7, len(self._unnamed0))
+            if len(self._unnamed8) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed8", 4, len(self._unnamed8))
+            if len(self._unnamed9) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed9", 3, len(self._unnamed9))
+            if len(self._unnamed11) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed11", 3, len(self._unnamed11))
+            if len(self._unnamed13) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed13", 3, len(self._unnamed13))
+            if len(self._unnamed15) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed15", 1, len(self._unnamed15))
+            if len(self._unnamed17) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed17", 1, len(self._unnamed17))
+            if len(self._unnamed24) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed24", 2, len(self._unnamed24))
+            if len(self._unnamed26) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed26", 4, len(self._unnamed26))
+            if len(self._unnamed30) != 16:
+                raise kaitaistruct.ConsistencyError(u"_unnamed30", 16, len(self._unnamed30))
+            if len(self.output_profile_id) != 16:
+                raise kaitaistruct.ConsistencyError(u"output_profile_id", 16, len(self.output_profile_id))
+            if len(self._unnamed32) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed32", 3, len(self._unnamed32))
+            if len(self._unnamed34) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed34", 1, len(self._unnamed34))
+            if len(self._unnamed36) != 34:
+                raise kaitaistruct.ConsistencyError(u"_unnamed36", 34, len(self._unnamed36))
+            self._dirty = False
+
+
+    class PardBody(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.PardBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(15)
             self.property_control_type = KaitaiStream.resolve_enum(Aep.PropertyControlType, self._io.read_u1())
-            self.name = (KaitaiStream.bytes_terminate(self._io.read_bytes(32), 0, False)).decode(u"windows-1252")
+            self.name = (self._io.read_bytes(32)).decode(u"windows-1252")
             self._unnamed3 = self._io.read_bytes(8)
             if self.property_control_type == Aep.PropertyControlType.color:
                 pass
@@ -2336,6 +5390,8 @@ class Aep(KaitaiStruct):
                     pass
                     self.max_value = self._io.read_f4be()
 
+            self._unnamed17 = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -2420,6 +5476,216 @@ class Aep(KaitaiStruct):
                     pass
 
 
+
+        def _write__seq(self, io=None):
+            super(Aep.PardBody, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_u1(int(self.property_control_type))
+            self._io.write_bytes((self.name).encode(u"windows-1252"))
+            self._io.write_bytes(self._unnamed3)
+            if self.property_control_type == Aep.PropertyControlType.color:
+                pass
+                for i in range(len(self.last_color)):
+                    pass
+                    self._io.write_u1(self.last_color[i])
+
+
+            if self.property_control_type == Aep.PropertyControlType.color:
+                pass
+                for i in range(len(self.default_color)):
+                    pass
+                    self._io.write_u1(self.default_color[i])
+
+
+            if  ((self.property_control_type == Aep.PropertyControlType.scalar) or (self.property_control_type == Aep.PropertyControlType.angle) or (self.property_control_type == Aep.PropertyControlType.boolean) or (self.property_control_type == Aep.PropertyControlType.enum) or (self.property_control_type == Aep.PropertyControlType.slider)) :
+                pass
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.angle:
+                    pass
+                    self._io.write_s4be(self.last_value)
+                elif _on == Aep.PropertyControlType.boolean:
+                    pass
+                    self._io.write_u4be(self.last_value)
+                elif _on == Aep.PropertyControlType.enum:
+                    pass
+                    self._io.write_u4be(self.last_value)
+                elif _on == Aep.PropertyControlType.scalar:
+                    pass
+                    self._io.write_s4be(self.last_value)
+                elif _on == Aep.PropertyControlType.slider:
+                    pass
+                    self._io.write_f8be(self.last_value)
+
+            if  ((self.property_control_type == Aep.PropertyControlType.two_d) or (self.property_control_type == Aep.PropertyControlType.three_d)) :
+                pass
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.three_d:
+                    pass
+                    self._io.write_f8be(self.last_value_x_raw)
+                elif _on == Aep.PropertyControlType.two_d:
+                    pass
+                    self._io.write_s4be(self.last_value_x_raw)
+
+            if  ((self.property_control_type == Aep.PropertyControlType.two_d) or (self.property_control_type == Aep.PropertyControlType.three_d)) :
+                pass
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.three_d:
+                    pass
+                    self._io.write_f8be(self.last_value_y_raw)
+                elif _on == Aep.PropertyControlType.two_d:
+                    pass
+                    self._io.write_s4be(self.last_value_y_raw)
+
+            if self.property_control_type == Aep.PropertyControlType.three_d:
+                pass
+                self._io.write_f8be(self.last_value_z_raw)
+
+            if self.property_control_type == Aep.PropertyControlType.enum:
+                pass
+                self._io.write_s4be(self.nb_options)
+
+            if  ((self.property_control_type == Aep.PropertyControlType.boolean) or (self.property_control_type == Aep.PropertyControlType.enum)) :
+                pass
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.boolean:
+                    pass
+                    self._io.write_u1(self.default)
+                elif _on == Aep.PropertyControlType.enum:
+                    pass
+                    self._io.write_s4be(self.default)
+
+            if  ((self.property_control_type == Aep.PropertyControlType.scalar) or (self.property_control_type == Aep.PropertyControlType.color) or (self.property_control_type == Aep.PropertyControlType.slider)) :
+                pass
+                self._io.write_bytes(self._unnamed12)
+
+            if self.property_control_type == Aep.PropertyControlType.scalar:
+                pass
+                self._io.write_s2be(self.min_value)
+
+            if self.property_control_type == Aep.PropertyControlType.scalar:
+                pass
+                self._io.write_bytes(self._unnamed14)
+
+            if self.property_control_type == Aep.PropertyControlType.color:
+                pass
+                for i in range(len(self.max_color)):
+                    pass
+                    self._io.write_u1(self.max_color[i])
+
+
+            if  ((self.property_control_type == Aep.PropertyControlType.scalar) or (self.property_control_type == Aep.PropertyControlType.slider)) :
+                pass
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.scalar:
+                    pass
+                    self._io.write_s2be(self.max_value)
+                elif _on == Aep.PropertyControlType.slider:
+                    pass
+                    self._io.write_f4be(self.max_value)
+
+            self._io.write_bytes(self._unnamed17)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"_unnamed17", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            if len(self._unnamed0) != 15:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 15, len(self._unnamed0))
+            if len((self.name).encode(u"windows-1252")) != 32:
+                raise kaitaistruct.ConsistencyError(u"name", 32, len((self.name).encode(u"windows-1252")))
+            if len(self._unnamed3) != 8:
+                raise kaitaistruct.ConsistencyError(u"_unnamed3", 8, len(self._unnamed3))
+            if self.property_control_type == Aep.PropertyControlType.color:
+                pass
+                if len(self.last_color) != 4:
+                    raise kaitaistruct.ConsistencyError(u"last_color", 4, len(self.last_color))
+                for i in range(len(self.last_color)):
+                    pass
+
+
+            if self.property_control_type == Aep.PropertyControlType.color:
+                pass
+                if len(self.default_color) != 4:
+                    raise kaitaistruct.ConsistencyError(u"default_color", 4, len(self.default_color))
+                for i in range(len(self.default_color)):
+                    pass
+
+
+            if  ((self.property_control_type == Aep.PropertyControlType.scalar) or (self.property_control_type == Aep.PropertyControlType.angle) or (self.property_control_type == Aep.PropertyControlType.boolean) or (self.property_control_type == Aep.PropertyControlType.enum) or (self.property_control_type == Aep.PropertyControlType.slider)) :
+                pass
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.angle:
+                    pass
+                elif _on == Aep.PropertyControlType.boolean:
+                    pass
+                elif _on == Aep.PropertyControlType.enum:
+                    pass
+                elif _on == Aep.PropertyControlType.scalar:
+                    pass
+                elif _on == Aep.PropertyControlType.slider:
+                    pass
+
+            if  ((self.property_control_type == Aep.PropertyControlType.two_d) or (self.property_control_type == Aep.PropertyControlType.three_d)) :
+                pass
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.three_d:
+                    pass
+                elif _on == Aep.PropertyControlType.two_d:
+                    pass
+
+            if  ((self.property_control_type == Aep.PropertyControlType.two_d) or (self.property_control_type == Aep.PropertyControlType.three_d)) :
+                pass
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.three_d:
+                    pass
+                elif _on == Aep.PropertyControlType.two_d:
+                    pass
+
+            if self.property_control_type == Aep.PropertyControlType.three_d:
+                pass
+
+            if self.property_control_type == Aep.PropertyControlType.enum:
+                pass
+
+            if  ((self.property_control_type == Aep.PropertyControlType.boolean) or (self.property_control_type == Aep.PropertyControlType.enum)) :
+                pass
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.boolean:
+                    pass
+                elif _on == Aep.PropertyControlType.enum:
+                    pass
+
+            if  ((self.property_control_type == Aep.PropertyControlType.scalar) or (self.property_control_type == Aep.PropertyControlType.color) or (self.property_control_type == Aep.PropertyControlType.slider)) :
+                pass
+                if len(self._unnamed12) != (72 if self.property_control_type == Aep.PropertyControlType.scalar else (64 if self.property_control_type == Aep.PropertyControlType.color else 52)):
+                    raise kaitaistruct.ConsistencyError(u"_unnamed12", (72 if self.property_control_type == Aep.PropertyControlType.scalar else (64 if self.property_control_type == Aep.PropertyControlType.color else 52)), len(self._unnamed12))
+
+            if self.property_control_type == Aep.PropertyControlType.scalar:
+                pass
+
+            if self.property_control_type == Aep.PropertyControlType.scalar:
+                pass
+                if len(self._unnamed14) != 2:
+                    raise kaitaistruct.ConsistencyError(u"_unnamed14", 2, len(self._unnamed14))
+
+            if self.property_control_type == Aep.PropertyControlType.color:
+                pass
+                if len(self.max_color) != 4:
+                    raise kaitaistruct.ConsistencyError(u"max_color", 4, len(self.max_color))
+                for i in range(len(self.max_color)):
+                    pass
+
+
+            if  ((self.property_control_type == Aep.PropertyControlType.scalar) or (self.property_control_type == Aep.PropertyControlType.slider)) :
+                pass
+                _on = self.property_control_type
+                if _on == Aep.PropertyControlType.scalar:
+                    pass
+                elif _on == Aep.PropertyControlType.slider:
+                    pass
+
+            self._dirty = False
+
         @property
         def last_value_x(self):
             if hasattr(self, '_m_last_value_x'):
@@ -2431,6 +5697,8 @@ class Aep(KaitaiStruct):
 
             return getattr(self, '_m_last_value_x', None)
 
+        def _invalidate_last_value_x(self):
+            del self._m_last_value_x
         @property
         def last_value_y(self):
             if hasattr(self, '_m_last_value_y'):
@@ -2442,6 +5710,8 @@ class Aep(KaitaiStruct):
 
             return getattr(self, '_m_last_value_y', None)
 
+        def _invalidate_last_value_y(self):
+            del self._m_last_value_y
         @property
         def last_value_z(self):
             if hasattr(self, '_m_last_value_z'):
@@ -2453,34 +5723,44 @@ class Aep(KaitaiStruct):
 
             return getattr(self, '_m_last_value_z', None)
 
+        def _invalidate_last_value_z(self):
+            del self._m_last_value_z
 
-    class ParnBody(KaitaiStruct):
+    class ParnBody(ReadWriteKaitaiStruct):
         """Parameter count inside a LIST parT. Contains the number of tdmn/pard
         parameter entries that follow.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.ParnBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.count = self._io.read_u4be()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class PngRoptData(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.ParnBody, self)._write__seq(io)
+            self._io.write_u4be(self.count)
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class PngRoptData(ReadWriteKaitaiStruct):
         """PNG format-specific render options.
         Contains width, height, and bit depth at known offsets.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.PngRoptData, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(14)
@@ -2490,19 +5770,40 @@ class Aep(KaitaiStruct):
             self.bit_depth = self._io.read_u2be()
             self.compression = self._io.read_u4be()
             self._unnamed6 = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class RenderSettingsLdatBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.PngRoptData, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_u4be(self.width)
+            self._io.write_u4be(self.height)
+            self._io.write_bytes(self._unnamed3)
+            self._io.write_u2be(self.bit_depth)
+            self._io.write_u4be(self.compression)
+            self._io.write_bytes(self._unnamed6)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"_unnamed6", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            if len(self._unnamed0) != 14:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 14, len(self._unnamed0))
+            if len(self._unnamed3) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed3", 2, len(self._unnamed3))
+            self._dirty = False
+
+
+    class RenderSettingsLdatBody(ReadWriteKaitaiStruct):
         """Render settings ldat chunk (2246 bytes)."""
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.RenderSettingsLdatBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(7)
@@ -2539,7 +5840,7 @@ class Aep(KaitaiStruct):
             self._unnamed31 = self._io.read_bytes(2)
             self.skip_existing_files = self._io.read_u2be()
             self._unnamed33 = self._io.read_bytes(4)
-            self.template_name = (KaitaiStream.bytes_terminate(self._io.read_bytes(64), 0, False)).decode(u"ASCII")
+            self.template_name = (self._io.read_bytes(64)).decode(u"ASCII")
             self._unnamed35 = self._io.read_bytes(1990)
             self.use_this_frame_rate = self._io.read_u2be()
             self._unnamed37 = self._io.read_bytes(2)
@@ -2556,10 +5857,112 @@ class Aep(KaitaiStruct):
             self.start_time = self._io.read_u4be()
             self.elapsed_seconds = self._io.read_u4be()
             self._unnamed50 = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
+
+
+        def _write__seq(self, io=None):
+            super(Aep.RenderSettingsLdatBody, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_bits_int_be(5, self._unnamed1)
+            self._io.write_bits_int_be(1, int(self.queue_item_notify))
+            self._io.write_bits_int_be(2, self._unnamed3)
+            self._io.write_u4be(self.comp_id)
+            self._io.write_u4be(self.status)
+            self._io.write_bytes(self._unnamed6)
+            self._io.write_u4be(self.time_span_start_frames)
+            self._io.write_u4be(self.time_span_start_timebase)
+            self._io.write_u4be(self.time_span_duration_frames)
+            self._io.write_u4be(self.time_span_duration_timebase)
+            self._io.write_bytes(self._unnamed11)
+            self._io.write_u2be(self.frame_rate_integer)
+            self._io.write_u2be(self.frame_rate_fractional)
+            self._io.write_bytes(self._unnamed14)
+            self._io.write_u2be(self.field_render)
+            self._io.write_bytes(self._unnamed16)
+            self._io.write_u2be(self.pulldown)
+            self._io.write_u2be(self.quality)
+            self._io.write_u2be(self.resolution_x)
+            self._io.write_u2be(self.resolution_y)
+            self._io.write_bytes(self._unnamed21)
+            self._io.write_u2be(self.effects)
+            self._io.write_bytes(self._unnamed23)
+            self._io.write_u2be(self.proxy_use)
+            self._io.write_bytes(self._unnamed25)
+            self._io.write_u2be(self.motion_blur)
+            self._io.write_bytes(self._unnamed27)
+            self._io.write_u2be(self.frame_blending)
+            self._io.write_bytes(self._unnamed29)
+            self._io.write_u2be(self.log_type)
+            self._io.write_bytes(self._unnamed31)
+            self._io.write_u2be(self.skip_existing_files)
+            self._io.write_bytes(self._unnamed33)
+            self._io.write_bytes((self.template_name).encode(u"ASCII"))
+            self._io.write_bytes(self._unnamed35)
+            self._io.write_u2be(self.use_this_frame_rate)
+            self._io.write_bytes(self._unnamed37)
+            self._io.write_u2be(self.time_span_source)
+            self._io.write_bytes(self._unnamed39)
+            self._io.write_u2be(self.solo_switches)
+            self._io.write_bytes(self._unnamed41)
+            self._io.write_u2be(self.disk_cache)
+            self._io.write_bytes(self._unnamed43)
+            self._io.write_u2be(self.guide_layers)
+            self._io.write_bytes(self._unnamed45)
+            self._io.write_u2be(self.color_depth)
+            self._io.write_bytes(self._unnamed47)
+            self._io.write_u4be(self.start_time)
+            self._io.write_u4be(self.elapsed_seconds)
+            self._io.write_bytes(self._unnamed50)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"_unnamed50", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            if len(self._unnamed0) != 7:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 7, len(self._unnamed0))
+            if len(self._unnamed6) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed6", 4, len(self._unnamed6))
+            if len(self._unnamed11) != 8:
+                raise kaitaistruct.ConsistencyError(u"_unnamed11", 8, len(self._unnamed11))
+            if len(self._unnamed14) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed14", 2, len(self._unnamed14))
+            if len(self._unnamed16) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed16", 2, len(self._unnamed16))
+            if len(self._unnamed21) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed21", 2, len(self._unnamed21))
+            if len(self._unnamed23) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed23", 2, len(self._unnamed23))
+            if len(self._unnamed25) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed25", 2, len(self._unnamed25))
+            if len(self._unnamed27) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed27", 2, len(self._unnamed27))
+            if len(self._unnamed29) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed29", 2, len(self._unnamed29))
+            if len(self._unnamed31) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed31", 2, len(self._unnamed31))
+            if len(self._unnamed33) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed33", 4, len(self._unnamed33))
+            if len((self.template_name).encode(u"ASCII")) != 64:
+                raise kaitaistruct.ConsistencyError(u"template_name", 64, len((self.template_name).encode(u"ASCII")))
+            if len(self._unnamed35) != 1990:
+                raise kaitaistruct.ConsistencyError(u"_unnamed35", 1990, len(self._unnamed35))
+            if len(self._unnamed37) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed37", 2, len(self._unnamed37))
+            if len(self._unnamed39) != 14:
+                raise kaitaistruct.ConsistencyError(u"_unnamed39", 14, len(self._unnamed39))
+            if len(self._unnamed41) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed41", 2, len(self._unnamed41))
+            if len(self._unnamed43) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed43", 2, len(self._unnamed43))
+            if len(self._unnamed45) != 6:
+                raise kaitaistruct.ConsistencyError(u"_unnamed45", 6, len(self._unnamed45))
+            if len(self._unnamed47) != 16:
+                raise kaitaistruct.ConsistencyError(u"_unnamed47", 16, len(self._unnamed47))
+            self._dirty = False
 
         @property
         def frame_rate(self):
@@ -2570,6 +5973,8 @@ class Aep(KaitaiStruct):
             self._m_frame_rate = self.frame_rate_integer + (self.frame_rate_fractional * 1.0) / 65536
             return getattr(self, '_m_frame_rate', None)
 
+        def _invalidate_frame_rate(self):
+            del self._m_frame_rate
         @property
         def time_span_duration(self):
             """Time span duration in seconds."""
@@ -2579,6 +5984,8 @@ class Aep(KaitaiStruct):
             self._m_time_span_duration = ((self.time_span_duration_frames * 1.0) / self.time_span_duration_timebase if self.time_span_duration_timebase != 0 else 0)
             return getattr(self, '_m_time_span_duration', None)
 
+        def _invalidate_time_span_duration(self):
+            del self._m_time_span_duration
         @property
         def time_span_end(self):
             """Time span end in seconds."""
@@ -2588,6 +5995,8 @@ class Aep(KaitaiStruct):
             self._m_time_span_end = self.time_span_start + self.time_span_duration
             return getattr(self, '_m_time_span_end', None)
 
+        def _invalidate_time_span_end(self):
+            del self._m_time_span_end
         @property
         def time_span_start(self):
             """Time span start in seconds."""
@@ -2597,14 +6006,15 @@ class Aep(KaitaiStruct):
             self._m_time_span_start = ((self.time_span_start_frames * 1.0) / self.time_span_start_timebase if self.time_span_start_timebase != 0 else 0)
             return getattr(self, '_m_time_span_start', None)
 
+        def _invalidate_time_span_start(self):
+            del self._m_time_span_start
 
-    class RoouBody(KaitaiStruct):
+    class RoouBody(ReadWriteKaitaiStruct):
         """Output module settings (154 bytes)."""
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.RoouBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.magic = self._io.read_bytes(4)
@@ -2635,10 +6045,79 @@ class Aep(KaitaiStruct):
             self._unnamed25 = self._io.read_bytes(1)
             self.audio_channels = self._io.read_u1()
             self._unnamed27 = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
+
+
+        def _write__seq(self, io=None):
+            super(Aep.RoouBody, self)._write__seq(io)
+            self._io.write_bytes(self.magic)
+            self._io.write_bytes((self.video_codec).encode(u"ASCII"))
+            self._io.write_bytes(self._unnamed2)
+            self._io.write_u4be(self.starting_number)
+            self._io.write_bytes(self._unnamed4)
+            self._io.write_bytes((self.format_id).encode(u"ASCII"))
+            self._io.write_bytes(self._unnamed6)
+            self._io.write_bytes(self._unnamed7)
+            self._io.write_u2be(self.width)
+            self._io.write_bytes(self._unnamed9)
+            self._io.write_u2be(self.height)
+            self._io.write_bytes(self._unnamed11)
+            self._io.write_u1(self.frame_rate)
+            self._io.write_bytes(self._unnamed13)
+            self._io.write_u1(self.depth)
+            self._io.write_bytes(self._unnamed15)
+            self._io.write_u1(self.color_premultiplied)
+            self._io.write_bytes(self._unnamed17)
+            self._io.write_u1(self.color_matted)
+            self._io.write_bytes(self._unnamed19)
+            self._io.write_f8be(self.audio_sample_rate)
+            self._io.write_u1(self.audio_disabled_hi)
+            self._io.write_u1(self.audio_format)
+            self._io.write_bytes(self._unnamed23)
+            self._io.write_u1(self.audio_bit_depth)
+            self._io.write_bytes(self._unnamed25)
+            self._io.write_u1(self.audio_channels)
+            self._io.write_bytes(self._unnamed27)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"_unnamed27", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            if len(self.magic) != 4:
+                raise kaitaistruct.ConsistencyError(u"magic", 4, len(self.magic))
+            if len((self.video_codec).encode(u"ASCII")) != 4:
+                raise kaitaistruct.ConsistencyError(u"video_codec", 4, len((self.video_codec).encode(u"ASCII")))
+            if len(self._unnamed2) != 8:
+                raise kaitaistruct.ConsistencyError(u"_unnamed2", 8, len(self._unnamed2))
+            if len(self._unnamed4) != 6:
+                raise kaitaistruct.ConsistencyError(u"_unnamed4", 6, len(self._unnamed4))
+            if len((self.format_id).encode(u"ASCII")) != 4:
+                raise kaitaistruct.ConsistencyError(u"format_id", 4, len((self.format_id).encode(u"ASCII")))
+            if len(self._unnamed6) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed6", 2, len(self._unnamed6))
+            if len(self._unnamed7) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed7", 4, len(self._unnamed7))
+            if len(self._unnamed9) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed9", 2, len(self._unnamed9))
+            if len(self._unnamed11) != 25:
+                raise kaitaistruct.ConsistencyError(u"_unnamed11", 25, len(self._unnamed11))
+            if len(self._unnamed13) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed13", 3, len(self._unnamed13))
+            if len(self._unnamed15) != 5:
+                raise kaitaistruct.ConsistencyError(u"_unnamed15", 5, len(self._unnamed15))
+            if len(self._unnamed17) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed17", 3, len(self._unnamed17))
+            if len(self._unnamed19) != 18:
+                raise kaitaistruct.ConsistencyError(u"_unnamed19", 18, len(self._unnamed19))
+            if len(self._unnamed23) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed23", 1, len(self._unnamed23))
+            if len(self._unnamed25) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed25", 1, len(self._unnamed25))
+            self._dirty = False
 
         @property
         def output_audio(self):
@@ -2648,6 +6127,8 @@ class Aep(KaitaiStruct):
             self._m_output_audio = self.audio_disabled_hi != 255
             return getattr(self, '_m_output_audio', None)
 
+        def _invalidate_output_audio(self):
+            del self._m_output_audio
         @property
         def video_output(self):
             """True when video output is enabled (width or height non-zero)."""
@@ -2657,17 +6138,18 @@ class Aep(KaitaiStruct):
             self._m_video_output =  ((self.width > 0) or (self.height > 0)) 
             return getattr(self, '_m_video_output', None)
 
+        def _invalidate_video_output(self):
+            del self._m_video_output
 
-    class RoptBody(KaitaiStruct):
+    class RoptBody(ReadWriteKaitaiStruct):
         """Format-specific render options for the output module.
         The first 4 bytes identify the format, followed by format-specific data.
         These settings complement the main output module settings in roou_body.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.RoptBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.format_code = (self._io.read_bytes(4)).decode(u"ASCII")
@@ -2675,24 +6157,32 @@ class Aep(KaitaiStruct):
             if _on == u"JPEG":
                 pass
                 self.body = Aep.JpegRoptData(self._io, self, self._root)
+                self.body._read()
             elif _on == u"TIF ":
                 pass
                 self.body = Aep.TiffRoptData(self._io, self, self._root)
+                self.body._read()
             elif _on == u"TPIC":
                 pass
                 self.body = Aep.TargaRoptData(self._io, self, self._root)
+                self.body._read()
             elif _on == u"oEXR":
                 pass
                 self.body = Aep.OpenexrRoptData(self._io, self, self._root)
+                self.body._read()
             elif _on == u"png!":
                 pass
                 self.body = Aep.PngRoptData(self._io, self, self._root)
+                self.body._read()
             elif _on == u"sDPX":
                 pass
                 self.body = Aep.CineonRoptData(self._io, self, self._root)
+                self.body._read()
             else:
                 pass
                 self.body = Aep.RoptGenericData(self._io, self, self._root)
+                self.body._read()
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -2721,38 +6211,129 @@ class Aep(KaitaiStruct):
                 self.body._fetch_instances()
 
 
-    class RoptGenericData(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.RoptBody, self)._write__seq(io)
+            self._io.write_bytes((self.format_code).encode(u"ASCII"))
+            _on = self.format_code
+            if _on == u"JPEG":
+                pass
+                self.body._write__seq(self._io)
+            elif _on == u"TIF ":
+                pass
+                self.body._write__seq(self._io)
+            elif _on == u"TPIC":
+                pass
+                self.body._write__seq(self._io)
+            elif _on == u"oEXR":
+                pass
+                self.body._write__seq(self._io)
+            elif _on == u"png!":
+                pass
+                self.body._write__seq(self._io)
+            elif _on == u"sDPX":
+                pass
+                self.body._write__seq(self._io)
+            else:
+                pass
+                self.body._write__seq(self._io)
+
+
+        def _check(self):
+            if len((self.format_code).encode(u"ASCII")) != 4:
+                raise kaitaistruct.ConsistencyError(u"format_code", 4, len((self.format_code).encode(u"ASCII")))
+            _on = self.format_code
+            if _on == u"JPEG":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"TIF ":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"TPIC":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"oEXR":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"png!":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            elif _on == u"sDPX":
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            else:
+                pass
+                if self.body._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"body", self._root, self.body._root)
+                if self.body._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"body", self, self.body._parent)
+            self._dirty = False
+
+
+    class RoptGenericData(ReadWriteKaitaiStruct):
         """Generic render options data for formats without specific parsing."""
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.RoptGenericData, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.raw = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class RoutBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.RoptGenericData, self)._write__seq(io)
+            self._io.write_bytes(self.raw)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"raw", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class RoutBody(ReadWriteKaitaiStruct):
         """Render queue item flags (4-byte header + 4 bytes per item)."""
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.RoutBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(4)
             self.items = []
             i = 0
             while not self._io.is_eof():
-                self.items.append(Aep.RoutItem(self._io, self, self._root))
+                _t_items = Aep.RoutItem(self._io, self, self._root)
+                try:
+                    _t_items._read()
+                finally:
+                    self.items.append(_t_items)
                 i += 1
 
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -2763,71 +6344,129 @@ class Aep(KaitaiStruct):
 
 
 
-    class RoutItem(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.RoutBody, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            for i in range(len(self.items)):
+                pass
+                if self._io.is_eof():
+                    raise kaitaistruct.ConsistencyError(u"items", 0, self._io.size() - self._io.pos())
+                self.items[i]._write__seq(self._io)
+
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"items", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            if len(self._unnamed0) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 4, len(self._unnamed0))
+            for i in range(len(self.items)):
+                pass
+                if self.items[i]._root != self._root:
+                    raise kaitaistruct.ConsistencyError(u"items", self._root, self.items[i]._root)
+                if self.items[i]._parent != self:
+                    raise kaitaistruct.ConsistencyError(u"items", self, self.items[i]._parent)
+
+            self._dirty = False
+
+
+    class RoutItem(ReadWriteKaitaiStruct):
         """Per-item render queue flags (4 bytes)."""
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.RoutItem, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bits_int_be(1) != 0
             self.render = self._io.read_bits_int_be(1) != 0
             self._unnamed2 = self._io.read_bits_int_be(6)
             self._unnamed3 = self._io.read_bytes(3)
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class S4Body(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.RoutItem, self)._write__seq(io)
+            self._io.write_bits_int_be(1, int(self._unnamed0))
+            self._io.write_bits_int_be(1, int(self.render))
+            self._io.write_bits_int_be(6, self._unnamed2)
+            self._io.write_bytes(self._unnamed3)
+
+
+        def _check(self):
+            if len(self._unnamed3) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed3", 3, len(self._unnamed3))
+            self._dirty = False
+
+
+    class S4Body(ReadWriteKaitaiStruct):
         """Single signed 32-bit big-endian integer value."""
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.S4Body, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.value = self._io.read_s4be()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class ShapePoint(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.S4Body, self)._write__seq(io)
+            self._io.write_s4be(self.value)
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class ShapePoint(ReadWriteKaitaiStruct):
         """A single normalized bezier point in a shape path.
         Coordinates are big-endian f4 values in the [0, 1] range,
         relative to the bounding box defined in shph_body.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.ShapePoint, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.x = self._io.read_f4be()
             self.y = self._io.read_f4be()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class ShphBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.ShapePoint, self)._write__seq(io)
+            self._io.write_f4be(self.x)
+            self._io.write_f4be(self.y)
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class ShphBody(ReadWriteKaitaiStruct):
         """Shape path header. Contains a closed/open flag and the bounding box
         for the shape vertices.  Vertex coordinates in the associated ldat
         are normalized to [0, 1] relative to this bounding box.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.ShphBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(3)
@@ -2839,10 +6478,32 @@ class Aep(KaitaiStruct):
             self.bottom_right_x = self._io.read_f4be()
             self.bottom_right_y = self._io.read_f4be()
             self._unnamed8 = self._io.read_bytes(4)
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
+
+
+        def _write__seq(self, io=None):
+            super(Aep.ShphBody, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_bits_int_be(4, self._unnamed1)
+            self._io.write_bits_int_be(1, int(self.open))
+            self._io.write_bits_int_be(3, self._unnamed3)
+            self._io.write_f4be(self.top_left_x)
+            self._io.write_f4be(self.top_left_y)
+            self._io.write_f4be(self.bottom_right_x)
+            self._io.write_f4be(self.bottom_right_y)
+            self._io.write_bytes(self._unnamed8)
+
+
+        def _check(self):
+            if len(self._unnamed0) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 3, len(self._unnamed0))
+            if len(self._unnamed8) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed8", 4, len(self._unnamed8))
+            self._dirty = False
 
         @property
         def closed(self):
@@ -2852,15 +6513,16 @@ class Aep(KaitaiStruct):
             self._m_closed = (not (self.open))
             return getattr(self, '_m_closed', None)
 
+        def _invalidate_closed(self):
+            del self._m_closed
 
-    class SspcBody(KaitaiStruct):
+    class SspcBody(ReadWriteKaitaiStruct):
         """Source footage settings chunk. Contains dimension, timing, and alpha/field settings.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.SspcBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(32)
@@ -2889,8 +6551,8 @@ class Aep(KaitaiStruct):
             self._unnamed23 = self._io.read_bytes(13)
             self.loop = self._io.read_u1()
             self._unnamed25 = self._io.read_bytes(6)
-            self.pixel_ratio_width = self._io.read_u4be()
-            self.pixel_ratio_height = self._io.read_u4be()
+            self.pixel_ratio_dividend = self._io.read_u4be()
+            self.pixel_ratio_divisor = self._io.read_u4be()
             self._unnamed28 = self._io.read_bytes(5)
             self.conform_frame_rate = self._io.read_u1()
             self._unnamed30 = self._io.read_bytes(9)
@@ -2899,10 +6561,83 @@ class Aep(KaitaiStruct):
             self.start_frame = self._io.read_u4be()
             self.end_frame = self._io.read_u4be()
             self.frame_padding = self._io.read_u4be()
+            self._unnamed36 = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
+
+
+        def _write__seq(self, io=None):
+            super(Aep.SspcBody, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_u2be(self.width)
+            self._io.write_bytes(self._unnamed2)
+            self._io.write_u2be(self.height)
+            self._io.write_u4be(self.duration_dividend)
+            self._io.write_u4be(self.duration_divisor)
+            self._io.write_bytes(self._unnamed6)
+            self._io.write_u4be(self.frame_rate_base)
+            self._io.write_u2be(self.frame_rate_fractional)
+            self._io.write_bytes(self._unnamed9)
+            self._io.write_bits_int_be(6, self._unnamed10)
+            self._io.write_bits_int_be(1, int(self.invert_alpha))
+            self._io.write_bits_int_be(1, int(self.premultiplied))
+            self._io.write_u1(self.premul_color_r)
+            self._io.write_u1(self.premul_color_g)
+            self._io.write_u1(self.premul_color_b)
+            self._io.write_u1(self.alpha_mode_raw)
+            self._io.write_bytes(self._unnamed17)
+            self._io.write_u1(self.field_separation_type_raw)
+            self._io.write_bytes(self._unnamed19)
+            self._io.write_u1(self.field_order)
+            self._io.write_bytes(self._unnamed21)
+            self._io.write_u1(self.footage_missing_at_save)
+            self._io.write_bytes(self._unnamed23)
+            self._io.write_u1(self.loop)
+            self._io.write_bytes(self._unnamed25)
+            self._io.write_u4be(self.pixel_ratio_dividend)
+            self._io.write_u4be(self.pixel_ratio_divisor)
+            self._io.write_bytes(self._unnamed28)
+            self._io.write_u1(self.conform_frame_rate)
+            self._io.write_bytes(self._unnamed30)
+            self._io.write_u1(self.high_quality_field_separation)
+            self._io.write_bytes(self._unnamed32)
+            self._io.write_u4be(self.start_frame)
+            self._io.write_u4be(self.end_frame)
+            self._io.write_u4be(self.frame_padding)
+            self._io.write_bytes(self._unnamed36)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"_unnamed36", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            if len(self._unnamed0) != 32:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 32, len(self._unnamed0))
+            if len(self._unnamed2) != 2:
+                raise kaitaistruct.ConsistencyError(u"_unnamed2", 2, len(self._unnamed2))
+            if len(self._unnamed6) != 10:
+                raise kaitaistruct.ConsistencyError(u"_unnamed6", 10, len(self._unnamed6))
+            if len(self._unnamed9) != 7:
+                raise kaitaistruct.ConsistencyError(u"_unnamed9", 7, len(self._unnamed9))
+            if len(self._unnamed17) != 9:
+                raise kaitaistruct.ConsistencyError(u"_unnamed17", 9, len(self._unnamed17))
+            if len(self._unnamed19) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed19", 3, len(self._unnamed19))
+            if len(self._unnamed21) != 27:
+                raise kaitaistruct.ConsistencyError(u"_unnamed21", 27, len(self._unnamed21))
+            if len(self._unnamed23) != 13:
+                raise kaitaistruct.ConsistencyError(u"_unnamed23", 13, len(self._unnamed23))
+            if len(self._unnamed25) != 6:
+                raise kaitaistruct.ConsistencyError(u"_unnamed25", 6, len(self._unnamed25))
+            if len(self._unnamed28) != 5:
+                raise kaitaistruct.ConsistencyError(u"_unnamed28", 5, len(self._unnamed28))
+            if len(self._unnamed30) != 9:
+                raise kaitaistruct.ConsistencyError(u"_unnamed30", 9, len(self._unnamed30))
+            if len(self._unnamed32) != 12:
+                raise kaitaistruct.ConsistencyError(u"_unnamed32", 12, len(self._unnamed32))
+            self._dirty = False
 
         @property
         def duration(self):
@@ -2912,6 +6647,8 @@ class Aep(KaitaiStruct):
             self._m_duration = (self.duration_dividend * 1.0) / self.duration_divisor
             return getattr(self, '_m_duration', None)
 
+        def _invalidate_duration(self):
+            del self._m_duration
         @property
         def frame_duration(self):
             if hasattr(self, '_m_frame_duration'):
@@ -2920,6 +6657,8 @@ class Aep(KaitaiStruct):
             self._m_frame_duration = self.duration * self.frame_rate
             return getattr(self, '_m_frame_duration', None)
 
+        def _invalidate_frame_duration(self):
+            del self._m_frame_duration
         @property
         def frame_rate(self):
             if hasattr(self, '_m_frame_rate'):
@@ -2928,6 +6667,8 @@ class Aep(KaitaiStruct):
             self._m_frame_rate = self.frame_rate_base + (self.frame_rate_fractional * 1.0) / 65536
             return getattr(self, '_m_frame_rate', None)
 
+        def _invalidate_frame_rate(self):
+            del self._m_frame_rate
         @property
         def has_alpha(self):
             """True if footage has an alpha channel (3 means no_alpha)."""
@@ -2937,24 +6678,27 @@ class Aep(KaitaiStruct):
             self._m_has_alpha = self.alpha_mode_raw != 3
             return getattr(self, '_m_has_alpha', None)
 
+        def _invalidate_has_alpha(self):
+            del self._m_has_alpha
         @property
         def pixel_aspect(self):
             if hasattr(self, '_m_pixel_aspect'):
                 return self._m_pixel_aspect
 
-            self._m_pixel_aspect = (self.pixel_ratio_width * 1.0) / self.pixel_ratio_height
+            self._m_pixel_aspect = (self.pixel_ratio_dividend * 1.0) / self.pixel_ratio_divisor
             return getattr(self, '_m_pixel_aspect', None)
 
+        def _invalidate_pixel_aspect(self):
+            del self._m_pixel_aspect
 
-    class TargaRoptData(KaitaiStruct):
+    class TargaRoptData(ReadWriteKaitaiStruct):
         """Targa (TGA) format-specific render options.
         These correspond to the Targa Options dialog in After Effects.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.TargaRoptData, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(73)
@@ -2962,18 +6706,37 @@ class Aep(KaitaiStruct):
             self._unnamed2 = self._io.read_bytes(4)
             self.rle_compression = self._io.read_u1()
             self._unnamed4 = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class Tdb4Body(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.TargaRoptData, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_u1(self.bits_per_pixel)
+            self._io.write_bytes(self._unnamed2)
+            self._io.write_u1(self.rle_compression)
+            self._io.write_bytes(self._unnamed4)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"_unnamed4", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            if len(self._unnamed0) != 73:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 73, len(self._unnamed0))
+            if len(self._unnamed2) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed2", 4, len(self._unnamed2))
+            self._dirty = False
+
+
+    class Tdb4Body(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.Tdb4Body, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.magic = self._io.read_bytes(2)
@@ -3011,6 +6774,7 @@ class Aep(KaitaiStruct):
             self._unnamed27 = self._io.read_bits_int_be(7)
             self.expression_disabled = self._io.read_bits_int_be(1) != 0
             self._unnamed29 = self._io.read_bytes(4)
+            self._dirty = False
 
 
         def _fetch_instances(self):
@@ -3018,6 +6782,76 @@ class Aep(KaitaiStruct):
             for i in range(len(self.unknown_floats)):
                 pass
 
+
+
+        def _write__seq(self, io=None):
+            super(Aep.Tdb4Body, self)._write__seq(io)
+            self._io.write_bytes(self.magic)
+            self._io.write_u2be(self.dimensions)
+            self._io.write_bytes(self._unnamed2)
+            self._io.write_bits_int_be(4, self._unnamed3)
+            self._io.write_bits_int_be(1, int(self.is_spatial))
+            self._io.write_bits_int_be(2, self._unnamed5)
+            self._io.write_bits_int_be(1, int(self.static))
+            self._io.write_bytes(self._unnamed7)
+            self._io.write_bits_int_be(6, self._unnamed8)
+            self._io.write_bits_int_be(1, int(self.can_vary_over_time))
+            self._io.write_bits_int_be(1, int(self._unnamed10))
+            self._io.write_bytes(self._unnamed11)
+            for i in range(len(self.unknown_floats)):
+                pass
+                self._io.write_f8be(self.unknown_floats[i])
+
+            self._io.write_bytes(self._unnamed13)
+            self._io.write_bits_int_be(7, self._unnamed14)
+            self._io.write_bits_int_be(1, int(self.no_value))
+            self._io.write_bytes(self._unnamed16)
+            self._io.write_bits_int_be(4, self._unnamed17)
+            self._io.write_bits_int_be(1, int(self.vector))
+            self._io.write_bits_int_be(1, int(self.integer))
+            self._io.write_bits_int_be(1, int(self._unnamed20))
+            self._io.write_bits_int_be(1, int(self.color))
+            self._io.write_bytes(self._unnamed22)
+            self._io.write_u1(self.animated)
+            self._io.write_bytes(self._unnamed24)
+            self._io.write_bytes(self._unnamed25)
+            self._io.write_bytes(self._unnamed26)
+            self._io.write_bits_int_be(7, self._unnamed27)
+            self._io.write_bits_int_be(1, int(self.expression_disabled))
+            self._io.write_bytes(self._unnamed29)
+
+
+        def _check(self):
+            if len(self.magic) != 2:
+                raise kaitaistruct.ConsistencyError(u"magic", 2, len(self.magic))
+            if not self.magic == b"\xDB\x99":
+                raise kaitaistruct.ValidationNotEqualError(b"\xDB\x99", self.magic, None, u"/types/tdb4_body/seq/0")
+            if len(self._unnamed2) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed2", 1, len(self._unnamed2))
+            if len(self._unnamed7) != 5:
+                raise kaitaistruct.ConsistencyError(u"_unnamed7", 5, len(self._unnamed7))
+            if len(self._unnamed11) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed11", 4, len(self._unnamed11))
+            if len(self.unknown_floats) != 5:
+                raise kaitaistruct.ConsistencyError(u"unknown_floats", 5, len(self.unknown_floats))
+            for i in range(len(self.unknown_floats)):
+                pass
+
+            if len(self._unnamed13) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed13", 1, len(self._unnamed13))
+            if len(self._unnamed16) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed16", 1, len(self._unnamed16))
+            if len(self._unnamed22) != 8:
+                raise kaitaistruct.ConsistencyError(u"_unnamed22", 8, len(self._unnamed22))
+            if len(self._unnamed24) != 15:
+                raise kaitaistruct.ConsistencyError(u"_unnamed24", 15, len(self._unnamed24))
+            if len(self._unnamed25) != 32:
+                raise kaitaistruct.ConsistencyError(u"_unnamed25", 32, len(self._unnamed25))
+            if len(self._unnamed26) != 3:
+                raise kaitaistruct.ConsistencyError(u"_unnamed26", 3, len(self._unnamed26))
+            if len(self._unnamed29) != 4:
+                raise kaitaistruct.ConsistencyError(u"_unnamed29", 4, len(self._unnamed29))
+            self._dirty = False
 
         @property
         def expression_enabled(self):
@@ -3027,13 +6861,14 @@ class Aep(KaitaiStruct):
             self._m_expression_enabled = (not (self.expression_disabled))
             return getattr(self, '_m_expression_enabled', None)
 
+        def _invalidate_expression_enabled(self):
+            del self._m_expression_enabled
 
-    class TdsbBody(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+    class TdsbBody(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.TdsbBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.roto_bezier = self._io.read_u1()
@@ -3044,13 +6879,32 @@ class Aep(KaitaiStruct):
             self._unnamed5 = self._io.read_bits_int_be(6)
             self.dimensions_separated = self._io.read_bits_int_be(1) != 0
             self.enabled = self._io.read_bits_int_be(1) != 0
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class TdumBody(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.TdsbBody, self)._write__seq(io)
+            self._io.write_u1(self.roto_bezier)
+            self._io.write_bytes(self._unnamed1)
+            self._io.write_bits_int_be(3, self._unnamed2)
+            self._io.write_bits_int_be(1, int(self.locked_ratio))
+            self._io.write_bits_int_be(4, self._unnamed4)
+            self._io.write_bits_int_be(6, self._unnamed5)
+            self._io.write_bits_int_be(1, int(self.dimensions_separated))
+            self._io.write_bits_int_be(1, int(self.enabled))
+
+
+        def _check(self):
+            if len(self._unnamed1) != 1:
+                raise kaitaistruct.ConsistencyError(u"_unnamed1", 1, len(self._unnamed1))
+            self._dirty = False
+
+
+    class TdumBody(ReadWriteKaitaiStruct):
         """Property stored min or max value inside a tdbs LIST.
         Used for both tdum (min) and tduM (max) chunks.
         When both tdum and tduM are zero, the property is unconstrained
@@ -3062,53 +6916,88 @@ class Aep(KaitaiStruct):
           Vector:   float64[4]   (32 bytes)
           Enum:     uint32       (4 bytes)
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.TdumBody, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.data = self._io.read_bytes_full()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class TiffRoptData(KaitaiStruct):
+        def _write__seq(self, io=None):
+            super(Aep.TdumBody, self)._write__seq(io)
+            self._io.write_bytes(self.data)
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"data", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            self._dirty = False
+
+
+    class TiffRoptData(ReadWriteKaitaiStruct):
         """TIFF format-specific render options.
         These correspond to the TIFF Options dialog in After Effects.
         """
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.TiffRoptData, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self._unnamed0 = self._io.read_bytes(596)
             self.ibm_pc_byte_order = self._io.read_u1()
             self.lzw_compression = self._io.read_u1()
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
 
 
-    class Utf8Body(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def _write__seq(self, io=None):
+            super(Aep.TiffRoptData, self)._write__seq(io)
+            self._io.write_bytes(self._unnamed0)
+            self._io.write_u1(self.ibm_pc_byte_order)
+            self._io.write_u1(self.lzw_compression)
+
+
+        def _check(self):
+            if len(self._unnamed0) != 596:
+                raise kaitaistruct.ConsistencyError(u"_unnamed0", 596, len(self._unnamed0))
+            self._dirty = False
+
+
+    class Utf8Body(ReadWriteKaitaiStruct):
+        def __init__(self, _io=None, _parent=None, _root=None):
             super(Aep.Utf8Body, self).__init__(_io)
             self._parent = _parent
             self._root = _root
-            self._read()
 
         def _read(self):
             self.contents = (self._io.read_bytes_full()).decode(u"UTF-8")
+            self._dirty = False
 
 
         def _fetch_instances(self):
             pass
+
+
+        def _write__seq(self, io=None):
+            super(Aep.Utf8Body, self)._write__seq(io)
+            self._io.write_bytes((self.contents).encode(u"UTF-8"))
+            if not self._io.is_eof():
+                raise kaitaistruct.ConsistencyError(u"contents", 0, self._io.size() - self._io.pos())
+
+
+        def _check(self):
+            self._dirty = False
 
 
 

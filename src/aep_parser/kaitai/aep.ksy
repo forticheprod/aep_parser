@@ -6,13 +6,13 @@ meta:
 seq:
   - id: header
     contents: RIFX
-  - id: len_data
+  - id: len_body
     type: u4
   - id: format
     contents: "Egg!"
-  - id: data
+  - id: body
     type: chunks
-    size: len_data - format._sizeof
+    size: len_body - format._sizeof
   - id: xmp_packet
     type: str
     encoding: UTF-8
@@ -30,12 +30,12 @@ types:
         size: 4
         type: str
         encoding: ASCII
-      - id: len_data
+      - id: len_body
         type: u4
-      - id: data
-        size: 'len_data > _io.size - _io.pos ? _io.size - _io.pos : len_data'
+      - id: body
+        size: len_body
         type:
-          switch-on: 'chunk_type == "opti" and len_data == 0 ? "" : chunk_type'  # 3D Model Layers opti body is empty
+          switch-on: 'chunk_type == "opti" and len_body == 0 ? "" : chunk_type'  # 3D Model Layers opti body is empty
           cases:
             '"acer"': acer_body # Compensate for Scene-Referred Profiles setting
             '"adfr"': adfr_body # Audio sample rate settings
@@ -58,9 +58,11 @@ types:
             '"foac"': foac_body # Viewer outer tab active flag
             '"head"': head_body # Contains AE version and file revision
             '"idta"': idta_body # Item data
-            '"ldat"': ldat_body # Data of a keyframe
+            '"ldat"': ldat_body(_parent.as<list_body>.chunks[0].body.as<lhd3_body>.item_type, _parent.as<list_body>.chunks[0].body.as<lhd3_body>.item_size, _parent.as<list_body>.chunks[0].body.as<lhd3_body>.count) # Data of a keyframe
             '"ldta"': ldta_body # Layer data
             '"lhd3"': lhd3_body # Number of keyframes and keyframe size for a property
+            '"lnrb"': lnrb_body # Linear blending flag
+            '"lnrp"': lnrp_body # Linearize working space flag
             '"LIST"': list_body # List of chunks
             '"mkif"': mkif_body # Mask info
             '"NmHd"': nmhd_body # Marker data
@@ -90,9 +92,9 @@ types:
             '"tdsn"': child_utf8_body # User-defined name of a property. Contains a single utf-8 chunk but no list_type
             '"Utf8"': utf8_body # Contains text
             _: ascii_body
-      - id: padding
+      - id: pad_byte
         size: 1
-        if: (len_data % 2) != 0
+        if: (len_body % 2) != 0
   ewot_body:
     doc: |
       Effect workspace outline entries inside LIST Ewst.
@@ -207,7 +209,7 @@ types:
       - id: value
         type: f8
         repeat: expr
-        repeat-expr: '_parent.len_data / 8'
+        repeat-expr: '_parent.len_body / 8'
   cdrp_body:
     doc: |
       Composition drop frame setting.
@@ -446,9 +448,9 @@ types:
         type: u2
       - id: height
         type: u2
-      - id: pixel_ratio_width
+      - id: pixel_ratio_dividend
         type: u4
-      - id: pixel_ratio_height
+      - id: pixel_ratio_divisor
         type: u4
       - size: 4
       - id: frame_rate_integer
@@ -491,7 +493,7 @@ types:
       frame_duration:
         value: 'duration * frame_rate'
       pixel_aspect:
-        value: 'pixel_ratio_width * 1.0 / pixel_ratio_height'
+        value: 'pixel_ratio_dividend * 1.0 / pixel_ratio_divisor'
       time:
         value: 'time_dividend * 1.0 / time_divisor'
       frame_time:
@@ -504,6 +506,18 @@ types:
         value: '(out_point_dividend == 0xffffffff ? display_start_frame + frame_duration : (display_start_time + out_point_dividend * 1.0 / out_point_divisor) * frame_rate)'
       out_point:
         value: '(out_point_dividend == 0xffffffff ? display_start_time + duration : display_start_time + out_point_dividend * 1.0 / out_point_divisor)'
+      work_area_start:
+        value: 'in_point - display_start_time'
+        doc: Work area start relative to composition start (seconds)
+      work_area_start_frame:
+        value: 'frame_in_point - display_start_frame'
+        doc: Work area start relative to composition start (frames)
+      work_area_duration:
+        value: 'out_point - in_point'
+        doc: Work area duration (seconds)
+      work_area_duration_frame:
+        value: 'frame_out_point - frame_in_point'
+        doc: Work area duration (frames)
   child_utf8_body:
     seq:
       - id: chunk
@@ -511,6 +525,7 @@ types:
   fdta_body:
     seq:
       - size: 1
+      - size-eos: true
   head_body:
     doc: |
       After Effects file header. Contains version info encoded as a 32-bit value.
@@ -558,6 +573,8 @@ types:
       ae_version_beta:
         value: not ae_version_beta_flag
         doc: True if beta version
+      version:
+        value: f"{ae_version_major}.{ae_version_minor}x{ae_build_number}"
   idta_body:
     seq:
       - id: item_type
@@ -570,10 +587,47 @@ types:
       - id: label
         type: u1
         enum: label
+      - size-eos: true
   ldat_body:
+    doc: |
+      Keyframe / shape / settings data items. Typed via params from sibling lhd3.
+      Automatically promotes three_d to three_d_spatial when the parent tdbs
+      context indicates the property is spatial (tdb4.is_spatial).
+    params:
+      - id: item_type
+        type: u1
+        enum: ldat_item_type
+      - id: item_size
+        type: u2
+      - id: count
+        type: u2
+    instances:
+      is_spatial:
+        value: >-
+          _parent.as<chunk>._parent.as<list_body>._parent.as<chunk>._parent.as<list_body>.list_type == "tdbs"
+          and _parent.as<chunk>._parent.as<list_body>._parent.as<chunk>._parent.as<list_body>.chunks[2].body.as<tdb4_body>.is_spatial
+        doc: Whether the parent property is spatial (from tdb4 in the grandparent LIST:tdbs).
+      effective_item_type:
+        value: >-
+          item_type == ldat_item_type::three_d and is_spatial
+          ? ldat_item_type::three_d_spatial
+          : item_type
+        doc: |
+          Promotes three_d to three_d_spatial for spatial properties.
+          Both have item_size=128 but different binary layouts (kf_multi_dimensional vs kf_position).
     seq:
       - id: items
-        size-eos: true
+        type:
+          switch-on: effective_item_type
+          cases:
+            'ldat_item_type::lrdr': render_settings_ldat_body
+            'ldat_item_type::litm': output_module_settings_ldat_body
+            'ldat_item_type::shape': shape_point
+            'ldat_item_type::gide': kf_unknown_data
+            _: ldat_item(effective_item_type)
+        size: item_size
+        repeat: expr
+        repeat-expr: count
   roou_body:
     doc: Output module settings (154 bytes)
     seq:
@@ -1046,8 +1100,8 @@ types:
       - size: 4
         doc: Unknown bytes 86-89
       - id: template_name
-        type: strz
         size: 64
+        type: str
         encoding: ASCII
         doc: Render settings template name
       - size: 1990
@@ -1144,8 +1198,6 @@ types:
           switch-on: item_type
           cases:
             'ldat_item_type::unknown': kf_unknown_data
-            'ldat_item_type::lrdr': render_settings_ldat_body
-            'ldat_item_type::litm': output_module_settings_ldat_body
             'ldat_item_type::gide': kf_unknown_data
             'ldat_item_type::color': kf_color
             'ldat_item_type::three_d_spatial': kf_position(3)
@@ -1372,8 +1424,10 @@ types:
         value: 'start_time_dividend * 1.0 / start_time_divisor'
       in_point:
         value: 'in_point_dividend * 1.0 / in_point_divisor'
+        doc: In point relative to start_time (seconds, before stretch)
       out_point:
         value: 'out_point_dividend * 1.0 / out_point_divisor'
+        doc: Out point relative to start_time (seconds, before stretch)
       stretch:
         value: 'stretch_divisor != 0 ? stretch_dividend * 100.0 / stretch_divisor : 0'
         doc: Layer time stretch as percentage (100 = normal speed)
@@ -1395,6 +1449,7 @@ types:
       - size: 3
       - id: item_type_raw
         type: u1
+      - size-eos: true
     instances:
       item_type:
         value: >-
@@ -1411,6 +1466,18 @@ types:
           item_type_raw == 4 and item_size == 16 ? ldat_item_type::marker :
           item_type_raw == 4 and item_size == 8 ? ldat_item_type::shape :
           ldat_item_type::unknown
+  lnrb_body:
+    doc: |
+      Linear blending flag. Presence of this chunk in the root chunk list
+      means linear blending is enabled for the project.
+    seq:
+      - contents: [0x01]
+  lnrp_body:
+    doc: |
+      Linearize working space flag. Presence of this chunk in the root
+      chunk list means the working color space is linearized.
+    seq:
+      - contents: [0x01]
   list_body:
     seq:
       - id: list_type
@@ -1424,6 +1491,29 @@ types:
       - id: binary_data
         size-eos: true
         if: list_type == "btdk"
+    instances:
+      # LIST:list — keyframe / shape data (always lhd3 first, ldat second when present)
+      lhd3:
+        value: chunks[0]
+        if: 'list_type == "list"'
+        doc: Header chunk (count + item size). Always the first child.
+      ldat:
+        value: chunks[1]
+        if: 'list_type == "list" and chunks.size >= 2'
+        doc: Data chunk (keyframe / shape binary items). Absent when property has no keyframes.
+      # LIST:tdbs — leaf property container (always tdsb, tdsn, tdb4 in that order)
+      tdsb:
+        value: chunks[0]
+        if: 'list_type == "tdbs"'
+        doc: Property flags chunk. Always the first child.
+      tdsn:
+        value: chunks[1]
+        if: 'list_type == "tdbs"'
+        doc: Property name chunk (tdsn wraps a Utf8 child). Always the second child.
+      tdb4:
+        value: chunks[2]
+        if: 'list_type == "tdbs"'
+        doc: Property metadata chunk. Always the third child.
   mkif_body:
     doc: |
       Mask info. Contains inverted flag, locked flag, mask mode,
@@ -1597,16 +1687,20 @@ types:
         doc: Unknown bits 7-6
       - id: linearize_working_space
         type: b1
-        doc: Whether to linearize working space for blending (0=false, 1=true)
+        doc: Whether to linearize working space for blending (0=false, 1=true). Note - the lnrp chunk at root level is the source of truth for this setting.
       - type: b5
         doc: Unknown bits 4-0
       - size: 8
         doc: Unknown bytes 32-39
+    instances:
+      display_start_frame:
+        value: frames_count_type % 2
+        doc: "Alternate way of reading the Frame Count setting as 0 or 1."
   opti_body:
     seq:
       - id: asset_type
         size: 4
-        type: strz
+        type: str
         encoding: ASCII
         # enum: asset_type
       - id: asset_type_int
@@ -1619,14 +1713,14 @@ types:
         repeat-expr: 4
         if: asset_type == "Soli"
       - id: solid_name
-        type: strz
-        encoding: windows-1252
         size: 256
+        type: str
+        encoding: windows-1252
         if: asset_type == "Soli"
       - size: 4
         if: asset_type_int == 2
       - id: placeholder_name
-        type: strz
+        type: str
         encoding: windows-1252
         size-eos: true
         if: asset_type_int == 2
@@ -1706,11 +1800,12 @@ types:
         if: asset_type == "8BPS"
         doc: Unknown PSD bytes 94-343
       - id: psd_group_name
-        type: strz
+        type: str
         encoding: UTF-8
         size-eos: true
         if: asset_type == "8BPS"
         doc: PSD group/folder name that this layer belongs to (e.g. "PAINT 02")
+      - size-eos: true
     instances:
       red:
         value: 'color[1]'
@@ -1729,7 +1824,7 @@ types:
         enum: property_control_type
       - id: name
         size: 32
-        type: strz
+        type: str
         encoding: windows-1252
       - size: 8
       - id: last_color
@@ -1814,6 +1909,7 @@ types:
         if: >-
           property_control_type == property_control_type::scalar
           or property_control_type == property_control_type::slider
+      - size-eos: true
     instances:
       last_value_x:
         value: 'last_value_x_raw * (property_control_type == property_control_type::two_d ? 1.0/128 : 512)'
@@ -1891,9 +1987,9 @@ types:
         type: u1
         doc: Number of times to loop the footage (1 = no loop, 2+ = loop count)
       - size: 6
-      - id: pixel_ratio_width
+      - id: pixel_ratio_dividend
         type: u4
-      - id: pixel_ratio_height
+      - id: pixel_ratio_divisor
         type: u4
       - size: 5
       - id: conform_frame_rate
@@ -1915,6 +2011,7 @@ types:
           Number of zero-padded digits used for frame numbers in image
           sequences. For example, 4 means frames are numbered as 0001,
           0002 etc. 0 for non-sequence footage.
+      - size-eos: true
     instances:
       duration:
         value: 'duration_dividend * 1.0 / duration_divisor'
@@ -1923,7 +2020,7 @@ types:
       frame_duration:
         value: 'duration * frame_rate'
       pixel_aspect:
-        value: 'pixel_ratio_width * 1.0 / pixel_ratio_height'
+        value: 'pixel_ratio_dividend * 1.0 / pixel_ratio_divisor'
       has_alpha:
         value: alpha_mode_raw != 3
         doc: True if footage has an alpha channel (3 means no_alpha)

@@ -175,43 +175,43 @@ def resolve_output_filename(
     """Resolve an After Effects output filename template to the actual filename.
 
     After Effects stores output paths with template variables like
-    ``[compName]`` and ``[fileExtension]``. This function resolves those
+    `[compName]` and `[fileExtension]`. This function resolves those
     variables to produce the actual filename that would be rendered.
 
     Args:
         file_template: The file path containing template variables.
-            e.g., ``C:/Output/[compName].[fileExtension]``
+            e.g., `C:/Output/[compName].[fileExtension]`
         project_name: The project name (without .aep extension) for
-            ``[projectName]``.
-        comp_name: The composition name for ``[compName]``.
+            `[projectName]`.
+        comp_name: The composition name for `[compName]`.
         render_settings_name: The render settings template name for
-            ``[renderSettingsName]``.
+            `[renderSettingsName]`.
         output_module_name: The output module name for
-            ``[outputModuleName]``.
-        width: The composition width for ``[width]``.
-        height: The composition height for ``[height]``.
-        frame_rate: The frame rate for ``[frameRate]`` and timecodes.
-        start_frame: The start frame for ``[startFrame]``
+            `[outputModuleName]`.
+        width: The composition width for `[width]`.
+        height: The composition height for `[height]`.
+        frame_rate: The frame rate for `[frameRate]` and timecodes.
+        start_frame: The start frame for `[startFrame]`
             (feet+frames format).
-        end_frame: The end frame for ``[endFrame]``
+        end_frame: The end frame for `[endFrame]`
             (feet+frames format).
-        duration_frames: The duration in frames for ``[durationFrames]``
+        duration_frames: The duration in frames for `[durationFrames]`
             (feet+frames format).
-        start_time: The start time in seconds for ``[startTimecode]``
+        start_time: The start time in seconds for `[startTimecode]`
             (uses floor).
-        end_time: The end time in seconds for ``[endTimecode]``
+        end_time: The end time in seconds for `[endTimecode]`
             (uses floor).
-        duration_time: The duration in seconds for ``[durationTimecode]``
+        duration_time: The duration in seconds for `[durationTimecode]`
             (uses ceiling).
-        channels: The output channels setting for ``[channels]``.
+        channels: The output channels setting for `[channels]`.
         project_color_depth: The project bits per channel (8/16/32) for
-            ``[projectColorDepth]``.
+            `[projectColorDepth]`.
         output_color_depth: The output color depth for
-            ``[outputColorDepth]``.
-        compressor: The video codec/compressor name for ``[compressor]``.
-        field_render: The field render setting for ``[fieldOrder]``.
-        pulldown_phase: The 3:2 pulldown phase for ``[pulldownPhase]``.
-        file_extension: The file extension for ``[fileExtension]``.
+            `[outputColorDepth]`.
+        compressor: The video codec/compressor name for `[compressor]`.
+        field_render: The field render setting for `[fieldOrder]`.
+        pulldown_phase: The 3:2 pulldown phase for `[pulldownPhase]`.
+        file_extension: The file extension for `[fileExtension]`.
 
     Returns:
         The resolved file path, or an empty string if file_template is None.
@@ -311,7 +311,7 @@ def resolve_effective_dimensions(
 ) -> tuple[int, int]:
     """Calculate effective render dimensions applying resolution factor.
 
-    Resolution is stored as ``[x_factor, y_factor]`` e.g., ``[7, 1]``
+    Resolution is stored as `[x_factor, y_factor]` e.g., `[7, 1]`
     means 1/7 width and 1/1 height.
 
     Args:
@@ -350,7 +350,7 @@ def resolve_effective_frame_rate(
     """
     if rq_settings["Frame Rate"]:
         return rq_settings["Use this frame rate"]
-    return comp.frame_rate
+    return comp.frame_rate  # type: ignore[no-any-return]
 
 
 def resolve_time_span(

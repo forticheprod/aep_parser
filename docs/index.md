@@ -33,7 +33,7 @@ project = app.project
 print(f"AE Version: {app.version}")
 
 # Access project information
-print(f"Frame Rate: {project.frame_rate}")
+print(f"Frame Rate: {project.bits_per_channel}")
 print(f"Bits per Channel: {project.bits_per_channel}")
 
 # Access project items
@@ -63,18 +63,26 @@ Application
 └── Project
     ├── FolderItem
     │   ├── CompItem
-    │   │   ├── AVLayer ───┐
-    │   │   ├── TextLayer ─┤
-    │   │   ├── ShapeLayer ┤
-    │   │   ├── CameraLayer┤
-    │   │   └── LightLayer ┘──▶ PropertyGroup
-    │   │                       ├── Property
-    │   │                       │   └── Keyframe
-    │   │                       └── PropertyGroup (nested)
+    │   │   ├── AVLayer ──────────┐
+    │   │   ├── TextLayer ────────┤
+    │   │   ├── ShapeLayer ───────┤
+    │   │   ├── ThreeDModelLayer ─┤
+    │   │   ├── CameraLayer ──────┤
+    │   │   └── LightLayer ───────┘──▶ PropertyGroup
+    │   │                              ├── Property
+    │   │                              │   ├── Keyframe
+    │   │                              │   │   └── KeyframeEase
+    │   │                              │   ├── MarkerValue
+    │   │                              │   └── Shape
+    │   │                              │       └── FeatherPoint
+    │   │                              ├── MaskPropertyGroup
+    │   │                              └── PropertyGroup (nested)
     │   └── FootageItem
     │       ├── FileSource
     │       ├── SolidSource
     │       └── PlaceholderSource
+    ├── TextDocument
+    │   └── FontObject
     └── RenderQueue
         └── RenderQueueItem
             └── OutputModule
@@ -82,17 +90,18 @@ Application
 
 ### Data Model
 
-The library provides dataclasses that mirror After Effects' object model:
+The library provides classes that mirror After Effects' object model:
 
 - `Application`: Application-level object (version, build number, active viewer)
 - `Viewer`, `View`, `ViewOptions`: Viewer panels and view settings
 - `Project`: Root project object
-- `CompItem`, `FootageItem`, `FolderItem`: Project items
-- `AVLayer`, `TextLayer`, `ShapeLayer`, etc.: Layer types
-- `Property`, `PropertyGroup`: Layer properties
-- `Keyframe`, `MarkerValue`: Animation data
-- `FileSource`, `SolidSource`, `PlaceholderSource`: Footage sources
-- `RenderQueue`, `RenderQueueItem`, `RenderSettings`, `OutputModule`: Render queue
+- `Item`, `AVItem`, `FolderItem`, `CompItem`, `FootageItem`: Project items
+- `AVLayer`, `TextLayer`, `ShapeLayer`, `ThreeDModelLayer`, `CameraLayer`, `LightLayer`: Layer types
+- `PropertyBase`, `Property`, `PropertyGroup`, `MaskPropertyGroup`: Layer properties
+- `Keyframe`, `KeyframeEase`, `MarkerValue`, `Shape`, `FeatherPoint`: Animation and property value data
+- `FootageSource`, `FileSource`, `SolidSource`, `PlaceholderSource`: Footage sources
+- `TextDocument`, `FontObject`: Text layer data
+- `RenderQueue`, `RenderQueueItem`, `OutputModule`: Render queue
 
 ## API Reference
 

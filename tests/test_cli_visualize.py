@@ -44,7 +44,6 @@ class TestBuildProjectNode:
         assert "attrs" in node
         assert "children" in node
         assert "version" in node["attrs"]
-        assert "frame_rate" in node["attrs"]
 
     def test_project_node_without_properties(self, sample_app: Application) -> None:
         """Test building project node without layer properties."""
