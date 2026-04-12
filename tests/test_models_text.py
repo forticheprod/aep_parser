@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from aep_parser import parse as parse_aep
 from aep_parser.enums import (
     AutoKernType,

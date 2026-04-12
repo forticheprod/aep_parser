@@ -118,7 +118,6 @@ _register(
 
 def _layer_flags(app: Application) -> None:
     from aep_parser.enums import BlendingMode, Label, LayerQuality, LayerSamplingQuality
-    from aep_parser.models.layers.av_layer import AVLayer
 
     comp = app.project.compositions[0]
     layer = comp.layers[0]
@@ -310,7 +309,6 @@ def _everything(app: Application) -> None:
         MaskMode,
         TimeDisplayType,
     )
-    from aep_parser.models.layers.av_layer import AVLayer
     from aep_parser.models.sources.solid import SolidSource
 
     app.build_name = "99.9x999"

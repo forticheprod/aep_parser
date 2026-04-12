@@ -176,12 +176,11 @@ class XmlFormatOptions:
 
     def _sync_xml(self) -> None:
         """Re-serialize the XML tree back to the raw body."""
-        if self._xml_root is None:
+        if self._xml_root is None or self._xml_header is None:
             return
-        xml_bytes = (
-            b"<?xml version='1.0' encoding='UTF-8'?>\n"
-            + ET.tostring(self._xml_root, encoding="unicode").encode("utf-8")
-        )  # NOTE Use xml_declaration when 3.7 is dropped
+        xml_bytes = b"<?xml version='1.0' encoding='UTF-8'?>\n" + ET.tostring(
+            self._xml_root, encoding="unicode"
+        ).encode("utf-8")  # NOTE Use xml_declaration when 3.7 is dropped
         self._generic_body.raw = self._xml_header + xml_bytes
         propagate_check(self._generic_body)
 
