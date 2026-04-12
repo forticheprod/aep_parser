@@ -39,11 +39,10 @@ dev = [
     "ruff>=0.1",
 ]
 docs = [
-    "mkdocs>=1.5.0; python_version >= '3.9'",
-    "mkdocs-material>=9.0.0; python_version >= '3.9'",
-    "mkdocstrings[python]>=0.24.0; python_version >= '3.9'",
-    "pymdown-extensions>=10.0; python_version >= '3.9'",
-    "ruff>=0.1; python_version >= '3.9'",
+    "zensical>=0.0.29; python_version >= '3.10'",
+    "mkdocstrings[python]>=0.24.0; python_version >= '3.10'",
+    "pymdown-extensions>=10.0; python_version >= '3.10'",
+    "ruff>=0.1; python_version >= '3.10'",
 ]
 
 [project.urls]
@@ -104,10 +103,6 @@ module = "aep_parser.kaitai.aep"
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = "aep_parser.kaitai.aep_optimized"
-ignore_errors = true
-
-[[tool.mypy.overrides]]
 module = "aep_parser.cos.*"
 ignore_errors = true
 
@@ -127,3 +122,9 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "if typing.TYPE_CHECKING:",
 ]
+
+[dependency-groups]
+dev = [
+    "vulture>=2.9.1",
+]
+

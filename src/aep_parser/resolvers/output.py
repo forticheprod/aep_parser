@@ -1,20 +1,19 @@
 """Output module resolution logic.
 
 Resolves After Effects output filename templates, computes effective
-render dimensions and frame rates, and formats timecodes.
+render dimensions, and formats timecodes.
 """
 
 from __future__ import annotations
 
 import math
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Mapping
 
 from ..enums import OutputChannels, OutputColorDepth, TimeSpanSource
 
 if TYPE_CHECKING:
     from ..models.items.composition import CompItem
-    from ..models.settings import RenderSettings
 
 TEMPLATE_EXTENSIONS: dict[str, str] = {
     "H.264": "mp4",
@@ -117,7 +116,6 @@ def format_frame_number(frame: int, fps: float) -> str:
 def format_timecode(
     seconds: float,
     fps: float,
-    drop_frame: bool = False,
     is_duration: bool = False,
 ) -> str:
     """Format time as timecode string with dashes.
@@ -125,7 +123,6 @@ def format_timecode(
     Args:
         seconds: Time in seconds.
         fps: Frames per second.
-        drop_frame: Whether to use drop-frame timecode (not implemented).
         is_duration: If True, uses ceiling for frame calculation (for
             durations). If False, uses floor (for absolute times).
 
@@ -175,43 +172,43 @@ def resolve_output_filename(
     """Resolve an After Effects output filename template to the actual filename.
 
     After Effects stores output paths with template variables like
-    ``[compName]`` and ``[fileExtension]``. This function resolves those
+    `[compName]` and `[fileExtension]`. This function resolves those
     variables to produce the actual filename that would be rendered.
 
     Args:
         file_template: The file path containing template variables.
-            e.g., ``C:/Output/[compName].[fileExtension]``
+            e.g., `C:/Output/[compName].[fileExtension]`
         project_name: The project name (without .aep extension) for
-            ``[projectName]``.
-        comp_name: The composition name for ``[compName]``.
+            `[projectName]`.
+        comp_name: The composition name for `[compName]`.
         render_settings_name: The render settings template name for
-            ``[renderSettingsName]``.
+            `[renderSettingsName]`.
         output_module_name: The output module name for
-            ``[outputModuleName]``.
-        width: The composition width for ``[width]``.
-        height: The composition height for ``[height]``.
-        frame_rate: The frame rate for ``[frameRate]`` and timecodes.
-        start_frame: The start frame for ``[startFrame]``
+            `[outputModuleName]`.
+        width: The composition width for `[width]`.
+        height: The composition height for `[height]`.
+        frame_rate: The frame rate for `[frameRate]` and timecodes.
+        start_frame: The start frame for `[startFrame]`
             (feet+frames format).
-        end_frame: The end frame for ``[endFrame]``
+        end_frame: The end frame for `[endFrame]`
             (feet+frames format).
-        duration_frames: The duration in frames for ``[durationFrames]``
+        duration_frames: The duration in frames for `[durationFrames]`
             (feet+frames format).
-        start_time: The start time in seconds for ``[startTimecode]``
+        start_time: The start time in seconds for `[startTimecode]`
             (uses floor).
-        end_time: The end time in seconds for ``[endTimecode]``
+        end_time: The end time in seconds for `[endTimecode]`
             (uses floor).
-        duration_time: The duration in seconds for ``[durationTimecode]``
+        duration_time: The duration in seconds for `[durationTimecode]`
             (uses ceiling).
-        channels: The output channels setting for ``[channels]``.
+        channels: The output channels setting for `[channels]`.
         project_color_depth: The project bits per channel (8/16/32) for
-            ``[projectColorDepth]``.
+            `[projectColorDepth]`.
         output_color_depth: The output color depth for
-            ``[outputColorDepth]``.
-        compressor: The video codec/compressor name for ``[compressor]``.
-        field_render: The field render setting for ``[fieldOrder]``.
-        pulldown_phase: The 3:2 pulldown phase for ``[pulldownPhase]``.
-        file_extension: The file extension for ``[fileExtension]``.
+            `[outputColorDepth]`.
+        compressor: The video codec/compressor name for `[compressor]`.
+        field_render: The field render setting for `[fieldOrder]`.
+        pulldown_phase: The 3:2 pulldown phase for `[pulldownPhase]`.
+        file_extension: The file extension for `[fileExtension]`.
 
     Returns:
         The resolved file path, or an empty string if file_template is None.
@@ -305,57 +302,9 @@ def resolve_output_filename(
     return result
 
 
-def resolve_effective_dimensions(
-    comp: CompItem,
-    rq_settings: RenderSettings,
-) -> tuple[int, int]:
-    """Calculate effective render dimensions applying resolution factor.
-
-    Resolution is stored as ``[x_factor, y_factor]`` e.g., ``[7, 1]``
-    means 1/7 width and 1/1 height.
-
-    Args:
-        comp: The composition being rendered.
-        rq_settings: The render settings dict.
-
-    Returns:
-        Tuple of (effective_width, effective_height).
-    """
-    resolution = rq_settings["Resolution"]
-    if resolution and len(resolution) >= 2:
-        x_factor = resolution[0] if resolution[0] > 0 else 1
-        y_factor = resolution[1] if resolution[1] > 0 else 1
-        return (
-            math.ceil(comp.width / x_factor),
-            math.ceil(comp.height / y_factor),
-        )
-    return comp.width, comp.height
-
-
-def resolve_effective_frame_rate(
-    comp: CompItem,
-    rq_settings: RenderSettings,
-) -> float:
-    """Determine the effective frame rate for rendering.
-
-    Uses custom frame rate if enabled in render settings, otherwise
-    uses the composition frame rate.
-
-    Args:
-        comp: The composition being rendered.
-        rq_settings: The render settings dict.
-
-    Returns:
-        The effective frame rate.
-    """
-    if rq_settings["Frame Rate"]:
-        return rq_settings["Use this frame rate"]
-    return comp.frame_rate
-
-
 def resolve_time_span(
     comp: CompItem,
-    rq_settings: RenderSettings,
+    rq_settings: Mapping[str, Any],
     effective_frame_rate: float,
 ) -> dict[str, Any]:
     """Compute time span values based on render settings.

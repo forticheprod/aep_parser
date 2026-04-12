@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from .layer import Layer
 
 
-@dataclass(eq=False)
 class CameraLayer(Layer):
     """
     The CameraLayer object represents a camera layer within a composition.

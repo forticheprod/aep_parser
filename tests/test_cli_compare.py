@@ -15,7 +15,6 @@ from aep_parser.cli.compare import (
     MultiFileDifference,
     _compare_chunk_dicts,
     _format_hex_dump,
-    compare_aep_files,
     compare_binary_data,
     filter_differences,
     parse_aep_chunks,
@@ -125,47 +124,6 @@ class TestLeafOnlyChunks:
         assert len(chunks) > 0
         for path, data in chunks.items():
             assert len(data) > 0, f"Empty data for {path}"
-
-
-class TestCompareAepFiles:
-    """Tests for compare_aep_files function."""
-
-    def test_identical_files_no_differences(self) -> None:
-        """Test that comparing a file with itself produces no differences."""
-        aep_path = SAMPLES_DIR / "versions" / "ae2025" / "complete.aep"
-
-        differences, only_in_file1, only_in_file2 = compare_aep_files(
-            aep_path, aep_path
-        )
-        assert len(differences) == 0
-        assert len(only_in_file1) == 0
-        assert len(only_in_file2) == 0
-
-    def test_different_files_detected(self) -> None:
-        """Test that different files produce differences."""
-        file1 = SAMPLES_DIR / "models" / "layer" / "enabled_false.aep"
-        file2 = SAMPLES_DIR / "models" / "layer" / "locked_true.aep"
-
-        differences, only_in_file1, only_in_file2 = compare_aep_files(file1, file2)
-        # Files are different, so we expect some differences
-        total_diffs = len(differences) + len(only_in_file1) + len(only_in_file2)
-        assert total_diffs > 0
-
-    def test_no_duplicate_diffs_in_parent_chunks(self) -> None:
-        """Diffs should only appear in leaf chunks, not repeated in parents."""
-        file1 = SAMPLES_DIR / "models" / "layer" / "enabled_false.aep"
-        file2 = SAMPLES_DIR / "models" / "layer" / "locked_true.aep"
-
-        differences, _, _ = compare_aep_files(file1, file2)
-        paths = [d.path for d in differences]
-
-        # No path should be a prefix of another path
-        for i, p1 in enumerate(paths):
-            for j, p2 in enumerate(paths):
-                if i != j:
-                    assert not p2.startswith(p1 + "/"), (
-                        f"Parent chunk {p1} has diffs that should only be in child {p2}"
-                    )
 
 
 class TestCompareChunkDicts:

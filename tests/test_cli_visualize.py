@@ -6,6 +6,7 @@ These tests verify the aep-visualize command line tool functionality.
 from __future__ import annotations
 
 import io
+import json
 from pathlib import Path
 
 import pytest
@@ -44,7 +45,6 @@ class TestBuildProjectNode:
         assert "attrs" in node
         assert "children" in node
         assert "version" in node["attrs"]
-        assert "frame_rate" in node["attrs"]
 
     def test_project_node_without_properties(self, sample_app: Application) -> None:
         """Test building project node without layer properties."""
@@ -63,14 +63,6 @@ class TestBuildProjectNode:
             return False
 
         assert not has_property_node(node)
-
-    def test_project_node_has_items(self, sample_app: Application) -> None:
-        """Test that project node includes folder and composition items."""
-        app = sample_app
-        node = build_project_node(app, include_properties=False)
-
-        # Should have at least some children (folders, compositions, footage)
-        assert len(node["children"]) > 0
 
 
 class TestFormatText:
@@ -108,8 +100,6 @@ class TestFormatJson:
 
     def test_json_output_valid(self, sample_app: Application) -> None:
         """Test that JSON output is valid JSON."""
-        import json
-
         app = sample_app
         node = build_project_node(app, include_properties=False)
 
@@ -124,8 +114,6 @@ class TestFormatJson:
 
     def test_json_output_with_depth_limit(self, sample_app: Application) -> None:
         """Test that JSON respects depth limit."""
-        import json
-
         app = sample_app
         node = build_project_node(app, include_properties=False)
 

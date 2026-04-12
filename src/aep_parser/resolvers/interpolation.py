@@ -1,18 +1,18 @@
 """Interpolation utilities for keyframe-based property evaluation.
 
 Implements HOLD, LINEAR, and BEZIER interpolation for
-``Property.value_at_time()``.  Pure Python with no external dependencies.
+`Property.value_at_time()`.  Pure Python with no external dependencies.
 
 The algorithms are ported from `lottie-web <https://github.com/airbnb/
 lottie-web>`_, the industry-standard renderer for Lottie/bodymovin
 animations exported from After Effects:
 
-- **Temporal ease** uses a normalised [0, 1] → [0, 1] cubic-bezier
-  easing function (``BezierEasing``), with an 11-point sample table,
+- **Temporal ease** uses a normalised [0, 1] -> [0, 1] cubic-bezier
+  easing function (`BezierEasing`), with an 11-point sample table,
   Newton-Raphson refinement, and binary-subdivision fallback (ported
-  from ``BezierEaser.js``).
+  from `BezierEaser.js`).
 - **Spatial paths** are pre-sampled into a 150-segment polyline with
-  per-segment partial lengths (ported from ``bez.js``).
+  per-segment partial lengths (ported from `bez.js`).
 - **Arc-length reparameterisation** walks the segment table linearly,
   interpolating between adjacent sample points.
 """
@@ -20,12 +20,11 @@ animations exported from After Effects:
 from __future__ import annotations
 
 import math
-import typing
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from aep_parser.enums import KeyframeInterpolationType
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from aep_parser.models.properties.keyframe import Keyframe
     from aep_parser.models.properties.keyframe_ease import KeyframeEase
 
@@ -40,7 +39,7 @@ _CURVE_SEGMENTS = 150
 # BezierEasing - port of lottie-web 3rd_party/BezierEaser.js
 # ---------------------------------------------------------------------------
 # Implements a cached unit-square bezier easing function.
-# Given control points (cx1, cy1, cx2, cy2), maps x in [0,1] → y in [0,1].
+# Given control points (cx1, cy1, cx2, cy2), maps x in [0,1] -> y in [0,1].
 # Uses precomputed sample table + Newton-Raphson with binary subdivision
 # fallback, matching Firefox's nsSMILKeySpline.
 
@@ -180,7 +179,7 @@ def _get_bezier_easing(cx1: float, cy1: float, cx2: float, cy2: float) -> _Bezie
 
 
 # ---------------------------------------------------------------------------
-# Speed/influence → bezier control points conversion
+# Speed/influence -> bezier control points conversion
 # ---------------------------------------------------------------------------
 # AEP stores temporal ease as (speed, influence) pairs.
 # Lottie JSON stores temporal ease as bezier control points (o.x, o.y, i.x, i.y)
@@ -278,7 +277,7 @@ def _point_on_line_2d(
     x3: float,
     y3: float,
 ) -> bool:
-    """Check if (x3,y3) is collinear with segment (x1,y1)→(x2,y2).
+    """Check if (x3,y3) is collinear with segment (x1,y1)->(x2,y2).
 
     Port of lottie-web's pointOnLine2D.
     """
@@ -430,25 +429,6 @@ def _get_point_on_path(
     return list(bezier_data.points[-1])
 
 
-# ---------------------------------------------------------------------------
-# Effective ease helpers (same as original - needed for AEP data model)
-# ---------------------------------------------------------------------------
-
-
-def _effective_ease_1d(
-    ease: KeyframeEase,
-    default_speed: float,
-) -> tuple[float, float]:
-    """Return (speed, influence) using defaults when the binary stores 0."""
-    inf = ease.influence
-    spd = ease.speed
-    if inf == 0.0:
-        inf = _DEFAULT_INFLUENCE
-        if spd == 0.0:
-            spd = default_speed
-    return spd, inf
-
-
 def _tangents_are_zero(tangent: list[float] | None) -> bool:
     if tangent is None:
         return True
@@ -463,7 +443,7 @@ def _tangents_are_zero(tangent: list[float] | None) -> bool:
 def _compute_auto_spatial_tangents(
     keyframes: list[Keyframe],
 ) -> list[tuple[list[float] | None, list[float] | None]]:
-    """Compute spatial tangents for keyframes with ``spatial_auto_bezier``.
+    """Compute spatial tangents for keyframes with `spatial_auto_bezier`.
 
     Returns a list of (out_tangent, in_tangent) per keyframe.
     """
@@ -532,7 +512,7 @@ def _compute_auto_spatial_tangents(
 def _compute_auto_temporal_ease(
     keyframes: list[Keyframe],
 ) -> list[tuple[float, float, float, float]]:
-    """Compute temporal ease for keyframes with ``temporal_auto_bezier``.
+    """Compute temporal ease for keyframes with `temporal_auto_bezier`.
 
     Returns (out_speed, out_influence, in_speed, in_influence) per keyframe.
     """
@@ -651,7 +631,7 @@ def _interpolate_spatial_bezier(
 
     1. Builds a polyline approximation of the spatial bezier path
     2. Converts temporal ease to a BezierEasing function
-    3. Maps time → eased arc-length fraction
+    3. Maps time -> eased arc-length fraction
     4. Walks the polyline to find the position
     """
     v0 = kf0.value
@@ -697,7 +677,7 @@ def _interpolate_spatial_bezier(
                 sum((v1[d] - p2[d]) ** 2 for d in range(ndim))
             )
 
-        # Convert to normalized speed (progress/sec → progress fraction)
+        # Convert to normalized speed (progress/sec -> progress fraction)
         out_inf_frac = out_ease.influence / 100.0
         in_inf_frac = in_ease.influence / 100.0
 
@@ -756,7 +736,7 @@ def interpolate_keyframes(
         is_spatial: Whether the property is spatial.
 
     Returns:
-        Interpolated value, or ``None`` if no keyframes.
+        Interpolated value, or `None` if no keyframes.
     """
     if not keyframes:
         return None
@@ -770,22 +750,6 @@ def interpolate_keyframes(
     # After last keyframe
     if time >= keyframes[-1].time:
         return cast("list[float] | float | None", keyframes[-1].value)
-
-    # Pre-compute auto-bezier tangents/ease
-    auto_tangents: list[tuple[list[float] | None, list[float] | None]] | None
-    auto_ease: list[tuple[float, float, float, float]] | None
-
-    has_auto_spatial = is_spatial and any(
-        getattr(kf, "spatial_auto_bezier", False) for kf in keyframes
-    )
-    auto_tangents = (
-        _compute_auto_spatial_tangents(keyframes) if has_auto_spatial else None
-    )
-
-    has_auto_temporal = any(
-        getattr(kf, "temporal_auto_bezier", False) for kf in keyframes
-    )
-    auto_ease = _compute_auto_temporal_ease(keyframes) if has_auto_temporal else None
 
     # Find the segment
     right_idx = 0
@@ -828,6 +792,22 @@ def interpolate_keyframes(
         if isinstance(v0, (int, float)) and isinstance(v1, (int, float)):
             return float(v0) + (float(v1) - float(v0)) * ratio
         return cast("list[float] | float | None", v0)
+
+    # Pre-compute auto-bezier tangents/ease
+    auto_tangents: list[tuple[list[float] | None, list[float] | None]] | None
+    auto_ease: list[tuple[float, float, float, float]] | None
+
+    has_auto_spatial = is_spatial and any(
+        getattr(kf, "spatial_auto_bezier", False) for kf in keyframes
+    )
+    auto_tangents = (
+        _compute_auto_spatial_tangents(keyframes) if has_auto_spatial else None
+    )
+
+    has_auto_temporal = any(
+        getattr(kf, "temporal_auto_bezier", False) for kf in keyframes
+    )
+    auto_ease = _compute_auto_temporal_ease(keyframes) if has_auto_temporal else None
 
     # BEZIER
     if out_type == KeyframeInterpolationType.BEZIER:

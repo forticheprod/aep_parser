@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import typing
-from dataclasses import dataclass
 
 if typing.TYPE_CHECKING:
+    from ..project import Project
     from .render_queue_item import RenderQueueItem
 
 
-@dataclass
 class RenderQueue:
     """
     The `RenderQueue` object represents the render automation process, the data
@@ -28,16 +27,26 @@ class RenderQueue:
     See: https://ae-scripting.docsforadobe.dev/renderqueue/renderqueue/
     """
 
-    items: list[RenderQueueItem]
-    """A collection of all items in the render queue."""
+    def __init__(self, *, parent: Project, items: list[RenderQueueItem]) -> None:
+        self._items = items
+        self._parent = parent
 
     def __iter__(self) -> typing.Iterator[RenderQueueItem]:
         return iter(self.items)
 
     @property
+    def items(self) -> list[RenderQueueItem]:
+        """A collection of all items in the render queue. Read-only."""
+        return self._items
+
+    @property
+    def parent(self) -> Project:
+        """The [Project][] containing this render queue. Read-only."""
+        return self._parent
+
+    @property
     def num_items(self) -> int:
-        """
-        Return the number of items in the render queue.
+        """The number of items in the render queue. Read-only.
 
         Note:
             Equivalent to `len(render_queue.items)`

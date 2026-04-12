@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
+import typing
 
-if TYPE_CHECKING:
-    from aep_parser.enums import JpegFormatType
+from ....enums import JpegFormatType
+from ....kaitai.descriptors import ChunkField
+from ...validators import validate_number, validate_one_of
+
+if typing.TYPE_CHECKING:
+    from ....kaitai import Aep
 
 
-@dataclass
 class JpegFormatOptions:
     """JPEG format-specific render options.
 
@@ -25,19 +27,37 @@ class JpegFormatOptions:
         ```
     """
 
-    quality: int
+    def __init__(self, *, _body: Aep.JpegRoptData) -> None:
+        self._body = _body
+
+    quality = ChunkField[int](
+        "_body",
+        "quality",
+        validate=validate_number(min=0, max=10, integer=True),
+    )
     """
-    JPEG quality level, from 0 (Smaller File) to 10 (Bigger File).
+    JPEG quality level, from 0 (Smaller File) to 10 (Bigger File). Read / Write.
     """
 
-    format_type: JpegFormatType
+    format_type = ChunkField[JpegFormatType](
+        "_body",
+        "format_type",
+        transform=JpegFormatType,
+        reverse=int,
+    )
     """
     JPEG format option type: Baseline (Standard), Baseline Optimized,
-    or Progressive.
+    or Progressive. Read / Write.
     """
 
-    scans: int
+    scans = ChunkField[int](
+        "_body",
+        "scans",
+        transform=lambda x: x + 2,
+        reverse=lambda x: x - 2,
+        validate=validate_one_of([3, 4, 5]),
+    )
     """
     Number of progressive scans (3, 4, or 5). Only relevant when
-    ``format_type`` is ``JpegFormatType.PROGRESSIVE``.
+    `format_type` is `JpegFormatType.PROGRESSIVE`. Read / Write.
     """

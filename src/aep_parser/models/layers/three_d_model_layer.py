@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from .av_layer import AVLayer
 
 
-@dataclass(eq=False)
 class ThreeDModelLayer(AVLayer):
     """
     The `ThreeDModelLayer` object represents a 3D Model layer within a
@@ -34,10 +31,10 @@ class ThreeDModelLayer(AVLayer):
 
     @property
     def can_set_collapse_transformation(self) -> bool:
-        """`True` for 3D Model layers."""
+        """`True` for 3D Model layers. Read-only."""
         return True
 
     @property
     def can_set_time_remap_enabled(self) -> bool:
-        """`False` for 3D Model layers (time remapping is not supported)."""
+        """`False` for 3D Model layers (time remapping is not supported). Read-only."""
         return False

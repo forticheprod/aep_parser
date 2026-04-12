@@ -35,17 +35,12 @@ SKIP_FIELDS = {
     "containing_comp",
     "parent_folder",
     "parent_property",
-    "_parent",
-    "_source",
     "parent",
     "comp",
     "post_render_target_comp",
     # Internal marker property (Property with keyframes); compared
     # separately via _compare_markers.
     "marker_property",
-    # Raw feather point objects; the validated arrays are derived via
-    # Shape @property getters (feather_seg_locs, feather_radii, etc.).
-    "feather_points",
     # Cross-reference: LightLayer.light_source > Layer
     "light_source",
 }
@@ -57,15 +52,17 @@ SKIP_PROPERTIES = {
     "composition_layers",
     "footage_layers",
     "selected_layers",
-    # Circular: AVLayer.source > Item > layers > AVLayer…
+    # Circular: AVLayer.source > Item > layers > AVLayer...
     "source",
-    # Circular: AVItem.used_in > list[CompItem] > layers > source > AVItem…
+    # Circular: AVLayer.track_matte_layer > AVLayer
+    "track_matte_layer",
+    # Circular: AVItem.used_in > list[CompItem] > layers > source > AVItem...
     "used_in",
-    # Duplicate/circular: Project re-serialises items already in `items` field
+    # Duplicate/circular: Project re-serializes items already in `items` field
     "compositions",
     "folders",
     "footages",
-    # Layer @property accessors derived from Layer.properties - serialising
+    # Layer @property accessors derived from Layer.properties - serializing
     # them would duplicate data already present in the properties list.
     "transform",
     "effects",
@@ -78,35 +75,109 @@ SKIP_PROPERTIES = {
 }
 
 
+_field_names_cache: dict[type, frozenset[str] | set[str] | None] = {}
+
+
+def _get_field_names(obj: Any) -> frozenset[str] | set[str] | None:
+    """Get serializable field names for model objects.
+
+    Supports both `@dataclass` models and plain-class models that use
+    type annotations and/or chunk-backed descriptors (e.g. the Item
+    hierarchy after the descriptor conversion).
+
+    Results are cached per type since field names are class-level metadata.
+    """
+    cls = type(obj)
+    if cls in _field_names_cache:
+        return _field_names_cache[cls]
+
+    names: set[str] = set()
+    if is_dataclass(obj) and not isinstance(obj, type):
+        names = {f.name for f in fields(obj)}
+    # Collect annotations and chunk-backed descriptors from the full MRO.
+    # This covers plain-class models and also dataclass subclasses that
+    # add chunk descriptors in non-dataclass bases (e.g. Layer extends
+    # PropertyGroup with ChunkField descriptors).
+    for base in reversed(cls.__mro__):
+        if base is object:
+            continue
+        for name in getattr(base, "__annotations__", {}):
+            if not name.startswith("_"):
+                names.add(name)
+        for name, attr in vars(base).items():
+            if hasattr(attr, "chunk_attr") and hasattr(attr, "__get__"):
+                names.add(name)
+    if names:
+        result = frozenset(names)
+        _field_names_cache[cls] = result
+        return result
+    # Check for public @property definitions (descriptor-backed classes
+    # that replaced all class-level annotations with properties).
+    for base in reversed(cls.__mro__):
+        if base is object:
+            continue
+        for name, attr in vars(base).items():
+            if not name.startswith("_") and isinstance(attr, property):
+                names.add(name)
+    result2: frozenset[str] | None = frozenset(names) if names else None
+    _field_names_cache[cls] = result2
+    return result2
+
+
+_property_names_cache: dict[type, frozenset[str]] = {}
+
+
+def _get_property_names(cls: type) -> frozenset[str]:
+    """Get public @property names for a class, cached per type."""
+    if cls in _property_names_cache:
+        return _property_names_cache[cls]
+    names: set[str] = set()
+    for name in dir(cls):
+        if name.startswith("_") or name in SKIP_FIELDS or name in SKIP_PROPERTIES:
+            continue
+        attr = getattr(cls, name, None)
+        if isinstance(attr, property):
+            names.add(name)
+    result = frozenset(names)
+    _property_names_cache[cls] = result
+    return result
+
+
+_PRIMITIVE_TYPES = (int, float, str, bool, type(None))
+
+
 def to_dict(obj: Any) -> Any:
     """Convert dataclass/enum to dict recursively, skipping circular reference fields."""
-    if is_dataclass(obj) and not isinstance(obj, type):
+    # Fast path for primitive types (majority of recursive calls)
+    if isinstance(obj, _PRIMITIVE_TYPES):
+        return obj
+    if isinstance(obj, Enum):
+        return obj.value
+    if isinstance(obj, list):
+        return [to_dict(item) for item in obj]
+    if isinstance(obj, dict):
+        return {k: to_dict(v) for k, v in obj.items()}
+    field_names = _get_field_names(obj)
+    if field_names is not None:
         result = {}
-        for field in fields(obj):
-            if field.name in SKIP_FIELDS:
+        for name in field_names:
+            if name in SKIP_FIELDS:
                 continue
-            value = getattr(obj, field.name)
-            result[field.name] = to_dict(value)
+            try:
+                value = getattr(obj, name)
+            except AttributeError:
+                continue
+            result[name] = to_dict(value)
         # Include @property attributes (non-private, non-skipped)
-        for name in dir(type(obj)):
-            if name.startswith("_") or name in SKIP_FIELDS or name in SKIP_PROPERTIES:
-                continue
+        for name in _get_property_names(type(obj)):
             if name in result:
                 continue
-            attr = getattr(type(obj), name, None)
-            if isinstance(attr, property):
-                try:
-                    value = getattr(obj, name)
-                    result[name] = to_dict(value)
-                except Exception:
-                    pass
+            try:
+                value = getattr(obj, name)
+                result[name] = to_dict(value)
+            except Exception:  # properties may raise on missing data
+                pass
         return result
-    elif isinstance(obj, Enum):
-        return obj.value
-    elif isinstance(obj, list):
-        return [to_dict(item) for item in obj]
-    elif isinstance(obj, dict):
-        return {k: to_dict(v) for k, v in obj.items()}
     return obj
 
 
@@ -167,6 +238,11 @@ class ValidationResult:
         self.differences: list[str] = []
         self.warnings: list[str] = []
         self.categories: dict[str, int] = {}
+        self.defined_fields: set[str] = set()
+        self.compared_fields: set[str] = set()
+
+    def __len__(self) -> int:
+        return len(self.differences)
 
     def add_diff(
         self, path: str, expected: Any, parsed: Any, category: str = "other"
@@ -179,8 +255,12 @@ class ValidationResult:
         """Add a warning."""
         self.warnings.append(message)
 
-    def __len__(self) -> int:
-        return len(self.differences)
+    def track_field(self, class_name: str, attr: str, was_compared: bool) -> None:
+        """Register a field for coverage tracking."""
+        key = f"{class_name}.{attr}"
+        self.defined_fields.add(key)
+        if was_compared:
+            self.compared_fields.add(key)
 
 
 def _compare_fields(
@@ -190,6 +270,7 @@ def _compare_fields(
     path: str,
     category: str,
     result: ValidationResult,
+    class_name: str = "",
 ) -> None:
     """Compare mapped fields between expected and parsed dicts.
 
@@ -198,10 +279,14 @@ def _compare_fields(
     and records a diff when they don't match.
     """
     for exp_key, parsed_key in mappings.items():
+        if class_name:
+            result.defined_fields.add(f"{class_name}.{parsed_key}")
         if exp_key in expected:
             exp_val = expected[exp_key]
             if isinstance(exp_val, dict) and exp_val.get("_undefined"):
                 continue
+            if class_name:
+                result.compared_fields.add(f"{class_name}.{parsed_key}")
             parsed_val = get_enum_value(parsed.get(parsed_key))
             if not compare_values(exp_val, parsed_val):
                 result.add_diff(f"{path}.{exp_key}", exp_val, parsed_val, category)
@@ -230,6 +315,37 @@ def _compare_markers(
         )
 
 
+def _compare_guides(
+    expected_guides: list[dict[str, Any]],
+    parsed_guides: list[dict[str, Any]],
+    path: str,
+    result: ValidationResult,
+) -> None:
+    """Compare a list of guides."""
+    if len(expected_guides) != len(parsed_guides):
+        result.add_diff(
+            f"{path}.numGuides",
+            len(expected_guides),
+            len(parsed_guides),
+            "composition",
+        )
+    guide_mappings = {
+        "orientationType": "orientation_type",
+        "position": "position",
+        "positionType": "position_type",
+    }
+    for i, (exp_guide, parsed_guide) in enumerate(zip(expected_guides, parsed_guides)):
+        _compare_fields(
+            exp_guide,
+            parsed_guide,
+            guide_mappings,
+            f"{path}.guides[{i}]",
+            "composition",
+            result,
+            class_name="Guide",
+        )
+
+
 def _compare_children_by_match_name(
     expected_props: list[dict[str, Any]],
     parsed_props: list[dict[str, Any]],
@@ -245,21 +361,34 @@ def _compare_children_by_match_name(
             "properties",
         )
 
-    parsed_by_match_name: dict[str, dict[str, Any]] = {}
+    # Build match-name lookup.  When multiple children share the same
+    # match_name (e.g. masks, duplicate effects), store them in order so we
+    # can fall back to positional matching within each match_name group.
+    parsed_by_match_name: dict[str, list[dict[str, Any]]] = {}
     for p in parsed_props:
         mn = p.get("match_name", "")
         if mn:
-            parsed_by_match_name[mn] = p
+            parsed_by_match_name.setdefault(mn, []).append(p)
+
+    # Track how many of each match_name we have consumed.
+    match_name_idx: dict[str, int] = {}
 
     for i, exp_prop in enumerate(expected_props):
         exp_match_name = exp_prop.get("matchName", "")
         exp_name = exp_prop.get("name", f"[{i}]")
         child_path = f"{path}.{exp_name}"
 
-        parsed_prop = parsed_by_match_name.get(exp_match_name)
-        if parsed_prop is None:
+        candidates = parsed_by_match_name.get(exp_match_name)
+        if not candidates:
             result.add_diff(child_path, "exists", "missing", "properties")
             continue
+
+        idx = match_name_idx.get(exp_match_name, 0)
+        if idx < len(candidates):
+            parsed_prop = candidates[idx]
+            match_name_idx[exp_match_name] = idx + 1
+        else:
+            parsed_prop = candidates[-1]
 
         has_child_properties = "properties" in exp_prop
         exp_property_type = exp_prop.get("propertyType")
@@ -290,7 +419,9 @@ def compare_project_level(
         "gpuAccelType": "gpu_accel_type",
     }
 
-    _compare_fields(expected, parsed, mappings, "Project", "project", result)
+    _compare_fields(
+        expected, parsed, mappings, "Project", "project", result, class_name="Project"
+    )
 
 
 def compare_marker(
@@ -307,6 +438,7 @@ def compare_marker(
         parsed_time = parsed_marker["frame_time"] / frame_rate
 
     # Compare time
+    result.track_field("Marker", "time", "time" in expected_marker)
     if "time" in expected_marker:
         exp_val = expected_marker["time"]
         if not isinstance(exp_val, dict) or not exp_val.get("_undefined"):
@@ -326,7 +458,13 @@ def compare_marker(
     }
 
     _compare_fields(
-        expected_marker, parsed_marker, marker_mappings, path, "markers", result
+        expected_marker,
+        parsed_marker,
+        marker_mappings,
+        path,
+        "markers",
+        result,
+        class_name="Marker",
     )
 
 
@@ -342,10 +480,12 @@ def compare_layer(
     layer_mappings = {
         "name": "name",
         "id": "id",
+        "time": "time",
         "comment": "comment",
         "enabled": "enabled",
         "canSetEnabled": "can_set_enabled",
         "hasVideo": "has_video",
+        "hasAudio": "has_audio",
         "canSetCollapseTransformation": "can_set_collapse_transformation",
         "canSetTimeRemapEnabled": "can_set_time_remap_enabled",
         "inPoint": "in_point",
@@ -366,6 +506,7 @@ def compare_layer(
         "isNameFromSource": "is_name_from_source",
         # AVLayer specific
         "adjustmentLayer": "adjustment_layer",
+        "audioActive": "audio_active",
         "audioEnabled": "audio_enabled",
         "blendingMode": "blending_mode",
         "collapseTransformation": "collapse_transformation",
@@ -389,17 +530,25 @@ def compare_layer(
     }
 
     _compare_fields(
-        expected_layer, parsed_layer, layer_mappings, path, "layers", result
+        expected_layer,
+        parsed_layer,
+        layer_mappings,
+        path,
+        "layers",
+        result,
+        class_name="Layer",
     )
 
     # Compare index (ExtendScript is 1-based, parsed is 0-based)
+    result.track_field("Layer", "index", "index" in expected_layer)
+    result.track_field("Layer", "light_source_id", "lightSource" in expected_layer)
     if "index" in expected_layer:
         exp_index = expected_layer["index"]
         parsed_index = parsed_layer.get("index")
         if parsed_index is not None and exp_index != parsed_index + 1:
             result.add_diff(f"{path}.index", exp_index, parsed_index + 1, "layers")
 
-    # Compare lightSource (Layer reference → compare by layer index)
+    # Compare lightSource (Layer reference -> compare by layer index)
     if "lightSource" in expected_layer:
         exp_ls = expected_layer["lightSource"]
         parsed_ls_id = parsed_layer.get("_light_source_id", 0)
@@ -454,10 +603,32 @@ def compare_property(
         "isSeparationFollower": "is_separation_follower",
         "selected": "selected",
         "unitsText": "units_text",
+        "separationDimension": "separation_dimension",
     }
 
     _compare_fields(
-        expected_prop, parsed_prop, property_mappings, path, "properties", result
+        expected_prop,
+        parsed_prop,
+        property_mappings,
+        path,
+        "properties",
+        result,
+        class_name="Property",
+    )
+
+    # Track manually-compared fields
+    result.track_field("Property", "property_index", "propertyIndex" in expected_prop)
+    result.track_field("Property", "value", "value" in expected_prop)
+    result.track_field("Property", "keyframes", "numKeys" in expected_prop)
+    result.track_field(
+        "Property",
+        "min_value",
+        "hasMin" in expected_prop and bool(expected_prop.get("hasMin")),
+    )
+    result.track_field(
+        "Property",
+        "max_value",
+        "hasMax" in expected_prop and bool(expected_prop.get("hasMax")),
     )
 
     # Compare propertyIndex (ExtendScript is 1-based, parsed is 0-based)
@@ -494,15 +665,6 @@ def compare_property(
     parsed_keyframes = parsed_prop.get("keyframes", [])
     for ki, (exp_kf, parsed_kf) in enumerate(zip(exp_keyframes, parsed_keyframes)):
         compare_keyframe(exp_kf, parsed_kf, f"{path}.keyframes[{ki}]", result)
-
-    # Compare separationDimension (only present on followers in JSON)
-    if "separationDimension" in expected_prop:
-        exp_dim = expected_prop["separationDimension"]
-        parsed_dim = parsed_prop.get("separation_dimension")
-        if not compare_values(exp_dim, parsed_dim):
-            result.add_diff(
-                f"{path}.separationDimension", exp_dim, parsed_dim, "properties"
-            )
 
     # Compare min/max values
     if "hasMin" in expected_prop and expected_prop["hasMin"]:
@@ -561,15 +723,39 @@ def compare_shape_value(
         "vertices": "vertices",
         "inTangents": "in_tangents",
         "outTangents": "out_tangents",
-        "featherSegLocs": "feather_seg_locs",
-        "featherRelSegLocs": "feather_rel_seg_locs",
-        "featherRadii": "feather_radii",
-        "featherTypes": "feather_types",
-        "featherInterps": "feather_interps",
-        "featherTensions": "feather_tensions",
-        "featherRelCornerAngles": "feather_rel_corner_angles",
     }
-    _compare_fields(expected_shape, parsed_shape, shape_mappings, path, "shape", result)
+    _compare_fields(
+        expected_shape,
+        parsed_shape,
+        shape_mappings,
+        path,
+        "shape",
+        result,
+        class_name="Shape",
+    )
+
+    # Compare feather data: ExtendScript exposes parallel arrays,
+    # aep_parser stores a list of FeatherPoint objects.
+    feather_field_map: dict[str, str] = {
+        "featherSegLocs": "seg_loc",
+        "featherRelSegLocs": "rel_seg_loc",
+        "featherRadii": "radius",
+        "featherTypes": "type",
+        "featherInterps": "interp",
+        "featherTensions": "tension",
+        "featherRelCornerAngles": "rel_corner_angle",
+    }
+    parsed_fps = parsed_shape.get("feather_points", [])
+    for exp_key, fp_attr in feather_field_map.items():
+        result.defined_fields.add(f"Shape.{fp_attr}")
+        if exp_key in expected_shape:
+            exp_val = expected_shape[exp_key]
+            if isinstance(exp_val, dict) and exp_val.get("_undefined"):
+                continue
+            result.compared_fields.add(f"Shape.{fp_attr}")
+            parsed_val = [fp.get(fp_attr) for fp in parsed_fps]
+            if not compare_values(exp_val, parsed_val):
+                result.add_diff(f"{path}.{exp_key}", exp_val, parsed_val, "shape")
 
 
 def compare_keyframe(
@@ -586,12 +772,12 @@ def compare_keyframe(
         path: Dotted path for error messages.
         result: ValidationResult to accumulate differences.
     """
-    # Compare time
-    if "time" in expected_kf:
-        exp_time = expected_kf["time"]
-        parsed_time = parsed_kf.get("time")
-        if not compare_values(exp_time, parsed_time):
-            result.add_diff(f"{path}.time", exp_time, parsed_time, "keyframes")
+    # Track manually-compared fields
+    result.track_field("Keyframe", "value", "value" in expected_kf)
+    result.track_field("Keyframe", "in_temporal_ease", "inTemporalEase" in expected_kf)
+    result.track_field(
+        "Keyframe", "out_temporal_ease", "outTemporalEase" in expected_kf
+    )
 
     # Compare value
     if "value" in expected_kf and parsed_kf.get("value") is not None:
@@ -602,7 +788,7 @@ def compare_keyframe(
             if isinstance(parsed_val, dict):
                 compare_shape_value(exp_val, parsed_val, f"{path}.value", result)
         elif isinstance(exp_val, dict) and isinstance(parsed_val, dict):
-            # Dict value (e.g. marker) — normalize keys and compare matching
+            # Dict value (e.g. marker) - normalize keys and compare matching
             normalized = _normalize_keys(exp_val)
             for key, nval in normalized.items():
                 pval = parsed_val.get(key)
@@ -614,6 +800,7 @@ def compare_keyframe(
 
     # Compare interpolation types and boolean flags
     kf_mappings = {
+        "time": "time",
         "inInterpolationType": "in_interpolation_type",
         "outInterpolationType": "out_interpolation_type",
         "temporalAutoBezier": "temporal_auto_bezier",
@@ -622,22 +809,19 @@ def compare_keyframe(
         "spatialContinuous": "spatial_continuous",
         "roving": "roving",
         "label": "label",
+        "inSpatialTangent": "in_spatial_tangent",
+        "outSpatialTangent": "out_spatial_tangent",
     }
 
-    _compare_fields(expected_kf, parsed_kf, kf_mappings, path, "keyframes", result)
-
-    # Compare spatial tangents
-    for tangent_key, parsed_key in [
-        ("inSpatialTangent", "in_spatial_tangent"),
-        ("outSpatialTangent", "out_spatial_tangent"),
-    ]:
-        if tangent_key in expected_kf:
-            exp_val = expected_kf[tangent_key]
-            parsed_val = parsed_kf.get(parsed_key)
-            if not compare_values(exp_val, parsed_val):
-                result.add_diff(
-                    f"{path}.{tangent_key}", exp_val, parsed_val, "keyframes"
-                )
+    _compare_fields(
+        expected_kf,
+        parsed_kf,
+        kf_mappings,
+        path,
+        "keyframes",
+        result,
+        class_name="Keyframe",
+    )
 
     # Compare temporal ease
     for ease_key, parsed_key in [
@@ -758,7 +942,13 @@ def compare_text_document(
     }
 
     _compare_fields(
-        expected_doc, parsed_doc, text_mappings, path, "textdocument", result
+        expected_doc,
+        parsed_doc,
+        text_mappings,
+        path,
+        "textdocument",
+        result,
+        class_name="TextDocument",
     )
 
 
@@ -799,10 +989,19 @@ def compare_property_group(
     }
 
     _compare_fields(
-        expected_group, parsed_group, group_mappings, path, "properties", result
+        expected_group,
+        parsed_group,
+        group_mappings,
+        path,
+        "properties",
+        result,
+        class_name="PropertyGroup",
     )
 
     # Compare propertyIndex (ExtendScript is 1-based, parsed is 0-based)
+    result.track_field(
+        "PropertyGroup", "property_index", "propertyIndex" in expected_group
+    )
     if "propertyIndex" in expected_group:
         exp_pi = expected_group["propertyIndex"]
         parsed_pi = parsed_group.get("property_index")
@@ -832,6 +1031,7 @@ def compare_comp_item(
         "id": "id",
         "comment": "comment",
         "label": "label",
+        "time": "time",
         "duration": "duration",
         "frameRate": "frame_rate",
         "width": "width",
@@ -855,10 +1055,20 @@ def compare_comp_item(
         "resolutionFactor": "resolution_factor",
         "draft3d": "draft3d",
         "hasVideo": "has_video",
+        "renderer": "renderer",
+        "motionGraphicsTemplateName": "motion_graphics_template_name",
+        "motionGraphicsTemplateControllerCount": "motion_graphics_template_controller_count",
+        "motionGraphicsTemplateControllerNames": "motion_graphics_template_controller_names",
     }
 
     _compare_fields(
-        expected_item, parsed_comp, comp_mappings, path, "composition", result
+        expected_item,
+        parsed_comp,
+        comp_mappings,
+        path,
+        "composition",
+        result,
+        class_name="CompItem",
     )
 
     # Compare layer counts
@@ -888,6 +1098,14 @@ def compare_comp_item(
         parsed_comp.get("markers", []),
         path,
         expected_item.get("frameRate", 24.0),
+        result,
+    )
+
+    # Compare guides
+    _compare_guides(
+        expected_item.get("guides", []),
+        parsed_comp.get("guides", []),
+        path,
         result,
     )
 
@@ -943,6 +1161,7 @@ def compare_footage_item(
         "id": "id",
         "comment": "comment",
         "label": "label",
+        "time": "time",
         "duration": "duration",
         "frameRate": "frame_rate",
         "width": "width",
@@ -953,7 +1172,13 @@ def compare_footage_item(
     }
 
     _compare_fields(
-        expected_item, parsed_item, footage_mappings, path, "footage", result
+        expected_item,
+        parsed_item,
+        footage_mappings,
+        path,
+        "footage",
+        result,
+        class_name="FootageItem",
     )
 
     # Compare mainSource (FootageSource fields)
@@ -964,20 +1189,63 @@ def compare_footage_item(
 
         source_mappings = {
             "alphaMode": "alpha_mode",
-            "conformFrameRate": "conform_frame_rate",
+            "displayFrameRate": "display_frame_rate",
             "fieldSeparationType": "field_separation_type",
             "hasAlpha": "has_alpha",
             "highQualityFieldSeparation": "high_quality_field_separation",
             "invertAlpha": "invert_alpha",
             "isStill": "is_still",
             "loop": "loop",
+            "nativeFrameRate": "native_frame_rate",
             "premulColor": "premul_color",
+            "removePulldown": "remove_pulldown",
+            "color": "color",
         }
 
         _compare_fields(
-            exp_source, parsed_source, source_mappings, source_path, "footage", result
+            exp_source,
+            parsed_source,
+            source_mappings,
+            source_path,
+            "footage",
+            result,
+            class_name="FootageSource",
         )
 
+        # AE returns native_frame_rate when conformFrameRate is 0
+        result.track_field(
+            "FootageSource",
+            "conform_frame_rate",
+            "conformFrameRate" in exp_source,
+        )
+        exp_cfr = exp_source.get("conformFrameRate")
+        parsed_cfr = parsed_source.get("conform_frame_rate", 0)
+        if exp_cfr is not None:
+            if parsed_cfr != 0:
+                if not compare_values(exp_cfr, parsed_cfr):
+                    result.add_diff(
+                        f"{source_path}.conformFrameRate",
+                        exp_cfr,
+                        parsed_cfr,
+                        "footage",
+                    )
+            else:
+                native = parsed_source.get("native_frame_rate", 0)
+                if not compare_values(exp_cfr, native):
+                    result.add_diff(
+                        f"{source_path}.conformFrameRate",
+                        exp_cfr,
+                        parsed_cfr,
+                        "footage",
+                    )
+
+        # Track manually-compared fields
+        result.track_field("FootageSource", "file", "filePath" in exp_source)
+        result.track_field(
+            "FootageSource",
+            "missing_footage_path",
+            "missingFootagePath" in exp_source,
+        )
         # FileSource-specific fields
         if "filePath" in exp_source:
             exp_file = exp_source["filePath"]
@@ -1005,18 +1273,6 @@ def compare_footage_item(
                     "footage",
                 )
 
-        # SolidSource-specific fields
-        if "color" in exp_source:
-            exp_color = exp_source["color"]
-            parsed_color = parsed_source.get("color")
-            if not compare_values(exp_color, parsed_color):
-                result.add_diff(
-                    f"{source_path}.color",
-                    exp_color,
-                    parsed_color,
-                    "footage",
-                )
-
 
 def compare_settings(
     expected_settings: dict[str, Any],
@@ -1032,20 +1288,18 @@ def compare_settings(
         result.add_diff(f"{path}", "exists", "missing", "renderqueue")
         return
 
-    # Map expected JSON keys to parsed ExtendScript keys
-    settings_mappings: dict[str, str] = {
-        "quality": "Quality",
-        "effects": "Effects",
-        "proxyUse": "Proxy Use",
-        "motionBlur": "Motion Blur",
-        "frameBlending": "Frame Blending",
-        "fieldRender": "Field Render",
-        "guideLayers": "Guide Layers",
-        "soloSwitches": "Solo Switches",
-        "colorDepth": "Color Depth",
-    }
-    # Settings that use identical keys in JSON and parsed
+    # Map expected JSON keys to parsed keys (both use AE getSettings keys)
+    settings_mappings: dict[str, str] = {}
     for key in (
+        "Quality",
+        "Effects",
+        "Proxy Use",
+        "Motion Blur",
+        "Frame Blending",
+        "Field Render",
+        "Guide Layers",
+        "Solo Switches",
+        "Color Depth",
         "Time Span",
         "Time Span Start",
         "Time Span Duration",
@@ -1066,6 +1320,7 @@ def compare_settings(
         path,
         "renderqueue",
         result,
+        class_name="RenderSettings",
     )
 
 
@@ -1085,34 +1340,11 @@ def compare_output_module_settings(
         result.add_diff(f"{path}", "exists", "missing", "renderqueue")
         return
 
-    # Compare video output
-    if "videoOutput" in expected_settings:
-        exp_has_video = expected_settings["videoOutput"] == "On"
-        parsed_has_video = parsed_settings.get("Video Output", False)
-        if exp_has_video != parsed_has_video:
-            result.add_diff(
-                f"{path}.videoOutput",
-                expected_settings["videoOutput"],
-                "On" if parsed_has_video else "Off",
-                "renderqueue",
-            )
-
-    # Compare audio output
-    if "audioOutput" in expected_settings:
-        parsed_audio = parsed_settings.get("Output Audio")
-        expected_audio = expected_settings["audioOutput"]
-        parsed_audio_str = parsed_audio.label if parsed_audio is not None else ""
-        if expected_audio != parsed_audio_str:
-            result.add_diff(
-                f"{path}.audioOutput",
-                expected_audio,
-                parsed_audio_str,
-                "renderqueue",
-            )
-
-    # Compare remaining output module settings with identical keys
+    # Compare output module settings with identical keys
     om_settings_mappings: dict[str, str] = {}
     for key in (
+        "Video Output",
+        "Output Audio",
         "Format",
         "Channels",
         "Depth",
@@ -1140,6 +1372,7 @@ def compare_output_module_settings(
         path,
         "renderqueue",
         result,
+        class_name="OMSettings",
     )
 
 
@@ -1188,7 +1421,13 @@ def compare_render_queue(
             "timeSpanDuration": "time_span_duration",
         }
         _compare_fields(
-            exp_item, parsed_item, rqi_mappings, path, "renderqueue", result
+            exp_item,
+            parsed_item,
+            rqi_mappings,
+            path,
+            "renderqueue",
+            result,
+            class_name="RenderQueueItem",
         )
 
         # Compare render settings
@@ -1229,10 +1468,17 @@ def compare_render_queue(
                 "postRenderAction": "post_render_action",
             }
             _compare_fields(
-                exp_om, parsed_om, om_mappings, om_path, "renderqueue", result
+                exp_om,
+                parsed_om,
+                om_mappings,
+                om_path,
+                "renderqueue",
+                result,
+                class_name="OutputModule",
             )
 
             # Compare output module file (path comparison)
+            result.track_field("OutputModule", "file", "file" in exp_om)
             if "file" in exp_om:
                 exp_file = exp_om["file"]
                 parsed_file = parsed_om.get("file", "")
@@ -1273,11 +1519,17 @@ def compare_viewer(
         "type": "type",
     }
     _compare_fields(
-        expected_viewer, parsed_viewer, viewer_mappings, "Viewer", "viewer", result
+        expected_viewer,
+        parsed_viewer,
+        viewer_mappings,
+        "Viewer",
+        "viewer",
+        result,
+        class_name="Viewer",
     )
 
     exp_views = expected_viewer.get("views", [])
-    parsed_views = parsed_viewer.get("views", [])
+    parsed_views: list[dict[str, Any]] = parsed_viewer.get("views", [])
     if len(exp_views) != len(parsed_views):
         result.add_diff(
             "Viewer.views.length",
@@ -1288,10 +1540,6 @@ def compare_viewer(
 
     for i, (exp_view, parsed_view) in enumerate(zip(exp_views, parsed_views)):
         path = f"Viewer.views[{i}]"
-        view_mappings: dict[str, str] = {
-            "active": "active",
-        }
-        _compare_fields(exp_view, parsed_view, view_mappings, path, "viewer", result)
 
         exp_opts = exp_view.get("options", {})
         parsed_opts = parsed_view.get("options", {})
@@ -1308,7 +1556,13 @@ def compare_viewer(
             "rulers": "rulers",
         }
         _compare_fields(
-            exp_opts, parsed_opts, opts_mappings, opts_path, "viewer", result
+            exp_opts,
+            parsed_opts,
+            opts_mappings,
+            opts_path,
+            "viewer",
+            result,
+            class_name="ViewOptions",
         )
 
 
@@ -1355,8 +1609,7 @@ def validate_aep(
     # Compare compositions
     if verbose:
         print("\n=== Comparing Compositions ===")
-    parsed_comps = parsed.get("_compositions", [])
-    parsed_by_id = {comp["id"]: comp for comp in parsed_comps}
+    parsed_by_id = {comp.id: to_dict(comp) for comp in project.compositions}
 
     for exp_item in comps:
         item_id = exp_item["id"]
@@ -1424,13 +1677,16 @@ def validate_aep(
 
     # Compare active viewer
     expected_viewer = expected.get("activeViewer")
-    if expected_viewer is not None:
+    if expected_viewer is not None and app.active_viewer is not None:
         if verbose:
             print("\n=== Comparing Viewer ===")
-        parsed_viewer = to_dict(app.active_viewer) if app.active_viewer else {}
+        parsed_viewer = to_dict(app.active_viewer)
         compare_viewer(expected_viewer, parsed_viewer, result)
         if verbose:
             print("  Done")
+    elif expected_viewer is not None and verbose:
+        print("\n=== Comparing Viewer ===")
+        print("  Skipped (no viewer data in binary)")
 
     return result
 
@@ -1469,6 +1725,22 @@ def print_results(
             print(f"  ... and {len(filtered_diffs) - 200} more")
 
 
+def print_coverage(result: ValidationResult) -> None:
+    """Print field coverage report."""
+    compared = sorted(result.compared_fields)
+    not_compared = sorted(result.defined_fields - result.compared_fields)
+
+    print(f"\n{'=' * 60}")
+    print("FIELD COVERAGE REPORT")
+    print(f"{'=' * 60}")
+    print(f"\nCompared ({len(compared)}):\n  " + "\n  ".join(compared))
+    print(f"\nNot compared ({len(not_compared)}):")
+    if not_compared:
+        print("  " + "\n  ".join(not_compared))
+    else:
+        print("  (none)")
+
+
 def main(args: list[str] | None = None) -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -1497,6 +1769,11 @@ def main(args: list[str] | None = None) -> int:
         ],
         help="Filter differences by category",
     )
+    parser.add_argument(
+        "--coverage",
+        action="store_true",
+        help="Print field coverage report (compared vs not-compared fields)",
+    )
 
     parsed_args = parser.parse_args(args)
 
@@ -1521,6 +1798,9 @@ def main(args: list[str] | None = None) -> int:
     print_results(
         result, verbose=parsed_args.verbose, category_filter=parsed_args.category
     )
+
+    if parsed_args.coverage:
+        print_coverage(result)
 
     return 0 if not result.differences else 1
 

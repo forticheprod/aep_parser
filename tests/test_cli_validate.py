@@ -17,6 +17,7 @@ from aep_parser.cli.validate import (
     to_dict,
     validate_aep,
 )
+from aep_parser.enums import BlendingMode
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples"
 
@@ -32,8 +33,6 @@ class TestToDict:
         assert "items" in result
 
     def test_enum_to_dict(self) -> None:
-        from aep_parser.enums import BlendingMode
-
         result = to_dict(BlendingMode.NORMAL)
         assert result == BlendingMode.NORMAL.value
 
@@ -55,8 +54,6 @@ class TestGetEnumValue:
     """Tests for get_enum_value()."""
 
     def test_enum_returns_value(self) -> None:
-        from aep_parser.enums import BlendingMode
-
         assert get_enum_value(BlendingMode.ADD) == BlendingMode.ADD.value
 
     def test_non_enum_returns_as_is(self) -> None:

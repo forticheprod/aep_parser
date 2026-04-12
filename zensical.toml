@@ -1,0 +1,164 @@
+[project]
+site_name = "AEP Parser"
+site_description = "A Python library for parsing Adobe After Effects project files (.aep)"
+site_url = "https://forticheprod.github.io/aep_parser/"
+repo_url = "https://github.com/forticheprod/aep_parser"
+repo_name = "forticheprod/aep_parser"
+edit_uri = "edit/main/docs/"
+extra_css = ["stylesheets/extra.css"]
+nav = [
+    { "Home" = "index.md" },
+    { "Quick Start" = "quickstart.md" },
+    { "Contributing" = "contributing.md" },
+    { "ExtendScript Coverage" = "extendscript_coverage.md" },
+    { "Differences from ExtendScript" = "differences.md" },
+    { "Known Limitations" = "limitations.md" },
+    { "CLI Tools" = "cli.md" },
+    { "API Reference" = [
+        { "Overview" = "api/index.md" },
+        { "Parsers" = "api/parsers.md" },
+        { "Application" = "api/application.md" },
+        { "Project" = "api/project.md" },
+        { "Items" = [
+            { "Item" = "api/items/item.md" },
+            { "AV Item" = "api/items/av_item.md" },
+            { "Composition" = "api/items/composition.md" },
+            { "Footage" = "api/items/footage.md" },
+            { "Folder" = "api/items/folder.md" },
+        ] },
+        { "Layers" = [
+            { "Layer" = "api/layers/layer.md" },
+            { "AV Layer" = "api/layers/av_layer.md" },
+            { "Text Layer" = "api/layers/text_layer.md" },
+            { "Shape Layer" = "api/layers/shape_layer.md" },
+            { "Camera Layer" = "api/layers/camera_layer.md" },
+            { "Light Layer" = "api/layers/light_layer.md" },
+            { "3D Model Layer" = "api/layers/three_d_model_layer.md" },
+        ] },
+        { "Properties" = [
+            { "Property Base" = "api/properties/property_base.md" },
+            { "Property" = "api/properties/property.md" },
+            { "Property Group" = "api/properties/property_group.md" },
+            { "Mask Property Group" = "api/properties/mask_property_group.md" },
+            { "Keyframe" = "api/properties/keyframe.md" },
+            { "Keyframe Ease" = "api/properties/keyframe_ease.md" },
+            { "Marker" = "api/properties/marker.md" },
+            { "Shape" = "api/properties/shape.md" },
+        ] },
+        { "Text" = [
+            { "Text Document" = "api/text/text_document.md" },
+            { "Font Object" = "api/text/font_object.md" },
+        ] },
+        { "Sources" = [
+            { "Footage Source" = "api/sources/footage_source.md" },
+            { "File Source" = "api/sources/file_source.md" },
+            { "Solid Source" = "api/sources/solid_source.md" },
+            { "Placeholder Source" = "api/sources/placeholder_source.md" },
+        ] },
+        { "Render Queue" = [
+            { "RenderQueue" = "api/renderqueue/render_queue.md" },
+            { "Render Queue Item" = "api/renderqueue/render_queue_item.md" },
+            { "Render Settings" = "api/renderqueue/render_settings.md" },
+            { "Output Module" = "api/renderqueue/output_module.md" },
+            { "Output Module Settings" = "api/renderqueue/output_module_settings.md" },
+            { "Format Options" = "api/renderqueue/format_options.md" },
+        ] },
+        { "Viewer" = [
+            { "Viewer" = "api/viewer/viewer.md" },
+            { "View" = "api/viewer/view.md" },
+            { "View Options" = "api/viewer/view_options.md" },
+        ] },
+        { "Other" = [
+            { "Guide" = "api/other/guide.md" },
+            { "Enums" = "api/other/enums.md" },
+        ] },
+    ] },
+]
+
+# Palette toggle for automatic mode
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+primary = "indigo"
+accent = "indigo"
+toggle.icon = "lucide/sun-moon"
+toggle.name = "Switch to light mode"
+
+# Palette toggle for light mode
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "indigo"
+accent = "indigo"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+# Palette toggle for dark mode
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "indigo"
+accent = "indigo"
+toggle.icon = "lucide/moon-star"
+toggle.name = "Switch to system preference"
+
+[project.theme]
+features = [
+    "navigation.sections",
+    "navigation.top",
+    "search.suggest",
+    "search.highlight",
+    "content.tabs.link",
+    "content.code.annotation",
+    "content.code.copy",
+]
+
+[project.theme.icon]
+repo = "fontawesome/brands/github"
+
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = true
+
+[project.markdown_extensions.pymdownx.superfences]
+
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style = true
+
+[project.markdown_extensions.pymdownx.magiclink]
+
+[project.markdown_extensions.toc]
+permalink = true
+
+[project.plugins.mkdocstrings.handlers.python]
+paths = ["src"]
+inventories = ["https://docs.python.org/3/objects.inv"]
+
+[project.plugins.mkdocstrings.handlers.python.options]
+docstring_section_style = "list"
+docstring_style = "google"
+extensions = ["scripts/griffe_properties.py:PropertiesAsAttributes"]
+group_by_category = true
+heading_level = 2
+inherited_members = true
+members_order = "alphabetical"
+merge_init_into_class = false
+modernize_annotations = true
+parameter_headings = false
+separate_signature = true
+show_category_heading = true
+show_docstring_attributes = false
+show_docstring_parameters = true
+show_docstring_returns = true
+show_if_no_docstring = true
+show_labels = false
+show_root_full_path = false
+show_root_heading = true
+show_root_toc_entry = false
+show_signature_annotations = true
+show_signature = true
+show_source = false
+show_symbol_type_heading = true
+show_symbol_type_toc = true
+signature_crossrefs = true
+relative_crossrefs = true
+scoped_crossrefs = true
+filters = ["!^_"]

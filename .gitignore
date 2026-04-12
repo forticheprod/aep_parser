@@ -99,7 +99,7 @@ venv.bak/
 # Rope project settings
 .ropeproject
 
-# mkdocs documentation
+# documentation
 /site
 
 # mypy
@@ -124,4 +124,8 @@ Session.vim
 
 Adobe After Effects Auto-Save/
 samples/debug/
+samples/unused/
+samples/roundtrip/
+samples/effects/
 memories/
+tmp_*

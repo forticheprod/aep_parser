@@ -162,22 +162,6 @@ class CosParser:
             value.append(self.parse_value())
         return value
 
-    def parse_indirect(
-        self, object_number: int, generation_number: int
-    ) -> IndirectObject | IndirectReference:
-        self.lex()
-        if self.lookahead.type == TokenType.IndirectObjectStart:
-            self.lex()
-            data = self.parse_value()
-            self.expect(TokenType.IndirectObjectEnd)
-            self.lex()
-            return IndirectObject(object_number, generation_number, data)
-        elif self.lookahead.type == TokenType.IndirectReference:
-            self.lex()
-            return IndirectReference(object_number, generation_number)
-        else:
-            raise SyntaxError(f"Expected `obj` or `R`, got {self.lookahead}")
-
     def expect(self, token_type: TokenType) -> None:
         if self.lookahead.type != token_type:
             raise SyntaxError(f"Expected {token_type}, got {self.lookahead}")

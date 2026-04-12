@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: "3.x"
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7
       - name: Build wheel and sdist
         run: uv build
         env:
@@ -43,7 +43,7 @@ jobs:
           fetch-tags: true
       - name: Build Changelog
         id: changelog
-        uses: mikepenz/release-changelog-builder-action@v6
+        uses: mikepenz/release-changelog-builder-action@a34a8009a9588bb86b02a873cf592440e96a5da8  # v6
         with:
           mode: "COMMIT"
           configuration: ".github/changelog-config.json"
@@ -55,7 +55,7 @@ jobs:
           name: python-package-distributions
           path: dist/
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe  # v2
         with:
           name: ${{ github.ref_name }}
           body: ${{ steps.changelog.outputs.changelog }}
@@ -77,4 +77,4 @@ jobs:
           name: python-package-distributions
           path: dist/
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e  # v1.13.0

@@ -38,7 +38,7 @@ class OutputColorDepth(IntEnum):
 
     The value represents total bits per pixel: 24 or 32 for 8 bpc
     (with/without alpha), 48 or 64 for 16 bpc, 96 or 128 for 32 bpc
-    (floating point). The ``+`` label suffix indicates alpha is included.
+    (floating point). The `+` label suffix indicates alpha is included.
 
     Used in OutputModule Settings > Depth
 
@@ -158,7 +158,7 @@ class OutputFormat(IntEnum):
 
         Args:
             format_id: The 4-char format identifier from the Roou chunk
-                (e.g. ``"H264"``, ``"TIF "``, ``"png!"``).
+                (e.g. `"H264"`, `"TIF "`, `"png!"`).
 
         Raises:
             ValueError: If the format identifier is not recognised.
@@ -169,6 +169,10 @@ class OutputFormat(IntEnum):
             raise ValueError(
                 f"Unknown output format identifier: {format_id!r}"
             ) from None
+
+    def to_format_id(self) -> str:
+        """Convert OutputFormat to a Roou 4-char format identifier."""
+        return _OUTPUT_FORMAT_TO_FORMAT_ID[self]
 
 
 _OUTPUT_FORMAT_LABELS: dict[int, str] = {
@@ -208,6 +212,10 @@ _FORMAT_ID_TO_OUTPUT_FORMAT: dict[str, OutputFormat] = {
     "TIF ": OutputFormat.TIFF_SEQUENCE,
     "TPIC": OutputFormat.TARGA_SEQUENCE,
     "wao_": OutputFormat.WAV,
+}
+
+_OUTPUT_FORMAT_TO_FORMAT_ID: dict[OutputFormat, str] = {
+    v: k for k, v in _FORMAT_ID_TO_OUTPUT_FORMAT.items()
 }
 
 
@@ -323,21 +331,29 @@ class AudioSampleRate(IntEnum):
 
     @property
     def label(self) -> str:
-        """ExtendScript STRING format label (e.g. ``"48.000 kHz"``)."""
+        """ExtendScript STRING format label (e.g. `"48.000 kHz"`)."""
         if self.value == 0:
             return ""
         return f"{self.value / 1000:.3f} kHz"
 
     @classmethod
-    def from_binary(cls, value: int) -> AudioSampleRate:
+    def from_binary(cls, value: float) -> AudioSampleRate:
         """Convert binary audio sample rate value.
 
-        Unknown or negative values (e.g. ``-1`` when audio is disabled)
-        are mapped to ``OFF``.
+        The binary field is stored as `f8` (float).
+
+        Unknown or negative values (e.g. `-1` when audio is disabled)
+        are mapped to `OFF`.
         """
-        if value in cls._value2member_map_:
-            return cls(value)
+        int_value = round(value)
+        if int_value in cls._value2member_map_:
+            return cls(int_value)
         return cls.OFF
+
+    @staticmethod
+    def to_binary(value: AudioSampleRate) -> float:
+        """Convert to binary float for the `f8` field."""
+        return float(round(value))
 
 
 class ConvertToLinearLight(IntEnum):
@@ -384,3 +400,7 @@ class PostRenderAction(IntEnum):
             return cls(value + 3612)
         except ValueError:
             return cls.NONE
+
+    def to_binary(self) -> int:
+        """Convert PostRenderAction to binary value."""
+        return int(self) - 3612
