@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import typing
 
 from .footage import FootageSource
 
+if typing.TYPE_CHECKING:
+    from ...kaitai import Aep
 
-@dataclass
+
 class PlaceholderSource(FootageSource):
     """
     The `PlaceholderSource` object describes the footage source of a
@@ -30,7 +32,11 @@ class PlaceholderSource(FootageSource):
     See: https://ae-scripting.docsforadobe.dev/sources/placeholdersource/
     """
 
-    @property
-    def is_solid(self) -> bool:
-        """Whether this is a solid source."""
-        return False
+    def __init__(
+        self,
+        *,
+        _sspc: Aep.SspcBody,
+        _linl: Aep.LinlBody | None = None,
+        _clrs: Aep.ListBody | None = None,
+    ) -> None:
+        super().__init__(_sspc=_sspc, _linl=_linl, _clrs=_clrs)

@@ -9,6 +9,7 @@ import pytest
 from conftest import parse_project
 
 from aep_parser import Project
+from aep_parser.cli.validate import validate_aep
 
 VERSIONS_DIR = Path(__file__).parent.parent / "samples" / "versions"
 
@@ -18,8 +19,6 @@ class TestAE2025:
 
     def test_validate_against_json(self) -> None:
         """Validate AE2025 project against ExtendScript JSON export."""
-        from aep_parser.cli.validate import validate_aep
-
         aep_path = VERSIONS_DIR / "ae2025" / "complete.aep"
         json_path = VERSIONS_DIR / "ae2025" / "complete.json"
         if not aep_path.exists() or not json_path.exists():

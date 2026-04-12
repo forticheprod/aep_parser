@@ -66,7 +66,6 @@ var AepExport = AepExport || {};
 
         // Not useful
         "dynamicLinkGUID": true,
-        "guides": true,
         "revision": true,
         "xmpPacket": true,
     };
@@ -150,6 +149,25 @@ var AepExport = AepExport || {};
         }
         
         return result;
+    }
+
+    /**
+     * Export guides from an item.
+     */
+    function exportGuides(item) {
+        var guides = [];
+        try {
+            var itemGuides = item.guides;
+            if (!itemGuides || itemGuides.length === 0) {
+                return guides;
+            }
+            for (var i = 0; i < itemGuides.length; i++) {
+                guides.push(getAllAttributes(itemGuides[i]));
+            }
+        } catch (e) {
+            // guides not available in this AE version
+        }
+        return guides;
     }
 
     /**
@@ -496,6 +514,12 @@ var AepExport = AepExport || {};
         // Dynamically get all item attributes
         var result = getAllAttributes(item);
 
+        // Export guides
+        var guides = exportGuides(item);
+        if (guides.length > 0) {
+            result.guides = guides;
+        }
+
         // Get parent folder reference
         if (item.parentFolder && item.parentFolder !== app.project.rootFolder) {
             result.parentFolderId = item.parentFolder.id;
@@ -504,6 +528,19 @@ var AepExport = AepExport || {};
 
         if (item instanceof CompItem) {
             result.itemType = "CompItem";
+
+            // Export essential graphics controller names (AE 16.1+)
+            try {
+                var controllerCount = item.motionGraphicsTemplateControllerCount;
+                if (controllerCount > 0) {
+                    result.motionGraphicsTemplateControllerNames = [];
+                    for (var c = 1; c <= controllerCount; c++) {
+                        result.motionGraphicsTemplateControllerNames.push(
+                            item.getMotionGraphicsTemplateControllerName(c)
+                        );
+                    }
+                }
+            } catch (e) {}
 
             // Export composition markers
             if (item.markerProperty) {

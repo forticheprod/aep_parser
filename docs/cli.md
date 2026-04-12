@@ -74,7 +74,7 @@ The tool reports:
 
 ## aep-compare
 
-Inspects and compares After Effects project files (.aep or .aepx) at the binary chunk level. Supports four modes:
+Inspects and compares After Effects project files (.aep) at the binary chunk level. Supports four modes:
 
 - **Compare** - diff two files byte-by-byte
 - **Multi** - diff three or more files simultaneously (first file is the reference)
@@ -104,13 +104,12 @@ aep-compare file1.aep file2.aep --context 4
 
 | Argument | Description |
 |----------|-------------|
-| `files` | One or more .aep/.aepx files. Use one file with `--list` or `--dump`; two or more for comparison (three or more triggers multi-file mode with the first file as reference) |
+| `files` | One or more .aep files. Use one file with `--list` or `--dump`; two or more for comparison (three or more triggers multi-file mode with the first file as reference) |
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `--format` | File format: `auto` (default), `aep`, or `aepx`. Auto-detects from extension |
 | `--list` | Print a tree of all chunk paths and sizes from a single file |
 | `--dump PATH` | Hex-dump the chunk at the given path (e.g. `LIST:Fold/ftts`). Accepts partial paths when unambiguous |
 | `--context N` | Show `N` surrounding bytes on either side of each differing byte |
@@ -122,9 +121,6 @@ aep-compare file1.aep file2.aep --context 4
 ```bash
 # Compare two AEP files
 aep-compare original.aep modified.aep
-
-# Compare AEPX (XML) files
-aep-compare version1.aepx version2.aepx
 
 # Multi-file comparison against a reference
 aep-compare baseline.aep with_blur.aep with_glow.aep with_both.aep

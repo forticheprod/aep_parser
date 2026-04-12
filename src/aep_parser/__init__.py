@@ -54,6 +54,7 @@ from .enums import (
     GetSettingsFormat,
     GpuAccelType,
     GuideLayers,
+    GuideOrientationType,
     ImportAsType,
     KeyframeInterpolationType,
     Label,
@@ -62,6 +63,7 @@ from .enums import (
     LayerSamplingQuality,
     LeadingType,
     LightType,
+    LinearLightMode,
     LineJoinType,
     LineOrientation,
     LogType,
@@ -115,6 +117,7 @@ from .models import (
     FontObject,
     FootageItem,
     FootageSource,
+    Guide,
     Item,
     JpegFormatOptions,
     Keyframe,
@@ -125,7 +128,6 @@ from .models import (
     MaskPropertyGroup,
     OpenExrFormatOptions,
     OutputModule,
-    OutputModuleSettings,
     PlaceholderSource,
     PngFormatOptions,
     Project,
@@ -134,7 +136,7 @@ from .models import (
     PropertyGroup,
     RenderQueue,
     RenderQueueItem,
-    RenderSettings,
+    SettingsView,
     Shape,
     ShapeLayer,
     SolidSource,
@@ -210,7 +212,9 @@ __all__ = [
     "FramesCountType",
     "GetSettingsFormat",
     "GpuAccelType",
+    "GuideOrientationType",
     "GuideLayers",
+    "Guide",
     "ImportAsType",
     "Item",
     "JpegFormatOptions",
@@ -225,6 +229,7 @@ __all__ = [
     "LeadingType",
     "LightLayer",
     "LightType",
+    "LinearLightMode",
     "LineJoinType",
     "LineOrientation",
     "LogType",
@@ -243,7 +248,6 @@ __all__ = [
     "OutputColorMode",
     "OutputFormat",
     "OutputModule",
-    "OutputModuleSettings",
     "ParagraphDirection",
     "ParagraphJustification",
     "parse",
@@ -269,7 +273,7 @@ __all__ = [
     "RenderQuality",
     "RenderQueue",
     "RenderQueueItem",
-    "RenderSettings",
+    "SettingsView",
     "ResizeQuality",
     "ResolveType",
     "RQItemStatus",
@@ -303,7 +307,7 @@ def parse(aep_file_path: str | os.PathLike[str]) -> Application:
     holds the full project tree.
 
     Args:
-        aep_file_path: Path to the ``.aep`` file.
+        aep_file_path: Path to the `.aep` file.
 
     Example:
         ```python
@@ -316,5 +320,6 @@ def parse(aep_file_path: str | os.PathLike[str]) -> Application:
     """
     file_path = os.fspath(aep_file_path)
     with Aep.from_file(file_path) as aep:
+        aep._read()
         project = _parse_project(aep, file_path)
         return parse_app(aep, project)

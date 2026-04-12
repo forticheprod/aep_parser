@@ -19,7 +19,7 @@ See the full [Contributing Guide](https://github.com/forticheprod/aep_parser/blo
         pip install -e ".[dev]"
         ```
 
-3. **Test**: `pytest` (or `uv run pytest`)
+3. **Test**: `uv run pytest`
 4. **Submit a pull request**
 
 ## Key Topics
@@ -27,10 +27,11 @@ See the full [Contributing Guide](https://github.com/forticheprod/aep_parser/blo
 The contributing guide covers:
 
 - **Architecture** - Three-stage pipeline: Kaitai > Parsers > Models
-- **Development** - CLI tools, debugging tips, After Effects JSX scripts
-- **Adding Features** - New attributes, layer types, boolean flags
-- **Testing** - Running tests, creating samples
-- **Code Style** - Type hints, linting, documentation
+- **ChunkField descriptors** - Write-through to binary, serialization roundtrips
+- **CLI tools** - `aep-validate`, `aep-compare`, `aep-visualize`
+- **Adding features** - New attributes, layer types, boolean flags, enum mappings
+- **Testing** - Parse tests, roundtrip tests, creating samples
+- **Code style** - Type hints, linting, documentation conventions
 
 ## Quick Links
 

@@ -1,9 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import typing
+
+from ....kaitai.descriptors import ChunkField
+from ...validators import validate_one_of
+
+if typing.TYPE_CHECKING:
+    from ....kaitai import Aep
 
 
-@dataclass
 class TargaFormatOptions:
     """Targa (TGA) format-specific render options.
 
@@ -21,8 +26,18 @@ class TargaFormatOptions:
         ```
     """
 
-    bits_per_pixel: int
-    """Color depth in bits per pixel (24 or 32)."""
+    def __init__(self, *, _body: Aep.TargaRoptData) -> None:
+        self._body = _body
 
-    rle_compression: bool
-    """Whether RLE compression is enabled."""
+    bits_per_pixel = ChunkField[int](
+        "_body",
+        "bits_per_pixel",
+        validate=validate_one_of([24, 32]),
+    )
+    """Color depth in bits per pixel (24 or 32). Read / Write."""
+
+    rle_compression = ChunkField.bool(
+        "_body",
+        "rle_compression",
+    )
+    """Whether RLE compression is enabled. Read / Write."""

@@ -15,10 +15,12 @@ from conftest import (
 )
 
 from aep_parser import Project
+from aep_parser import parse as parse_aep
 from aep_parser.enums import (
     AutoOrientType,
     BlendingMode,
     FrameBlendingType,
+    Label,
     LayerQuality,
     LayerSamplingQuality,
     LightType,
@@ -223,6 +225,34 @@ class TestTimingEdgeCases:
         assert math.isclose(layer.out_point, layer_json["outPoint"], abs_tol=0.001)
         assert math.isclose(layer.out_point, 8.0, abs_tol=0.001)
 
+    def test_inPoint_before_startTime(self) -> None:
+        """Layer with inPoint (5) before startTime (10)."""
+        expected = load_expected(SAMPLES_DIR, "inPoint_before_startTime")
+        layer = get_first_layer(
+            parse_project(SAMPLES_DIR / "inPoint_before_startTime.aep")
+        )
+        layer_json = get_layer_from_json(expected)
+        assert math.isclose(layer.in_point, layer_json["inPoint"])
+        assert math.isclose(layer.in_point, 5.0)
+        assert math.isclose(layer.start_time, layer_json["startTime"])
+        assert math.isclose(layer.start_time, 10.0)
+
+    def test_outPoint_with_negative_startTime(self) -> None:
+        """Layer with negative startTime (-5) and outPoint (20)."""
+        expected = load_expected(SAMPLES_DIR, "outPoint_with_negative_startTime")
+        layer = get_first_layer(
+            parse_project(
+                SAMPLES_DIR / "outPoint_with_negative_startTime.aep"
+            )
+        )
+        layer_json = get_layer_from_json(expected)
+        assert math.isclose(layer.start_time, layer_json["startTime"])
+        assert math.isclose(layer.start_time, -5.0)
+        assert math.isclose(layer.in_point, layer_json["inPoint"])
+        assert math.isclose(layer.in_point, -5.0)
+        assert math.isclose(layer.out_point, layer_json["outPoint"])
+        assert math.isclose(layer.out_point, 20.0)
+
 
 class TestLayerTypes:
     """Tests for different layer types."""
@@ -300,6 +330,30 @@ class TestLightSource:
         assert layer.light_source is not None
         assert isinstance(layer.light_source, AVLayer)
         assert layer.light_source.name == "mov_23_976.mov"
+
+    def test_light_source_set_none(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "light_source_mov_23_976.mov.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, LightLayer)
+        assert layer.light_source is not None
+
+        layer.light_source = None
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, LightLayer)
+        assert layer2.light_source is None
+
+    def test_light_source_rejects_3d_layer(self) -> None:
+        project = parse_aep(SAMPLES_DIR / "light_source_mov_23_976.mov.aep").project
+        light = project.compositions[0].light_layers[0]
+        assert isinstance(light, LightLayer)
+        source = light.light_source
+        assert isinstance(source, AVLayer)
+
+        source.three_d_layer = True
+        with pytest.raises(ValueError, match="Invalid light source specified"):
+            light.light_source = source
 
 
 class TestAVLayerAttributes:
@@ -986,3 +1040,613 @@ class TestThreeDPerChar:
         layer = get_first_layer(project)
         assert isinstance(layer, AVLayer)
         assert layer.three_d_per_char is False
+
+
+class TestRoundtripLightType:
+    """Roundtrip tests for LightLayer.light_type."""
+
+    def test_modify_light_type_to_spot(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "lightType_AMBIENT.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, LightLayer)
+        assert layer.light_type == LightType.AMBIENT
+
+        layer.light_type = LightType.SPOT
+        out = tmp_path / "modified_light_type.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, LightLayer)
+        assert layer2.light_type == LightType.SPOT
+
+    def test_modify_light_type_to_point(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "lightType_SPOT.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, LightLayer)
+        assert layer.light_type == LightType.SPOT
+
+        layer.light_type = LightType.POINT
+        out = tmp_path / "modified_light_type_point.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, LightLayer)
+        assert layer2.light_type == LightType.POINT
+
+    def test_modify_light_type_to_parallel(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "lightType_POINT.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, LightLayer)
+        assert layer.light_type == LightType.POINT
+
+        layer.light_type = LightType.PARALLEL
+        out = tmp_path / "modified_light_type_parallel.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, LightLayer)
+        assert layer2.light_type == LightType.PARALLEL
+
+    def test_light_type_validation_rejects_invalid(self) -> None:
+        project = parse_project(SAMPLES_DIR / "lightType_AMBIENT.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, LightLayer)
+        with pytest.raises(ValueError, match="Invalid value"):
+            layer.light_type = 9999  # type: ignore[assignment]
+
+
+class TestRoundtripLayerFlags:
+    """Roundtrip tests for Layer chunk-backed boolean flags."""
+
+    def test_modify_locked(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "locked_true.aep")
+        layer = get_first_layer(project)
+        assert layer.locked is True
+
+        layer.locked = False
+        out = tmp_path / "modified_locked.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.locked is False
+
+    def test_modify_shy(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "shy_true.aep")
+        layer = get_first_layer(project)
+        assert layer.shy is True
+
+        layer.shy = False
+        out = tmp_path / "modified_shy.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.shy is False
+
+    def test_modify_solo(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "solo_true.aep")
+        layer = get_first_layer(project)
+        assert layer.solo is True
+
+        layer.solo = False
+        out = tmp_path / "modified_solo.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.solo is False
+
+
+class TestRoundtripAVLayerFlags:
+    """Roundtrip tests for AVLayer chunk-backed flags."""
+
+    def test_modify_blending_mode(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "blendingMode_ADD.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.blending_mode == BlendingMode.ADD
+
+        layer.blending_mode = BlendingMode.MULTIPLY
+        out = tmp_path / "modified_blending.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.blending_mode == BlendingMode.MULTIPLY
+
+    def test_modify_three_d_layer(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "threeDLayer_true.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.three_d_layer is True
+
+        layer.three_d_layer = False
+        out = tmp_path / "modified_3d.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.three_d_layer is False
+
+    def test_environment_layer_sets_three_d_layer(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "threeDLayer_true.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.environment_layer is False
+
+        layer.environment_layer = True
+        assert layer.three_d_layer is True
+
+        out = tmp_path / "modified_env.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.environment_layer is True
+        assert layer2.three_d_layer is True
+
+    def test_three_d_layer_clears_environment_layer(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "threeDLayer_true.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+
+        layer.environment_layer = True
+        assert layer.environment_layer is True
+
+        layer.three_d_layer = True
+        assert layer.environment_layer is False
+
+        out = tmp_path / "modified_3d_env.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.three_d_layer is True
+        assert layer2.environment_layer is False
+
+
+class TestRoundtripAutoOrient:
+    """Roundtrip tests for Layer.auto_orient."""
+
+    def test_modify_along_path_to_no_auto_orient(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "autoOrient_ALONG_PATH.aep")
+        layer = get_first_layer(project)
+        assert layer.auto_orient == AutoOrientType.ALONG_PATH
+
+        layer.auto_orient = AutoOrientType.NO_AUTO_ORIENT
+        out = tmp_path / "modified_auto_orient.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.auto_orient == AutoOrientType.NO_AUTO_ORIENT
+
+    def test_modify_no_auto_orient_to_along_path(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "inPoint_5.aep")
+        layer = get_first_layer(project)
+        assert layer.auto_orient == AutoOrientType.NO_AUTO_ORIENT
+
+        layer.auto_orient = AutoOrientType.ALONG_PATH
+        out = tmp_path / "modified_auto_orient.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.auto_orient == AutoOrientType.ALONG_PATH
+
+
+class TestRoundtripComment:
+    """Roundtrip tests for Layer.comment."""
+
+    def test_modify_comment(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "comment.aep")
+        layer = get_first_layer(project)
+        assert layer.comment != ""
+
+        layer.comment = "modified comment"
+        out = tmp_path / "modified_comment.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.comment == "modified comment"
+
+
+class TestRoundtripInOutPoint:
+    """Roundtrip tests for Layer.in_point and Layer.out_point."""
+
+    def test_modify_in_point(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "inPoint_5.aep")
+        layer = get_first_layer(project)
+        original_in = layer.in_point
+
+        new_in = original_in + 1.0
+        layer.in_point = new_in
+        out = tmp_path / "modified_in_point.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert abs(layer2.in_point - new_in) < 0.001
+
+    def test_modify_out_point(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "inPoint_5.aep")
+        layer = get_first_layer(project)
+        original_out = layer.out_point
+
+        new_out = original_out - 1.0
+        layer.out_point = new_out
+        out = tmp_path / "modified_out_point.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert abs(layer2.out_point - new_out) < 0.001
+
+
+class TestRoundtripCommentCreate:
+    """Roundtrip tests for Layer.comment when cmta chunk is absent."""
+
+    def test_create_comment_from_empty(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "inPoint_5.aep")
+        layer = get_first_layer(project)
+        assert layer.comment == ""
+
+        layer.comment = "new comment"
+        out = tmp_path / "created_comment.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.comment == "new comment"
+
+
+class TestRoundtripFramePoints:
+    """Roundtrip tests for frame_in_point, frame_out_point, frame_start_time."""
+
+    def test_modify_frame_in_point(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "inPoint_5.aep")
+        layer = get_first_layer(project)
+
+        layer.frame_in_point = 10
+        out = tmp_path / "modified_frame_in_point.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.frame_in_point == 10
+
+    def test_modify_frame_out_point(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "inPoint_5.aep")
+        layer = get_first_layer(project)
+
+        layer.frame_out_point = 20
+        out = tmp_path / "modified_frame_out_point.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.frame_out_point == 20
+
+    def test_modify_frame_start_time(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "inPoint_5.aep")
+        layer = get_first_layer(project)
+
+        layer.frame_start_time = 5
+        out = tmp_path / "modified_frame_start_time.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.frame_start_time == 5
+
+
+class TestRoundtripFrameBlendingType:
+    """Roundtrip tests for AVLayer.frame_blending_type."""
+
+    def test_no_blend_to_frame_mix(self, tmp_path: Path) -> None:
+        project = parse_project(
+            SAMPLES_DIR / "frameBlendingType_NO_FRAME_BLEND.aep"
+        )
+        layer = get_first_layer(project)
+        assert layer.frame_blending_type == FrameBlendingType.NO_FRAME_BLEND
+        assert layer.frame_blending is False
+
+        layer.frame_blending_type = FrameBlendingType.FRAME_MIX
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.frame_blending_type == FrameBlendingType.FRAME_MIX
+        assert layer2.frame_blending is True
+
+    def test_frame_mix_to_pixel_motion(self, tmp_path: Path) -> None:
+        project = parse_project(
+            SAMPLES_DIR / "frameBlendingType_FRAME_MIX.aep"
+        )
+        layer = get_first_layer(project)
+        assert layer.frame_blending_type == FrameBlendingType.FRAME_MIX
+
+        layer.frame_blending_type = FrameBlendingType.PIXEL_MOTION
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.frame_blending_type == FrameBlendingType.PIXEL_MOTION
+
+    def test_pixel_motion_to_no_blend(self, tmp_path: Path) -> None:
+        project = parse_project(
+            SAMPLES_DIR / "frameBlendingType_PIXEL_MOTION.aep"
+        )
+        layer = get_first_layer(project)
+        assert layer.frame_blending_type == FrameBlendingType.PIXEL_MOTION
+
+        layer.frame_blending_type = FrameBlendingType.NO_FRAME_BLEND
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.frame_blending_type == FrameBlendingType.NO_FRAME_BLEND
+        assert layer2.frame_blending is False
+
+
+class TestRoundtripTimeRemapEnabled:
+    """Roundtrip tests for AVLayer.time_remap_enabled."""
+
+    def test_disable_time_remap(self, tmp_path: Path) -> None:
+        project = parse_project(
+            SAMPLES_DIR / "outPoint_no_clamp_timeRemap.aep"
+        )
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.time_remap_enabled is True
+
+        layer.time_remap_enabled = False
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.time_remap_enabled is False
+
+    def test_enable_time_remap(self, tmp_path: Path) -> None:
+        project = parse_project(
+            SAMPLES_DIR / "outPoint_no_clamp_timeRemap.aep"
+        )
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+
+        layer.time_remap_enabled = False
+        out = tmp_path / "disabled.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        layer2 = get_first_layer(project2)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.time_remap_enabled is False
+
+        layer2.time_remap_enabled = True
+        out2 = tmp_path / "re_enabled.aep"
+        project2.save(out2)
+        layer3 = get_first_layer(parse_aep(out2).project)
+        assert isinstance(layer3, AVLayer)
+        assert layer3.time_remap_enabled is True
+
+
+class TestRoundtripLayerEnabled:
+    """Roundtrip tests for Layer.enabled."""
+
+    def test_modify_enabled(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "enabled_false.aep")
+        layer = get_first_layer(project)
+        assert layer.enabled is False
+
+        layer.enabled = True
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.enabled is True
+
+
+class TestRoundtripLayerLabel:
+    """Roundtrip tests for Layer.label."""
+
+    def test_modify_label(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "label_3.aep")
+        layer = get_first_layer(project)
+        assert layer.label == Label.AQUA
+
+        layer.label = Label.RED
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert layer2.label == Label.RED
+
+
+class TestRoundtripLayerStretch:
+    """Roundtrip tests for Layer.stretch."""
+
+    def test_modify_stretch(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "stretch_200.aep")
+        layer = get_first_layer(project)
+        assert math.isclose(layer.stretch, 200.0)
+
+        layer.stretch = 150.0
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert math.isclose(layer2.stretch, 150.0)
+
+
+class TestRoundtripAVLayerBoolFlags:
+    """Roundtrip tests for remaining AVLayer boolean flags."""
+
+    def test_modify_adjustment_layer(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "adjustmentLayer_true.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.adjustment_layer is True
+
+        layer.adjustment_layer = False
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.adjustment_layer is False
+
+    def test_modify_audio_enabled(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "audioEnabled_false.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.audio_enabled is False
+
+        layer.audio_enabled = True
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.audio_enabled is True
+
+    def test_modify_collapse_transformation(self, tmp_path: Path) -> None:
+        project = parse_project(
+            SAMPLES_DIR / "collapseTransformation_true.aep"
+        )
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.collapse_transformation is True
+
+        layer.collapse_transformation = False
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.collapse_transformation is False
+
+    def test_modify_effects_active(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "effectsActive_false.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.effects_active is False
+
+        layer.effects_active = True
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.effects_active is True
+
+    def test_modify_guide_layer(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "guideLayer_true.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.guide_layer is True
+
+        layer.guide_layer = False
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.guide_layer is False
+
+    def test_modify_motion_blur(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "motionBlur_true.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.motion_blur is True
+
+        layer.motion_blur = False
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.motion_blur is False
+
+    def test_modify_preserve_transparency(self, tmp_path: Path) -> None:
+        project = parse_project(
+            SAMPLES_DIR / "preserveTransparency_true.aep"
+        )
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.preserve_transparency is True
+
+        layer.preserve_transparency = False
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.preserve_transparency is False
+
+
+class TestRoundtripAVLayerQuality:
+    """Roundtrip tests for AVLayer.quality and sampling_quality."""
+
+    def test_modify_quality(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "quality_BEST.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.quality == LayerQuality.BEST
+
+        layer.quality = LayerQuality.DRAFT
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.quality == LayerQuality.DRAFT
+
+    def test_modify_sampling_quality(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "samplingQuality_BICUBIC.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.sampling_quality == LayerSamplingQuality.BICUBIC
+
+        layer.sampling_quality = LayerSamplingQuality.BILINEAR
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.sampling_quality == LayerSamplingQuality.BILINEAR
+
+
+class TestRoundtripThreeDPerChar:
+    """Roundtrip tests for AVLayer.three_d_per_char."""
+
+    def test_modify_three_d_per_char(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "threeDPerChar_on.aep")
+        layer = get_first_layer(project)
+        assert isinstance(layer, AVLayer)
+        assert layer.three_d_per_char is True
+
+        layer.three_d_per_char = False
+        out = tmp_path / "modified.aep"
+        project.save(out)
+        layer2 = get_first_layer(parse_aep(out).project)
+        assert isinstance(layer2, AVLayer)
+        assert layer2.three_d_per_char is False
+
+
+class TestRoundtripTrackMatteType:
+    """Roundtrip tests for AVLayer.track_matte_type."""
+
+    def test_modify_track_matte_type(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "trackMatteType_ALPHA.aep")
+        comp = project.compositions[0]
+        # Track matte layer is the one with ALPHA matte
+        matte_layer = None
+        for layer in comp.layers:
+            if (
+                isinstance(layer, AVLayer)
+                and layer.track_matte_type == TrackMatteType.ALPHA
+            ):
+                matte_layer = layer
+                break
+        assert matte_layer is not None
+
+        matte_layer.track_matte_type = TrackMatteType.LUMA
+        out = tmp_path / "modified.aep"
+        project.save(out)
+
+        comp2 = parse_aep(out).project.compositions[0]
+        matte_layer2 = None
+        for layer in comp2.layers:
+            if (
+                isinstance(layer, AVLayer)
+                and layer.track_matte_type == TrackMatteType.LUMA
+            ):
+                matte_layer2 = layer
+                break
+        assert matte_layer2 is not None
+
+
+class TestRoundtripLayerName:
+    """Roundtrip: modify Layer.name and verify save/reload."""
+
+    def test_modify_layer_name(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "name_renamed.aep")
+        layer = get_first_layer(project)
+        assert layer.name == "RenamedLayer"
+
+        layer.name = "NewName"
+        out = tmp_path / "modified_name.aep"
+        project.save(out)
+
+        layer2 = get_first_layer(parse_project(out))
+        assert layer2.name == "NewName"
+
+    def test_set_name_on_source_layer(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "comment.aep")
+        layer = get_first_layer(project)
+        assert not layer.is_name_set
+
+        layer.name = "CustomName"
+        out = tmp_path / "set_name.aep"
+        project.save(out)
+
+        layer2 = get_first_layer(parse_project(out))
+        assert layer2.name == "CustomName"
+        assert layer2.is_name_set

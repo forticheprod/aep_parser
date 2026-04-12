@@ -1,11 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import typing
+from typing import List
 
+from ...kaitai.descriptors import ChunkField
+from ..validators import validate_sequence
 from .footage import FootageSource
 
+if typing.TYPE_CHECKING:
+    from ...kaitai import Aep
 
-@dataclass
+
 class SolidSource(FootageSource):
     """
     The `SolidSource` object represents a solid-color footage source.
@@ -27,10 +32,22 @@ class SolidSource(FootageSource):
     See: https://ae-scripting.docsforadobe.dev/sources/solidsource/
     """
 
-    color: list[float]
-    """The solid color (RGB)."""
+    color = ChunkField[List[float]](
+        "_opti",
+        "color",
+        transform=list,
+        validate=validate_sequence(length=3, min=0.0, max=1.0),
+    )
+    """The solid color, expressed as `[R, G, B]` values in the
+    range `[0.0..1.0]`. Read / Write."""
 
-    @property
-    def is_solid(self) -> bool:
-        """Whether this is a solid source."""
-        return True
+    def __init__(
+        self,
+        *,
+        _sspc: Aep.SspcBody,
+        _opti: Aep.OptiBody,
+        _linl: Aep.LinlBody | None = None,
+        _clrs: Aep.ListBody | None = None,
+    ) -> None:
+        super().__init__(_sspc=_sspc, _linl=_linl, _clrs=_clrs)
+        self._opti = _opti

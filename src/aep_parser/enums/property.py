@@ -77,3 +77,7 @@ class KeyframeInterpolationType(IntEnum):
             return cls(value + 6611)
         except ValueError:
             return cls.LINEAR
+
+    def to_binary(self) -> int:
+        """Convert KeyframeInterpolationType to binary value."""
+        return int(self) - 6611

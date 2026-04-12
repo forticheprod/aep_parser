@@ -1,10 +1,6 @@
 # Output Module Settings
 
-Output module settings are stored as an [OutputModuleSettings][aep_parser.models.settings.OutputModuleSettings] `TypedDict` on the `OutputModule.settings` attribute, with ExtendScript-compatible keys matching the format from `OutputModule.getSettings(GetSettingsFormat.NUMBER)`.
-
-::: aep_parser.models.settings.OutputModuleSettings
-    options:
-      show_bases: false
+Output module settings are accessed via `OutputModule.settings`, a [SettingsView][aep_parser.models.renderqueue.settings.SettingsView] dict with ExtendScript-compatible keys matching the format from `OutputModule.get_settings(GetSettingsFormat.NUMBER)`.
 
 ## Available Keys
 

@@ -57,6 +57,10 @@ class RenderQuality(IntEnum):
         """Convert binary value to RenderQuality (0xFFFF = CURRENT_SETTINGS)."""
         return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
 
+    def to_binary(self) -> int:
+        """Convert to binary value (CURRENT_SETTINGS -> 0xFFFF)."""
+        return int(self) & 0xFFFF
+
 
 _RENDER_QUALITY_LABELS: dict[int, str] = {
     -1: "Current Settings",
@@ -350,6 +354,10 @@ class ColorDepthSetting(IntEnum):
     def from_binary(cls, value: int) -> ColorDepthSetting:
         """Convert binary value (0xFFFF = CURRENT_SETTINGS)."""
         return cls.CURRENT_SETTINGS if value == 0xFFFF else cls(value)
+
+    def to_binary(self) -> int:
+        """Convert to binary value (CURRENT_SETTINGS -> 0xFFFF)."""
+        return int(self) & 0xFFFF
 
 
 _COLOR_DEPTH_SETTING_LABELS: dict[int, str] = {

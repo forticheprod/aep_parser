@@ -39,6 +39,10 @@ class LogType(IntEnum):
         except ValueError:
             return cls.ERRORS_ONLY
 
+    def to_binary(self) -> int:
+        """Convert LogType to binary value."""
+        return int(self) - 3212
+
 
 class RQItemStatus(IntEnum):
     """Status of a render queue item.
@@ -62,3 +66,7 @@ class RQItemStatus(IntEnum):
             return cls(value + 3013)
         except ValueError:
             return cls.UNQUEUED
+
+    def to_binary(self) -> int:
+        """Convert RQItemStatus to binary value."""
+        return int(self) - 3013

@@ -3,452 +3,29 @@
 from __future__ import annotations
 
 import logging
-import math
-from typing import Any
+import typing
+from contextlib import suppress
 
-from ..enums import (
-    KeyframeInterpolationType,
-    Label,
-    PropertyControlType,
-    PropertyValueType,
-)
+if typing.TYPE_CHECKING:
+    from ..models.items.composition import CompItem
+
 from ..kaitai import Aep
 from ..kaitai.utils import (
     ChunkNotFoundError,
     find_by_list_type,
     find_by_type,
-    str_contents,
 )
 from ..models.properties.keyframe import Keyframe
-from ..models.properties.keyframe_ease import KeyframeEase
 from ..models.properties.property import Property
-from .match_names import MATCH_NAME_TO_NICE_NAME
-from .utils import (
-    parse_ldat_items,
-    read_tdum,
-)
 
 logger = logging.getLogger(__name__)
-
-# Match names whose binary values are stored as 0–1 fractions but
-# ExtendScript reports as 0–100 percentages.  Values (static + keyframe)
-# are multiplied by 100 after extraction from the binary.
-_PERCENT_MATCH_NAMES: set[str] = {
-    "ADBE Opacity",
-    "ADBE Scale",
-    "ADBE Mask Opacity",
-}
-
-# Map of property match names to their units text in After Effects.
-# Extracted from ExtendScript JSON exports across all sample files.
-_UNITS_TEXT_MAP: dict[str, str] = {
-    "ADBE Ambient Coefficient": "percent",
-    "ADBE Anchor Point": "pixels",
-    "ADBE Audio Levels": "dB",
-    "ADBE Camera Aperture": "pixels",
-    "ADBE Camera Blur Level": "percent",
-    "ADBE Camera Focus Distance": "pixels",
-    "ADBE Camera Zoom": "pixels",
-    "ADBE Cartoonify-0012": "percent",
-    "ADBE Diffuse Coefficient": "percent",
-    "ADBE Drop Shadow-0002": "percent",
-    "ADBE Drop Shadow-0003": "degrees",
-    "ADBE Effect Mask Opacity": "percent",
-    "ADBE Emboss-0001": "degrees",
-    "ADBE Emboss-0004": "percent",
-    "ADBE Fill-0005": "percent",
-    "ADBE FreePin3 PosPin Position": "pixels",
-    "ADBE FreePin3 PosPin Rotation": "degrees",
-    "ADBE FreePin3 PosPin Scale": "percent",
-    "ADBE FreePin3 PosPin Vtx Offset": "pixels",
-    "ADBE Fresnel Coefficient": "percent",
-    "ADBE Geometry2-0001": "pixels",
-    "ADBE Geometry2-0002": "pixels",
-    "ADBE Geometry2-0006": "degrees",
-    "ADBE Geometry2-0007": "degrees",
-    "ADBE Glo2-0002": "percent",
-    "ADBE Glo2-0009": "percent",
-    "ADBE Glo2-0010": "degrees",
-    "ADBE Glo2-0011": "percent",
-    "ADBE Global Altitude2": "degrees",
-    "ADBE Global Angle2": "degrees",
-    "ADBE Glossiness Coefficient": "percent",
-    "ADBE HUE SATURATION-0004": "degrees",
-    "ADBE HUE SATURATION-0005": "pixels",
-    "ADBE HUE SATURATION-0006": "pixels",
-    "ADBE HUE SATURATION-0008": "degrees",
-    "ADBE HUE SATURATION-0010": "pixels",
-    "ADBE Hole Bevel Depth": "percent",
-    "ADBE Invert-0002": "percent",
-    "ADBE Iris Rotation": "degrees",
-    "ADBE Iris Roundness": "percent",
-    "ADBE Layer Fill Opacity2": "percent",
-    "ADBE Lens Flare-0001": "pixels",
-    "ADBE Lens Flare-0002": "percent",
-    "ADBE Lens Flare-0003": "percent",
-    "ADBE Light Backgd Blur": "percent",
-    "ADBE Light Backgd Opacity": "percent",
-    "ADBE Light Cone Angle": "degrees",
-    "ADBE Light Cone Feather 2": "percent",
-    "ADBE Light Intensity": "percent",
-    "ADBE Light Shadow Darkness": "percent",
-    "ADBE Light Shadow Diffusion": "pixels",
-    "ADBE Light Transmission": "percent",
-    "ADBE Mask Feather": "pixels",
-    "ADBE Mask Offset": "pixels",
-    "ADBE Mask Opacity": "percent",
-    "ADBE Metal Coefficient": "percent",
-    "ADBE Noise Alpha2-0002": "percent",
-    "ADBE Noise Alpha2-0005": "degrees",
-    "ADBE Opacity": "percent",
-    "ADBE Orientation": "degrees",
-    "ADBE Paint Anchor Point": "pixels",
-    "ADBE Paint Angle": "degrees",
-    "ADBE Paint Begin": "percent",
-    "ADBE Paint Clone Position": "pixels",
-    "ADBE Paint End": "percent",
-    "ADBE Paint Flow": "percent",
-    "ADBE Paint Hardness": "percent",
-    "ADBE Paint Opacity": "percent",
-    "ADBE Paint Position": "pixels",
-    "ADBE Paint Rotation": "degrees",
-    "ADBE Paint Roundness": "percent",
-    "ADBE Paint Scale": "percent",
-    "ADBE Paint Tip Spacing": "percent",
-    "ADBE Plane Curvature": "percent",
-    "ADBE Position": "pixels",
-    "ADBE Position_0": "pixels",
-    "ADBE Position_1": "pixels",
-    "ADBE Position_2": "pixels",
-    "ADBE Reflection Coefficient": "percent",
-    "ADBE Rotate X": "degrees",
-    "ADBE Rotate Y": "degrees",
-    "ADBE Rotate Z": "degrees",
-    "ADBE Roughen Edges-0006": "pixels",
-    "ADBE Roughen Edges-0007": "pixels",
-    "ADBE Roughen Edges-0009": "degrees",
-    "ADBE Scale": "percent",
-    "ADBE Shininess Coefficient": "percent",
-    "ADBE Simple Choker-0002": "pixels",
-    "ADBE Specular Coefficient": "percent",
-    "ADBE Text Anchor Point Align": "percent",
-    "ADBE Time Remapping": "seconds",
-    "ADBE Tint-0003": "percent",
-    "ADBE Transp Rolloff": "percent",
-    "ADBE Transparency Coefficient": "percent",
-    "ADBE Turbulent Displace-0004": "pixels",
-    "ADBE Turbulent Displace-0005": "percent",
-    "ADBE Turbulent Displace-0006": "degrees",
-    "ADBE Vec3D Back Ambient": "percent",
-    "ADBE Vec3D Back Diffuse": "percent",
-    "ADBE Vec3D Back Fresnel": "percent",
-    "ADBE Vec3D Back Gloss": "percent",
-    "ADBE Vec3D Back Metal": "percent",
-    "ADBE Vec3D Back Reflection": "percent",
-    "ADBE Vec3D Back Shininess": "percent",
-    "ADBE Vec3D Back Specular": "percent",
-    "ADBE Vec3D Back XparRoll": "percent",
-    "ADBE Vec3D Back Xparency": "percent",
-    "ADBE Vec3D Bevel Ambient": "percent",
-    "ADBE Vec3D Bevel Diffuse": "percent",
-    "ADBE Vec3D Bevel Fresnel": "percent",
-    "ADBE Vec3D Bevel Gloss": "percent",
-    "ADBE Vec3D Bevel Metal": "percent",
-    "ADBE Vec3D Bevel Reflection": "percent",
-    "ADBE Vec3D Bevel Shininess": "percent",
-    "ADBE Vec3D Bevel Specular": "percent",
-    "ADBE Vec3D Bevel XparRoll": "percent",
-    "ADBE Vec3D Bevel Xparency": "percent",
-    "ADBE Vec3D Front Ambient": "percent",
-    "ADBE Vec3D Front Diffuse": "percent",
-    "ADBE Vec3D Front Fresnel": "percent",
-    "ADBE Vec3D Front Gloss": "percent",
-    "ADBE Vec3D Front Metal": "percent",
-    "ADBE Vec3D Front Reflection": "percent",
-    "ADBE Vec3D Front Shininess": "percent",
-    "ADBE Vec3D Front Specular": "percent",
-    "ADBE Vec3D Front XparRoll": "percent",
-    "ADBE Vec3D Front Xparency": "percent",
-    "ADBE Vec3D Side Ambient": "percent",
-    "ADBE Vec3D Side Diffuse": "percent",
-    "ADBE Vec3D Side Fresnel": "percent",
-    "ADBE Vec3D Side Gloss": "percent",
-    "ADBE Vec3D Side Metal": "percent",
-    "ADBE Vec3D Side Reflection": "percent",
-    "ADBE Vec3D Side Shininess": "percent",
-    "ADBE Vec3D Side Specular": "percent",
-    "ADBE Vec3D Side XparRoll": "percent",
-    "ADBE Vec3D Side Xparency": "percent",
-    "ADBE Vector Anchor": "pixels",
-    "ADBE Vector Ellipse Position": "pixels",
-    "ADBE Vector Fill Opacity": "percent",
-    "ADBE Vector Group Opacity": "percent",
-    "ADBE Vector Position": "pixels",
-    "ADBE Vector Rect Position": "pixels",
-    "ADBE Vector Rotation": "degrees",
-    "ADBE Vector Scale": "percent",
-    "ADBE Vector Skew Axis": "degrees",
-    "ADBE Vector Star Inner Roundess": "percent",
-    "ADBE Vector Star Outer Roundess": "percent",
-    "ADBE Vector Star Position": "pixels",
-    "ADBE Vector Star Rotation": "degrees",
-    "ADBE Vector Stroke Opacity": "percent",
-    "ADBE Vector Taper End Ease": "percent",
-    "ADBE Vector Taper End Length": "percent",
-    "ADBE Vector Taper End Width": "percent",
-    "ADBE Vector Taper Start Ease": "percent",
-    "ADBE Vector Taper Start Length": "percent",
-    "ADBE Vector Taper Start Width": "percent",
-    "ADBE Vector Taper Wave Amount": "percent",
-    "ADBE Vector Taper Wave Phase": "degrees",
-    "CC RepeTile-0006": "percent",
-    "CC Sphere-0002": "degrees",
-    "CC Sphere-0003": "degrees",
-    "CC Sphere-0004": "degrees",
-    "CC Sphere-0007": "pixels",
-    "CC Sphere-0012": "pixels",
-    "CC Sphere-0013": "degrees",
-    "CC Threshold RGB-0007": "percent",
-    "CC Toner-0004": "percent",
-    "CC Vector Blur-0002": "pixels",
-    "CC Vector Blur-0003": "degrees",
-    "DRFL Depth of Field-0015": "degrees",
-    "DRFL Depth of Field-0031": "degrees",
-    "DRFL Depth of Field-0038": "degrees",
-    "DRFL Depth of Field-0045": "degrees",
-    "DRFL Depth of Field-0056": "pixels",
-    "Keylight 906-0038": "pixels",
-    "Keylight 906-0039": "pixels",
-    "Keylight 906-0057": "pixels",
-    "Keylight 906-0058": "pixels",
-    "S_Blur-0054": "percent",
-    "S_Blur-0527": "percent",
-    "S_Blur-0528": "percent",
-    "S_BlurDirectional-0051": "percent",
-    "S_BlurDirectional-0052": "percent",
-    "S_BlurDirectional-0057": "percent",
-    "S_BlurDirectional-0058": "percent",
-    "S_BlurDirectional-0059": "percent",
-    "S_BlurDirectional-0527": "percent",
-    "S_BlurDirectional-0528": "percent",
-    "S_BlurDirectional-0543": "pixels",
-    "S_EdgeAwareBlur-0527": "percent",
-    "S_EdgeAwareBlur-0528": "percent",
-    "S_EmbossGlass-0050": "pixels",
-    "S_EmbossGlass-0053": "percent",
-    "S_EmbossGlass-0059": "percent",
-    "S_EmbossGlass-0061": "percent",
-    "S_EmbossGlass-0062": "percent",
-    "S_EmbossGlass-0063": "percent",
-    "S_EmbossGlass-0527": "percent",
-    "S_EmbossGlass-0528": "percent",
-    "S_Flicker-0056": "percent",
-    "S_Flicker-0057": "percent",
-    "S_Flicker-0058": "percent",
-    "S_Gradient-0050": "pixels",
-    "S_Gradient-0051": "pixels",
-    "S_Gradient-0527": "percent",
-    "S_Gradient-0528": "percent",
-    "S_HalfTone-0052": "percent",
-    "S_HalfTone-0055": "percent",
-    "S_HalfTone-0059": "percent",
-    "S_HalfTone-0060": "percent",
-    "S_HalfTone-0527": "percent",
-    "S_HalfTone-0528": "percent",
-    "S_HalfToneColor-0052": "percent",
-    "S_HalfToneColor-0055": "percent",
-    "S_HalfToneColor-0057": "pixels",
-    "S_HalfToneColor-0058": "percent",
-    "S_HalfToneColor-0059": "percent",
-    "S_HalfToneColor-0060": "percent",
-    "S_HalfToneColor-0061": "percent",
-    "S_HalfToneColor-0062": "percent",
-    "S_HalfToneColor-0063": "percent",
-    "S_HalfToneColor-0064": "percent",
-    "S_HalfToneColor-0065": "percent",
-    "S_HalfToneColor-0527": "percent",
-    "S_HalfToneColor-0528": "percent",
-    "S_Invert-0061": "pixels",
-    "S_Invert-0527": "percent",
-    "S_Invert-0528": "percent",
-    "S_RackDefocus-0056": "percent",
-    "S_RackDefocus-0104": "percent",
-    "S_RackDefocus-0105": "percent",
-    "S_RackDefocus-0112": "percent",
-    "S_RackDefocus-0113": "percent",
-    "S_RackDefocus-0114": "percent",
-    "S_RackDefocus-0527": "percent",
-    "S_RackDefocus-0528": "percent",
-    "S_Shake-0052": "percent",
-    "S_Shake-0063": "percent",
-    "S_Shake-0068": "percent",
-    "S_Shake-0073": "percent",
-    "S_Shake-0078": "percent",
-    "S_Shake-0103": "percent",
-    "S_Shake-0104": "percent",
-    "S_Shake-0105": "percent",
-    "S_Shake-0527": "percent",
-    "S_Shake-0528": "percent",
-    "S_Sharpen-0050": "percent",
-    "S_Sharpen-0102": "percent",
-    "S_Sharpen-0103": "percent",
-    "S_Sharpen-0104": "percent",
-    "S_Sharpen-0527": "percent",
-    "S_Sharpen-0528": "percent",
-    "S_Threshold-0056": "percent",
-    "S_Threshold-0527": "percent",
-    "S_Threshold-0528": "percent",
-    "S_WarpChroma-0050": "percent",
-    "S_WarpChroma-0051": "pixels",
-    "S_WarpChroma-0053": "percent",
-    "S_WarpChroma-0054": "percent",
-    "S_WarpChroma-0055": "percent",
-    "S_WarpChroma-0057": "percent",
-    "S_WarpChroma-0058": "percent",
-    "S_WarpChroma-0059": "percent",
-    "S_WarpChroma-0527": "percent",
-    "S_WarpChroma-0528": "percent",
-    "S_WarpTransform-0050": "percent",
-    "S_WarpTransform-0051": "percent",
-    "S_WarpTransform-0052": "pixels",
-    "S_WarpTransform-0054": "percent",
-    "S_WarpTransform-0055": "percent",
-    "S_WarpTransform-0056": "percent",
-    "S_WarpTransform-0100": "percent",
-    "S_WarpTransform-0101": "percent",
-    "S_WarpTransform-0527": "percent",
-    "S_WarpTransform-0528": "percent",
-    "bevelEmboss/highlightOpacity": "percent",
-    "bevelEmboss/localLightingAltitude": "degrees",
-    "bevelEmboss/localLightingAngle": "degrees",
-    "bevelEmboss/shadowOpacity": "percent",
-    "bevelEmboss/strengthRatio": "percent",
-    "chromeFX/localLightingAngle": "degrees",
-    "chromeFX/opacity": "percent",
-    "dropShadow/chokeMatte": "percent",
-    "dropShadow/localLightingAngle": "degrees",
-    "dropShadow/noise": "percent",
-    "dropShadow/opacity": "percent",
-    "frameFX/opacity": "percent",
-    "gradientFill/angle": "degrees",
-    "gradientFill/gradientSmoothness": "percent",
-    "gradientFill/offset": "pixels",
-    "gradientFill/opacity": "percent",
-    "gradientFill/scale": "percent",
-    "innerGlow/chokeMatte": "percent",
-    "innerGlow/gradientSmoothness": "percent",
-    "innerGlow/inputRange": "percent",
-    "innerGlow/noise": "percent",
-    "innerGlow/opacity": "percent",
-    "innerGlow/shadingNoise": "percent",
-    "innerShadow/chokeMatte": "percent",
-    "innerShadow/localLightingAngle": "degrees",
-    "innerShadow/noise": "percent",
-    "innerShadow/opacity": "percent",
-    "outerGlow/chokeMatte": "percent",
-    "outerGlow/gradientSmoothness": "percent",
-    "outerGlow/inputRange": "percent",
-    "outerGlow/noise": "percent",
-    "outerGlow/opacity": "percent",
-    "outerGlow/shadingNoise": "percent",
-    "patternFill/opacity": "percent",
-    "patternFill/phase": "pixels",
-    "patternFill/scale": "percent",
-    "solidFill/opacity": "percent",
-}
-
-
-def _determine_property_types(
-    no_value: bool,
-    color: bool,
-    integer: bool,
-    vector: bool,
-    dimensions: int,
-    is_spatial: bool,
-    match_name: str,
-    name: str,
-    animated: bool,
-) -> tuple[PropertyControlType, PropertyValueType]:
-    """Determine property control and value types from tdb4 flags.
-
-    Uses the combination of boolean flags from the tdb4 chunk to determine
-    the property control type (e.g., scalar, color, boolean) and value type
-    (e.g., one_d, two_d_spatial, color).
-
-    Args:
-        no_value: Whether the property has no value.
-        color: Whether the property is a color.
-        integer: Whether the property is an integer.
-        vector: Whether the property is a vector.
-        dimensions: Number of dimensions.
-        is_spatial: Whether the property is spatial.
-        match_name: The property match name (for debug output).
-        name: The property display name (for debug output).
-        animated: Whether the property is animated (for debug output).
-
-    Returns:
-        Tuple of (property_control_type, property_value_type).
-    """
-    property_control_type = PropertyControlType.UNKNOWN
-    property_value_type = PropertyValueType.UNKNOWN
-
-    if no_value:
-        property_value_type = PropertyValueType.NO_VALUE
-    if color:
-        property_control_type = PropertyControlType.COLOR
-        property_value_type = PropertyValueType.COLOR
-    elif integer and dimensions <= 1:
-        property_control_type = PropertyControlType.BOOLEAN
-        property_value_type = PropertyValueType.OneD
-    elif vector or (integer and dimensions > 1):
-        if dimensions == 1:
-            property_control_type = PropertyControlType.SCALAR
-            property_value_type = PropertyValueType.OneD
-        elif dimensions == 2:
-            property_control_type = PropertyControlType.TWO_D
-            property_value_type = (
-                PropertyValueType.TwoD_SPATIAL if is_spatial else PropertyValueType.TwoD
-            )
-        elif dimensions == 3:
-            property_control_type = PropertyControlType.THREE_D
-            property_value_type = (
-                PropertyValueType.ThreeD_SPATIAL
-                if is_spatial
-                else PropertyValueType.ThreeD
-            )
-
-    if property_control_type == PropertyControlType.UNKNOWN:
-        logger.warning(
-            "Could not determine type for property %s"
-            " | name: %s"
-            " | dimensions: %s"
-            " | animated: %s"
-            " | integer: %s"
-            " | is_spatial: %s"
-            " | vector: %s"
-            " | no_value: %s"
-            " | color: %s",
-            match_name,
-            name,
-            dimensions,
-            animated,
-            integer,
-            is_spatial,
-            vector,
-            no_value,
-            color,
-        )
-
-    return property_control_type, property_value_type
 
 
 def parse_property(
     tdbs_chunk: Aep.Chunk,
     match_name: str,
-    time_scale: float,
+    composition: CompItem,
     property_depth: int,
-    frame_rate: float,
-    layer_id_to_index: dict[int, int] | None = None,
 ) -> Property:
     """
     Parse a property.
@@ -462,194 +39,87 @@ def parse_property(
             regardless of the display name (the name attribute value) or any
             changes to the application. Unlike the display name, it is not
             localized.
-        time_scale: The time scale of the parent composition, used as a divisor
-            for some frame values.
+        composition: The parent composition.
         property_depth: The nesting depth of this property (0 = layer level).
-        frame_rate: The frame rate of the parent composition.
-        layer_id_to_index: Mapping from binary layer IDs (ldta.layer_id)
-            to 1-based layer indices. Used to convert tdpi values to the
-            layer index reported by ExtendScript.
     """
-    tdbs_child_chunks = tdbs_chunk.chunks
+    tdbs_child_chunks = tdbs_chunk.body.chunks
 
-    tdsb_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdsb")
+    tdsb_chunk = tdbs_chunk.body.tdsb
 
-    locked_ratio = tdsb_chunk.locked_ratio
-    enabled = tdsb_chunk.enabled
-    # ExtendScript only reports dimensionsSeparated=True on the
-    # Position property ("ADBE Position") when separation is active.
-    # The binary stores the flag on many other properties, but
-    # ExtendScript ignores it for non-Position properties and for
-    # the individual dimension children ("ADBE Position_0" etc.).
-    is_position_parent = match_name == "ADBE Position"
-    dimensions_separated = (
-        tdsb_chunk.dimensions_separated if is_position_parent else False
-    )
-
-    user_name = get_user_defined_name(tdbs_chunk)
-    if user_name is not None:
-        name = user_name
-    else:
-        name = MATCH_NAME_TO_NICE_NAME.get(match_name, match_name)
-
-    tdb4_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdb4")
-
-    is_spatial = tdb4_chunk.is_spatial
-    raw_expression_enabled = tdb4_chunk.expression_enabled
-    animated = tdb4_chunk.animated
-    dimensions = tdb4_chunk.dimensions
-    integer = tdb4_chunk.integer
-    vector = tdb4_chunk.vector
-    no_value = tdb4_chunk.no_value
-    color = tdb4_chunk.color
-    # NO_VALUE properties always report canVaryOverTime=True in AE,
-    # even though byte 11 says otherwise.
-    can_vary_over_time = tdb4_chunk.can_vary_over_time or no_value
-
-    # Override remaining match names where the binary is wrong.
-    _CANVARY_OVERRIDES: dict[str, bool] = {
-        "ADBE Light Falloff Type": True,
-        "ADBE FreePin3 Outlines": False,
-    }
-    if match_name in _CANVARY_OVERRIDES:
-        can_vary_over_time = _CANVARY_OVERRIDES[match_name]
-
-    property_control_type, property_value_type = _determine_property_types(
-        no_value=no_value,
-        color=color,
-        integer=integer,
-        vector=vector,
-        dimensions=dimensions,
-        is_spatial=is_spatial,
-        match_name=match_name,
-        name=name,
-        animated=animated,
-    )
+    tdb4_chunk = tdbs_chunk.body.tdb4
 
     try:
-        cdat_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="cdat")
-        values = cdat_chunk.value[:dimensions]
-        # ExtendScript returns a scalar for 1D non-color properties
-        if not values:
-            value = None
-        elif dimensions == 1 and not color:
-            value = values[0]
-        else:
-            value = values
+        cdat_body = find_by_type(chunks=tdbs_child_chunks, chunk_type="cdat").body
     except ChunkNotFoundError:
-        value = None
+        cdat_body = None
+
+    # Static value is read lazily by Property.value from _cdat via
+    # _resolve_value.  Only extract here for non-cdat overrides.
+    value = None
 
     # For LAYER/MASK control properties, read index from tdpi/tdli chunks.
     # tdpi stores the binary layer_id (references ldta.layer_id); convert
     # to a 1-based layer index using the composition's mapping.
     # tdli stores the 1-based mask index directly.
-    try:
-        tdpi_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdpi")
-        layer_id = tdpi_chunk.value
-        if layer_id == 0 or layer_id_to_index is None:
+    with suppress(ChunkNotFoundError):
+        layer_id = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdpi").body.value
+        if layer_id == 0 or composition._layer_id_to_index is None:
             value = 0
         else:
-            value = layer_id_to_index.get(layer_id, 0)
-    except ChunkNotFoundError:
-        pass
-    try:
-        tdli_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdli")
-        value = tdli_chunk.value
-    except ChunkNotFoundError:
-        pass
+            value = composition._layer_id_to_index.get(layer_id, 0)
+    with suppress(ChunkNotFoundError):
+        value = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdli").body.value
 
     try:
-        utf8_chunk = find_by_type(chunks=tdbs_child_chunks, chunk_type="Utf8")
-        expression = str_contents(utf8_chunk)
+        expression_utf8 = find_by_type(chunks=tdbs_child_chunks, chunk_type="Utf8").body
     except ChunkNotFoundError:
-        expression = ""
+        expression_utf8 = None
 
-    # The binary stores expression_enabled=True on properties that inherit
-    # the flag from a sibling (e.g. when Position has an expression, the
-    # binary copies the flag to Orientation, X/Y Rotation, etc.).
-    # ExtendScript only reports True when the property actually has an
-    # expression string.  Separated-dimension children (X/Y/Z Position)
-    # also inherit the parent's flag.
-    expression_enabled = raw_expression_enabled and bool(expression)
-
-    min_value = read_tdum(tdbs_child_chunks, "tdum", color, integer, dimensions)
-    max_value = read_tdum(tdbs_child_chunks, "tduM", color, integer, dimensions)
+    try:
+        tdum_body = find_by_type(chunks=tdbs_child_chunks, chunk_type="tdum").body
+    except ChunkNotFoundError:
+        tdum_body = None
+    try:
+        tduM_body = find_by_type(chunks=tdbs_child_chunks, chunk_type="tduM").body
+    except ChunkNotFoundError:
+        tduM_body = None
 
     keyframes = _parse_keyframes(
-        tdbs_child_chunks, time_scale, is_spatial, frame_rate=frame_rate
+        tdbs_child_chunks,
+        composition.time_scale,
+        frame_rate=composition.frame_rate,
     )
 
-    # When a property is animated and has no cdat chunk, fall back to
-    # the first keyframe's value (ExtendScript reports the interpolated
-    # value at the current time, which defaults to keyframe 0).
-    if value is None and keyframes:
-        value = keyframes[0].value
+    # Keyframe value/ease transforms are now lazy: Keyframe.value uses
+    # Property._resolve_value, and Keyframe._resolve_ease handles
+    # interpolation-type overrides.  Percent/color/effect scaling of both
+    # values and ease speeds is applied at access time.
 
-    # Convert 0–1 fraction to 0–100 percentage for properties that
-    # ExtendScript reports in percent (e.g. Opacity, Scale).
-    if match_name in _PERCENT_MATCH_NAMES:
-        if isinstance(value, (int, float)):
-            value = value * 100.0
-        elif isinstance(value, list):
-            value = [v * 100.0 for v in value]
-        for kf in keyframes:
-            if isinstance(kf.value, (int, float)):
-                kf.value = kf.value * 100.0
-            elif isinstance(kf.value, list):
-                kf.value = [v * 100.0 for v in kf.value]
-            # Temporal ease speed is in property units / second.
-            # For percent properties the binary stores fractions, so
-            # scale speeds by 100 to match ExtendScript's percent/sec.
-            for ease in kf.in_temporal_ease:
-                ease.speed = ease.speed * 100.0
-            for ease in kf.out_temporal_ease:
-                ease.speed = ease.speed * 100.0
+    # Resolve _name_utf8 from the LIST:tdbs tdsn child
+    tdsn = tdbs_chunk.body.tdsn
+    name_utf8 = tdsn.body.chunks[0].body if tdsn is not None else None
 
-    # Convert color values from binary ARGB 0–255 to ExtendScript RGBA 0–1.
-    if color:
-        if isinstance(value, list) and len(value) == 4:
-            a, r, g, b = value
-            value = [r / 255.0, g / 255.0, b / 255.0, a / 255.0]
-        for kf in keyframes:
-            if isinstance(kf.value, list) and len(kf.value) == 4:
-                a, r, g, b = kf.value
-                kf.value = [r / 255.0, g / 255.0, b / 255.0, a / 255.0]
-
-    # Compute temporal ease for LINEAR/HOLD keyframes.  Must run after
-    # percent scaling so that computed speeds use final property units.
-    _compute_linear_hold_ease(keyframes, is_spatial, frame_rate)
-
-    return Property(
-        animated=animated,
-        can_vary_over_time=can_vary_over_time,
-        color=color,
-        dimensions_separated=dimensions_separated,
-        dimensions=dimensions,
-        enabled=enabled,
-        expression_enabled=expression_enabled,
-        expression=expression,
-        integer=integer,
-        is_spatial=is_spatial,
-        keyframes=keyframes,
-        locked_ratio=locked_ratio,
+    prop = Property(
+        _tdsb=tdsb_chunk.body,
+        _tdb4=tdb4_chunk.body,
+        _expression_utf8=expression_utf8,
+        _name_utf8=name_utf8,
+        _tdbs=tdbs_chunk.body,
+        _tdum=tdum_body,
+        _tduM=tduM_body,
+        _cdat=cdat_body,
         match_name=match_name,
-        name=name,
-        no_value=no_value,
-        property_control_type=property_control_type,
         property_depth=property_depth,
-        property_value_type=property_value_type,
-        units_text=_UNITS_TEXT_MAP.get(match_name, ""),
+        keyframes=keyframes,
         value=value,
-        vector=vector,
-        min_value=min_value,
-        max_value=max_value,
     )
+
+    return prop
 
 
 def _parse_keyframes(
     tdbs_child_chunks: list[Aep.Chunk],
     time_scale: float,
-    is_spatial: bool,
     frame_rate: float,
 ) -> list[Keyframe]:
     """Parse keyframes from a property's child chunks.
@@ -657,7 +127,6 @@ def _parse_keyframes(
     Args:
         tdbs_child_chunks: The child chunks of the TDBS chunk.
         time_scale: The time scale of the parent composition.
-        is_spatial: Whether the property is spatial.
         frame_rate: The frame rate of the parent composition.
     """
     try:
@@ -665,263 +134,18 @@ def _parse_keyframes(
     except ChunkNotFoundError:
         return []
 
-    kf_items = parse_ldat_items(list_chunk, is_spatial=is_spatial)
+    ldat = list_chunk.body.ldat
+    if ldat is None:
+        return []
 
-    keyframes: list[Keyframe] = []
-    for kf in kf_items:
-        kf_data = kf.kf_data
-        in_ease, out_ease = _extract_temporal_ease(kf_data)
-        in_tangent, out_tangent = _extract_spatial_tangents(kf_data)
-        spatial_ab = getattr(kf_data, "spatial_auto_bezier", False)
-        spatial_c = getattr(kf_data, "spatial_continuous", False)
-        keyframes.append(
-            Keyframe(
-                frame_time=round(kf.time_raw / time_scale),
-                time=round(kf.time_raw / time_scale) / frame_rate,
-                in_interpolation_type=KeyframeInterpolationType.from_binary(
-                    kf.in_interpolation_type
-                ),
-                out_interpolation_type=KeyframeInterpolationType.from_binary(
-                    kf.out_interpolation_type
-                ),
-                label=Label(int(kf.label)),
-                roving=kf.roving,
-                spatial_auto_bezier=spatial_ab,
-                spatial_continuous=spatial_c,
-                temporal_auto_bezier=kf.temporal_auto_bezier,
-                temporal_continuous=kf.temporal_continuous,
-                value=_extract_keyframe_value(kf),
-                in_temporal_ease=in_ease,
-                out_temporal_ease=out_ease,
-                in_spatial_tangent=in_tangent,
-                out_spatial_tangent=out_tangent,
-            )
+    ldat_body = ldat.body
+    kf_items = ldat_body.items
+
+    return [
+        Keyframe(
+            _ldat_item=kf,
+            _time_scale=time_scale,
+            _frame_rate=frame_rate,
         )
-    return keyframes
-
-
-def _extract_temporal_ease(
-    kf_data: Any,
-) -> tuple[list[KeyframeEase], list[KeyframeEase]]:
-    """Extract in/out temporal ease from a keyframe data payload.
-
-    Returns:
-        A ``(in_ease, out_ease)`` tuple.  Each element is a list of
-        [KeyframeEase][] objects - one per dimension for
-        multi-dimensional properties, or a single element for scalar /
-        spatial types.  Returns ``([], [])`` when the keyframe type
-        carries no ease data (e.g. markers).
-    """
-    if not hasattr(kf_data, "in_speed"):
-        return [], []
-
-    # kf_multi_dimensional stores speed/influence as arrays (one per
-    # dimension); kf_position, kf_color and kf_no_value store scalars.
-    if isinstance(kf_data.in_speed, list):
-        in_ease = [
-            KeyframeEase(speed=s, influence=inf * 100)
-            for s, inf in zip(kf_data.in_speed, kf_data.in_influence)
-        ]
-        out_ease = [
-            KeyframeEase(speed=s, influence=inf * 100)
-            for s, inf in zip(kf_data.out_speed, kf_data.out_influence)
-        ]
-    else:
-        in_ease = [
-            KeyframeEase(
-                speed=kf_data.in_speed,
-                influence=kf_data.in_influence * 100,
-            )
-        ]
-        out_ease = [
-            KeyframeEase(
-                speed=kf_data.out_speed,
-                influence=kf_data.out_influence * 100,
-            )
-        ]
-    return in_ease, out_ease
-
-
-def _extract_spatial_tangents(
-    kf_data: Any,
-) -> tuple[list[float] | None, list[float] | None]:
-    """Extract in/out spatial tangent vectors from a keyframe data payload.
-
-    Returns:
-        A ``(in_tangent, out_tangent)`` tuple.  Each is a list of floats
-        (one per dimension) for spatial keyframe types (``kf_position``),
-        or ``None`` for non-spatial types.
-    """
-    if hasattr(kf_data, "in_spatial_tangents"):
-        return kf_data.in_spatial_tangents, kf_data.out_spatial_tangents
-    return None, None
-
-
-def _extract_keyframe_value(
-    kf: Aep.LdatItem,
-) -> list[float] | float | None:
-    """Extract the value from a keyframe's data payload.
-
-    Returns a scalar for 1-dimensional properties, a list for
-    multi-dimensional or color properties, and ``None`` when the
-    keyframe type carries no value (e.g. markers).
-    """
-    kf_data = kf.kf_data
-    if not hasattr(kf_data, "value"):
-        return None
-    values: list[float] = list(kf_data.value)
-    if len(values) == 1:
-        return values[0]
-    return values
-
-
-def _segment_speed(
-    kf_a: Keyframe,
-    kf_b: Keyframe,
-    is_spatial: bool,
-    frame_rate: float,
-) -> list[float]:
-    """Compute the constant speed between two adjacent keyframes.
-
-    For spatial properties a single scalar speed (magnitude of the velocity
-    vector) is returned.  For non-spatial multi-dimensional properties a
-    per-dimension speed list is returned.  For 1-D properties a single-element
-    list is returned.
-
-    Args:
-        kf_a: The earlier keyframe.
-        kf_b: The later keyframe.
-        is_spatial: Whether the property is spatial.
-        frame_rate: The composition frame rate.
-
-    Returns:
-        A list of speed values, one per temporal-ease dimension.
-    """
-    frame_delta = kf_b.frame_time - kf_a.frame_time
-    if frame_delta == 0:
-        return [0.0]
-
-    time_seconds = frame_delta / frame_rate
-    val_a = kf_a.value
-    val_b = kf_b.value
-
-    # Non-numeric values (None, Shape) cannot produce a speed.
-    if not isinstance(val_a, (int, float, list)):
-        return [0.0]
-    if not isinstance(val_b, (int, float, list)):
-        return [0.0]
-
-    if isinstance(val_a, (int, float)) and isinstance(val_b, (int, float)):
-        return [(float(val_b) - float(val_a)) / time_seconds]
-
-    if isinstance(val_a, list) and isinstance(val_b, list):
-        if is_spatial:
-            distance = math.sqrt(sum((b - a) ** 2 for a, b in zip(val_a, val_b)))
-            return [distance / time_seconds]
-        else:
-            return [(b - a) / time_seconds for a, b in zip(val_a, val_b)]
-
-    return [0.0]
-
-
-def _compute_linear_hold_ease(
-    keyframes: list[Keyframe],
-    is_spatial: bool,
-    frame_rate: float,
-) -> None:
-    """Fill temporal ease for LINEAR and HOLD keyframes with ExtendScript values.
-
-    For BEZIER interpolation the binary stores actual ease values that are
-    already parsed.  For LINEAR and HOLD interpolation the binary stores
-    zeros, but ExtendScript computes and reports default values:
-
-    - **Influence** is always ``100 / 6`` (approx. 16.667 %).
-    - **Speed** for LINEAR equals the constant rate of change between
-      adjacent keyframes (*value delta / time in seconds*).  For spatial
-      properties a single scalar speed is reported (the magnitude of the
-      velocity vector).
-    - **Speed** for HOLD is always ``0``.
-
-    Modifies *keyframes* in place.
-
-    Args:
-        keyframes: The parsed keyframe list (values already in final units).
-        is_spatial: Whether the property is spatial.
-        frame_rate: The composition frame rate.
-    """
-    default_influence = 100.0 / 6.0
-
-    n = len(keyframes)
-    if n == 0:
-        return
-
-    for i, kf in enumerate(keyframes):
-        # Synthesize single-element ease for keyframes that have none
-        # (e.g. marker keyframes whose binary stores no ease data).
-        # Markers use HOLD interpolation; AE reports influence=0 for these.
-        synthesized = False
-        if not kf.in_temporal_ease:
-            kf.in_temporal_ease = [KeyframeEase(speed=0.0, influence=0.0)]
-            synthesized = True
-        if not kf.out_temporal_ease:
-            kf.out_temporal_ease = [KeyframeEase(speed=0.0, influence=0.0)]
-            synthesized = True
-        if synthesized:
-            continue
-
-        # --- Outgoing side ---
-        if kf.out_temporal_ease:
-            out_type = kf.out_interpolation_type
-            if out_type == KeyframeInterpolationType.LINEAR:
-                if i < n - 1:
-                    speeds = _segment_speed(
-                        kf, keyframes[i + 1], is_spatial, frame_rate
-                    )
-                else:
-                    speeds = [0.0] * len(kf.out_temporal_ease)
-                for ease, s in zip(kf.out_temporal_ease, speeds):
-                    ease.speed = s
-                    ease.influence = default_influence
-            elif out_type == KeyframeInterpolationType.HOLD:
-                for ease in kf.out_temporal_ease:
-                    ease.speed = 0.0
-                    ease.influence = default_influence
-
-        # --- Incoming side ---
-        if kf.in_temporal_ease:
-            in_type = kf.in_interpolation_type
-            if in_type == KeyframeInterpolationType.LINEAR:
-                if i > 0:
-                    speeds = _segment_speed(
-                        keyframes[i - 1], kf, is_spatial, frame_rate
-                    )
-                else:
-                    speeds = [0.0] * len(kf.in_temporal_ease)
-                for ease, s in zip(kf.in_temporal_ease, speeds):
-                    ease.speed = s
-                    ease.influence = default_influence
-            elif in_type == KeyframeInterpolationType.HOLD:
-                for ease in kf.in_temporal_ease:
-                    ease.speed = 0.0
-                    ease.influence = default_influence
-
-
-def get_user_defined_name(root_chunk: Aep.Chunk) -> str | None:
-    """Get the user defined name of the property if there is one, else None.
-
-    Args:
-        root_chunk (Aep.Chunk): The LIST chunk to parse.
-
-    Returns:
-        The user-defined name (possibly empty string), or None when
-        the property uses the default sentinel name.
-    """
-    tdsn_chunk = find_by_type(chunks=root_chunk.chunks, chunk_type="tdsn")
-    utf8_chunk = tdsn_chunk.chunk
-    name = str_contents(utf8_chunk)
-
-    # Check if there is a custom user defined name added.
-    # The default if there is not is "-_0_/-".
-    if name != "-_0_/-":
-        return name
-    return None
+        for kf in kf_items
+    ]

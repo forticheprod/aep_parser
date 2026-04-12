@@ -1,594 +1,463 @@
 /**
  * Generate Version-Specific Complete Sample
- * 
- * This script creates a comprehensive test project containing at least one
- * instance of every item type, with various effects and attribute values.
+ *
+ * Creates a single comprehensive .aep project containing a little bit of
+ * everything: every item type, every layer type, common effects, expressions,
+ * keyframes (various interpolation types), masks, shapes, text, 3D, parenting,
+ * track mattes, markers, adjustment layers, guide layers, render queue, etc.
+ *
  * The resulting project is used to test parser compatibility across AE versions.
- * 
+ *
  * This project should be saved in samples/versions/ae<YEAR>/complete.aep
- * 
+ *
  * Usage:
  *   1. Open After Effects (any version you want to test)
  *   2. Run this script: File > Scripts > Run Script File
- *   3. Select the version-specific output folder (e.g., samples/versions/ae2024/)
- *   4. Project will be saved as complete.aep
- * 
- * The generated project includes:
- *   - Multiple compositions with various settings
- *   - Solids, shapes, text, cameras, lights
- *   - 2D and 3D layers
- *   - Effects from various categories
- *   - Expressions
- *   - Markers (comp and layer)
- *   - Folder hierarchy
- *   - Various keyframe types
- *   - Parenting relationships
- *   - Track mattes
+ *   3. Project will be saved automatically to samples/versions/ae<YEAR>/
+ *
+ * Next step after running:
+ *   Run export_project_json.jsx on the saved project to create the reference JSON.
  */
-
-//@include "json2.jsx"
 
 (function() {
     "use strict";
 
     // =========================================================================
-    // Utility Functions
+    // Utility
     // =========================================================================
 
-    function createProject() {
+    function getAEVersionYear() {
+        var major = parseInt(app.version.split(".")[0], 10);
+        var map = {
+            15: 2018, 16: 2019, 17: 2020, 18: 2021,
+            22: 2022, 23: 2023, 24: 2024, 25: 2025, 26: 2026
+        };
+        return map[major] || major;
+    }
+
+    // =========================================================================
+    // Project & Folders
+    // =========================================================================
+
+    function setupProject() {
         if (app.project) {
             app.project.close(CloseOptions.DO_NOT_SAVE_CHANGES);
         }
-        return app.newProject();
+        var proj = app.newProject();
+
+        // Project settings
+        proj.bitsPerChannel = 16;
+        proj.linearBlending = true;
+        proj.timeDisplayType = TimeDisplayType.TIMECODE;
+        proj.framesCountType = FramesCountType.FC_START_0;
+        try {
+            proj.expressionEngine = "javascript-1.0";
+        } catch (e) {}
+
+        return proj;
     }
 
-    function saveProject(project, filePath) {
-        var file = new File(filePath);
-        project.save(file);
-    }
+    function createFolders(proj) {
+        var root = proj.items.addFolder("Assets");
+        var comps = proj.items.addFolder("Compositions");
+        comps.parentFolder = root;
+        var footage = proj.items.addFolder("Footage");
+        footage.parentFolder = root;
+        var solids = proj.items.addFolder("Solids");
+        solids.parentFolder = root;
 
-    function getAEVersionYear() {
-        var version = app.version;
-        var major = parseInt(version.split(".")[0], 10);
+        // Nested folder
+        var sub = proj.items.addFolder("Subfolder");
+        sub.parentFolder = footage;
+        sub.comment = "Nested folder for testing depth";
 
-        // Mapping of major version to year
-        var versionMap = {
-            15: 2018,
-            16: 2019,
-            17: 2020,
-            18: 2021,
-            22: 2022,
-            23: 2023,
-            24: 2024,
-            25: 2025
-        };
-
-        return versionMap[major] || major;
+        return { root: root, comps: comps, footage: footage, solids: solids, sub: sub };
     }
 
     // =========================================================================
-    // Content Generators
+    // Footage Items
     // =========================================================================
-
-    function createFolderStructure(proj) {
-        $.writeln("Creating folder structure...");
-
-        var rootFolder = proj.items.addFolder("_Project Assets");
-
-        var folders = {
-            comps: proj.items.addFolder("Compositions"),
-            footage: proj.items.addFolder("Footage"),
-            solids: proj.items.addFolder("Solids"),
-            precomps: proj.items.addFolder("Pre-comps"),
-            output: proj.items.addFolder("Output Comps")
-        };
-
-        // Move all folders under root
-        folders.comps.parentFolder = rootFolder;
-        folders.footage.parentFolder = rootFolder;
-        folders.solids.parentFolder = rootFolder;
-        folders.precomps.parentFolder = rootFolder;
-        folders.output.parentFolder = rootFolder;
-
-        // Nested folders
-        var subFolder = proj.items.addFolder("Subfolder Level 2");
-        subFolder.parentFolder = folders.footage;
-
-        var subSubFolder = proj.items.addFolder("Subfolder Level 3");
-        subSubFolder.parentFolder = subFolder;
-
-        return folders;
-    }
 
     function createPlaceholders(proj, folders) {
-        $.writeln("Creating placeholder footage...");
+        var still = proj.importPlaceholder("Still_Placeholder", 1920, 1080, 24, 0);
+        still.parentFolder = folders.footage;
 
-        // Still image placeholder
-        var stillPlaceholder = proj.importPlaceholder("Still_Image_Placeholder", 1920, 1080, 24, 0);
-        stillPlaceholder.parentFolder = folders.footage;
+        var video = proj.importPlaceholder("Video_Placeholder", 1920, 1080, 24, 300);
+        video.parentFolder = folders.footage;
 
-        // Video placeholder
-        var videoPlaceholder = proj.importPlaceholder("Video_Placeholder", 1920, 1080, 24, 300);
-        videoPlaceholder.parentFolder = folders.footage;
-
-        // 4K placeholder
-        var placeholder4K = proj.importPlaceholder("4K_Placeholder", 3840, 2160, 24, 60);
-        placeholder4K.parentFolder = folders.footage;
-
-        return {
-            still: stillPlaceholder,
-            video: videoPlaceholder,
-            hires: placeholder4K
-        };
+        return { still: still, video: video };
     }
 
     function importFileFootage(proj, folders, assetsPath) {
-        $.writeln("Importing file-based footage...");
+        var result = { video: null, audio: null, sequence: null };
 
-        var result = {
-            video: null,
-            audio: null
-        };
-
-        // Import MOV file
         var movFile = new File(assetsPath + "/mov_480.mov");
         if (movFile.exists) {
-            var importOptions = new ImportOptions(movFile);
-            result.video = proj.importFile(importOptions);
+            result.video = proj.importFile(new ImportOptions(movFile));
             result.video.parentFolder = folders.footage;
-
-            // Test various FILE_SOURCE_ATTRS
             result.video.mainSource.alphaMode = AlphaMode.STRAIGHT;
             result.video.mainSource.conformFrameRate = 24;
             result.video.mainSource.loop = 2;
-
             $.writeln("  Imported: " + movFile.name);
-        } else {
-            $.writeln("  SKIP: mov_480.mov not found at " + movFile.fsName);
         }
 
-        // Import WAV file
         var wavFile = new File(assetsPath + "/wav.wav");
         if (wavFile.exists) {
-            var importOptions = new ImportOptions(wavFile);
-            result.audio = proj.importFile(importOptions);
+            result.audio = proj.importFile(new ImportOptions(wavFile));
             result.audio.parentFolder = folders.footage;
             $.writeln("  Imported: " + wavFile.name);
-        } else {
-            $.writeln("  SKIP: wav.wav not found at " + wavFile.fsName);
+        }
+
+        // Image sequence
+        var seqFile = new File(assetsPath + "/sequence_001.gif");
+        if (seqFile.exists) {
+            var seqOpts = new ImportOptions(seqFile);
+            if (seqOpts.canImportAs(ImportAsType.FOOTAGE)) {
+                seqOpts.sequence = true;
+                result.sequence = proj.importFile(seqOpts);
+                result.sequence.parentFolder = folders.sub;
+                $.writeln("  Imported: image sequence");
+            }
         }
 
         return result;
     }
 
-    function addAudioLayers(comp, footage) {
-        $.writeln("Adding audio layers...");
+    // =========================================================================
+    // Main Composition - layers of every type
+    // =========================================================================
 
-        if (!footage.audio) {
-            $.writeln("  SKIP: No audio footage available");
-            return [];
-        }
+    function createMainComp(proj, folders, placeholders, footage) {
+        var comp = proj.items.addComp("Main_Comp", 1920, 1080, 1.0, 30, 24);
+        comp.parentFolder = folders.comps;
+        comp.bgColor = [0.1, 0.15, 0.2];
+        comp.motionBlur = true;
+        comp.shutterAngle = 180;
+        comp.shutterPhase = -90;
+        comp.workAreaStart = 2;
+        comp.workAreaDuration = 20;
+        comp.displayStartFrame = 0;
 
-        var audioLayers = [];
+        // Comp markers
+        var m1 = new MarkerValue("Start");
+        m1.duration = 2;
+        comp.markerProperty.setValueAtTime(0, m1);
 
-        // Audio layer with audio enabled (default)
-        var audioLayer1 = comp.layers.add(footage.audio);
-        audioLayer1.name = "Audio_Enabled";
-        audioLayer1.audioEnabled = true;
-        audioLayers.push(audioLayer1);
+        var m2 = new MarkerValue("Middle");
+        m2.chapter = "Ch1";
+        comp.markerProperty.setValueAtTime(10, m2);
 
-        // Audio layer with audio disabled
-        var audioLayer2 = comp.layers.add(footage.audio);
-        audioLayer2.name = "Audio_Disabled";
-        audioLayer2.audioEnabled = false;
-        audioLayer2.startTime = 5; // Offset to avoid overlap
-        audioLayers.push(audioLayer2);
+        var m3 = new MarkerValue("End");
+        m3.label = 5;
+        comp.markerProperty.setValueAtTime(25, m3);
 
-        return audioLayers;
-    }
+        // --- Solid layers ---
+        var redSolid = comp.layers.addSolid([1, 0, 0], "Solid_Red", 1920, 1080, 1.0);
+        redSolid.label = 1;
+        redSolid.blendingMode = BlendingMode.MULTIPLY;
 
-    function addVideoFootageLayers(comp, footage) {
-        $.writeln("Adding video footage layers...");
+        var blueSolid = comp.layers.addSolid([0, 0, 1], "Solid_Blue", 1920, 1080, 1.0);
+        blueSolid.label = 9;
+        blueSolid.blendingMode = BlendingMode.SCREEN;
+        blueSolid.enabled = false;
 
-        if (!footage.video) {
-            $.writeln("  SKIP: No video footage available");
-            return [];
-        }
+        // Solid with shy + locked
+        var graySolid = comp.layers.addSolid([0.5, 0.5, 0.5], "Solid_ShyLocked", 1920, 1080, 1.0);
+        graySolid.shy = true;
+        graySolid.locked = true;
 
-        var videoLayers = [];
+        // --- Adjustment layer ---
+        var adjLayer = comp.layers.addSolid([1, 1, 1], "Adjustment", 1920, 1080, 1.0);
+        adjLayer.adjustmentLayer = true;
+        adjLayer.label = 14;
 
-        // Video footage layer
-        var videoLayer = comp.layers.add(footage.video);
-        videoLayer.name = "Video_Footage";
-        videoLayers.push(videoLayer);
+        // --- Guide layer ---
+        var guideLayer = comp.layers.addSolid([0, 1, 0], "Guide", 200, 200, 1.0);
+        guideLayer.guideLayer = true;
 
-        // Video footage with time remap
-        var timeRemapLayer = comp.layers.add(footage.video);
-        timeRemapLayer.name = "Video_TimeRemap";
-        if (timeRemapLayer.canSetTimeRemapEnabled) {
-            timeRemapLayer.timeRemapEnabled = true;
-        }
-        timeRemapLayer.startTime = 10;
-        videoLayers.push(timeRemapLayer);
+        // --- Null layer ---
+        var nullCtrl = comp.layers.addNull();
+        nullCtrl.name = "Null_Controller";
+        nullCtrl.threeDLayer = true;
+        nullCtrl.comment = "Parent null for shapes";
 
-        return videoLayers;
-    }
-
-    function createMainComposition(proj, folders, placeholders) {
-        $.writeln("Creating main composition...");
-
-        var mainComp = proj.items.addComp("Main_Composition", 1920, 1080, 1.0, 60, 24);
-        mainComp.parentFolder = folders.comps;
-        mainComp.bgColor = [0.1, 0.1, 0.1];
-        mainComp.motionBlur = true;
-        mainComp.shutterAngle = 180;
-        mainComp.shutterPhase = 0;
-        mainComp.workAreaStart = 0;
-        mainComp.workAreaDuration = 30;
-
-        // Add comp markers
-        var marker1 = new MarkerValue("Intro Start");
-        marker1.duration = 5;
-        mainComp.markerProperty.setValueAtTime(0, marker1);
-
-        var marker2 = new MarkerValue("Main Section");
-        marker2.chapter = "Chapter 1";
-        mainComp.markerProperty.setValueAtTime(10, marker2);
-
-        var marker3 = new MarkerValue("Outro");
-        marker3.label = 3;
-        mainComp.markerProperty.setValueAtTime(50, marker3);
-
-        return mainComp;
-    }
-
-    function addSolidLayers(comp, proj, folders) {
-        $.writeln("Adding solid layers...");
-
-        // Various colored solids
-        var colors = [
-            [[1, 0, 0], "Solid_Red"],
-            [[0, 1, 0], "Solid_Green"],
-            [[0, 0, 1], "Solid_Blue"],
-            [[1, 1, 0], "Solid_Yellow"],
-            [[1, 0, 1], "Solid_Magenta"],
-            [[0, 1, 1], "Solid_Cyan"],
-            [[0.18, 0.18, 0.18], "Solid_Gray"]
-        ];
-
-        var solidLayers = [];
-        for (var i = 0; i < colors.length; i++) {
-            var layer = comp.layers.addSolid(
-                colors[i][0],
-                colors[i][1],
-                1920, 1080, 1.0
-            );
-            layer.enabled = i < 3; // Only enable first 3
-            solidLayers.push(layer);
-        }
-
-        return solidLayers;
-    }
-
-    function addShapeLayers(comp) {
-        $.writeln("Adding shape layers...");
-
-        var shapes = [];
-
-        // Rectangle shape
+        // --- Shape layers ---
         var rectShape = comp.layers.addShape();
         rectShape.name = "Shape_Rectangle";
-        var rectGroup = rectShape.property("Contents").addProperty("ADBE Vector Group");
-        rectGroup.property("Contents").addProperty("ADBE Vector Shape - Rect");
-        rectGroup.property("Contents").addProperty("ADBE Vector Graphic - Fill");
-        shapes.push(rectShape);
+        var rg = rectShape.property("Contents").addProperty("ADBE Vector Group");
+        rg.property("Contents").addProperty("ADBE Vector Shape - Rect");
+        var rectFill = rg.property("Contents").addProperty("ADBE Vector Graphic - Fill");
+        rectFill.property("Color").setValue([1, 0.5, 0]);
+        rg.property("Contents").addProperty("ADBE Vector Graphic - Stroke");
+        rectShape.parent = nullCtrl;
 
-        // Ellipse shape
         var ellipseShape = comp.layers.addShape();
         ellipseShape.name = "Shape_Ellipse";
-        var ellipseGroup = ellipseShape.property("Contents").addProperty("ADBE Vector Group");
-        ellipseGroup.property("Contents").addProperty("ADBE Vector Shape - Ellipse");
-        ellipseGroup.property("Contents").addProperty("ADBE Vector Graphic - Fill");
-        shapes.push(ellipseShape);
+        var eg = ellipseShape.property("Contents").addProperty("ADBE Vector Group");
+        eg.property("Contents").addProperty("ADBE Vector Shape - Ellipse");
+        var ellipseFill = eg.property("Contents").addProperty("ADBE Vector Graphic - Fill");
+        ellipseFill.property("Color").setValue([0, 0.8, 0.4]);
+        ellipseShape.parent = nullCtrl;
 
-        // Polygon shape
-        var polyShape = comp.layers.addShape();
-        polyShape.name = "Shape_Polygon";
-        var polyGroup = polyShape.property("Contents").addProperty("ADBE Vector Group");
-        polyGroup.property("Contents").addProperty("ADBE Vector Shape - Star");
-        polyGroup.property("Contents").addProperty("ADBE Vector Graphic - Fill");
-        polyGroup.property("Contents").addProperty("ADBE Vector Graphic - Stroke");
-        shapes.push(polyShape);
+        var starShape = comp.layers.addShape();
+        starShape.name = "Shape_Star";
+        var sg = starShape.property("Contents").addProperty("ADBE Vector Group");
+        sg.property("Contents").addProperty("ADBE Vector Shape - Star");
+        sg.property("Contents").addProperty("ADBE Vector Graphic - Fill");
+        sg.property("Contents").addProperty("ADBE Vector Graphic - Stroke");
+        // Repeater
+        starShape.property("Contents").addProperty("ADBE Vector Filter - Repeater");
 
-        return shapes;
-    }
+        // --- Text layers ---
+        var textSimple = comp.layers.addText("Hello World");
+        textSimple.name = "Text_Simple";
 
-    function addTextLayers(comp) {
-        $.writeln("Adding text layers...");
+        var textStyled = comp.layers.addText("Styled Text");
+        textStyled.name = "Text_Styled";
+        var textProp = textStyled.property("Source Text");
+        var textDoc = textProp.value;
+        textDoc.fontSize = 72;
+        textDoc.fillColor = [1, 1, 0];
+        textDoc.strokeColor = [0, 0, 0];
+        textDoc.strokeWidth = 2;
+        textDoc.font = "Arial";
+        textDoc.tracking = 50;
+        textDoc.justification = ParagraphJustification.CENTER_JUSTIFY;
+        textProp.setValue(textDoc);
 
-        var textLayers = [];
+        // --- Camera ---
+        var camera = comp.layers.addCamera("Camera", [960, 540]);
+        camera.property("Position").setValue([960, 540, -1500]);
+        camera.property("Zoom").setValue(1200);
 
-        // Simple text
-        var text1 = comp.layers.addText("Hello World");
-        text1.name = "Text_Simple";
-        textLayers.push(text1);
+        // --- Lights ---
+        var pointLight = comp.layers.addLight("Light_Point", [960, 540]);
+        pointLight.lightType = LightType.POINT;
+        pointLight.property("Intensity").setValue(80);
 
-        // Paragraph text
-        var text2 = comp.layers.addText("Lorem ipsum dolor sit amet, consectetur adipiscing elit.");
-        text2.name = "Text_Paragraph";
-        textLayers.push(text2);
+        var spotLight = comp.layers.addLight("Light_Spot", [400, 300]);
+        spotLight.lightType = LightType.SPOT;
+        spotLight.property("Cone Angle").setValue(60);
 
-        // Animated text
-        var text3 = comp.layers.addText("Animated Text");
-        text3.name = "Text_Animated";
-        var opacity = text3.property("Opacity");
-        opacity.setValueAtTime(0, 0);
-        opacity.setValueAtTime(1, 100);
-        opacity.setValueAtTime(4, 100);
-        opacity.setValueAtTime(5, 0);
-        textLayers.push(text3);
+        var ambientLight = comp.layers.addLight("Light_Ambient", [960, 540]);
+        ambientLight.lightType = LightType.AMBIENT;
+        ambientLight.property("Intensity").setValue(30);
 
-        // Unicode text
-        var text4 = comp.layers.addText("Unicode: 日本語 中文 한국어");
-        text4.name = "Text_Unicode";
-        textLayers.push(text4);
+        // --- 3D solid ---
+        var solid3d = comp.layers.addSolid([0.3, 0.6, 0.9], "Solid_3D", 400, 400, 1.0);
+        solid3d.threeDLayer = true;
+        solid3d.property("Position").setValue([960, 540, 200]);
+        solid3d.property("X Rotation").setValue(30);
+        solid3d.property("Y Rotation").setValue(45);
+        solid3d.motionBlur = true;
 
-        return textLayers;
-    }
+        // --- Audio layer ---
+        if (footage.audio) {
+            var audioLayer = comp.layers.add(footage.audio);
+            audioLayer.name = "Audio";
+            audioLayer.audioEnabled = true;
+        }
 
-    function addCameraAndLights(comp) {
-        $.writeln("Adding camera and lights...");
-
-        var result = {};
-
-        // Camera
-        result.camera = comp.layers.addCamera("Main_Camera", [960, 540]);
-        result.camera.property("Position").setValue([960, 540, -1500]);
-
-        // Point light
-        result.pointLight = comp.layers.addLight("Light_Point", [960, 540]);
-        result.pointLight.lightType = LightType.POINT;
-
-        // Spot light
-        result.spotLight = comp.layers.addLight("Light_Spot", [500, 300]);
-        result.spotLight.lightType = LightType.SPOT;
-
-        // Ambient light
-        result.ambientLight = comp.layers.addLight("Light_Ambient", [960, 540]);
-        result.ambientLight.lightType = LightType.AMBIENT;
-
-        return result;
-    }
-
-    function addNullLayers(comp) {
-        $.writeln("Adding null layers...");
-
-        var null1 = comp.layers.addNull();
-        null1.name = "Null_Controller";
-
-        var null2 = comp.layers.addNull();
-        null2.name = "Null_3D_Controller";
-        null2.threeDLayer = true;
-
-        return [null1, null2];
-    }
-
-    function setupLayerProperties(layers, comp) {
-        $.writeln("Setting up layer properties...");
-
-        // Find or create test layers
-        var testLayers = [];
-        for (var i = 1; i <= comp.numLayers && testLayers.length < 5; i++) {
-            if (comp.layer(i).name.indexOf("Solid_") === 0) {
-                testLayers.push(comp.layer(i));
+        // --- Video footage layer ---
+        if (footage.video) {
+            var vidLayer = comp.layers.add(footage.video);
+            vidLayer.name = "Video_Footage";
+            if (vidLayer.canSetTimeRemapEnabled) {
+                vidLayer.timeRemapEnabled = true;
             }
         }
 
-        if (testLayers.length >= 5) {
-            // Blending modes
-            testLayers[0].blendingMode = BlendingMode.MULTIPLY;
-            testLayers[1].blendingMode = BlendingMode.SCREEN;
-            testLayers[2].blendingMode = BlendingMode.OVERLAY;
+        // --- Placeholder layer ---
+        var phLayer = comp.layers.add(placeholders.video);
+        phLayer.name = "Placeholder_Layer";
+        phLayer.startTime = 5;
+        phLayer.stretch = 150;
 
-            // 3D layer
-            testLayers[3].threeDLayer = true;
+        // --- Solo layer ---
+        var soloSolid = comp.layers.addSolid([1, 1, 0], "Solid_Solo", 1920, 1080, 1.0);
+        soloSolid.solo = true;
 
-            // Motion blur
-            testLayers[4].motionBlur = true;
-        }
-
-        // Labels
-        for (var i = 1; i <= comp.numLayers && i <= 16; i++) {
-            var layer = comp.layer(i);
-            layer.label = (i - 1) % 17;
-        }
-
-        // Comments
-        if (comp.numLayers >= 2) {
-            comp.layer(1).comment = "This layer has a comment";
-            comp.layer(2).comment = "Another comment with unicode: 日本語";
-        }
+        return comp;
     }
 
-    function setupParenting(comp) {
-        $.writeln("Setting up parenting...");
+    // =========================================================================
+    // Track Mattes
+    // =========================================================================
 
-        var nullLayer = null;
-        var childLayers = [];
-
-        for (var i = 1; i <= comp.numLayers; i++) {
-            var layer = comp.layer(i);
-            if (layer.name === "Null_Controller") {
-                nullLayer = layer;
-            } else if (layer.name.indexOf("Shape_") === 0 && childLayers.length < 3) {
-                childLayers.push(layer);
-            }
-        }
-
-        if (nullLayer && childLayers.length > 0) {
-            for (var i = 0; i < childLayers.length; i++) {
-                childLayers[i].parent = nullLayer;
-            }
-        }
-    }
-
-    function setupTrackMattes(comp) {
-        $.writeln("Setting up track mattes...");
-
-        // Add matte and target layers
-        var matteLayer = comp.layers.addSolid([1, 1, 1], "Track_Matte", 1920, 1080, 1.0);
-        var targetLayer = comp.layers.addSolid([1, 0, 0], "Track_Matte_Target", 1920, 1080, 1.0);
-
-        // Try the new setTrackMatte method (AE 23.0+)
-        if (typeof targetLayer.setTrackMatte === "function") {
-            targetLayer.setTrackMatte(matteLayer, TrackMatteType.ALPHA);
+    function addTrackMattes(comp) {
+        var matte = comp.layers.addSolid([1, 1, 1], "TrackMatte_Alpha", 1920, 1080, 1.0);
+        var target = comp.layers.addSolid([1, 0.3, 0], "TrackMatte_Target", 1920, 1080, 1.0);
+        if (typeof target.setTrackMatte === "function") {
+            target.setTrackMatte(matte, TrackMatteType.ALPHA);
         } else {
-            targetLayer.trackMatteType = TrackMatteType.ALPHA;
+            target.trackMatteType = TrackMatteType.ALPHA;
         }
     }
+
+    // =========================================================================
+    // Masks
+    // =========================================================================
+
+    function addMasks(comp) {
+        var maskLayer = comp.layers.addSolid([0.8, 0.2, 0.8], "Masked_Layer", 1920, 1080, 1.0);
+
+        // Rectangular mask
+        var mask1 = maskLayer.property("Masks").addProperty("Mask");
+        mask1.name = "Rect_Mask";
+        var shape1 = new Shape();
+        shape1.vertices = [[200, 200], [800, 200], [800, 600], [200, 600]];
+        shape1.closed = true;
+        mask1.property("Mask Path").setValue(shape1);
+        mask1.property("Mask Feather").setValue([20, 20]);
+        mask1.property("Mask Opacity").setValue(80);
+        mask1.maskMode = MaskMode.ADD;
+
+        // Elliptical mask (subtract)
+        var mask2 = maskLayer.property("Masks").addProperty("Mask");
+        mask2.name = "Ellipse_Mask";
+        var shape2 = new Shape();
+        shape2.vertices = [[500, 300], [700, 400], [500, 500], [300, 400]];
+        shape2.inTangents = [[110, 0], [0, -55], [-110, 0], [0, 55]];
+        shape2.outTangents = [[-110, 0], [0, 55], [110, 0], [0, -55]];
+        shape2.closed = true;
+        mask2.property("Mask Path").setValue(shape2);
+        mask2.maskMode = MaskMode.SUBTRACT;
+        mask2.property("Mask Expansion").setValue(10);
+    }
+
+    // =========================================================================
+    // Keyframes (various interpolation types)
+    // =========================================================================
 
     function addKeyframes(comp) {
-        $.writeln("Adding keyframes with various interpolation types...");
+        var kfLayer = comp.layers.addSolid([0.5, 0.5, 0.5], "Keyframe_Demo", 1920, 1080, 1.0);
 
-        var keyframeLayer = comp.layers.addSolid([0.5, 0.5, 0.5], "Keyframe_Demo", 1920, 1080, 1.0);
-
-        // Position with bezier easing
-        var pos = keyframeLayer.property("Position");
+        // Position - bezier with spatial tangents
+        var pos = kfLayer.property("Position");
         pos.setValueAtTime(0, [100, 540]);
-        pos.setValueAtTime(2, [960, 100]);
-        pos.setValueAtTime(4, [1820, 540]);
-        pos.setValueAtTime(6, [960, 980]);
-        pos.setValueAtTime(8, [100, 540]);
-
-        // Set interpolation types
+        pos.setValueAtTime(1, [960, 100]);
+        pos.setValueAtTime(2, [1820, 540]);
+        pos.setValueAtTime(3, [960, 980]);
+        pos.setValueAtTime(4, [100, 540]);
         for (var i = 1; i <= pos.numKeys; i++) {
-            pos.setInterpolationTypeAtKey(i, KeyframeInterpolationType.BEZIER, KeyframeInterpolationType.BEZIER);
+            pos.setInterpolationTypeAtKey(i, KeyframeInterpolationType.BEZIER);
+            pos.setSpatialContinuousAtKey(i, true);
+        }
 
-            // Set spatial tangents for curved motion
-            if (i < pos.numKeys) {
-                pos.setSpatialContinuousAtKey(i, true);
+        // Opacity - hold keyframes
+        var opacity = kfLayer.property("Opacity");
+        opacity.setValueAtTime(0, 100);
+        opacity.setValueAtTime(1, 0);
+        opacity.setValueAtTime(2, 100);
+        opacity.setInterpolationTypeAtKey(2, KeyframeInterpolationType.HOLD);
+
+        // Scale - linear
+        var scale = kfLayer.property("Scale");
+        scale.setValueAtTime(0, [50, 50]);
+        scale.setValueAtTime(2, [150, 150]);
+        scale.setValueAtTime(4, [100, 100]);
+        for (var i = 1; i <= scale.numKeys; i++) {
+            scale.setInterpolationTypeAtKey(i, KeyframeInterpolationType.LINEAR);
+        }
+
+        // Rotation - continuous bezier with easing
+        var rot = kfLayer.property("Rotation");
+        rot.setValueAtTime(0, 0);
+        rot.setValueAtTime(2, 180);
+        rot.setValueAtTime(4, 360);
+        for (var i = 1; i <= rot.numKeys; i++) {
+            rot.setTemporalContinuousAtKey(i, true);
+            rot.setTemporalAutoBezierAtKey(i, true);
+        }
+
+        // Layer markers
+        var lm1 = new MarkerValue("Hit");
+        kfLayer.marker.setValueAtTime(1, lm1);
+        var lm2 = new MarkerValue("Duration Marker");
+        lm2.duration = 0.5;
+        kfLayer.marker.setValueAtTime(3, lm2);
+    }
+
+    // =========================================================================
+    // Expressions
+    // =========================================================================
+
+    function addExpressions(comp) {
+        var exprLayer = comp.layers.addSolid([0.2, 0.8, 0.2], "Expression_Demo", 1920, 1080, 1.0);
+
+        // Active expressions
+        exprLayer.property("Position").expression = "wiggle(2, 50)";
+        exprLayer.property("Opacity").expression = "Math.abs(Math.sin(time * 2)) * 100";
+        exprLayer.property("Rotation").expression = "time * 36";
+
+        // Disabled expression
+        var scale = exprLayer.property("Scale");
+        scale.expression = "[100 + Math.sin(time) * 20, 100 + Math.sin(time) * 20]";
+        scale.expressionEnabled = false;
+    }
+
+    // =========================================================================
+    // Effects
+    // =========================================================================
+
+    function addEffects(comp) {
+        var fxLayer = comp.layers.addSolid([1, 0.5, 0], "Effect_Demo", 1920, 1080, 1.0);
+        var effects = fxLayer.property("Effects");
+
+        var effectList = [
+            "ADBE Gaussian Blur 2",
+            "ADBE Drop Shadow",
+            "ADBE Fill",
+            "ADBE Glo2",
+            "ADBE HUE SATURATION",
+            "ADBE Tint",
+            "ADBE Exposure2"
+        ];
+
+        for (var i = 0; i < effectList.length; i++) {
+            try {
+                effects.addProperty(effectList[i]);
+            } catch (e) {
+                $.writeln("  SKIP effect: " + effectList[i] + " (" + e.message + ")");
             }
         }
 
-        // Opacity with hold keyframes
-        var opacity = keyframeLayer.property("Opacity");
-        opacity.setValueAtTime(0, 100);
-        opacity.setValueAtTime(2, 50);
-        opacity.setValueAtTime(4, 100);
-        opacity.setInterpolationTypeAtKey(2, KeyframeInterpolationType.HOLD, KeyframeInterpolationType.HOLD);
-
-        // Scale with linear interpolation
-        var scale = keyframeLayer.property("Scale");
-        scale.setValueAtTime(0, [100, 100]);
-        scale.setValueAtTime(4, [150, 150]);
-        scale.setValueAtTime(8, [100, 100]);
-        for (var i = 1; i <= scale.numKeys; i++) {
-            scale.setInterpolationTypeAtKey(i, KeyframeInterpolationType.LINEAR, KeyframeInterpolationType.LINEAR);
+        // Configure some effect params
+        try {
+            effects.property("Gaussian Blur").property("Blurriness").setValue(15);
+            effects.property("Drop Shadow").property("Distance").setValue(25);
+            effects.property("Drop Shadow").property("Softness").setValue(20);
+            effects.property("Fill").property("Color").setValue([0, 1, 0.5]);
+        } catch (e) {
+            $.writeln("  Could not configure effects: " + e.message);
         }
 
-        // Rotation
-        var rotation = keyframeLayer.property("Rotation");
-        rotation.setValueAtTime(0, 0);
-        rotation.setValueAtTime(8, 360);
-
-        return keyframeLayer;
+        // Disabled effect
+        try {
+            effects.property("Tint").enabled = false;
+        } catch (e) {}
     }
 
-    function addExpressions(comp) {
-        $.writeln("Adding expressions...");
+    // =========================================================================
+    // Pre-composition
+    // =========================================================================
 
-        var exprLayer = comp.layers.addSolid([0.2, 0.8, 0.2], "Expression_Demo", 1920, 1080, 1.0);
+    function createPrecomp(proj, mainComp, folders) {
+        var preComp = proj.items.addComp("Pre_Comp", 1920, 1080, 1.0, 10, 24);
+        preComp.parentFolder = folders.comps;
 
-        // Wiggle expression on position
-        var pos = exprLayer.property("Position");
-        pos.expression = "wiggle(2, 50)";
+        // Content inside precomp
+        preComp.layers.addSolid([0.3, 0.6, 0.9], "Precomp_BG", 1920, 1080, 1.0);
+        var preText = preComp.layers.addText("Precomp");
+        preText.name = "Precomp_Text";
 
-        // Time-based opacity
-        var opacity = exprLayer.property("Opacity");
-        opacity.expression = "Math.abs(Math.sin(time * 2)) * 100";
+        // Precomp marker
+        var pm = new MarkerValue("Precomp Marker");
+        preComp.markerProperty.setValueAtTime(2, pm);
 
-        // Rotation expression
-        var rotation = exprLayer.property("Rotation");
-        rotation.expression = "time * 36";
-
-        // Disabled expression
-        var disabledExprLayer = comp.layers.addSolid([0.8, 0.2, 0.2], "Expression_Disabled", 1920, 1080, 1.0);
-        var scale = disabledExprLayer.property("Scale");
-        scale.expression = "[100 + Math.sin(time) * 20, 100 + Math.sin(time) * 20]";
-        scale.expressionEnabled = false;
-
-        return exprLayer;
-    }
-
-    function addLayerMarkers(comp) {
-        $.writeln("Adding layer markers...");
-
-        var markerLayer = comp.layers.addSolid([0.5, 0.5, 1.0], "Layer_With_Markers", 1920, 1080, 1.0);
-
-        var m1 = new MarkerValue("Layer Marker 1");
-        markerLayer.marker.setValueAtTime(0.5, m1);
-
-        var m2 = new MarkerValue("Layer Marker 2");
-        m2.duration = 1;
-        markerLayer.marker.setValueAtTime(2, m2);
-
-        var m3 = new MarkerValue("Cue Point");
-        m3.cuePointName = "cue_1";
-        markerLayer.marker.setValueAtTime(4, m3);
-
-        return markerLayer;
-    }
-
-    function addEffects(comp) {
-        $.writeln("Adding effects...");
-
-        var effectLayer = comp.layers.addSolid([1, 0.5, 0], "Effect_Demo", 1920, 1080, 1.0);
-
-        // Add common effects
-        var effectsToTry = [
-            "ADBE Gaussian Blur 2",     // Gaussian Blur
-            "ADBE Drop Shadow",          // Drop Shadow
-            "ADBE Fill",                 // Fill
-            "ADBE Glo2",                 // Glow
-            "ADBE HUE SATURATION",       // Hue/Saturation
-            "ADBE Tint",                 // Tint
-            "ADBE Exposure2",            // Exposure
-            "ADBE Fast Blur"             // Fast Blur (legacy)
-        ];
-
-        var effects = effectLayer.property("Effects");
-
-        for (var i = 0; i < effectsToTry.length; i++) {
-            var effect = effects.addProperty(effectsToTry[i]);
-            $.writeln("  Added effect: " + effect.name);
-        }
-
-        var blur = effects.property("Gaussian Blur");
-        blur.property("Blurriness").setValue(10);
-
-        var shadow = effects.property("Drop Shadow");
-        shadow.property("Distance").setValue(20);
-        shadow.property("Softness").setValue(30);
-
-        return effectLayer;
-    }
-
-    function createPrecomposition(proj, mainComp, folders) {
-        $.writeln("Creating pre-composition...");
-
-        // Create a simple pre-comp
-        var preComp = proj.items.addComp("Pre_Composition", 1920, 1080, 1.0, 10, 24);
-        preComp.parentFolder = folders.precomps;
-
-        // Add content to pre-comp
-        var precompSolid = preComp.layers.addSolid([0.3, 0.6, 0.9], "Precomp_Content", 1920, 1080, 1.0);
-        var precompText = preComp.layers.addText("Pre-composition");
-
-        // Add pre-comp to main comp
+        // Add precomp to main comp
         var precompLayer = mainComp.layers.add(preComp);
         precompLayer.name = "Nested_Precomp";
-
-        // Enable collapse transformation
         if (precompLayer.canSetCollapseTransformation) {
             precompLayer.collapseTransformation = true;
         }
@@ -596,132 +465,134 @@
         return preComp;
     }
 
-    function setupLayerTimings(comp) {
-        $.writeln("Setting up layer timings...");
+    // =========================================================================
+    // Separate Compositions for edge cases
+    // =========================================================================
 
-        // Offset layers in time
-        for (var i = 1; i <= Math.min(comp.numLayers, 10); i++) {
-            var layer = comp.layer(i);
-            layer.startTime = i * 0.5;
-        }
-
-        // Set specific in/out points
-        if (comp.numLayers >= 3) {
-            var layer1 = comp.layer(1);
-            var layer2 = comp.layer(2);
-            var layer3 = comp.layer(3);
-
-            layer1.inPoint = 5;
-            layer1.outPoint = 55;
-
-            layer2.inPoint = 0;
-            layer2.outPoint = 30;
-
-            layer3.stretch = 200;
-        }
+    function createDropFrameComp(proj, folders) {
+        var comp = proj.items.addComp("DropFrame_Comp", 1920, 1080, 1.0, 60, 29.97);
+        comp.parentFolder = folders.comps;
+        comp.dropFrame = true;
+        comp.layers.addSolid([0.4, 0.4, 0.4], "DF_Solid", 1920, 1080, 1.0);
     }
 
-    function createOutputComp(proj, mainComp, folders) {
-        $.writeln("Creating output composition...");
+    function createHighFPSComp(proj, folders) {
+        var comp = proj.items.addComp("HighFPS_Comp", 1920, 1080, 1.0, 10, 60);
+        comp.parentFolder = folders.comps;
+        comp.layers.addSolid([0.2, 0.2, 0.8], "HiFPS_Solid", 1920, 1080, 1.0);
+    }
 
-        // Various output resolutions
-        var outputs = [
-            ["Output_HD", 1920, 1080, 24],
-            ["Output_720p", 1280, 720, 24],
-            ["Output_4K", 3840, 2160, 24]
-        ];
+    function createSmallComp(proj, folders) {
+        var comp = proj.items.addComp("Small_Comp", 320, 240, 1.0, 5, 24);
+        comp.parentFolder = folders.comps;
+        comp.resolutionFactor = [2, 2];
+        comp.frameBlending = true;
+        comp.hideShyLayers = true;
 
-        for (var i = 0; i < outputs.length; i++) {
-            var outputComp = proj.items.addComp(outputs[i][0], outputs[i][1], outputs[i][2], 1.0, 60, outputs[i][3]);
-            outputComp.parentFolder = folders.output;
-            outputComp.layers.add(mainComp);
-        }
+        var layer = comp.layers.addSolid([0.9, 0.1, 0.1], "Small_Solid", 320, 240, 1.0);
+        layer.shy = true;
+    }
+
+    function createNonSquareComp(proj, folders) {
+        var comp = proj.items.addComp("NonSquarePAR_Comp", 720, 576, 1.067, 10, 25);
+        comp.parentFolder = folders.comps;
+        comp.layers.addSolid([0.5, 0.3, 0.1], "PAR_Solid", 720, 576, 1.067);
     }
 
     // =========================================================================
-    // Main Execution
+    // Render Queue
+    // =========================================================================
+
+    function addRenderQueueItem(proj, mainComp) {
+        var rqItem = proj.renderQueue.items.add(mainComp);
+        rqItem.render = false;
+
+        // Output module
+        var om = rqItem.outputModule(1);
+        try {
+            om.applyTemplate("Lossless");
+        } catch (e) {
+            $.writeln("  Could not apply Lossless template: " + e.message);
+        }
+
+        var downloadFolder = Folder.desktop.fsName;
+        om.file = new File(downloadFolder + "/[compName].[fileExtension]");
+    }
+
+    // =========================================================================
+    // Main
     // =========================================================================
 
     function main() {
-        // Resolve samples/versions/ relative to this script: scripts/jsx/../../samples/versions/
         var scriptFile = new File($.fileName);
         var scriptDir = scriptFile.parent;
-        var folder = new Folder(scriptDir.fsName + "/../../samples/versions/ae" + getAEVersionYear());
-        if (!folder.exists) {
-            folder.create();
+        var aeYear = getAEVersionYear();
+        var outFolder = new Folder(scriptDir.fsName + "/../../samples/versions/ae" + aeYear);
+        if (!outFolder.exists) {
+            outFolder.create();
         }
 
-        // Determine assets path (samples/assets relative to samples/versions/aeXXXX)
-        var assetsPath = folder.parent.parent.fsName + "/assets";
+        var assetsPath = outFolder.parent.parent.fsName + "/assets";
 
-        var aeYear = getAEVersionYear();
-        $.writeln("=== Generating Complete Sample for After Effects " + aeYear + " ===");
+        $.writeln("=== Generating Complete Sample for AE " + aeYear + " ===");
         $.writeln("AE Version: " + app.version);
-        $.writeln("Output folder: " + folder.fsName);
-        $.writeln("Assets path: " + assetsPath);
+        $.writeln("Output: " + outFolder.fsName);
         $.writeln("");
 
         try {
-            // Create new project
-            var proj = createProject();
+            var proj = setupProject();
+            var folders = createFolders(proj);
 
-            // Set project settings
-            proj.bitsPerChannel = 16;
-            proj.linearBlending = true;
-
-            // Create structure
-            var folders = createFolderStructure(proj);
+            $.writeln("Creating footage items...");
             var placeholders = createPlaceholders(proj, folders);
+            var footage = importFileFootage(proj, folders, assetsPath);
 
-            // Import file-based footage (mov and wav)
-            var fileFootage = importFileFootage(proj, folders, assetsPath);
+            $.writeln("Creating main composition...");
+            var mainComp = createMainComp(proj, folders, placeholders, footage);
 
-            // Create main composition with all content
-            var mainComp = createMainComposition(proj, folders, placeholders);
+            $.writeln("Adding track mattes...");
+            addTrackMattes(mainComp);
 
-            addSolidLayers(mainComp, proj, folders);
-            addShapeLayers(mainComp);
-            addTextLayers(mainComp);
-            addCameraAndLights(mainComp);
-            addNullLayers(mainComp);
-            addAudioLayers(mainComp, fileFootage);
-            addVideoFootageLayers(mainComp, fileFootage);
+            $.writeln("Adding masks...");
+            addMasks(mainComp);
 
-            setupLayerProperties([], mainComp);
-            setupParenting(mainComp);
-            setupTrackMattes(mainComp);
-
+            $.writeln("Adding keyframes...");
             addKeyframes(mainComp);
+
+            $.writeln("Adding expressions...");
             addExpressions(mainComp);
-            addLayerMarkers(mainComp);
+
+            $.writeln("Adding effects...");
             addEffects(mainComp);
 
-            var preComp = createPrecomposition(proj, mainComp, folders);
+            $.writeln("Creating pre-composition...");
+            createPrecomp(proj, mainComp, folders);
 
-            setupLayerTimings(mainComp);
-            createOutputComp(proj, mainComp, folders);
+            $.writeln("Creating additional compositions...");
+            createDropFrameComp(proj, folders);
+            createHighFPSComp(proj, folders);
+            createSmallComp(proj, folders);
+            createNonSquareComp(proj, folders);
 
-            // Save project
-            var outputPath = folder.fsName + "/complete.aep";
-            saveProject(proj, outputPath);
+            $.writeln("Adding render queue item...");
+            addRenderQueueItem(proj, mainComp);
+
+            // Save
+            var outputPath = outFolder.fsName + "/complete.aep";
+            proj.save(new File(outputPath));
 
             $.writeln("");
-            $.writeln("=== Complete Sample Generated ===");
-            $.writeln("Saved to: " + outputPath);
+            $.writeln("=== Complete ===");
+            $.writeln("Saved: " + outputPath);
+            $.writeln("Items: " + proj.numItems);
+            $.writeln("Main comp layers: " + mainComp.numLayers);
+            $.writeln("Main comp markers: " + mainComp.markerProperty.numKeys);
             $.writeln("");
-            $.writeln("Statistics:");
-            $.writeln("  Total items: " + proj.numItems);
-            $.writeln("  Main comp layers: " + mainComp.numLayers);
-            $.writeln("  Main comp markers: " + mainComp.markerProperty.numKeys);
-            $.writeln("");
-            $.writeln("Next steps:");
-            $.writeln("1. Review the project in After Effects");
-            $.writeln("2. Run export_project_json.jsx to create the reference JSON");
+            $.writeln("Next: run export_project_json.jsx on the saved project.");
 
-            $.writeln("Complete sample generated for AE " + aeYear + ".");
-
-        } catch(e) {
+        } catch (e) {
             $.writeln("ERROR: " + e.toString());
+            $.writeln("Line: " + e.line);
         }
     }
 

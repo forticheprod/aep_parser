@@ -16,7 +16,7 @@ Only attributes are counted - methods are excluded.
 
 | Class | Status | Missing |
 |-------|--------|---------|
-| Application | 🚧 | `availableGPUAccelTypes`, `buildName`, `disableRendering`, `effects`, `exitAfterLaunchAndEval`, `exitCode`, `fonts`, `isoLanguage`, `isRenderEngine`, `isWatchFolder`, `memoryInUse`, `onError`, `preferences`, `saveProjectOnCrash`, `settings` |
+| Application | 🚧 | `availableGPUAccelTypes`, `disableRendering`, `effects`, `exitAfterLaunchAndEval`, `exitCode`, `fonts`, `isoLanguage`, `isRenderEngine`, `isWatchFolder`, `memoryInUse`, `onError`, `preferences`, `saveProjectOnCrash`, `settings` |
 | System | ❌ | `machineName`, `osName`, `osVersion`, `userName` |
 | Project | 🚧 | `dirty`, `selection`, `toolType` |
 
@@ -30,9 +30,9 @@ Note:
 
 | Class | Status | Missing |
 |-------|--------|---------|
-| Item | 🚧 | `dynamicLinkGUID`, `guides`, `selected` |
-| AVItem | 🚧 | `hasAudio`, `isMediaReplacementCompatible`, `proxySource`, `useProxy` |
-| CompItem | 🚧 | `motionGraphicsTemplateControllerCount`, `motionGraphicsTemplateName`, `renderer`, `renderers`, `selectedLayers`, `selectedProperties` |
+| Item | 🚧 | `dynamicLinkGUID` |
+| AVItem | 🚧 | `isMediaReplacementCompatible`, `proxySource`, `useProxy` |
+| CompItem | 🚧 | `selectedProperties` |
 | FolderItem | ✅ | |
 | FootageItem | ✅ | |
 
@@ -65,15 +65,15 @@ Note:
 | Class | Status | Missing |
 |-------|--------|---------|
 | RenderQueue | 🚧 | `canQueueInAME`, `queueNotify`, `rendering` |
-| RenderQueueItem | 🚧 | `onStatusChanged` |
-| OutputModule | ✅ | |
+| RenderQueueItem | 🚧 | `onStatusChanged`, `templates` |
+| OutputModule | 🚧 | `templates` |
 
 
 ## Sources
 
 | Class | Status | Missing |
 |-------|--------|---------|
-| FootageSource | 🚧 | `displayFrameRate`, `nativeFrameRate`, `removePulldown` |
+| FootageSource | ✅ | |
 | FileSource | ✅ | |
 | SolidSource | ✅ | |
 | PlaceholderSource | ✅ | |

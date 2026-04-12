@@ -49,7 +49,6 @@ def build_project_node(
         "version": app.version,
         "build_number": app.build_number,
         "bits_per_channel": project.bits_per_channel.name,
-        "frame_rate": project.frame_rate,
         "expression_engine": project.expression_engine,
     }
     if project.effect_names:
@@ -57,8 +56,6 @@ def build_project_node(
 
     children: list[dict[str, Any]] = []
     root = project.root_folder
-    if root is None:
-        raise RuntimeError("Could not find root folder in project")
     for item in root:
         children.append(build_item_node(item, project, include_properties))
 
@@ -220,12 +217,12 @@ def build_property_or_group_node(prop: Property | PropertyGroup) -> dict[str, An
 def build_property_node(prop: Property) -> dict[str, Any]:
     """Build a property node."""
     attrs: dict[str, Any] = {}
-    if prop.animated:
+    if prop._animated:
         attrs["animated"] = True
         attrs["keyframes"] = len(prop.keyframes)
     if prop.expression_enabled and prop.expression:
         attrs["expression"] = True
-    if prop.value is not None and not prop.animated:
+    if prop.value is not None and not prop._animated:
         # Format value for display
         if isinstance(prop.value, (list, tuple)):
             if len(prop.value) <= 4:
@@ -292,10 +289,8 @@ def build_output_module_node(om: Any) -> dict[str, Any]:
     attrs: dict[str, Any] = {}
     if om.file:
         attrs["file"] = Path(om.file).name
-    if om.templates:
-        attrs["template"] = om.templates
-    if om.file_name_template:
-        attrs["name_template"] = om.file_name_template
+    if om.file_template:
+        attrs["name_template"] = om.file_template
 
     return {
         "type": "OutputModule",
@@ -574,7 +569,6 @@ Examples:
 
     args = parser.parse_args()
 
-    # Parse the project
     aep_path = Path(args.aep_file)
     if not aep_path.exists():
         print(f"Error: File not found: {aep_path}", file=sys.stderr)
@@ -582,7 +576,6 @@ Examples:
 
     app = parse(aep_path)
 
-    # Build the node tree
     include_properties = not args.no_properties
     root_node = build_project_node(app, include_properties)
 

@@ -4,20 +4,17 @@ This page documents limitations of aep_parser that arise from the nature of
 parsing a binary file format rather than querying a running After Effects
 instance.
 
-## Property.value_at_time Accuracy
-
-### Spatial Properties (~0.015 Maximum Error)
+## Property.value_at_time Accuracy on spatial Properties (~0.015 Maximum Error)
 
 `Property.value_at_time()` for spatial properties (position, 2D/3D) has a
 systematic ±0.015 deviation from After Effects' `valueAtTime()`. This is
 **not** a bug in the parser - it is caused by After Effects' internal spatial
 evaluation pipeline.
 
-**Evidence:** even a perfectly straight, LINEAR-interpolated path from
-`[0, 50, 0]` to `[100, 50, 0]` (where the mathematically correct value is
-`20 × t`) shows a sinusoidal deviation pattern in After Effects' own output,
-peaking at ±0.011. The same deviation appears regardless of whether the
-keyframe interpolation type is LINEAR or BEZIER.
+**Evidence:** even a perfectly straight, LINEAR-interpolated path shows a
+sinusoidal deviation pattern in After Effects' own output, peaking at ±0.011.
+The same deviation appears regardless of whether the keyframe interpolation
+type is LINEAR or BEZIER.
 
 After Effects appears to process all spatial properties through an arc-length
 reparameterisation pipeline (likely a polyline or spline approximation) that
@@ -30,12 +27,17 @@ be derived from the `.aep` file alone:
 
 | Attribute | Reason |
 |-----------|--------|
-| `Application.memoryInUse` | Runtime memory state |
+| `Application.effects` | Installed effects on the system |
+| `Application.fonts` | Installed fonts on the system |
 | `Application.isRenderEngine` | Launch mode flag |
 | `Application.isWatchFolder` | Launch mode flag |
-| `Application.fonts` | Installed fonts on the system |
+| `Application.memoryInUse` | Runtime memory state |
+| `Item.selected` | Runtime-only Selection state |
 | `Project.dirty` | Unsaved changes flag |
-| `Viewer.maximized` | Window state not persisted in `.aep` |
+| `RenderQueue.queueNotify` | Runtime state |
+| `RenderQueue.rendering` | Runtime state |
+| `RenderQueueItem.templates` | Local settings |
+| `Viewer.maximized` | Non-persisting window state |
 
 ## Expressions
 
@@ -91,13 +93,32 @@ flag (byte 57 bit 0), since NO_VALUE properties always report
 all 800 test files, with two match-name overrides for edge cases
 (`ADBE Light Falloff Type`, `ADBE FreePin3 Outlines`).
 
-## Output Module Templates
+## Templates
 
-`OutputModule.templates` and `RenderQueueItem.templates` are always empty
-lists. After Effects populates them at runtime with template names from the
+`OutputModule.templates` and `RenderQueueItem.templates` are not available.
+After Effects populates them at runtime with template names from the
 application preferences, but they are not stored in the `.aep` file. The actual
 render settings are available through `OutputModule.settings` and
 `RenderQueueItem.settings`.
+
+## Color Space Profiles Are Read-Only
+
+`Project.working_space` and `Project.display_color_space` are **read-only**.
+The binary chunks that store these settings contain both the profile name and
+the full ICC profile data (base64-encoded binary, up to ~50 KB per profile).
+Updating only the profile name would leave stale ICC data, producing a file
+that After Effects may reject or silently revert to a default profile.
+
+Generating the correct ICC data would require the Adobe ICC profile files
+installed on disk (under `C:\Program Files (x86)\Common Files\Adobe\Color\` on
+Windows), which cannot be assumed in all environments.  Bundling these profiles
+is not feasible due to licensing constraints.
+
+Other color management settings (`color_management_system`,
+`lut_interpolation_method`, `ocio_configuration_file`, `working_gamma`,
+`linearize_working_space`, `linear_blending`,
+`compensate_for_scene_referred_profiles`) remain read/write as they do not
+depend on embedded ICC data.
 
 ## Proxy Sources
 
@@ -106,13 +127,14 @@ information is stored in the binary format but not yet extracted.
 
 ## Essential Properties
 
-The Essential Graphics panel attributes are not parsed:
+Essential Property override values on precomp layers are parsed as regular
+properties under the `"Essential Properties"` group. However, the UUID
+linkage between overrides and their source controller definitions
+(`LIST:OvG2`) is not resolved. The following attributes are not parsed:
 
+- `Property.essentialPropertySource`
 - `Property.alternateSource`
 - `Property.canSetAlternateSource`
-- `Property.essentialPropertySource`
-- `CompItem.motionGraphicsTemplateName`
-- `CompItem.motionGraphicsTemplateControllerCount`
 
 ## Missing Classes
 

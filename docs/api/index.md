@@ -4,13 +4,9 @@ Welcome to the AEP Parser API reference. This section provides detailed document
 
 ## Main Entry Point
 
-The primary function you'll use is [`parse()`](parsers.md#main-parser).
+The primary function you'll use is [`parse()`](parsers.md).
 
 ## Core Modules
-
-### [Parsers](parsers.md)
-
-Internal parsing functions for converting binary data to Python objects.
 
 ### [Application](application.md)
 
@@ -40,6 +36,7 @@ Layers are the building blocks of compositions:
 - [Shape Layer](layers/shape_layer.md) - Shape layers
 - [Camera Layer](layers/camera_layer.md) - Camera layers
 - [Light Layer](layers/light_layer.md) - Light layers
+- [3D Model Layer](layers/three_d_model_layer.md) - 3D model layers
 
 ### Properties
 
@@ -48,8 +45,11 @@ Properties control layer appearance and behavior:
 - [Property Base](properties/property_base.md) - Base class for properties
 - [Property](properties/property.md) - Individual properties
 - [Property Group](properties/property_group.md) - Property containers
+- [Mask Property Group](properties/mask_property_group.md) - Mask property groups
 - [Keyframe](properties/keyframe.md) - Animation keyframes
+- [Keyframe Ease](properties/keyframe_ease.md) - Keyframe easing
 - [MarkerValue](properties/marker.md) - Timeline markers
+- [Shape](properties/shape.md) - Shape data
 
 ### Sources
 
@@ -60,6 +60,13 @@ Sources provide the content for footage items:
 - [Solid Source](sources/solid_source.md) - Solid color sources
 - [Placeholder Source](sources/placeholder_source.md) - Placeholder sources
 
+### Text
+
+Text-related classes:
+
+- [Text Document](text/text_document.md) - Text layer content and styling
+- [Font Object](text/font_object.md) - Font information
+
 ### Render Queue
 
 Render queue management and output settings:
@@ -69,23 +76,19 @@ Render queue management and output settings:
 - [Render Settings](renderqueue/render_settings.md) - Render settings reference
 - [Output Module](renderqueue/output_module.md) - Output module configuration
 - [Output Module Settings](renderqueue/output_module_settings.md) - Output settings reference
+- [Format Options](renderqueue/format_options.md) - Format-specific encoding options
 
-### [Enums](enums.md)
+### Viewer
+
+Viewer panel state:
+
+- [Viewer](viewer/viewer.md) - Viewer panel
+- [View](viewer/view.md) - Individual view within a viewer
+- [View Options](viewer/view_options.md) - View display options
+
+### [Enums](other/enums.md)
 Enumerations for various After Effects settings and modes.
 
-## Quick Example
+## Quick Start
 
-```python
-import aep_parser
-
-# Parse a project
-app = aep_parser.parse("myproject.aep")
-project = app.project
-
-# Access compositions
-for item in project:
-    if hasattr(item, 'layers'):  # It's a CompItem
-        print(f"Composition: {item.name}")
-        for layer in item:
-            print(f"  Layer: {layer.name}")
-```
+See the [Quick Start guide](../quickstart.md) for usage examples (parsing, iteration, modification, saving).

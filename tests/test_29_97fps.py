@@ -55,11 +55,6 @@ def _expected_comp(expected: dict, comp_id: int) -> dict:
     raise ValueError(f"Expected comp {comp_id} not found")
 
 
-# -----------------------------------------------------------------------
-#  29.97 fps / time_scale=3.125 compositions (id=155 and id=11516)
-# -----------------------------------------------------------------------
-
-
 class TestTimeScale3_125:
     """Tests for the 29.97fps compositions that use time_scale=3.125"""
 
@@ -94,15 +89,12 @@ class TestTimeScale3_125:
         assert math.isclose(comp.work_area_start, exp["workAreaStart"], abs_tol=1e-9)
 
     @pytest.mark.parametrize("comp_id", [155, 11516])
-    def test_frame_out_point(self, project: Project, comp_id: int) -> None:
+    def test_frame_work_area_end_absolute(self, project: Project, comp_id: int) -> None:
         comp = _comp_by_id(project, comp_id)
-        expected_frame = comp.out_point * comp.frame_rate
-        assert math.isclose(comp.frame_out_point, expected_frame, abs_tol=1)
-
-
-# -----------------------------------------------------------------------
-#  Sentinel out_point (full work area) - id=281855
-# -----------------------------------------------------------------------
+        expected_frame = comp._cdta.work_area_end_absolute * comp.frame_rate
+        assert math.isclose(
+            comp._cdta.frame_work_area_end_absolute, expected_frame, abs_tol=1
+        )
 
 
 class TestSentinelOutPoint:
@@ -123,7 +115,7 @@ class TestSentinelOutPoint:
         """Sentinel out_point should resolve to display_start_time + duration."""
         comp = _comp_by_id(project, self.COMP_ID)
         assert math.isclose(
-            comp.out_point,
+            comp._cdta.work_area_end_absolute,
             comp.display_start_time + comp.duration,
             rel_tol=1e-9,
         )
@@ -131,7 +123,7 @@ class TestSentinelOutPoint:
     def test_frame_out_point(self, project: Project) -> None:
         """Frame out_point should equal frame_duration for sentinel case."""
         comp = _comp_by_id(project, self.COMP_ID)
-        assert comp.frame_out_point == comp.frame_duration
+        assert int(comp._cdta.frame_work_area_end_absolute) == comp.frame_duration
 
     def test_duration_short(self, project: Project, expected: dict) -> None:
         """This is a very short comp (0.75s = 18 frames at 24fps)."""
@@ -139,11 +131,6 @@ class TestSentinelOutPoint:
         exp = _expected_comp(expected, self.COMP_ID)
         assert math.isclose(comp.duration, exp["duration"], rel_tol=1e-6)
         assert comp.frame_duration == 18
-
-
-# -----------------------------------------------------------------------
-#  Non-zero display_start_time - id=12173, id=2767
-# -----------------------------------------------------------------------
 
 
 class TestNonZeroDisplayStartTime:
