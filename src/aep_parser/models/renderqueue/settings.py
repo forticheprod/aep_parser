@@ -9,10 +9,10 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Mapping, MutableMapping
 from enum import IntEnum
-from typing import Any, Optional
+from typing import Any, Dict, Optional, Tuple
 
 #: Type alias for a settings spec: (attribute_name, optional_enum_class).
-SettingsSpec = dict[str, tuple[str, Optional[type[IntEnum]]]]
+SettingsSpec = Dict[str, Tuple[str, Optional[type]]]
 
 
 class SettingsView(MutableMapping):  # type: ignore[type-arg]

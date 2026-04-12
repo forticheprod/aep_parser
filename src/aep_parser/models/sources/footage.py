@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from typing import List
 
 from ...enums import (
     AlphaMode,
@@ -89,7 +90,7 @@ class FootageSource:
     """The number of times that the footage is to be played consecutively
     when used in a composition. Read / Write."""
 
-    premul_color = ChunkField[list[float]](
+    premul_color = ChunkField[List[float]](
         "_sspc",
         "premul_color",
         transform=normalize_values,

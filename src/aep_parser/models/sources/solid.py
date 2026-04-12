@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from typing import List
 
 from ...kaitai.descriptors import ChunkField
 from ..validators import validate_sequence
@@ -31,7 +32,7 @@ class SolidSource(FootageSource):
     See: https://ae-scripting.docsforadobe.dev/sources/solidsource/
     """
 
-    color = ChunkField[list[float]](
+    color = ChunkField[List[float]](
         "_opti",
         "color",
         transform=list,

@@ -122,6 +122,8 @@ flowchart TD
         dispatch -->|"sspc"| PE["parse_effect()"]
         dispatch -->|"tdgp +\nADBE Mask Atom"| PM["_parse_mask_atom()\n--> MaskPropertyGroup"]
         dispatch -->|"otst / btds / om-s"| PS["parse_orientation()\nparse_text_document()\nparse_shape()"]
+        dispatch -->|"mrst"| MK["parse_markers()"]
+        dispatch -->|"OvG2"| SK["skipped\n(Essential Graphics\noverride metadata)"]
     end
 
     subgraph Phase2A["Effect Parsing (parse_effect)"]
@@ -140,11 +142,12 @@ flowchart TD
         SMTLG --> SC["_synthesize_children()\nrecursive on all groups"]
         SC --> FFS["_fill_from_specs()"]
         SC --> AMXB["_apply_min_max_bounds()"]
+        AMXB --> DLSE["_derive_layer_styles_enabled()"]
     end
 
     subgraph Synthesis["_fill_from_specs detail"]
         FFS --> Exists{"child exists\nin binary?"}
-        Exists -->|"yes"| RO["reorder + update metadata\n(_auto_name, is_spatial, color,\nmin/max, default_value)"]
+        Exists -->|"yes"| RO["reorder + update metadata\n(_auto_name, color,\nmin/max, default_value,\ncan_vary_over_time)"]
         Exists -->|"no, _PropSpec"| FS["Property.from_spec()\nProxyBody + spec values"]
         Exists -->|"no, _GroupSpec"| GS["new PropertyGroup\nwith ProxyBody"]
     end
@@ -154,6 +157,7 @@ flowchart TD
     PE --> Result
     PM --> Result
     PS --> Result
+    MK --> Result
     Phase1 -.-> PE
 ```
 
@@ -206,6 +210,8 @@ During `_parse_effect_properties()`:
 | `LIST:om-s` | Shape/mask path data |
 | `LIST:otst` | Orientation property |
 | `LIST:btds` | Text document property (COS format) |
+| `LIST:mrst` | Marker property container |
+| `LIST:OvG2` | Essential Graphics override metadata (skipped) |
 
 ## Development Workflow
 

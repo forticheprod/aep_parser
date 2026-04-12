@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import typing
 import xml.etree.ElementTree as ET
+from typing import TYPE_CHECKING, Dict
 
 from ....enums import (
     AudioCodec,
@@ -14,7 +14,7 @@ from ....kaitai.descriptors import ChunkField
 from ....kaitai.transforms import strip_null
 from ....kaitai.utils import propagate_check
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from ....kaitai import Aep
 
 # Adobe stores FPS as ticks-per-frame with a 254016000000 tick base.
@@ -65,7 +65,7 @@ def _try_enum_or_int(enum_cls: type, raw_str: str) -> object:
         return raw_value
 
 
-class ParamsDict(dict[str, str]):
+class ParamsDict(Dict[str, str]):
     """Dict subclass that syncs writes back to the XML tree."""
 
     _owner: XmlFormatOptions | None
@@ -178,7 +178,10 @@ class XmlFormatOptions:
         """Re-serialize the XML tree back to the raw body."""
         if self._xml_root is None:
             return
-        xml_bytes = ET.tostring(self._xml_root, encoding="UTF-8", xml_declaration=True)
+        xml_bytes = (
+            b"<?xml version='1.0' encoding='UTF-8'?>\n"
+            + ET.tostring(self._xml_root, encoding="unicode").encode("utf-8")
+        )  # NOTE Use xml_declaration when 3.7 is dropped
         self._generic_body.raw = self._xml_header + xml_bytes
         propagate_check(self._generic_body)
 

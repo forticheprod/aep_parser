@@ -206,7 +206,7 @@ class Property(PropertyBase):
         override = _NAME_OVERRIDES.get(self.match_name)
         if override is not None:
             return override
-        base_name: str = PropertyBase.name.fget(self)  # type: ignore[union-attr]
+        base_name: str = PropertyBase.name.fget(self)  # type: ignore[attr-defined]
         # NO_VALUE effect properties that store the match_name in tdsn
         # are unnamed separators/group headers - ExtendScript returns "".
         if (
@@ -219,7 +219,7 @@ class Property(PropertyBase):
 
     @name.setter
     def name(self, value: str) -> None:
-        PropertyBase.name.fset(self, value)  # type: ignore[union-attr]
+        PropertyBase.name.fset(self, value)  # type: ignore[attr-defined]
 
     dimensions = ChunkField[int](
         "_tdb4",

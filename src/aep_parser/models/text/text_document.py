@@ -282,7 +282,7 @@ class TextDocument:
 
     # -- Computed properties -----------------------------------------------
 
-    @property
+    @property  # type: ignore[no-redef]
     def text(self) -> str:
         """The text value for the Source Text property. Read / Write."""
         if "text" in self.__dict__:

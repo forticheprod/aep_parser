@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from typing import List
 
 from ...enums import MaskFeatherFalloff, MaskMode, MaskMotionBlur
 from ...kaitai.descriptors import ChunkField
@@ -39,7 +40,7 @@ class MaskPropertyGroup(PropertyGroup):
     See: https://ae-scripting.docsforadobe.dev/property/maskpropertygroup/
     """
 
-    color = ChunkField[list[float]](
+    color = ChunkField[List[float]](
         "_mkif",
         "color",
         transform=normalize_values,

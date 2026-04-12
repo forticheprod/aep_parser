@@ -106,7 +106,7 @@ class CompItem(AVItem):
 
     See: https://ae-scripting.docsforadobe.dev/item/compitem/"""
 
-    bg_color = ChunkField[list[float]](
+    bg_color = ChunkField[List[float]](
         "_cdta",
         "bg_color",
         transform=normalize_values,
@@ -183,7 +183,7 @@ class CompItem(AVItem):
     Shutter Phase setting in the Advanced tab of the Composition Settings
     dialog box. Read / Write."""
 
-    resolution_factor = ChunkField[list[int]](
+    resolution_factor = ChunkField[List[int]](
         "_cdta",
         "resolution_factor",
         transform=list,
