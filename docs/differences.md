@@ -84,8 +84,33 @@ dataclass objects on `Property.keyframes`:
     ```
 
 The `Keyframe` object bundles all keyframe attributes together, so you don't
-need separate method calls for each attribute. The ExtendScript-style
-`key_*()` methods are also available on `Property` for compatibility.
+need separate method calls for each attribute.
+
+## Feather Points
+
+ExtendScript exposes mask feather data as parallel arrays on `Shape`
+(`featherSegLocs`, `featherRadii`, etc.). aep_parser exposes a list of
+`FeatherPoint` objects on `Shape.feather_points`:
+
+=== "ExtendScript"
+
+    ```javascript
+    var locs = shape.featherSegLocs;
+    var radii = shape.featherRadii;
+    var types = shape.featherTypes;
+    ```
+
+=== "aep_parser"
+
+    ```python
+    for fp in shape.feather_points:
+        fp.seg_loc
+        fp.radius
+        fp.type
+    ```
+
+Each `FeatherPoint` bundles segment location, radius, interpolation,
+tension, and corner angle together.
 
 ## Markers
 
@@ -122,7 +147,8 @@ integer frame-based equivalents for convenience:
 | `Layer.inPoint` | `layer.in_point` | `layer.frame_in_point` |
 | `Layer.outPoint` | `layer.out_point` | `layer.frame_out_point` |
 | `Layer.startTime` | `layer.start_time` | `layer.frame_start_time` |
-| - | `comp.time` | `comp.frame_time` |
+| `Item.time` | `item.time` | `item.frame_time` |
+| `Layer.time` | `layer.time` | `layer.frame_time` |
 | - | `keyframe.time` | `keyframe.frame_time` |
 | `MarkerValue.duration` | `marker.duration` | `marker.frame_duration` |
 
@@ -210,12 +236,13 @@ not available in ExtendScript:
 |-----------|-------------|
 | `time_scale` | Internal time scale divisor for keyframe times |
 | `display_start_time` | Display start time in seconds |
+| `guides` | List of [Guide][aep_parser.models.guide.Guide] objects (ruler guides for alignment) |
 
 ### Layer
 
 | Attribute | Description |
 |-----------|-------------|
-| `layer_type` | The layer type (`"footage"`, `"light"`, `"camera"`, `"text"`, `"shape"`) |
+| `layer_type` | The layer type (`"AVLayer"`, `"Layer"`, `"CameraLayer"`, `"LightLayer"`) |
 
 ### RenderQueueItem
 

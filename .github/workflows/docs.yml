@@ -36,7 +36,7 @@ jobs:
         run: uv sync --extra docs
 
       - name: Build documentation
-        run: uv run mkdocs build --strict
+        run: uv run zensical build --clean
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4

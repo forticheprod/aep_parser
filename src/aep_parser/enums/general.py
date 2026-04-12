@@ -5,6 +5,7 @@ These enums match the values used in After Effects ExtendScript.
 
 from __future__ import annotations
 
+import re
 from enum import IntEnum
 
 
@@ -35,6 +36,11 @@ class Label(IntEnum):
     SANDSTONE = 15
     DARK_GREEN = 16
 
+    @classmethod
+    def from_binary(cls, value: int) -> Label:
+        """Convert binary value to Label."""
+        return cls(int(value))
+
 
 class AlphaMode(IntEnum):
     """Defines how alpha information in footage is interpreted.
@@ -45,6 +51,25 @@ class AlphaMode(IntEnum):
     STRAIGHT = 5412
     IGNORE = 5413
     PREMULTIPLIED = 5414
+
+    @classmethod
+    def from_binary(cls, value: int) -> AlphaMode:
+        """Convert binary value to AlphaMode."""
+        return _ALPHA_MODE_BINARY_MAP.get(value, cls.IGNORE)
+
+    def to_binary(self) -> int:
+        """Convert AlphaMode to binary value."""
+        return _ALPHA_MODE_TO_BINARY[self]
+
+
+_ALPHA_MODE_BINARY_MAP: dict[int, AlphaMode] = {
+    0: AlphaMode.STRAIGHT,
+    1: AlphaMode.PREMULTIPLIED,
+    2: AlphaMode.IGNORE,
+}
+_ALPHA_MODE_TO_BINARY: dict[AlphaMode, int] = {
+    v: k for k, v in _ALPHA_MODE_BINARY_MAP.items()
+}
 
 
 class BitsPerChannel(IntEnum):
@@ -60,12 +85,21 @@ class BitsPerChannel(IntEnum):
     @classmethod
     def from_binary(cls, value: int) -> BitsPerChannel:
         """Convert binary value to BitsPerChannel."""
-        _mapping = {
-            0: cls.EIGHT,
-            1: cls.SIXTEEN,
-            2: cls.THIRTY_TWO,
-        }
-        return _mapping.get(value, cls.EIGHT)
+        return _BITS_PER_CHANNEL_BINARY_MAP.get(value, cls.EIGHT)
+
+    def to_binary(self) -> int:
+        """Convert BitsPerChannel to binary value."""
+        return _BITS_PER_CHANNEL_TO_BINARY[self]
+
+
+_BITS_PER_CHANNEL_BINARY_MAP: dict[int, BitsPerChannel] = {
+    0: BitsPerChannel.EIGHT,
+    1: BitsPerChannel.SIXTEEN,
+    2: BitsPerChannel.THIRTY_TWO,
+}
+_BITS_PER_CHANNEL_TO_BINARY: dict[BitsPerChannel, int] = {
+    v: k for k, v in _BITS_PER_CHANNEL_BINARY_MAP.items()
+}
 
 
 class AutoOrientType(IntEnum):
@@ -78,6 +112,15 @@ class AutoOrientType(IntEnum):
     ALONG_PATH = 4213
     CAMERA_OR_POINT_OF_INTEREST = 4214
     CHARACTERS_TOWARD_CAMERA = 4215
+
+    @classmethod
+    def from_binary(cls, value: int) -> AutoOrientType:
+        """Convert binary value (0-3) to AutoOrientType."""
+        return cls(int(value) + 4212)
+
+    def to_binary(self) -> int:
+        """Convert AutoOrientType to binary value (0-3)."""
+        return int(self) - 4212
 
 
 class BlendingMode(IntEnum):
@@ -128,47 +171,57 @@ class BlendingMode(IntEnum):
     @classmethod
     def from_binary(cls, value: int) -> BlendingMode:
         """Convert binary blending mode value to BlendingMode."""
-        _mapping = {
-            0: cls.NORMAL,  # cameras, lights, and null layers
-            2: cls.NORMAL,
-            3: cls.DISSOLVE,
-            4: cls.ADD,
-            5: cls.MULTIPLY,
-            6: cls.SCREEN,
-            7: cls.OVERLAY,
-            8: cls.SOFT_LIGHT,
-            9: cls.HARD_LIGHT,
-            10: cls.DARKEN,
-            11: cls.LIGHTEN,
-            12: cls.CLASSIC_DIFFERENCE,
-            13: cls.HUE,
-            14: cls.SATURATION,
-            15: cls.COLOR,
-            16: cls.LUMINOSITY,
-            17: cls.STENCIL_ALPHA,
-            18: cls.STENCIL_LUMA,
-            19: cls.SILHOUETE_ALPHA,
-            20: cls.SILHOUETTE_LUMA,
-            21: cls.LUMINESCENT_PREMUL,
-            22: cls.ALPHA_ADD,
-            23: cls.CLASSIC_COLOR_DODGE,
-            24: cls.CLASSIC_COLOR_BURN,
-            25: cls.EXCLUSION,
-            26: cls.DIFFERENCE,
-            27: cls.COLOR_DODGE,
-            28: cls.COLOR_BURN,
-            29: cls.LINEAR_DODGE,
-            30: cls.LINEAR_BURN,
-            31: cls.LINEAR_LIGHT,
-            32: cls.VIVID_LIGHT,
-            33: cls.PIN_LIGHT,
-            34: cls.HARD_MIX,
-            35: cls.LIGHTER_COLOR,
-            36: cls.DARKER_COLOR,
-            37: cls.SUBTRACT,
-            38: cls.DIVIDE,
-        }
-        return _mapping.get(value, cls.NORMAL)
+        return _BLENDING_MODE_BINARY_MAP.get(value, cls.NORMAL)
+
+    def to_binary(self) -> int:
+        """Convert BlendingMode to binary value."""
+        return _BLENDING_MODE_TO_BINARY[self]
+
+
+_BLENDING_MODE_BINARY_MAP: dict[int, BlendingMode] = {
+    0: BlendingMode.NORMAL,  # cameras, lights, and null layers
+    2: BlendingMode.NORMAL,
+    3: BlendingMode.DISSOLVE,
+    4: BlendingMode.ADD,
+    5: BlendingMode.MULTIPLY,
+    6: BlendingMode.SCREEN,
+    7: BlendingMode.OVERLAY,
+    8: BlendingMode.SOFT_LIGHT,
+    9: BlendingMode.HARD_LIGHT,
+    10: BlendingMode.DARKEN,
+    11: BlendingMode.LIGHTEN,
+    12: BlendingMode.CLASSIC_DIFFERENCE,
+    13: BlendingMode.HUE,
+    14: BlendingMode.SATURATION,
+    15: BlendingMode.COLOR,
+    16: BlendingMode.LUMINOSITY,
+    17: BlendingMode.STENCIL_ALPHA,
+    18: BlendingMode.STENCIL_LUMA,
+    19: BlendingMode.SILHOUETE_ALPHA,
+    20: BlendingMode.SILHOUETTE_LUMA,
+    21: BlendingMode.LUMINESCENT_PREMUL,
+    22: BlendingMode.ALPHA_ADD,
+    23: BlendingMode.CLASSIC_COLOR_DODGE,
+    24: BlendingMode.CLASSIC_COLOR_BURN,
+    25: BlendingMode.EXCLUSION,
+    26: BlendingMode.DIFFERENCE,
+    27: BlendingMode.COLOR_DODGE,
+    28: BlendingMode.COLOR_BURN,
+    29: BlendingMode.LINEAR_DODGE,
+    30: BlendingMode.LINEAR_BURN,
+    31: BlendingMode.LINEAR_LIGHT,
+    32: BlendingMode.VIVID_LIGHT,
+    33: BlendingMode.PIN_LIGHT,
+    34: BlendingMode.HARD_MIX,
+    35: BlendingMode.LIGHTER_COLOR,
+    36: BlendingMode.DARKER_COLOR,
+    37: BlendingMode.SUBTRACT,
+    38: BlendingMode.DIVIDE,
+}
+# Reversed map: last key wins, so NORMAL -> 2 (not 0).
+_BLENDING_MODE_TO_BINARY: dict[BlendingMode, int] = {
+    v: k for k, v in _BLENDING_MODE_BINARY_MAP.items()
+}
 
 
 class ChannelType(IntEnum):
@@ -196,6 +249,10 @@ class ChannelType(IntEnum):
             return cls(value + 7812)
         except ValueError:
             return cls.CHANNEL_RGB
+
+    def to_binary(self) -> int:
+        """Convert ChannelType to binary value."""
+        return int(self) - 7812
 
 
 class ColorManagementSystem(IntEnum):
@@ -235,6 +292,18 @@ class FastPreviewType(IntEnum):
     FP_FAST_DRAFT = 8015
     FP_WIREFRAME = 8016
 
+    @classmethod
+    def from_binary(cls, value: int) -> FastPreviewType:
+        """Convert binary value to FastPreviewType."""
+        try:
+            return cls(int(value) + 8012)
+        except ValueError:
+            return cls.FP_OFF
+
+    def to_binary(self) -> int:
+        """Convert FastPreviewType to binary value."""
+        return int(self) - 8012
+
 
 class FeetFramesFilmType(IntEnum):
     """Film type for feet+frames timecode display.
@@ -251,6 +320,10 @@ class FeetFramesFilmType(IntEnum):
         # Binary 0 = MM35 (2413), Binary 1 = MM16 (2412)
         return cls(2413 - value)
 
+    def to_binary(self) -> int:
+        """Convert FeetFramesFilmType to binary value."""
+        return 2413 - int(self)
+
 
 class FieldSeparationType(IntEnum):
     """How fields are separated in interlaced footage.
@@ -261,6 +334,25 @@ class FieldSeparationType(IntEnum):
     UPPER_FIELD_FIRST = 5612
     OFF = 5613
     LOWER_FIELD_FIRST = 5614
+
+    @classmethod
+    def from_binary(cls, value: int) -> FieldSeparationType:
+        """Convert binary value to FieldSeparationType."""
+        return _FIELD_SEP_BINARY_MAP.get(value, cls.OFF)
+
+    def to_binary(self) -> int:
+        """Convert FieldSeparationType to binary value."""
+        return _FIELD_SEP_TO_BINARY[self]
+
+
+_FIELD_SEP_BINARY_MAP: dict[int, FieldSeparationType] = {
+    0: FieldSeparationType.OFF,
+    1: FieldSeparationType.UPPER_FIELD_FIRST,
+    2: FieldSeparationType.LOWER_FIELD_FIRST,
+}
+_FIELD_SEP_TO_BINARY: dict[FieldSeparationType, int] = {
+    v: k for k, v in _FIELD_SEP_BINARY_MAP.items()
+}
 
 
 class FootageTimecodeDisplayStartType(IntEnum):
@@ -275,11 +367,20 @@ class FootageTimecodeDisplayStartType(IntEnum):
     @classmethod
     def from_binary(cls, value: int) -> FootageTimecodeDisplayStartType:
         """Convert binary value to FootageTimecodeDisplayStartType."""
-        _mapping = {
-            0: cls.FTCS_START_0,
-            1: cls.FTCS_USE_SOURCE_MEDIA,
-        }
-        return _mapping.get(value, cls.FTCS_START_0)
+        return _FOOTAGE_TIMECODE_BINARY_MAP.get(value, cls.FTCS_START_0)
+
+    def to_binary(self) -> int:
+        """Convert FootageTimecodeDisplayStartType to binary value."""
+        return _FOOTAGE_TIMECODE_TO_BINARY[self]
+
+
+_FOOTAGE_TIMECODE_BINARY_MAP: dict[int, FootageTimecodeDisplayStartType] = {
+    0: FootageTimecodeDisplayStartType.FTCS_START_0,
+    1: FootageTimecodeDisplayStartType.FTCS_USE_SOURCE_MEDIA,
+}
+_FOOTAGE_TIMECODE_TO_BINARY: dict[FootageTimecodeDisplayStartType, int] = {
+    v: k for k, v in _FOOTAGE_TIMECODE_BINARY_MAP.items()
+}
 
 
 class FrameBlendingType(IntEnum):
@@ -291,6 +392,15 @@ class FrameBlendingType(IntEnum):
     NO_FRAME_BLEND = 4012
     FRAME_MIX = 4013
     PIXEL_MOTION = 4014
+
+    @classmethod
+    def from_binary(cls, value: int) -> FrameBlendingType:
+        """Convert binary value (0-2) to FrameBlendingType."""
+        return cls(int(value) + 4012)
+
+    def to_binary(self) -> int:
+        """Convert FrameBlendingType to binary value (0-2)."""
+        return int(self) - 4012
 
 
 class FramesCountType(IntEnum):
@@ -311,6 +421,10 @@ class FramesCountType(IntEnum):
         except ValueError:
             return cls.FC_START_0
 
+    def to_binary(self) -> int:
+        """Convert FramesCountType to binary value."""
+        return int(self) - 2612
+
 
 class GpuAccelType(IntEnum):
     """GPU acceleration type.
@@ -324,6 +438,86 @@ class GpuAccelType(IntEnum):
     VULKAN = 1815
     SOFTWARE = 1816
     DIRECTX = 1817
+
+    @classmethod
+    def from_binary(cls, uuid: str) -> GpuAccelType | str:
+        """Map a gpuG UUID string to a GpuAccelType enum value.
+
+        Returns the UUID string itself if the UUID is not recognized.
+        """
+        return _GPU_UUID_TO_ENUM.get(uuid, uuid)  # type: ignore[return-value]
+
+    @staticmethod
+    def to_binary(value: GpuAccelType | str) -> str:
+        """Map a GpuAccelType enum value back to its UUID string.
+
+        If value is already a UUID string, validates its format and
+        returns it as-is.
+
+        Raises:
+            ValueError: If the enum member has no known UUID mapping,
+                or if a string value is not a valid UUID.
+        """
+        if isinstance(value, GpuAccelType):
+            uuid = _GPU_ENUM_TO_UUID.get(value)
+            if uuid is None:
+                known = ", ".join(
+                    f"{e.name} ({u})" for u, e in _GPU_UUID_TO_ENUM.items()
+                )
+                raise ValueError(
+                    f"no known UUID for GpuAccelType.{value.name}. "
+                    f"Known values: {known}. "
+                    f"Set a UUID string directly if you know it."
+                )
+            return uuid
+        if not re.match(
+            r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            value,
+            re.I,
+        ):
+            raise ValueError(
+                f"expected a valid UUID string "
+                f"(xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx), got {value!r}"
+            )
+        return value
+
+
+_GPU_UUID_TO_ENUM: dict[str, GpuAccelType] = {
+    "7ee0ab59-822d-44cc-ac10-16279d041016": GpuAccelType.CUDA,
+    "f33089e2-1ede-47c1-8a9e-b232bb1cc1a4": GpuAccelType.SOFTWARE,
+}
+_GPU_ENUM_TO_UUID: dict[GpuAccelType, str] = {
+    v: k for k, v in _GPU_UUID_TO_ENUM.items()
+}
+
+
+class GuideOrientationType(IntEnum):
+    """Orientation type for a composition guide.
+
+    Note:
+        There is no ExtendScript equivalent for this enum.
+    """
+
+    HORIZONTAL = 0
+    VERTICAL = 1
+
+    @classmethod
+    def from_binary(cls, value: int) -> GuideOrientationType:
+        """Convert binary value to GuideOrientationType."""
+        return _GUIDE_ORIENTATION_BINARY_MAP.get(value, cls.HORIZONTAL)
+
+    def to_binary(self) -> int:
+        """Convert GuideOrientationType to binary value."""
+        return _GUIDE_ORIENTATION_TO_BINARY[self]
+
+
+_GUIDE_ORIENTATION_BINARY_MAP: dict[int, GuideOrientationType] = {
+    2: GuideOrientationType.HORIZONTAL,
+    1: GuideOrientationType.VERTICAL,
+}
+_GUIDE_ORIENTATION_TO_BINARY: dict[GuideOrientationType, int] = {
+    v: k for k, v in _GUIDE_ORIENTATION_BINARY_MAP.items()
+}
 
 
 class ImportAsType(IntEnum):
@@ -374,6 +568,10 @@ class LayerQuality(IntEnum):
         except ValueError:
             return cls.BEST
 
+    def to_binary(self) -> int:
+        """Convert LayerQuality to binary value."""
+        return int(self) - 4612
+
 
 class LayerSamplingQuality(IntEnum):
     """Sampling quality for a layer.
@@ -391,6 +589,10 @@ class LayerSamplingQuality(IntEnum):
             return cls(value + 4812)
         except ValueError:
             return cls.BILINEAR
+
+    def to_binary(self) -> int:
+        """Convert LayerSamplingQuality to binary value."""
+        return int(self) - 4812
 
 
 class LightType(IntEnum):
@@ -412,6 +614,37 @@ class LightType(IntEnum):
             return cls(value + 4412)
         except ValueError:
             return cls.PARALLEL
+
+    def to_binary(self) -> int:
+        """Convert LightType to binary value."""
+        return int(self) - 4412
+
+
+class LinearLightMode(IntEnum):
+    """Interpret As Linear Light setting for footage color management.
+
+    Controls whether footage is treated as having linear gamma in the
+    Interpret Footage > Color Management tab.
+
+    Note:
+        Not exposed in ExtendScript.
+    """
+
+    OFF = 0
+    ON = 1
+    ON_FOR_32BPC = 2
+
+    @classmethod
+    def from_binary(cls, value: int) -> LinearLightMode:
+        """Convert binary value to LinearLightMode."""
+        try:
+            return cls(value)
+        except ValueError:
+            return cls.OFF
+
+    def to_binary(self) -> int:
+        """Convert LinearLightMode to binary value."""
+        return int(self)
 
 
 class LoopMode(IntEnum):
@@ -439,6 +672,10 @@ class MaskFeatherFalloff(IntEnum):
         except ValueError:
             return cls.FFO_SMOOTH
 
+    def to_binary(self) -> int:
+        """Convert MaskFeatherFalloff to binary value."""
+        return self.value - 7212
+
 
 class MaskMode(IntEnum):
     """Blending mode for masks.
@@ -462,6 +699,10 @@ class MaskMode(IntEnum):
         except ValueError:
             return cls.NONE
 
+    def to_binary(self) -> int:
+        """Convert MaskMode to binary value."""
+        return self.value - 6812
+
 
 class MaskMotionBlur(IntEnum):
     """Motion blur setting for masks.
@@ -480,12 +721,21 @@ class MaskMotionBlur(IntEnum):
         Note: binary 1 = Off and binary 2 = On (swapped relative
         to enum integer order where ON = 7013 < OFF = 7014).
         """
-        _mapping = {
-            0: cls.SAME_AS_LAYER,
-            1: cls.OFF,
-            2: cls.ON,
-        }
-        return _mapping.get(value, cls.SAME_AS_LAYER)
+        return _MASK_MOTION_BLUR_BINARY_MAP.get(value, cls.SAME_AS_LAYER)
+
+    def to_binary(self) -> int:
+        """Convert MaskMotionBlur to binary value."""
+        return _MASK_MOTION_BLUR_TO_BINARY[self]
+
+
+_MASK_MOTION_BLUR_BINARY_MAP: dict[int, MaskMotionBlur] = {
+    0: MaskMotionBlur.SAME_AS_LAYER,
+    1: MaskMotionBlur.OFF,
+    2: MaskMotionBlur.ON,
+}
+_MASK_MOTION_BLUR_TO_BINARY: dict[MaskMotionBlur, int] = {
+    v: k for k, v in _MASK_MOTION_BLUR_BINARY_MAP.items()
+}
 
 
 class PlayMode(IntEnum):
@@ -552,6 +802,33 @@ class PulldownPhase(IntEnum):
     SWWWW_24P_ADVANCE = 5821
     WWWWS_24P_ADVANCE = 5822
 
+    @classmethod
+    def from_binary(cls, value: int) -> PulldownPhase:
+        """Convert binary value to PulldownPhase."""
+        return _PULLDOWN_BINARY_MAP.get(value, cls.OFF)
+
+    def to_binary(self) -> int:
+        """Convert PulldownPhase to binary value."""
+        return _PULLDOWN_TO_BINARY[self]
+
+
+_PULLDOWN_BINARY_MAP: dict[int, PulldownPhase] = {
+    0: PulldownPhase.OFF,
+    1: PulldownPhase.WSSWW,
+    2: PulldownPhase.SSWWW,
+    3: PulldownPhase.SWWWS,
+    4: PulldownPhase.WWWSS,
+    5: PulldownPhase.WWSSW,
+    6: PulldownPhase.WWWSW_24P_ADVANCE,
+    7: PulldownPhase.WWSWW_24P_ADVANCE,
+    8: PulldownPhase.WSWWW_24P_ADVANCE,
+    9: PulldownPhase.SWWWW_24P_ADVANCE,
+    10: PulldownPhase.WWWWS_24P_ADVANCE,
+}
+_PULLDOWN_TO_BINARY: dict[PulldownPhase, int] = {
+    v: k for k, v in _PULLDOWN_BINARY_MAP.items()
+}
+
 
 class PurgeTarget(IntEnum):
     """Target for purging caches.
@@ -592,6 +869,10 @@ class TimeDisplayType(IntEnum):
             return cls(value + 2012)
         except ValueError:
             return cls.TIMECODE
+
+    def to_binary(self) -> int:
+        """Convert TimeDisplayType to binary value."""
+        return int(self) - 2012
 
 
 class ToolType(IntEnum):
@@ -661,6 +942,10 @@ class TrackMatteType(IntEnum):
         except ValueError:
             return cls.NO_TRACK_MATTE
 
+    def to_binary(self) -> int:
+        """Convert TrackMatteType to binary value."""
+        return int(self) - 5012
+
 
 class ViewerType(IntEnum):
     """Type of viewer panel.
@@ -671,6 +956,29 @@ class ViewerType(IntEnum):
     VIEWER_COMPOSITION = 7612
     VIEWER_LAYER = 7613
     VIEWER_FOOTAGE = 7614
+
+    @classmethod
+    def from_string(cls, label: str) -> ViewerType:
+        """Map a viewer panel type label string to a ViewerType enum.
+
+        The `fitt` chunk stores the inner tab type as an ASCII string
+        (e.g. `"AE Composition"`). This converts that string to the
+        corresponding ViewerType value.
+
+        Raises:
+            ValueError: If the label is not recognized.
+        """
+        try:
+            return _VIEWER_STRING_MAP[label]
+        except KeyError:
+            raise ValueError(f"Unknown viewer type label: {label!r}") from None
+
+
+_VIEWER_STRING_MAP: dict[str, ViewerType] = {
+    "AE Composition": ViewerType.VIEWER_COMPOSITION,
+    "AE Layer": ViewerType.VIEWER_LAYER,
+    "AE Footage": ViewerType.VIEWER_FOOTAGE,
+}
 
 
 class FillLightingCorrectionType(IntEnum):

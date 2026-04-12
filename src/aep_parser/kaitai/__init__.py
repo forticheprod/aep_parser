@@ -1,6 +1,7 @@
 """Kaitai Struct parser for AEP file format."""
 
-from .aep_optimized import Aep
+from . import patches as patches  # noqa: F401  # monkey-patch body classes
+from .aep import Aep as Aep  # type: ignore[attr-defined]
 from .utils import (
     ChunkNotFoundError,
     filter_by_list_type,

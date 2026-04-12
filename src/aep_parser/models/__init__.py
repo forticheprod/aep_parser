@@ -1,6 +1,8 @@
 """Data models for After Effects project structure."""
 
 from .application import Application
+from .essential_graphics import EssentialGraphicsController
+from .guide import Guide
 from .items.av_item import AVItem
 from .items.composition import CompItem
 from .items.folder import FolderItem
@@ -34,7 +36,7 @@ from .renderqueue.format_options import (
 from .renderqueue.output_module import OutputModule
 from .renderqueue.render_queue import RenderQueue
 from .renderqueue.render_queue_item import RenderQueueItem
-from .settings import OutputModuleSettings, RenderSettings
+from .renderqueue.settings import SettingsView
 from .sources.file import FileSource
 from .sources.footage import FootageSource
 from .sources.placeholder import PlaceholderSource
@@ -52,12 +54,14 @@ __all__ = [
     "CameraLayer",
     "CineonFormatOptions",
     "CompItem",
+    "EssentialGraphicsController",
     "FeatherPoint",
     "FileSource",
     "FolderItem",
     "FontObject",
     "FootageItem",
     "FootageSource",
+    "Guide",
     "Item",
     "JpegFormatOptions",
     "Keyframe",
@@ -68,7 +72,6 @@ __all__ = [
     "MaskPropertyGroup",
     "OpenExrFormatOptions",
     "OutputModule",
-    "OutputModuleSettings",
     "PlaceholderSource",
     "PngFormatOptions",
     "Project",
@@ -77,7 +80,7 @@ __all__ = [
     "PropertyGroup",
     "RenderQueue",
     "RenderQueueItem",
-    "RenderSettings",
+    "SettingsView",
     "Shape",
     "ShapeLayer",
     "SolidSource",

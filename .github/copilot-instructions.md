@@ -10,14 +10,21 @@ A Python library for parsing Adobe After Effects project files (.aep). The binar
 .aep file > Kaitai (kaitai/aep.ksy) > Raw chunks > Parsers > Model dataclasses
 ```
 
+### Property Parsing Pipeline
+Properties go through three stages. See [CONTRIBUTING.md](../CONTRIBUTING.md#property--effect-parsing-flow) for the full diagram.
+
+1. **Binary parsing**: `parse_layer()` > `get_chunks_by_match_name()` > `parse_properties()` dispatches by chunk list_type (tdgp > PropertyGroup, tdbs > Property, sspc > Effect, etc.)
+2. **Effect enrichment**: `parse_effect()` merges param defs from `LIST:parT` (layer-level, with project-level fallback from `LIST:EfdG`) into parsed properties via `_merge_param_def()`, and synthesizes missing params via `_synthesize_effect_property()`
+3. **Post-processing**: `set_transform_defaults()` > `set_layer_property_defaults()` > `_synthesize_children()` > `_fill_from_specs()` > `_apply_min_max_bounds()`. Synthesis uses `_PropSpec` (leaf Property) and `_GroupSpec` (empty PropertyGroup) with `ProxyBody` for chunk bodies.
+
 ### Key Directories
 - **`src/aep_parser/kaitai/`** - Binary parsing layer
   - `aep.ksy` - Kaitai schema defining RIFX chunk structure (auto-generates `aep.py`)
-  - `aep_optimized.py` - Performance optimizations via monkey-patching
   - `utils.py` - Chunk filtering helpers (`find_by_type`, `filter_by_list_type`)
+  - `patches.py` - Monkey-patches on auto-generated Kaitai body classes (e.g. `_recompute_size` for variable-size bodies)
 - **`src/aep_parser/__init__.py`** - Public API entry point: `parse()`
 - **`src/aep_parser/parsers/`** - Transform raw chunks into models
-  - `application.py`, `project.py`, `mappings.py`, `match_names.py`, `render_queue.py`, ...
+  - `application.py`, `project.py`, `match_names.py`, `render_queue.py`, ...
   - Pattern: Each parser receives chunks + context, returns a model instance
 - **`src/aep_parser/models/`** - Typed dataclasses mirroring AE's object model
   - `application.py`, `items/`, `layers/`, `properties/`, `sources/`, `renderqueue/`, ...
@@ -37,8 +44,8 @@ uv run pytest                        # Run tests (parallel)
 uv run pytest --cov=src/aep_parser --cov-report html --cov-report term:skip-covered  # With coverage
 uv run mypy src/aep_parser           # Type checking
 uv run ruff check src/ ; uv run ruff format src/  # Linting (excludes auto-generated kaitai/aep.py)
-uv run mkdocs build --strict         # Build documentation
-uv run mkdocs serve --strict         # Serve documentation locally (with live reload)
+uv run zensical build --strict         # Build documentation
+uv run zensical serve --strict         # Serve documentation locally (with live reload)
 ```
 
 JSX scripts run in After Effects via VS Code debugger - see `.vscode/launch.json`.
@@ -52,7 +59,22 @@ JSX scripts run in After Effects via VS Code debugger - see `.vscode/launch.json
 - PEP8 naming: snake_case for functions/variables, PascalCase for classes
 - Use `pathlib` for file paths, f-strings for formatting
 - No spaces on empty lines
+- No em dashes (`—`) nor en-dashes (`–`); use regular dashes (`-`)
+- In docstrings, use single backticks (`` ` ``) not double (` `` `)
+- Use `>` or `->` instead of unicode arrow symbols (`→`)
 - **No `struct` module** - all binary decoding must be in `kaitai/aep.ksy`
+- **Constructor param ordering**: `__init__` parameters follow: private (`_`-prefixed chunk refs) -> back-references (`project`, `parent_folder`, `containing_comp`, `parent`, `comp`) -> public domain params. Call sites must match this order.
+- **No backward compatibility** - when refactoring internal APIs (renaming functions, replacing classes with factory methods, etc.), update all call sites directly. Do not add shims, aliases, or deprecation wrappers for internal code.
+- **Idempotent round-trip** - `parse()` then `save()` must produce byte-identical output. Parsers must not mutate Kaitai chunk data (use `__dict__["field"]` to modify without side effects when needed). Beware of `strz` for fixed-size string fields in `aep.ksy`.
+
+### Avoiding Code Slop
+- **No identity casts**: don't `int(x)` when x is already int, `str(x)` when x is already str, `bool(x == y)` when `==` already returns bool, etc.
+- **No redundant exception tuples**: `except (SpecificError, Exception)` - `Exception` already catches everything. Use just `except Exception` or just `except SpecificError`.
+- **Only catch what can be raised**: don't add `try/except` "just in case". Shield code only when you know it raises or when a caller explicitly documents exceptions.
+- **No silent `except Exception: pass`** without a comment explaining why swallowing errors is correct.
+- **No dead defaults**: `getattr(obj, "attr", 0)` when the attribute always exists is misleading. Access the attribute directly.
+- **Comments explain WHY, not WHAT**: `# Convert None to 0 for pre-v23 files` is useful; `# Get the chunk` or `# Parse the layer` is not.
+- **No docstrings that restate the function name or signature**. ExtendScript-sourced docstrings on model fields are fine.
 
 ### Adding New Parsed Data
 1. Find/add chunk type in `kaitai/aep.ksy`
@@ -60,8 +82,8 @@ JSX scripts run in After Effects via VS Code debugger - see `.vscode/launch.json
 3. Add parser in `parsers/`:
    ```python
    def parse_thing(chunk: Aep.Chunk, context: ...) -> ThingModel:
-       data_chunk = find_by_type(chunks=chunk.chunks, chunk_type="xxxx")
-       return ThingModel(field=data_chunk.field)
+       data_chunk = find_by_type(chunks=chunk.body.chunks, chunk_type="xxxx")
+       return ThingModel(field=data_chunk.body.field)
    ```
 4. Validate parsed values against ExtendScript using `aep-validate` (see [CLI Tools](#cli-tools))
 5. Add test case in `tests/test_models_*.py` using sample .aep files
@@ -90,26 +112,40 @@ layer_chunks = filter_by_list_type(chunks=comp_chunks, list_type="Layr")
 
 For debugging, `chunk_tree(chunks, depth)` prints the chunk hierarchy and `recursive_find(chunks, chunk_type, list_type)` searches the entire tree recursively.
 
-### Chunk Attribute Proxy (`__getattr__` override)
-`aep_optimized.py` monkey-patches `Aep.Chunk.__getattr__` so attribute access on a chunk delegates to `chunk.data` when not found on the chunk itself:
+### Typed LIST Instances
+Some LIST types have children at **fixed positions**. For these, `list_body` in `aep.ksy` defines Kaitai instances that provide direct access by name instead of `find_by_type`:
+
 ```python
-chunk.list_type          # shorter - uses __getattr__ proxy
-chunk.data.list_type     # equivalent explicit access
-cdta_chunk.time_scale    # proxied from cdta_chunk.data.time_scale
+# LIST:list - keyframe/shape data
+list_chunk.body.lhd3          # chunks[0] - header (count + item size)
+list_chunk.body.ldat          # chunks[1] - data items (None if no keyframes)
+
+# LIST:tdbs - leaf property container
+tdbs_chunk.body.tdsb          # chunks[0] - property flags
+tdbs_chunk.body.tdsn          # chunks[1] - property name
+tdbs_chunk.body.tdb4          # chunks[2] - property metadata
 ```
-Any attribute access on a `Chunk` object may actually come from `chunk.data`.
+
+Each instance has an `if` guard on `list_type`, so accessing e.g. `.lhd3` on a non-`list` LIST returns `None`. Use `find_by_type` when the LIST type is unknown or when a function handles multiple LIST types (e.g. `parse_layer` handles both `Layr` and `SecL`).
+
+### Chunk Data Access
+Chunk attributes live on `chunk.body`, not on the chunk itself. Always use explicit `chunk.body.X` access:
+```python
+chunk.body.list_type     # the list_type of a LIST chunk
+cdta_chunk.body.time_scale  # a typed body field
+```
 
 ### Value Mapping Pattern
 Binary values often differ from ExtendScript values. Single-param mappings use a `from_binary` classmethod on the enum (`enums/general.py` or relevant module):
 ```python
 blending_mode = BlendingMode.from_binary(raw_value)
 ```
-Multi-param mappings (e.g. `map_alpha_mode(value, has_alpha)`) go in `parsers/mappings.py`.
+Multi-param mappings (e.g. `map_alpha_mode(value, has_alpha)`) go in `enums/mappings.py`.
 
 When adding new mappings:
 1. Add enum to `enums/general.py` (matching ExtendScript values)
 2. Single-param: add `from_binary(cls, value)` classmethod
-3. Multi-param: create `map_<name>()` in `parsers/mappings.py`
+3. Multi-param: create `map_<name>()` in `enums/mappings.py`
 4. Use `.get(value, default)` for unknown values
 
 ## Testing
@@ -121,10 +157,8 @@ When adding new mappings:
 ## Regenerating Kaitai Parser
 When modifying `aep.ksy`, regenerate:
 ```powershell
-kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_parser/kaitai/aep.ksy
+kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_parser/kaitai/aep.ksy --read-write --no-auto-read
 ```
-No manual edits needed after regeneration - `aep_optimized.py` applies optimizations automatically.
-
 **Integer division pitfall:** Kaitai's `/` on two integers compiles to `//` (floor division). Multiply one operand by `1.0` for true division: `value: 'dividend * 1.0 / divisor'`.
 
 ## Important Notes
@@ -154,7 +188,7 @@ aep-compare file.aep --dump "LIST:Fold/ftts" # dump raw bytes
 ```
 
 ## Documentation
-MkDocs with Material theme; auto-deployed to [GitHub Pages](https://forticheprod.github.io/aep_parser/) on push to `main`. Build locally: `mkdocs serve --strict`.
+Zensical; auto-deployed to [GitHub Pages](https://forticheprod.github.io/aep_parser/) on push to `main`. Build locally: `zensical serve --strict`.
 
 ### Docstring Conventions
 - **Functions**: Google-style (Args, Returns, Raises sections)
@@ -179,5 +213,5 @@ MkDocs with Material theme; auto-deployed to [GitHub Pages](https://forticheprod
 ### Adding Documentation Pages
 1. Create markdown file in `docs/api/`
 2. Reference Python objects: `::: aep_parser.models.my_module.MyClass`
-3. Add to `nav:` in `mkdocs.yml`
-4. Verify: `mkdocs serve --strict`
+3. Add to `nav:` in `zensical.toml`
+4. Verify: `zensical serve --strict`

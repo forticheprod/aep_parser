@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import typing
-from dataclasses import dataclass, field
 
 from .item import Item
 
+if typing.TYPE_CHECKING:
+    from ...kaitai import Aep
+    from ..project import Project
+    from ..viewer.viewer import Viewer
 
-@dataclass(eq=False)
+
 class FolderItem(Item):
     """
     The `FolderItem` object corresponds to a folder in your Project panel. It
@@ -27,10 +30,33 @@ class FolderItem(Item):
     See: https://ae-scripting.docsforadobe.dev/item/folderitem/
     """
 
-    items: list[Item] = field(default_factory=list)
+    items: list[Item]
     """
     The items in this folder. Contains only the top-level items in the folder.
+    Read-only.
     """
+
+    def __init__(
+        self,
+        *,
+        _idta: Aep.IdtaBody | None,
+        _name_utf8: Aep.Utf8Body | None,
+        _cmta: Aep.Utf8Body | None,
+        _item_list: Aep.ListBody | None = None,
+        project: Project,
+        parent_folder: FolderItem | None,
+    ) -> None:
+        super().__init__(
+            _idta=_idta,
+            _name_utf8=_name_utf8,
+            _cmta=_cmta,
+            _item_list=_item_list,
+            project=project,
+            parent_folder=parent_folder,
+            type_name="Folder",
+        )
+        self.items: list[Item] = []
+        self._viewers: list[Viewer] = []
 
     def __iter__(self) -> typing.Iterator[Item]:
         """Return an iterator over the folder items."""

@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from .av_layer import AVLayer
 
 
-@dataclass(eq=False)
 class TextLayer(AVLayer):
     """
     The `TextLayer` object represents a text layer within a composition.

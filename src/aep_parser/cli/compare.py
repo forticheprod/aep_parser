@@ -1,7 +1,7 @@
 """
-AEP/AEPX File Comparison Tool.
+AEP File Comparison Tool.
 
-Compares After Effects project files (.aep or .aepx) and reports differences
+Compares After Effects project files (.aep) and reports differences
 at the byte level, including:
 - The hierarchical chunk path where the difference occurs
 - Byte position and hex values
@@ -20,7 +20,6 @@ import argparse
 import json
 import sys
 import traceback
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterator
@@ -51,7 +50,6 @@ class ByteDifference:
         """Calculate bit position if only one bit differs."""
         xor = self.byte1 ^ self.byte2
         if xor != 0 and (xor & (xor - 1)) == 0:  # Check if only one bit is set
-            # Find the bit position (7 to 0 from left to right)
             self.bit_position = 7 - (xor.bit_length() - 1)
 
     def format_diff(self) -> str:
@@ -85,7 +83,7 @@ class MultiFileDifference:
     path: str
     offset: int
     values: list[int]
-    """Byte value per file. ``-1`` if the chunk is missing in that file."""
+    """Byte value per file. `-1` if the chunk is missing in that file."""
     bit_position: int | None = None
 
     def __post_init__(self) -> None:
@@ -106,76 +104,7 @@ class MultiChunkDifference:
     path: str
     diffs: list[MultiFileDifference]
     sizes: list[int] = field(default_factory=list)
-    """Chunk size per file. ``0`` if missing."""
-
-
-# ── AEPX parsing ────────────────────────────────────────────────────────────
-
-
-def parse_aepx(file_path: Path) -> dict[str, bytes]:
-    """
-    Parse an AEPX file and extract all bdata elements with their paths.
-
-    Returns a dict mapping element paths to their binary data.
-    """
-    tree = ET.parse(file_path)
-    root = tree.getroot()
-
-    # Remove namespace for easier navigation
-    for elem in root.iter():
-        if "}" in elem.tag:
-            elem.tag = elem.tag.split("}", 1)[1]
-
-    result: dict[str, bytes] = {}
-    _extract_bdata_recursive(root, "", result)
-    return result
-
-
-def _extract_bdata_recursive(
-    element: ET.Element,
-    parent_path: str,
-    result: dict[str, bytes],
-    counters: dict[str, int] | None = None,
-) -> None:
-    """Recursively extract bdata from all elements."""
-    if counters is None:
-        counters = {}
-
-    # Build current path with index for duplicates
-    tag = element.tag
-    counter_key = parent_path + "/" + tag if parent_path else tag
-
-    if counter_key not in counters:
-        counters[counter_key] = 0
-    else:
-        counters[counter_key] += 1
-
-    if counters[counter_key] > 0:
-        current_path = (
-            f"{parent_path}/{tag}[{counters[counter_key]}]"
-            if parent_path
-            else f"{tag}[{counters[counter_key]}]"
-        )
-    else:
-        current_path = f"{parent_path}/{tag}" if parent_path else tag
-
-    # Skip XML metadata elements
-    if tag in ("ProjectXMPMetadata", "xmpmeta"):
-        return
-
-    # Extract bdata if present
-    bdata = element.get("bdata")
-    if bdata:
-        try:
-            binary_data = bytes.fromhex(bdata)
-            result[current_path] = binary_data
-        except ValueError:
-            pass  # Skip invalid hex data
-
-    # Recurse into children
-    child_counters: dict[str, int] = {}
-    for child in element:
-        _extract_bdata_recursive(child, current_path, result, child_counters)
+    """Chunk size per file. `0` if missing."""
 
 
 # ── Binary comparison ───────────────────────────────────────────────────────
@@ -221,10 +150,11 @@ def parse_aep_chunks(file_path: Path) -> dict[str, bytes]:
     Returns a dict mapping chunk paths to their raw binary data.
     Only leaf chunks (non-LIST) are included.
     """
-    aep = Aep.from_file(str(file_path))
-    result: dict[str, bytes] = {}
-    _extract_chunks_recursive(aep.data.chunks, "", result)
-    return result
+    with Aep.from_file(str(file_path)) as aep:
+        aep._read()
+        result: dict[str, bytes] = {}
+        _extract_chunks_recursive(aep.body.chunks, "", result)
+        return result
 
 
 def _get_chunk_identifier(chunk: Any) -> str:
@@ -232,8 +162,8 @@ def _get_chunk_identifier(chunk: Any) -> str:
     chunk_type = str(chunk.chunk_type)
 
     # For LIST chunks, include the list_type
-    if chunk_type == "LIST" and hasattr(chunk, "list_type"):
-        return f"LIST:{chunk.list_type}"
+    if chunk_type == "LIST" and hasattr(chunk.body, "list_type"):
+        return f"LIST:{chunk.body.list_type}"
 
     return chunk_type
 
@@ -247,7 +177,7 @@ def _build_chunk_path(
 
     Args:
         parent_path: Parent chunk path prefix.
-        identifier: Chunk identifier (e.g. ``ldta``, ``LIST:Fold``).
+        identifier: Chunk identifier (e.g. `ldta`, `LIST:Fold`).
         counters: Mutable counter dict tracking duplicates at this level.
 
     Returns:
@@ -290,16 +220,16 @@ def _extract_chunks_recursive(
 
         # Recurse into LIST chunks without storing their raw data
         if chunk.chunk_type == "LIST":
-            if hasattr(chunk, "chunks") and chunk.chunks:
+            if hasattr(chunk.body, "chunks") and chunk.body.chunks:
                 child_counters: dict[str, int] = {}
                 _extract_chunks_recursive(
-                    chunk.chunks, current_path, result, child_counters
+                    chunk.body.chunks, current_path, result, child_counters
                 )
             # Skip LIST chunks entirely (even empty ones)
         else:
             # Only store raw data for leaf chunks
             try:
-                raw_data = chunk._raw_data
+                raw_data = chunk._raw_body
                 if raw_data:
                     result[current_path] = raw_data
             except (AttributeError, TypeError):
@@ -347,38 +277,6 @@ def _compare_chunk_dicts(
     return differences, only_in_1, only_in_2
 
 
-def compare_aepx_files(
-    file1: Path, file2: Path
-) -> tuple[list[ChunkDifference], list[str], list[str]]:
-    """
-    Compare two AEPX files and return differences.
-
-    Returns:
-        - List of ChunkDifference for chunks that exist in both files
-        - List of paths that only exist in file1
-        - List of paths that only exist in file2
-    """
-    data1 = parse_aepx(file1)
-    data2 = parse_aepx(file2)
-    return _compare_chunk_dicts(data1, data2)
-
-
-def compare_aep_files(
-    file1: Path, file2: Path
-) -> tuple[list[ChunkDifference], list[str], list[str]]:
-    """
-    Compare two AEP files and return differences.
-
-    Returns:
-        - List of ChunkDifference for chunks that exist in both files
-        - List of paths that only exist in file1
-        - List of paths that only exist in file2
-    """
-    data1 = parse_aep_chunks(file1)
-    data2 = parse_aep_chunks(file2)
-    return _compare_chunk_dicts(data1, data2)
-
-
 # ── List chunks ─────────────────────────────────────────────────────────────
 
 
@@ -405,7 +303,7 @@ def _walk_chunks_tree(
 
         size = 0
         try:
-            raw = chunk._raw_data
+            raw = chunk._raw_body
             if raw:
                 size = len(raw)
         except (AttributeError, TypeError):
@@ -413,13 +311,13 @@ def _walk_chunks_tree(
 
         is_list = (
             chunk.chunk_type == "LIST"
-            and hasattr(chunk, "chunks")
-            and chunk.chunks is not None
+            and hasattr(chunk.body, "chunks")
+            and chunk.body.chunks is not None
         )
         yield current_path, identifier, size, depth, is_list
 
         if is_list:
-            yield from _walk_chunks_tree(chunk.chunks, current_path, depth + 1)
+            yield from _walk_chunks_tree(chunk.body.chunks, current_path, depth + 1)
 
 
 def list_aep_chunks(file_path: Path) -> None:
@@ -429,9 +327,10 @@ def list_aep_chunks(file_path: Path) -> None:
         file_path: Path to the AEP file.
     """
     aep = Aep.from_file(str(file_path))
+    aep._read()
     print(f"\nChunk tree: {file_path.name}\n")
 
-    for _path, identifier, size, depth, is_list in _walk_chunks_tree(aep.data.chunks):
+    for _path, identifier, size, depth, is_list in _walk_chunks_tree(aep.body.chunks):
         indent = "  " * depth
         if is_list:
             print(f"{indent}{identifier}/")
@@ -490,7 +389,7 @@ def dump_aep_chunk(file_path: Path, chunk_path: str) -> None:
 
     Args:
         file_path: Path to the AEP file.
-        chunk_path: Full or partial chunk path (e.g. ``LIST:Fold/ftts``).
+        chunk_path: Full or partial chunk path (e.g. `LIST:Fold/ftts`).
     """
     chunks = parse_aep_chunks(file_path)
 
@@ -587,7 +486,7 @@ def _format_context_line(label: str, data: bytes, offset: int, context: int) -> 
     """Format a context line showing bytes around a diff offset.
 
     Args:
-        label: Label for this line (e.g. ``File 1``).
+        label: Label for this line (e.g. `File 1`).
         data: Full chunk data.
         offset: The diff offset to highlight.
         context: Number of bytes before/after to show.
@@ -900,13 +799,7 @@ Output shows for each different byte:
         "files",
         type=Path,
         nargs="+",
-        help=("AEP/AEPX files. One file for --list/--dump, two or more for comparison"),
-    )
-    parser.add_argument(
-        "--format",
-        choices=["auto", "aep", "aepx"],
-        default="auto",
-        help="File format (default: auto-detect from extension)",
+        help="AEP files. One file for --list/--dump, two or more for comparison",
     )
     parser.add_argument(
         "--json",
@@ -982,23 +875,9 @@ Output shows for each different byte:
         )
         return 1
 
-    # Determine format
-    file_format = args.format
-    if file_format == "auto":
-        extensions = {f.suffix.lower() for f in files}
-        if len(extensions) > 1:
-            print(
-                "Error: Files have different extensions. "
-                "Use --format to specify the format.",
-                file=sys.stderr,
-            )
-            return 1
-        ext = extensions.pop()
-        file_format = "aepx" if ext == ".aepx" else "aep"
+    # ── Multi-file comparison (3+ AEP files) ──────────────────────
 
-    # ── Multi-file comparison (3+ AEP files) ──────────────────────────
-
-    if len(files) > 2 and file_format == "aep":
+    if len(files) > 2:
         try:
             multi_diffs, missing, all_data = compare_multi_aep_files(files)
         except Exception as e:
@@ -1025,18 +904,12 @@ Output shows for each different byte:
     file1, file2 = files[0], files[1]
 
     try:
-        if file_format == "aepx":
-            diffs, only1, only2 = compare_aepx_files(file1, file2)
-            # No context data available for AEPX
-            ctx1: dict[str, bytes] | None = None
-            ctx2: dict[str, bytes] | None = None
-        else:
-            # Parse once and reuse for both comparison and context
-            data1 = parse_aep_chunks(file1)
-            data2 = parse_aep_chunks(file2)
-            diffs, only1, only2 = _compare_chunk_dicts(data1, data2)
-            ctx1 = data1 if args.context > 0 else None
-            ctx2 = data2 if args.context > 0 else None
+        # Parse once and reuse for both comparison and context
+        data1 = parse_aep_chunks(file1)
+        data2 = parse_aep_chunks(file2)
+        diffs, only1, only2 = _compare_chunk_dicts(data1, data2)
+        ctx1: dict[str, bytes] | None = data1 if args.context > 0 else None
+        ctx2: dict[str, bytes] | None = data2 if args.context > 0 else None
     except Exception as e:
         print(f"Error comparing files: {e}", file=sys.stderr)
         traceback.print_exc()

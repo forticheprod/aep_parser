@@ -1,24 +1,49 @@
 from __future__ import annotations
 
+import logging
 import math
 import typing
-from dataclasses import dataclass
 from typing import cast
 
 from aep_parser.enums import PropertyControlType, PropertyType, PropertyValueType
+from aep_parser.resolvers.interpolation import interpolate_keyframes
 
+from ...data.units import UNITS_TEXT_MAP
+from ...kaitai.descriptors import ChunkField
+from ...kaitai.proxy import ProxyBody
+from ...kaitai.utils import create_chunk, create_tdsb_chunk, propagate_check
+from ..validators import validate_number, validate_sequence
+from .overrides import (
+    _ALWAYS_MODIFIED,
+    _CANVARY_OVERRIDES,
+    _ISSPATIAL_OVERRIDES,
+    _NAME_OVERRIDES,
+)
 from .property_base import PropertyBase
+from .specs import _USE_VALUE
 
 if typing.TYPE_CHECKING:
     from typing import Any
 
-    from aep_parser.enums import KeyframeInterpolationType, Label
-    from aep_parser.models.properties.keyframe_ease import KeyframeEase
     from aep_parser.models.properties.marker import MarkerValue
     from aep_parser.models.properties.shape import Shape
     from aep_parser.models.text.text_document import TextDocument
 
+    from ...kaitai import Aep
     from .keyframe import Keyframe
+    from .specs import _PropSpec
+
+logger = logging.getLogger(__name__)
+
+_UNSET = object()  # sentinel for unset min/max fallback
+
+# Match names whose binary values are stored as 0-1 fractions but
+# ExtendScript reports as 0-100 percentages.
+_PERCENT_MATCH_NAMES: set[str] = {
+    "ADBE Opacity",
+    "ADBE Scale",
+    "ADBE Mask Opacity",
+}
 
 _SEPARATION_LEADER = "ADBE Position"
 _SEPARATION_FOLLOWERS: list[str] = [
@@ -26,6 +51,51 @@ _SEPARATION_FOLLOWERS: list[str] = [
     "ADBE Position_1",
     "ADBE Position_2",
 ]
+
+
+def _get_min(prop: Any) -> float | None:
+    v = prop.min_value
+    return v if isinstance(v, (int, float)) else None
+
+
+def _get_max(prop: Any) -> float | None:
+    v = prop.max_value
+    return v if isinstance(v, (int, float)) else None
+
+
+_NUMERIC_VALUE_TYPES: set[PropertyValueType] = {
+    PropertyValueType.OneD,
+    PropertyValueType.TwoD,
+    PropertyValueType.TwoD_SPATIAL,
+    PropertyValueType.ThreeD,
+    PropertyValueType.ThreeD_SPATIAL,
+    PropertyValueType.COLOR,
+}
+
+
+def _get_dimensions(prop: Any) -> int:
+    d: int = prop.dimensions
+    # Color properties use dimensions=1 but store 4-element lists.
+    if prop._color:
+        return 4
+    return d
+
+
+_validate_scalar = validate_number(min=_get_min, max=_get_max)
+_validate_list = validate_sequence(length=_get_dimensions, min=_get_min, max=_get_max)
+
+
+def _validate_value(prop: Property, value: Any) -> None:
+    """Validate type, length and bounds of a property value."""
+    if value is None:
+        return
+    if prop.property_value_type not in _NUMERIC_VALUE_TYPES:
+        return
+    expects_list = prop.dimensions > 1 or prop._color
+    if expects_list:
+        _validate_list(value, prop)
+    else:
+        _validate_scalar(value, prop)
 
 
 def _values_equal(a: Any, b: Any) -> bool:
@@ -47,7 +117,6 @@ def _values_equal(a: Any, b: Any) -> bool:
     return bool(a == b)
 
 
-@dataclass
 class Property(PropertyBase):
     """
     The `Property` object contains value, keyframe, and expression information
@@ -72,146 +141,712 @@ class Property(PropertyBase):
     See: https://ae-scripting.docsforadobe.dev/property/property/
     """
 
-    animated: bool
-    """When `True`, the property has keyframes."""
-
-    can_vary_over_time: bool
-    """
-    When `True`, the named property can vary over time — that is, keyframe
-    values or expressions can be written to this property.
-
-    Note:
-        A small subset of effect dropdown / menu parameters may report
-        `can_vary_over_time` as `False` in the binary even though After
-        Effects allows keyframing them.
-    """
-
-    color: bool
-    """When `True`, the property value is a color."""
-
-    dimensions_separated: bool
-    """
-    When `True`, the property's dimensions are represented as separate
-    properties. For example, if the layer's position is represented as X
-    Position and Y Position properties in the Timeline panel, the Position
-    property has this attribute set to `True`. This attribute applies only
-    when the property is a "separation leader" (a multidimensional property
-    that can be separated).
-    """
-
-    dimensions: int
-    """The number of dimensions in the property value (1, 2, or 3)."""
-
-    expression_enabled: bool
-    """
-    When `True`, the named property uses its associated expression to generate
-    a value. When `False`, the keyframe information or static value of the
-    property is used.
-    """
-
-    expression: str
-    """
-    The expression for the named property. Writeable only when
-    `can_set_expression` for the named property is `True`.
-    """
-
-    integer: bool
-    """When `True`, the property value is an integer."""
-
-    is_spatial: bool
-    """
-    When `True`, the named property defines a spatial value. Examples are
-    position and effect point controls.
-    """
-
     keyframes: list[Keyframe]
-    """The list of keyframes for this property."""
+    """The list of keyframes for this property. Read-only."""
 
-    locked_ratio: bool
-    """When `True`, the property's X/Y ratio is locked."""
-
-    no_value: bool
-    """When `True`, the property stores no data."""
-
-    property_control_type: PropertyControlType
-    """
-    The type of effect control (scalar, color, enum, etc.) for this property.
-    """
-
-    property_value_type: PropertyValueType
-    """
-    The type of value stored in the named property. Each type of data is
-    stored and retrieved in a different kind of structure. For example, a 3D
-    spatial property (such as a layer's position) is stored as an array of
-    three floating-point values.
-    """
-
-    value: Any
-    """
-    The value of the named property at the current time. If `expression_enabled`
-    is `True`, returns the evaluated expression value. If there are keyframes,
-    returns the keyframed value at the current time. Otherwise, returns the
-    static value.
-    """
-
-    units_text: str
-    """
-    The text description of the units in which the value is expressed.
-
-    Common values include `"pixels"`, `"degrees"`, `"percent"`,
-    `"seconds"`, and `"dB"`. An empty string indicates the property
-    has no specific unit.
-    """
-
-    vector: bool
-    """When `True`, the property value is a vector."""
-
-    # Set after initialization
-    default_value: Any = None
+    default_value: Any
     """The default value of the property."""
 
-    expression_error: str = ""
-    """
-    Contains the error, if any, generated by evaluation of the string most
-    recently set in [expression][]. If no expression string has been
+    expression_error: str
+    """Contains the error, if any, generated by evaluation of the string
+    most recently set in [expression][]. If no expression string has been
     specified, or if the last expression string evaluated without error,
     contains the empty string (`""`).
 
-    Note:
-        The parser cannot evaluate expressions, so this attribute is always
-        an empty string. After Effects computes expression errors at runtime
-        when it evaluates the expression engine; this information is not
-        stored in the binary `.aep` file.
-    """
+    Warning:
+        The parser cannot evaluate expressions, so this attribute is
+        always an empty string. After Effects computes expression errors
+        at runtime when it evaluates the expression engine; this
+        information is not stored in the binary `.aep` file.
+    Read-only."""
 
-    last_value: Any = None
+    last_value: Any
     """The last value of the property (before animation)."""
 
-    max_value: Any = None
-    """
-    The maximum permitted value of the named property. Only valid if
-    `has_max` is `True`.
-    """
-
-    min_value: Any = None
-    """
-    The minimum permitted value of the named property. Only valid if
-    `has_min` is `True`.
-    """
-
-    nb_options: int | None = None
+    nb_options: int | None
     """The number of options in a dropdown property."""
 
-    property_parameters: list[str] | None = None  # enum choices
-    """
-    An array of all item strings in a dropdown menu property. This attribute
-    applies to dropdown menu properties of effects and layers, including
-    custom strings in the Menu property of the Dropdown Menu Control.
-    """
+    property_parameters: list[str] | None
+    """An array of all item strings in a dropdown menu property. This
+    attribute applies to dropdown menu properties of effects and layers,
+    including custom strings in the Menu property of the Dropdown Menu
+    Control. Read-only."""
 
-    def __post_init__(self) -> None:
-        """Set the property type to PROPERTY."""
+    _animated = ChunkField.bool("_tdb4", "animated", default=False)
+
+    _color = ChunkField.bool("_tdb4", "color", default=False)
+
+    _integer = ChunkField.bool("_tdb4", "integer", default=False)
+
+    _no_value = ChunkField.bool("_tdb4", "no_value", default=False)
+
+    _vector = ChunkField.bool("_tdb4", "vector", default=False)
+
+    locked_ratio = ChunkField.bool(
+        "_tdsb", "locked_ratio", read_only=True, default=False
+    )
+    """When `True`, the property's X/Y ratio is locked. Read-only."""
+
+    _is_spatial_raw = ChunkField.bool("_tdb4", "is_spatial", default=False)
+
+    @property
+    def is_spatial(self) -> bool:
+        """When `True`, the named property defines a spatial value.
+
+        Examples are position and effect point controls. Read-only.
+        """
+        override = _ISSPATIAL_OVERRIDES.get(self.match_name)
+        if override is not None:
+            return override
+        return bool(self._is_spatial_raw)
+
+    @property
+    def name(self) -> str:
+        """Display name of the property. Read / Write."""
+        override = _NAME_OVERRIDES.get(self.match_name)
+        if override is not None:
+            return override
+        base_name: str = PropertyBase.name.fget(self)  # type: ignore[union-attr]
+        # NO_VALUE effect properties that store the match_name in tdsn
+        # are unnamed separators/group headers - ExtendScript returns "".
+        if (
+            self.property_value_type == PropertyValueType.NO_VALUE
+            and base_name == self.match_name
+            and self._is_in_effect()
+        ):
+            return ""
+        return base_name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        PropertyBase.name.fset(self, value)  # type: ignore[union-attr]
+
+    dimensions = ChunkField[int](
+        "_tdb4",
+        "dimensions",
+        default=1,
+    )
+    """The number of dimensions in the property value (1, 2, 3, or 4). Read-only."""
+
+    @classmethod
+    def from_spec(
+        cls,
+        spec: _PropSpec,
+        property_depth: int,
+        *,
+        value: Any = _USE_VALUE,
+        default_value: Any = _USE_VALUE,
+    ) -> Property:
+        """Create a Property from a `_PropSpec` specification.
+
+        Used to synthesize properties expected by ExtendScript but absent
+        from the binary.
+
+        Args:
+            spec: The property specification describing the property.
+            property_depth: The depth of the property in the tree.
+            value: Override for the property value. When omitted, uses
+                `spec.value`.
+            default_value: Override for the default value. When omitted,
+                uses the spec's `default_value` logic.
+        """
+        final_value = spec.value if value is _USE_VALUE else value
+        no_value = spec.pvt == PropertyValueType.NO_VALUE
+        if spec.can_vary_over_time is not None:
+            can_vary = spec.can_vary_over_time
+        else:
+            can_vary = not no_value
+        prop = cls(
+            _tdsb=ProxyBody(
+                enabled=1,
+                locked_ratio=0,
+                roto_bezier=0,
+                dimensions_separated=0,
+            ),
+            _tdb4=ProxyBody(
+                dimensions=spec.dimensions,
+                is_spatial=int(spec.is_spatial),
+                animated=0,
+                color=int(spec.color),
+                integer=0,
+                no_value=int(no_value),
+                vector=int(spec.dimensions > 1),
+                can_vary_over_time=int(can_vary),
+                expression_disabled=1,
+            ),
+            keyframes=[],
+            match_name=spec.match_name,
+            auto_name=spec.name,
+            property_control_type=PropertyControlType.UNKNOWN,
+            property_depth=property_depth,
+            property_value_type=spec.pvt,
+            value=final_value,
+        )
+        if default_value is not _USE_VALUE:
+            prop.default_value = default_value
+        else:
+            prop.default_value = (
+                final_value if spec.default_value is _USE_VALUE else spec.default_value
+            )
+        if spec.min_value is not None:
+            prop._min_value_fallback = spec.min_value
+        if spec.max_value is not None:
+            prop._max_value_fallback = spec.max_value
+        return prop
+
+    def __init__(
+        self,
+        *,
+        _tdsb: Aep.TdsbBody | None = None,
+        _tdb4: Aep.Tdb4Body | None = None,
+        _expression_utf8: Aep.Utf8Body | None = None,
+        _name_utf8: Aep.Utf8Body | None = None,
+        _tdbs: Aep.ListBody | None = None,
+        _tdum: Aep.TdumBody | None = None,
+        _tduM: Aep.TdumBody | None = None,
+        _cdat: Aep.CdatBody | None = None,
+        match_name: str,
+        property_depth: int,
+        auto_name: str | None = None,
+        keyframes: list[Keyframe],
+        value: Any,
+        expression_enabled: bool | None = None,
+        expression: str | None = None,
+        property_control_type: PropertyControlType | None = None,
+        property_value_type: PropertyValueType | None = None,
+        dimensions_separated: bool | None = None,
+        units_text: str | None = None,
+        can_vary_over_time: bool | None = None,
+    ) -> None:
+        super().__init__(
+            _tdsb=_tdsb,
+            _name_utf8=_name_utf8,
+            match_name=match_name,
+            auto_name=auto_name,
+            property_depth=property_depth,
+        )
+        self._tdb4 = _tdb4
+        self._expression_utf8 = _expression_utf8
+        self._tdbs = _tdbs
+        self._tdum = _tdum
+        self._tduM = _tduM
+        self._cdat = _cdat
+
+        self._can_vary_over_time = can_vary_over_time
+
+        self._dimensions_separated = dimensions_separated
+
+        self._expression_enabled = expression_enabled
+        self._expression = expression
+
+        self.keyframes = keyframes
+        self._link_keyframes()
+
+        self._property_control_type = property_control_type
+
+        self._property_value_type = property_value_type
+
+        self._value: Any = value
+
+        self._units_text = units_text
+
+        self.default_value = None
+
+        self.expression_error = ""
+
+        self.last_value = None
+
+        self._min_value_fallback: Any = _UNSET
+        self._max_value_fallback: Any = _UNSET
+        self._scale_z_override: float | None = None
+
+        self.nb_options = None
+
+        self.property_parameters = None
+
         self.property_type = PropertyType.PROPERTY
+
+    @property
+    def _speed_factor(self) -> float:
+        """Speed unit factor for ease objects: 100 for percent properties."""
+        if self.match_name in _PERCENT_MATCH_NAMES:
+            return 100.0
+        return 1.0
+
+    def _link_keyframes(self) -> None:
+        """Set back-references on keyframes after construction.
+
+        Each keyframe gets a reference to its owning property and to its
+        prev/next neighbours for lazy ease computation.
+        """
+        for i, kf in enumerate(self.keyframes):
+            kf._bind_property(self)
+            if i > 0:
+                kf._prev = self.keyframes[i - 1]
+            if i < len(self.keyframes) - 1:
+                kf._next = self.keyframes[i + 1]
+
+    def _materialize(self) -> None:
+        """Replace ProxyBody backing with real Kaitai chunks.
+
+        Called on first end-user write to a synthesized property.
+        After this method, the property is indistinguishable from one
+        that was parsed from binary.
+        """
+        if not isinstance(self._tdsb, ProxyBody):
+            return
+
+        parent = self.parent_property
+        if parent is None:
+            return
+
+        # Ensure the parent group is materialized first.
+        if hasattr(parent, "_materialize_group"):
+            parent._materialize_group()
+
+        tdgp = parent._tdgp
+        if tdgp is None:
+            return
+
+        proxy_tdsb = self._tdsb
+        proxy_tdb4 = self._tdb4
+
+        # 1. tdmn - match name string
+        create_chunk(tdgp, "tdmn", "Utf8Body", contents=self.match_name + "\x00")
+
+        # 2. LIST:tdbs container
+        tdbs_chunk = create_chunk(tdgp, "LIST", "ListBody", list_type="tdbs", chunks=[])
+        tdbs_body = tdbs_chunk.body
+
+        # 3. tdsb - property flags
+        tdsb_chunk = create_tdsb_chunk(tdbs_body, proxy_tdsb)
+
+        # 4. tdsn - property name wrapper (Chunks body with a Utf8 child)
+        tdsn_chunk = create_chunk(tdbs_body, "tdsn", "Chunks", chunks=[])
+        create_chunk(
+            tdsn_chunk.body,
+            "Utf8",
+            "Utf8Body",
+            contents=self.name + "\x00",
+        )
+        self._name_utf8 = tdsn_chunk.body.chunks[0].body
+
+        # 5. tdb4 - property metadata
+        tdb4_attrs: dict[str, Any] = {
+            "magic": b"\xdb\x99",
+            "dimensions": getattr(proxy_tdb4, "dimensions", 1) if proxy_tdb4 else 1,
+            "_unnamed2": b"\x00",
+            "_unnamed3": 0,
+            "is_spatial": getattr(proxy_tdb4, "is_spatial", 0) if proxy_tdb4 else 0,
+            "_unnamed5": 0,
+            "static": 1,
+            "_unnamed7": b"\x00" * 5,
+            "_unnamed8": 0,
+            "can_vary_over_time": getattr(proxy_tdb4, "can_vary_over_time", 0)
+            if proxy_tdb4
+            else 0,
+            "_unnamed10": 0,
+            "_unnamed11": b"\x00" * 4,
+            "unknown_floats": [0.0001, 1.0, 1.0, 1.0, 1.0],
+            "_unnamed13": b"\x00",
+            "_unnamed14": 0,
+            "no_value": getattr(proxy_tdb4, "no_value", 0) if proxy_tdb4 else 0,
+            "_unnamed16": b"\x00",
+            "_unnamed17": 0,
+            "vector": getattr(proxy_tdb4, "vector", 0) if proxy_tdb4 else 0,
+            "integer": getattr(proxy_tdb4, "integer", 0) if proxy_tdb4 else 0,
+            "_unnamed20": 0,
+            "color": getattr(proxy_tdb4, "color", 0) if proxy_tdb4 else 0,
+            "_unnamed22": b"\x00" * 8,
+            "animated": 0,
+            "_unnamed24": b"\x00" * 15,
+            "_unnamed25": b"\x00" * 32,
+            "_unnamed26": b"\x00" * 3,
+            "_unnamed27": 0,
+            "expression_disabled": 1,
+            "_unnamed29": b"\x00" * 4,
+        }
+        tdb4_chunk = create_chunk(tdbs_body, "tdb4", "Tdb4Body", **tdb4_attrs)
+
+        # 6. cdat - property value (only for numeric values)
+        cdat_body_ref = None
+        if self._value is not None and isinstance(self._value, (int, float, list)):
+            raw: list[float]
+            if isinstance(self._value, list):
+                raw = [float(v) for v in self._value]
+            else:
+                raw = [float(self._value)]
+
+            cdat_chunk = create_chunk(
+                tdbs_body,
+                "cdat",
+                "CdatBody",
+                False,
+                value_be=raw,
+            )
+            cdat_body_ref = cdat_chunk.body
+
+        # 7. "ADBE Group End" sentinel
+        create_chunk(tdgp, "tdmn", "Utf8Body", contents="ADBE Group End\x00")
+
+        # Replace proxy references with real chunk bodies.
+        self._tdsb = tdsb_chunk.body
+        self._tdb4 = tdb4_chunk.body
+        self._tdbs = tdbs_body
+        if cdat_body_ref is not None:
+            self._cdat = cdat_body_ref
+
+    @staticmethod
+    def _read_tdum(body: Aep.TdumBody) -> Any:
+        """Extract value from a tdum/tduM chunk body."""
+        if body.is_color:
+            return list(body.value_color)
+        if body.is_integer:
+            return body.value_integer  # type: ignore[return-value]
+        value = list(body.value_doubles)
+        if len(value) == 1:
+            return value[0]
+        return value
+
+    def _read_cdat_raw(self) -> Any:
+        """Read the raw value from the cdat chunk body.
+
+        Returns a scalar for 1D non-color properties, a list for
+        multi-dimensional or color properties, or `None` when the
+        chunk has no data.
+        """
+        if self._cdat is None:
+            return None
+        values = self._cdat.value[: self.dimensions]
+        if not values:
+            return None
+        if self.dimensions == 1 and not self._color:
+            return values[0]
+        return values
+
+    def _resolve_value(self, raw: Any) -> Any:
+        """Forward-transform a raw binary value to user-facing units.
+
+        Applied in order: percent scaling, color conversion, effect point
+        denormalization.
+        """
+        if raw is None:
+            return None
+        # 1. Percent scaling (0-1 fraction -> 0-100 percentage)
+        if self.match_name in _PERCENT_MATCH_NAMES:
+            if isinstance(raw, (int, float)):
+                raw = raw * 100.0
+            elif isinstance(raw, list):
+                raw = [v * 100.0 for v in raw]
+            # For 2D layers, Z-Scale is stored as 0.01 in the binary
+            # (irrelevant axis). ES always normalizes it to 100.
+            if (
+                self._scale_z_override is not None
+                and isinstance(raw, list)
+                and len(raw) >= 3
+            ):
+                raw[2] = self._scale_z_override
+        # 2. Color (ARGB 0-255 -> RGBA 0-1)
+        if self._color:
+            if isinstance(raw, list) and len(raw) == 4:
+                a, r, g, b = raw
+                raw = [r / 255.0, g / 255.0, b / 255.0, a / 255.0]
+        # 3. Effect point (0-1 fraction -> pixel coordinates)
+        if self._effect_scale is not None:
+            if isinstance(raw, list) and len(raw) >= 2:
+                raw = [v * s for v, s in zip(raw, self._effect_scale)]
+        return raw
+
+    def _unresolve_value(self, value: Any) -> Any:
+        """Reverse-transform a user-facing value to raw binary units.
+
+        Applied in reverse order: effect point normalization, color
+        conversion, then percent scaling.
+        """
+        if value is None:
+            return None
+        if not isinstance(value, (int, float, list)):
+            return value
+        if isinstance(value, list) and value and not isinstance(value[0], (int, float)):
+            return value
+        # 3. Reverse effect point (pixel coordinates -> 0-1 fraction)
+        if self._effect_scale is not None:
+            if isinstance(value, list) and len(value) >= 2:
+                value = [v / s if s else 0.0 for v, s in zip(value, self._effect_scale)]
+        # 2. Reverse color (RGBA 0-1 -> ARGB 0-255)
+        if self._color:
+            if isinstance(value, list) and len(value) == 4:
+                r, g, b, a = value
+                value = [a * 255.0, r * 255.0, g * 255.0, b * 255.0]
+        # 1. Reverse percent (0-100 -> 0-1 fraction)
+        if self.match_name in _PERCENT_MATCH_NAMES:
+            if isinstance(value, (int, float)):
+                value = value / 100.0
+            elif isinstance(value, list):
+                value = [v / 100.0 for v in value]
+        return value
+
+    def _write_cdat(self, value: Any) -> None:
+        """Write a user-facing value to the cdat chunk body.
+
+        Applies `_unresolve_value` to convert back to raw binary units
+        before writing.
+        """
+        if self._cdat is None:
+            return
+        if not isinstance(value, (int, float, list)):
+            return
+        if isinstance(value, list) and value and not isinstance(value[0], (int, float)):
+            return
+        raw_value = self._unresolve_value(value)
+        raw = list(self._cdat.value)
+        if isinstance(raw_value, list):
+            raw[: len(raw_value)] = raw_value
+        else:
+            raw[0] = raw_value
+        if self._cdat.is_le:
+            self._cdat.value_le = raw
+        else:
+            self._cdat.value_be = raw
+        self._cdat._invalidate_value()
+        propagate_check(self._cdat)
+
+    @property
+    def value(self) -> Any:
+        """
+        The value of the named property at the current time. If
+        `expression_enabled` is `True`, returns the evaluated expression
+        value. If there are keyframes, returns the keyframed value at the
+        current time. Otherwise, returns the static value. Read / Write.
+        """
+        if self._value is not None:
+            return self._value
+        if self._cdat is not None:
+            return self._resolve_value(self._read_cdat_raw())
+        if self.keyframes:
+            return self.keyframes[0].value
+        return None
+
+    @value.setter
+    def value(self, value: Any) -> None:
+        _validate_value(self, value)
+        self._value = value
+        if isinstance(self._tdsb, ProxyBody) and self.parent_property is not None:
+            self._materialize()
+        self._write_cdat(value)
+
+    @property
+    def min_value(self) -> Any:
+        """
+        The minimum permitted value of the named property. Only valid if
+        `has_min` is `True`. Read-only.
+        """
+        if self._min_value_fallback is not _UNSET:
+            return self._min_value_fallback
+        if self._tdum is not None:
+            return self._read_tdum(self._tdum)
+        return None
+
+    @property
+    def max_value(self) -> Any:
+        """
+        The maximum permitted value of the named property. Only valid if
+        `has_max` is `True`. Read-only.
+        """
+        if self._max_value_fallback is not _UNSET:
+            return self._max_value_fallback
+        if self._tduM is not None:
+            return self._read_tdum(self._tduM)
+        return None
+
+    @property
+    def units_text(self) -> str:
+        """
+        The text description of the units in which the value is expressed.
+
+        Common values include `"pixels"`, `"degrees"`, `"percent"`,
+        `"seconds"`, and `"dB"`. An empty string indicates the property
+        has no specific unit. Read-only.
+        """
+        if self._units_text is not None:
+            return self._units_text
+        return UNITS_TEXT_MAP.get(self.match_name, "")
+
+    @property
+    def can_vary_over_time(self) -> bool:
+        """
+        When `True`, the named property can vary over time - that is, keyframe
+        values or expressions can be written to this property.
+
+        Note:
+            A small subset of effect dropdown / menu parameters may report
+            `can_vary_over_time` as `False` in the binary even though After
+            Effects allows keyframing them.
+        Read-only.
+        """
+        if self._can_vary_over_time is not None:
+            return self._can_vary_over_time
+        if self.match_name in _CANVARY_OVERRIDES:
+            return _CANVARY_OVERRIDES[self.match_name]
+        if self._tdb4 is not None:
+            # NO_VALUE properties always report canVaryOverTime=True in AE,
+            # even though the binary byte says otherwise.
+            return bool(self._tdb4.can_vary_over_time or self._no_value)
+        return False
+
+    @property
+    def dimensions_separated(self) -> bool:
+        """
+        When `True`, the property's dimensions are represented as separate
+        properties. For example, if the layer's position is represented as X
+        Position and Y Position properties in the Timeline panel, the Position
+        property has this attribute set to `True`. This attribute applies only
+        when the property is a "separation leader" (a multidimensional property
+        that can be separated). Read / Write.
+        """
+        if self._dimensions_separated is not None:
+            return self._dimensions_separated
+        if self.match_name == "ADBE Position" and self._tdsb is not None:
+            # Light and Camera layers always have 3D position but do not
+            # expose dimensionsSeparated in ExtendScript.
+            layer = self._containing_layer
+            if layer is not None and layer._ldta.layer_type.name in (
+                "light",
+                "camera",
+            ):
+                return False
+            return bool(self._tdsb.dimensions_separated)
+        return False
+
+    @dimensions_separated.setter
+    def dimensions_separated(self, value: bool) -> None:
+        self._dimensions_separated = value
+        if self.match_name == _SEPARATION_LEADER and self._tdsb is not None:
+            self._tdsb.dimensions_separated = int(value)
+            if not isinstance(self._tdsb, ProxyBody):
+                propagate_check(self._tdsb)
+
+    @property
+    def expression(self) -> str:
+        """
+        The expression for the named property. Writeable only when
+        `can_set_expression` for the named property is `True`.
+        Read / Write.
+        """
+        if self._expression is not None:
+            return self._expression
+        if self._expression_utf8 is not None:
+            text: str = self._expression_utf8.contents
+            return text.split("\x00")[0]
+        return ""
+
+    @expression.setter
+    def expression(self, value: str) -> None:
+        self._expression = value
+        if isinstance(self._tdsb, ProxyBody) and self.parent_property is not None:
+            self._materialize()
+        if self._expression_utf8 is None and self._tdbs is not None:
+            chunk = create_chunk(self._tdbs, "Utf8", "Utf8Body", contents=value)
+            self._expression_utf8 = chunk.body
+        elif self._expression_utf8 is not None:
+            self._expression_utf8.contents = value
+            propagate_check(self._expression_utf8)
+
+    @property
+    def expression_enabled(self) -> bool:
+        """
+        When `True`, the named property uses its associated expression to
+        generate a value. When `False`, the keyframe information or static
+        value of the property is used. Read / Write.
+        """
+        if self._expression_enabled is not None:
+            return self._expression_enabled
+        if self._tdb4 is not None:
+            disabled = getattr(self._tdb4, "expression_disabled", True)
+            return not disabled and bool(self.expression)
+        return False
+
+    @expression_enabled.setter
+    def expression_enabled(self, value: bool) -> None:
+        self._expression_enabled = value
+        if self._tdb4 is not None and not isinstance(self._tdb4, ProxyBody):
+            self._tdb4.expression_disabled = not value
+            propagate_check(self._tdb4)
+
+    @property
+    def property_control_type(self) -> PropertyControlType:
+        """The control type of the property (e.g., scalar, color, boolean). Read-only."""
+        if self._property_control_type is not None:
+            return self._property_control_type
+        pct, _ = self._determine_property_types()
+        return pct
+
+    @property
+    def property_value_type(self) -> PropertyValueType:
+        """
+        The type of value stored in the named property. Each type of data is
+        stored and retrieved in a different kind of structure. For example,
+        a 3D spatial property (such as a layer's position) is stored as an
+        array of three floating-point values. Read-only.
+        """
+        if self._property_value_type is not None:
+            return self._property_value_type
+        _, pvt = self._determine_property_types()
+        return pvt
+
+    def _determine_property_types(
+        self,
+    ) -> tuple[PropertyControlType, PropertyValueType]:
+        """Determine property control and value types from tdb4 flags."""
+        pct = PropertyControlType.UNKNOWN
+        pvt = PropertyValueType.UNKNOWN
+
+        if self._no_value:
+            pvt = PropertyValueType.NO_VALUE
+        if self._color:
+            pct = PropertyControlType.COLOR
+            pvt = PropertyValueType.COLOR
+        elif self._integer and self.dimensions <= 1:
+            pct = PropertyControlType.BOOLEAN
+            pvt = PropertyValueType.OneD
+        elif self._vector or (self._integer and self.dimensions > 1):
+            if self.dimensions == 1:
+                pct = PropertyControlType.SCALAR
+                pvt = PropertyValueType.OneD
+            elif self.dimensions == 2:
+                pct = PropertyControlType.TWO_D
+                pvt = (
+                    PropertyValueType.TwoD_SPATIAL
+                    if self.is_spatial
+                    else PropertyValueType.TwoD
+                )
+            elif self.dimensions == 3:
+                pct = PropertyControlType.THREE_D
+                pvt = (
+                    PropertyValueType.ThreeD_SPATIAL
+                    if self.is_spatial
+                    else PropertyValueType.ThreeD
+                )
+
+        if pct == PropertyControlType.UNKNOWN:
+            logger.warning(
+                "Could not determine type for property %s"
+                " | dimensions: %s"
+                " | integer: %s"
+                " | is_spatial: %s"
+                " | vector: %s"
+                " | no_value: %s"
+                " | color: %s",
+                self.match_name,
+                self.dimensions,
+                self._integer,
+                self.is_spatial,
+                self._vector,
+                self._no_value,
+                self._color,
+            )
+
+        return pct, pvt
 
     @property
     def is_separation_leader(self) -> bool:
@@ -300,229 +935,62 @@ class Property(PropertyBase):
         index = self.nearest_key_index(time)
         return self.keyframes[index]
 
-    def key_in_interpolation_type(self, key_index: int) -> KeyframeInterpolationType:
-        """Returns the "in" interpolation type for the specified
-        keyframe.
-
-        Note:
-            Equivalent to `self.keyframes[key_index].in_interpolation_type`.
-
-        Args:
-            key_index: The index for the keyframe.
-        """
-        return self.keyframes[key_index].in_interpolation_type
-
-    def key_in_spatial_tangent(self, key_index: int) -> list[float] | None:
-        """Returns the incoming spatial tangent for the specified
-        keyframe, if the named property is spatial (that is, the
-        value type is `TwoD_SPATIAL` or `ThreeD_SPATIAL`).
-
-        Note:
-            Equivalent to `self.keyframes[key_index].in_spatial_tangent`.
-
-        Args:
-            key_index: The index for the keyframe.
-        """
-        return self.keyframes[key_index].in_spatial_tangent
-
-    def key_in_temporal_ease(self, key_index: int) -> list[KeyframeEase]:
-        """Returns the incoming temporal ease for the specified
-        keyframe.
-
-        Note:
-            Equivalent to `self.keyframes[key_index].in_temporal_ease`.
-
-        Args:
-            key_index: The index for the keyframe.
-        """
-        return self.keyframes[key_index].in_temporal_ease
-
-    def key_label(self, key_index: int) -> Label:
-        """Returns the label color for the specified keyframe.
-        Colors are represented by their number (0 for None, or 1
-        to 16 for one of the preset colors in the Labels
-        preferences).
-
-        Note:
-            Equivalent to `self.keyframes[key_index].label`.
-
-        Args:
-            key_index: The index for the keyframe.
-        """
-        return self.keyframes[key_index].label
-
-    def key_out_interpolation_type(self, key_index: int) -> KeyframeInterpolationType:
-        """Returns the outgoing interpolation type for the specified
-        keyframe.
-
-        Note:
-            Equivalent to
-            `self.keyframes[key_index].out_interpolation_type`.
-
-        Args:
-            key_index: The index for the keyframe.
-        """
-        return self.keyframes[key_index].out_interpolation_type
-
-    def key_out_spatial_tangent(self, key_index: int) -> list[float] | None:
-        """Returns the outgoing spatial tangent for the specified
-        keyframe.
-
-        Note:
-            Equivalent to
-            `self.keyframes[key_index].out_spatial_tangent`.
-
-        Args:
-            key_index: The index for the keyframe.
-        """
-        return self.keyframes[key_index].out_spatial_tangent
-
-    def key_out_temporal_ease(self, key_index: int) -> list[KeyframeEase]:
-        """Returns the outgoing temporal ease for the specified
-        keyframe.
-
-        Note:
-            Equivalent to
-            `self.keyframes[key_index].out_temporal_ease`.
-
-        Args:
-            key_index: The index for the keyframe.
-        """
-        return self.keyframes[key_index].out_temporal_ease
-
-    def key_roving(self, key_index: int) -> bool:
-        """Returns `True` if the specified keyframe is roving.
-        The first and last keyframe in a property cannot rove.
-
-        Note:
-            Equivalent to `self.keyframes[key_index].roving`.
-
-        Args:
-            key_index: The index for the keyframe.
-        """
-        return self.keyframes[key_index].roving
-
-    def key_spatial_auto_bezier(self, key_index: int) -> bool:
-        """Returns `True` if the specified keyframe has spatial
-        auto-Bezier interpolation. This type of interpolation
-        affects this keyframe only if `key_spatial_continuous` is
-        also `True`.
-
-        Note:
-            Equivalent to
-            `self.keyframes[key_index].spatial_auto_bezier`.
-
-        Args:
-            key_index: The index for the keyframe.
-        """
-        return self.keyframes[key_index].spatial_auto_bezier
-
-    def key_spatial_continuous(self, key_index: int) -> bool:
-        """Returns `True` if the specified keyframe has spatial
-        continuity.
-
-        Note:
-            Equivalent to
-            `self.keyframes[key_index].spatial_continuous`.
-
-        Args:
-            key_index: The index for the keyframe.
-        """
-        return self.keyframes[key_index].spatial_continuous
-
-    def key_temporal_auto_bezier(self, key_index: int) -> bool:
-        """Returns `True` if the specified keyframe has temporal
-        auto-Bezier interpolation. Temporal auto-Bezier
-        interpolation affects this keyframe only if the keyframe
-        interpolation type is `KeyframeInterpolationType.BEZIER`
-        for both `key_in_interpolation_type` and
-        `key_out_interpolation_type`.
-
-        Note:
-            Equivalent to
-            `self.keyframes[key_index].temporal_auto_bezier`.
-
-        Args:
-            key_index: The index for the keyframe.
-        """
-        return self.keyframes[key_index].temporal_auto_bezier
-
-    def key_temporal_continuous(self, key_index: int) -> bool:
-        """Returns `True` if the specified keyframe has temporal
-        continuity. Temporal continuity affects this keyframe only
-        if the keyframe interpolation type is
-        `KeyframeInterpolationType.BEZIER` for both
-        `key_in_interpolation_type` and
-        `key_out_interpolation_type`.
-
-        Note:
-            Equivalent to
-            `self.keyframes[key_index].temporal_continuous`.
-
-        Args:
-            key_index: The index for the keyframe.
-        """
-        return self.keyframes[key_index].temporal_continuous
-
-    def key_time(self, key_index: int) -> float:
-        """Returns the time at which the specified keyframe occurs.
-
-        Note:
-            Equivalent to `self.keyframes[key_index].time`.
-
-        Args:
-            key_index: The index for the keyframe.
-        """
-        return self.keyframes[key_index].time
-
-    def key_value(
-        self, key_index: int
-    ) -> list[float] | float | MarkerValue | Shape | TextDocument | None:
-        """Returns the current value of the specified keyframe.
-
-        Note:
-            Equivalent to `self.keyframes[key_index].value`.
-
-        Args:
-            key_index: The index for the keyframe.
-        """
-        return self.keyframes[key_index].value
-
-    @property
-    def num_keys(self) -> int:
-        """The number of keyframes in the named property.
-        If the value is 0, the property is not being keyframed.
-
-        Note:
-            Equivalent to `len(self.keyframes)`.
-        """
-        return len(self.keyframes)
-
     @property
     def is_modified(self) -> bool:
         """`True` if the property value differs from its default.
 
         A property is considered modified when it has keyframes, has an
-        enabled expression, or when its current value differs from
-        `default_value`.
+        expression (enabled or disabled), or when its current value
+        differs from `default_value`.
         """
-        if self.animated:
+        if self._animated:
             return True
-        if self.expression and self.expression_enabled:
+        if self.expression:
+            return True
+        # Source Text has no meaningful default - always modified when it
+        # has a value (text is always user-authored).
+        if self.match_name == "ADBE Text Document" and self.value is not None:
+            return True
+        # NO_VALUE (button/separator/group header) properties inside effects
+        # are always reported as modified in ExtendScript.
+        if self.property_value_type == PropertyValueType.NO_VALUE:
+            return self._is_in_effect()
+        # Mask reference properties that exist in the binary are always
+        # modified - their presence indicates user interaction even when
+        # the value is 0 (no mask).  Synthesized default slots (ProxyBody)
+        # remain unmodified.
+        if (
+            self.property_value_type == PropertyValueType.MASK_INDEX
+            and self._is_in_effect()
+            and not isinstance(self._tdsb, ProxyBody)
+        ):
+            return True
+        if self.match_name in _ALWAYS_MODIFIED:
             return True
         if self.default_value is not None:
             return not _values_equal(self.value, self.default_value)
+        # Effect properties with no known default are considered modified
+        # when they have a value - ExtendScript treats the absence of a
+        # default as "always modified".  LAYER_INDEX is excluded because
+        # its binary default (0 = "None" layer) is not stored in pard;
+        # layer references should report False when unset.
+        if (
+            self.value is not None
+            and self._is_in_effect()
+            and self.property_value_type != PropertyValueType.LAYER_INDEX
+        ):
+            return True
         return False
 
     @property
     def is_dropdown_effect(self) -> bool:
         """`True` if the property is the Menu property of a Dropdown Menu Control effect."""
-        return self.property_control_type == PropertyControlType.ENUM
+        return self._property_control_type == PropertyControlType.ENUM
 
     @property
     def is_time_varying(self) -> bool:
         """`True` if the named property has keyframes or an enabled expression."""
-        return bool((self.expression and self.expression_enabled) or self.animated)
+        return bool((self.expression and self.expression_enabled) or self._animated)
 
     @property
     def has_max(self) -> bool:
@@ -549,12 +1017,12 @@ class Property(PropertyBase):
         Args:
             time: The composition time in seconds at which to evaluate
                 the property.
-            pre_expression: When ``True`` the value is evaluated before
+            pre_expression: When `True` the value is evaluated before
                 any expression is applied (the only mode supported by
                 the parser).
 
         Raises:
-            NotImplementedError: If *pre_expression* is ``False``,
+            NotImplementedError: If *pre_expression* is `False`,
                 because the parser cannot evaluate expressions.
         """
         if not pre_expression:
@@ -564,6 +1032,109 @@ class Property(PropertyBase):
         if not self.keyframes:
             return self.value  # type: ignore[no-any-return]
 
-        from aep_parser.resolvers.interpolation import interpolate_keyframes
-
         return interpolate_keyframes(time, self.keyframes, self.is_spatial)
+
+    @property
+    def _frame_offset(self) -> int:
+        """Frame offset for converting layer-relative keyframe times to comp time.
+
+        The binary stores keyframe times relative to the layer's start.
+        ExtendScript reports them in composition time.  This property
+        lazily computes the offset from the containing layer's start_time
+        and composition frame rate.
+        """
+        layer = self._containing_layer
+        if layer is None:
+            return 0
+        start_time: float = layer._ldta.start_time
+        if start_time == 0.0:
+            return 0
+        result: int = round(start_time * layer.containing_comp.frame_rate)
+        return result
+
+    @property
+    def _effect_scale(self) -> list[float] | None:
+        """Scale factors for denormalizing 0-1 binary values to pixel coordinates.
+
+        Lazily computed from context:
+        - Effect point properties (TWO_D inside an effect): composition
+          dimensions.
+        - Anchor Point: layer source dimensions.
+        - All others: `None`.
+
+        On first access for effect points, also triggers
+        `_scale_effect_point_speeds` to set speed factors on keyframe ease
+        objects.
+        """
+        _sentinel = "_effect_scale"
+        # Allow explicit override via __dict__ (e.g. from tests or
+        # _scale_effect_point_speeds recursion guard).
+        if _sentinel in self.__dict__:
+            result: list[float] | None = self.__dict__[_sentinel]
+            return result
+
+        scale: list[float] | None = None
+
+        if self.match_name == "ADBE Anchor Point":
+            layer = self._containing_layer
+            if layer is not None:
+                width = getattr(layer, "width", 0)
+                height = getattr(layer, "height", 0)
+                if width and height:
+                    scale = [float(width), float(height), 1.0]
+        elif (
+            self._property_control_type == PropertyControlType.TWO_D
+            and self._is_in_effect()
+        ):
+            layer = self._containing_layer
+            if layer is not None:
+                comp = layer.containing_comp
+                scale = [float(comp.width), float(comp.height)]
+
+        if scale is not None and self.match_name != "ADBE Anchor Point":
+            # Set guard before _scale_effect_point_speeds (which accesses
+            # kf.value -> _resolve_value -> _effect_scale) to avoid recursion.
+            self.__dict__[_sentinel] = scale
+            self._scale_effect_point_speeds(scale)
+            del self.__dict__[_sentinel]
+        return scale
+
+    @_effect_scale.setter
+    def _effect_scale(self, value: list[float] | None) -> None:
+        self.__dict__["_effect_scale"] = value
+
+    def _scale_effect_point_speeds(self, scale: list[float]) -> None:
+        """Set speed factor on BEZIER ease objects for effect point properties.
+
+        The binary stores speed in normalized (0-1) units per second.
+        ExtendScript reports speed in pixel units per second.  The factor
+        depends on the direction of motion between adjacent keyframes and
+        is stored on each `KeyframeEase._speed_factor` for lazy application.
+        """
+        n = len(self.keyframes)
+        for i, kf in enumerate(self.keyframes):
+            for ease_list, other_idx in [
+                (kf._out_temporal_ease, i + 1),
+                (kf._in_temporal_ease, i - 1),
+            ]:
+                if not ease_list or other_idx < 0 or other_idx >= n:
+                    continue
+                other_kf = self.keyframes[other_idx]
+                val_a = kf.value
+                val_b = other_kf.value
+                if (
+                    not isinstance(val_a, list)
+                    or not isinstance(val_b, list)
+                    or len(val_a) < 2
+                    or len(val_b) < 2
+                ):
+                    continue
+                delta_px = [b - a for a, b in zip(val_a, val_b)]
+                delta_norm = [d / s if s else 0.0 for d, s in zip(delta_px, scale)]
+                dist_px = math.sqrt(sum(d * d for d in delta_px))
+                dist_norm = math.sqrt(sum(d * d for d in delta_norm))
+                if dist_norm == 0:
+                    continue
+                factor = dist_px / dist_norm
+                for ease in ease_list:
+                    ease._speed_factor = factor

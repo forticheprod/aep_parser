@@ -16,6 +16,7 @@ from conftest import (
 )
 
 from aep_parser import Project
+from aep_parser.enums import Label
 
 if TYPE_CHECKING:
     from aep_parser import MarkerValue
@@ -172,3 +173,189 @@ class TestLayerMarker:
             parse_project(SAMPLES_DIR / "layer_cuePointName.aep")
         )
         assert marker.cue_point_name == marker_json["cuePointName"] == "layer_cue_1"
+
+    def test_layer_marker_with_startTime(self) -> None:
+        """Marker time is at comp time 5, layer startTime is 3."""
+        expected = load_expected(SAMPLES_DIR, "layer_marker_with_startTime")
+        marker_json = get_layer_marker_from_json(expected)
+        marker = get_first_layer_marker(
+            parse_project(SAMPLES_DIR / "layer_marker_with_startTime.aep")
+        )
+        assert (
+            marker.comment
+            == marker_json["comment"]
+            == "marker at comp time 5"
+        )
+
+    def test_layer_multiple_markers(self) -> None:
+        """Three markers on one layer, parsed in correct order."""
+        project = parse_project(SAMPLES_DIR / "layer_multiple_markers.aep")
+        comp = project.compositions[0]
+        layer = comp.layers[0]
+        assert len(layer.markers) == 3
+        assert layer.markers[0].comment == "first marker"
+        assert layer.markers[1].comment == "second marker"
+        assert layer.markers[2].comment == "Third"
+
+
+class TestRoundtripMarkerComment:
+    """Roundtrip tests for MarkerValue.comment."""
+
+    def test_modify_comment(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "comment.aep")
+        marker = get_first_comp_marker(project)
+        original = marker.comment
+        assert original != ""
+
+        marker.comment = "modified comment"
+        out = tmp_path / "modified_comment.aep"
+        project.save(out)
+        marker2 = get_first_comp_marker(parse_project(out))
+        assert marker2.comment == "modified comment"
+
+
+class TestRoundtripMarkerDuration:
+    """Roundtrip tests for MarkerValue.duration and frame_duration."""
+
+    def test_modify_frame_duration(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "duration_5.aep")
+        marker = get_first_comp_marker(project)
+        original_fd = marker.frame_duration
+
+        marker.frame_duration = original_fd + 10
+        out = tmp_path / "modified_frame_duration.aep"
+        project.save(out)
+        marker2 = get_first_comp_marker(parse_project(out))
+        assert marker2.frame_duration == original_fd + 10
+
+    def test_modify_duration(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "duration_5.aep")
+        marker = get_first_comp_marker(project)
+
+        marker.duration = 10.0
+        out = tmp_path / "modified_duration.aep"
+        project.save(out)
+        marker2 = get_first_comp_marker(parse_project(out))
+        assert math.isclose(marker2.duration, 10.0, abs_tol=0.01)
+
+
+class TestValidateMarkerFrameDuration:
+    """Validation tests for MarkerValue.frame_duration."""
+
+    def test_frame_duration_rejects_negative(self) -> None:
+        project = parse_project(SAMPLES_DIR / "duration_5.aep")
+        marker = get_first_comp_marker(project)
+        with pytest.raises(ValueError, match="must be >= 0"):
+            marker.frame_duration = -1
+
+    def test_frame_duration_rejects_float(self) -> None:
+        project = parse_project(SAMPLES_DIR / "duration_5.aep")
+        marker = get_first_comp_marker(project)
+        with pytest.raises(TypeError, match="expected an integer"):
+            marker.frame_duration = 1.5
+
+
+class TestRoundtripMarkerLabel:
+    """Roundtrip tests for MarkerValue.label."""
+
+    def test_modify_label(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "label_3.aep")
+        marker = get_first_comp_marker(project)
+        assert marker.label == Label.AQUA
+
+        marker.label = Label.RED
+        out = tmp_path / "modified_label.aep"
+        project.save(out)
+        marker2 = get_first_comp_marker(parse_project(out))
+        assert marker2.label == Label.RED
+
+
+class TestRoundtripMarkerNavigation:
+    """Roundtrip tests for MarkerValue.navigation."""
+
+    def test_modify_navigation(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "comment.aep")
+        marker = get_first_comp_marker(project)
+        original = marker.navigation
+
+        marker.navigation = not original
+        out = tmp_path / "modified_navigation.aep"
+        project.save(out)
+        marker2 = get_first_comp_marker(parse_project(out))
+        assert marker2.navigation == (not original)
+        assert marker2.event_cue_point == original
+
+
+class TestRoundtripMarkerProtectedRegion:
+    """Roundtrip tests for MarkerValue.protected_region."""
+
+    def test_modify_protected_region(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "protectedRegion_true.aep")
+        marker = get_first_comp_marker(project)
+        assert marker.protected_region is True
+
+        marker.protected_region = False
+        out = tmp_path / "modified_protected_region.aep"
+        project.save(out)
+        marker2 = get_first_comp_marker(parse_project(out))
+        assert marker2.protected_region is False
+
+
+class TestRoundtripMarkerChapter:
+    """Roundtrip tests for MarkerValue.chapter."""
+
+    def test_modify_chapter(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "chapter.aep")
+        marker = get_first_comp_marker(project)
+        assert marker.chapter != ""
+
+        marker.chapter = "modified chapter"
+        out = tmp_path / "modified_chapter.aep"
+        project.save(out)
+        marker2 = get_first_comp_marker(parse_project(out))
+        assert marker2.chapter == "modified chapter"
+
+
+class TestRoundtripMarkerUrl:
+    """Roundtrip tests for MarkerValue.url."""
+
+    def test_modify_url(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "url.aep")
+        marker = get_first_comp_marker(project)
+        assert marker.url != ""
+
+        marker.url = "https://example.com/modified"
+        out = tmp_path / "modified_url.aep"
+        project.save(out)
+        marker2 = get_first_comp_marker(parse_project(out))
+        assert marker2.url == "https://example.com/modified"
+
+
+class TestRoundtripMarkerFrameTarget:
+    """Roundtrip tests for MarkerValue.frame_target."""
+
+    def test_modify_frame_target(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "frameTarget.aep")
+        marker = get_first_comp_marker(project)
+        assert marker.frame_target != ""
+
+        marker.frame_target = "_blank"
+        out = tmp_path / "modified_frame_target.aep"
+        project.save(out)
+        marker2 = get_first_comp_marker(parse_project(out))
+        assert marker2.frame_target == "_blank"
+
+
+class TestRoundtripMarkerCuePointName:
+    """Roundtrip tests for MarkerValue.cue_point_name."""
+
+    def test_modify_cue_point_name(self, tmp_path: Path) -> None:
+        project = parse_project(SAMPLES_DIR / "cuePointName.aep")
+        marker = get_first_comp_marker(project)
+        assert marker.cue_point_name != ""
+
+        marker.cue_point_name = "modified_cue"
+        out = tmp_path / "modified_cue_point_name.aep"
+        project.save(out)
+        marker2 = get_first_comp_marker(parse_project(out))
+        assert marker2.cue_point_name == "modified_cue"

@@ -3,30 +3,91 @@
 from __future__ import annotations
 
 import typing
-from dataclasses import dataclass
+
+from ...cos import CosField, serialize
+from ...enums import (
+    AutoKernType,
+    BaselineDirection,
+    ComposerEngine,
+    DigitSet,
+    FontBaselineOption,
+    FontCapsOption,
+    LeadingType,
+    LineJoinType,
+    LineOrientation,
+    ParagraphDirection,
+    ParagraphJustification,
+)
+from ...kaitai.utils import propagate_check
 
 if typing.TYPE_CHECKING:
-    from aep_parser.enums import (
-        AutoKernType,
-        BaselineDirection,
-        BoxAutoFitPolicy,
-        BoxFirstBaselineAlignment,
-        BoxVerticalAlignment,
-        ComposerEngine,
-        DigitSet,
-        FontBaselineOption,
-        FontCapsOption,
-        LeadingType,
-        LineJoinType,
-        LineOrientation,
-        ParagraphDirection,
-        ParagraphJustification,
-    )
+    from typing import Any
 
     from .font_object import FontObject
 
 
-@dataclass
+_JUSTIFICATION_MAP: dict[int, ParagraphJustification] = {
+    0: ParagraphJustification.LEFT_JUSTIFY,
+    1: ParagraphJustification.RIGHT_JUSTIFY,
+    2: ParagraphJustification.CENTER_JUSTIFY,
+    3: ParagraphJustification.FULL_JUSTIFY_LASTLINE_LEFT,
+    4: ParagraphJustification.FULL_JUSTIFY_LASTLINE_RIGHT,
+    5: ParagraphJustification.FULL_JUSTIFY_LASTLINE_CENTER,
+    6: ParagraphJustification.FULL_JUSTIFY_LASTLINE_FULL,
+}
+_REVERSE_JUSTIFICATION_MAP: dict[ParagraphJustification, int] = {
+    v: k for k, v in _JUSTIFICATION_MAP.items()
+}
+
+_FONT_CAPS_MAP: dict[int, FontCapsOption] = {
+    0: FontCapsOption.FONT_NORMAL_CAPS,
+    1: FontCapsOption.FONT_SMALL_CAPS,
+    2: FontCapsOption.FONT_ALL_CAPS,
+    3: FontCapsOption.FONT_ALL_SMALL_CAPS,
+}
+_REVERSE_FONT_CAPS_MAP: dict[FontCapsOption, int] = {
+    v: k for k, v in _FONT_CAPS_MAP.items()
+}
+
+_FONT_BASELINE_MAP: dict[int, FontBaselineOption] = {
+    0: FontBaselineOption.FONT_NORMAL_BASELINE,
+    1: FontBaselineOption.FONT_FAUXED_SUPERSCRIPT,
+    2: FontBaselineOption.FONT_FAUXED_SUBSCRIPT,
+}
+_REVERSE_FONT_BASELINE_MAP: dict[FontBaselineOption, int] = {
+    v: k for k, v in _FONT_BASELINE_MAP.items()
+}
+
+_LEADING_TYPE_MAP: dict[int, LeadingType] = {
+    0: LeadingType.ROMAN_LEADING_TYPE,
+    1: LeadingType.JAPANESE_LEADING_TYPE,
+}
+_REVERSE_LEADING_TYPE_MAP: dict[LeadingType, int] = {
+    v: k for k, v in _LEADING_TYPE_MAP.items()
+}
+
+
+def _parse_color(paint: Any) -> list[float] | None:
+    """Extract [R, G, B] from a COS SimplePaint structure."""
+    if not isinstance(paint, dict):
+        return None
+    inner = paint.get("0")
+    if not isinstance(inner, dict):
+        return None
+    argb = inner.get("1")
+    if isinstance(argb, list) and len(argb) >= 4:
+        return [float(argb[1]), float(argb[2]), float(argb[3])]
+    return None
+
+
+def _build_color_paint(rgb: list[float]) -> dict[str, Any]:
+    """Build a COS SimplePaint dict from [R, G, B]."""
+    return {
+        "0": {"0": 1, "1": [0.0, rgb[0], rgb[1], rgb[2]]},
+        "99": "SimplePaint",
+    }
+
+
 class TextDocument:
     """Stores a value for a TextLayer's Source Text property.
 
@@ -43,785 +104,436 @@ class TextDocument:
     See: https://ae-scripting.docsforadobe.dev/text/textdocument/
     """
 
-    text: str = ""
-    """The text value for the Text layer's Source Text property."""
-
-    all_caps: bool | None = None
-    """
-    `True` if a Text layer has All Caps enabled; otherwise `False`.
-    To set this value, use [font_caps_option][TextDocument.font_caps_option].
-
-    Note:
-        This functionality was added in After Effects 13.2 (CC 2014.2).
-
-    Warning:
-        This value only reflects the first character in the Text layer.
-    """
-
-    apply_fill: bool | None = None
-    """
-    When `True`, the Text layer shows a fill. Access the
-    [fill_color][TextDocument.fill_color] attribute for the actual color.
-    When `False`, only a stroke is shown.
-    """
-
-    apply_stroke: bool | None = None
-    """
-    When `True`, the Text layer shows a stroke. Access the
-    [stroke_color][TextDocument.stroke_color] attribute for the actual color
-    and [stroke_width][TextDocument.stroke_width] for its thickness. When
-    `False`, only a fill is shown.
-    """
-
-    auto_hyphenate: bool | None = None
-    """
-    The Text layer's auto hyphenate paragraph option.
-
-    If this attribute has a mixed value, it will be read as `None`.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value reflects all paragraphs in the Text layer. If you change
-        this value, it will set all paragraphs in the Text layer to the
-        specified setting.
-    """
-
-    auto_leading: bool | None = None
-    """
-    The Text layer's auto leading character option.
-
-    If this attribute has a mixed value, it will be read as `None`.
-
-    Warning:
-        This value reflects all paragraphs in the Text layer. If you change
-        this value, it will set all paragraphs in the Text layer to the
-        specified setting.
-    """
-
-    auto_kern_type: AutoKernType | None = None
-    """
-    The Text layer's auto kern type option.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    baseline_direction: BaselineDirection | None = None
-    """
-    The Text layer's baseline direction option. This is significant for
-    Japanese language in vertical texts.
-    ``BASELINE_VERTICAL_CROSS_STREAM`` is also known as Tate-Chu-Yoko.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    baseline_locs: list[float] | None = None
-    """
-    The baseline (x, y) locations for a Text layer. Line wraps in a
-    paragraph text box are treated as multiple lines.
-
-    The array contains groups of four floats per line:
-    ``[line0.start_x, line0.start_y, line0.end_x, line0.end_y, ...]``.
-
-    Note:
-        This functionality was added in After Effects 13.6 (CC 2015).
-
-    Tip:
-        If a line has no characters, the x and y values for start and end
-        will be the maximum float value (``3.402823466e+38``).
-    """
-
-    baseline_shift: float | None = None
-    """
-    This Text layer's baseline shift in pixels.
-
-    Note:
-        This functionality was added in After Effects 13.2 (CC 2014.2).
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    box_auto_fit_policy: BoxAutoFitPolicy | None = None
-    """
-    Enables the automated change of the box height to fit the text content
-    in the box. The box only grows down.
-
-    Defaults to ``BoxAutoFitPolicy.NONE``.
-
-    Will be disabled if
-    [box_vertical_alignment][TextDocument.box_vertical_alignment] is
-    anything other than ``BoxVerticalAlignment.TOP``.
-
-    Note:
-        This functionality was added in After Effects 24.6.
-    """
-
-    box_first_baseline_alignment: BoxFirstBaselineAlignment | None = None
-    """
-    Controls the position of the first line of composed text relative to
-    the top of the box.
-
-    Disabled if
-    [box_first_baseline_alignment_minimum][TextDocument.box_first_baseline_alignment_minimum]
-    is anything other than zero.
-
-    Defaults to ``BoxFirstBaselineAlignment.ASCENT``.
-
-    Note:
-        This functionality was added in After Effects 24.6.
-    """
-
-    box_first_baseline_alignment_minimum: float | None = None
-    """
-    Manually controls the position of the first line of composed text
-    relative to the top of the box.
-
-    A value set here other than zero will override the effect of the
-    [box_first_baseline_alignment][TextDocument.box_first_baseline_alignment]
-    value. Defaults to zero.
-
-    Note:
-        This functionality was added in After Effects 24.6.
-    """
-
-    box_inset_spacing: float | None = None
-    """
-    Controls the inner space between the box bounds and where the
-    composable text box begins. The same value is applied to all four sides
-    of the box. Defaults to zero.
-
-    Note:
-        This functionality was added in After Effects 24.6.
-    """
-
-    box_overflow: bool | None = None
-    """
-    Returns `True` if some part of the text did not compose into the box.
-
-    Note:
-        This functionality was added in After Effects 24.6.
-    """
-
-    box_text: bool | None = None
-    """
-    `True` if a Text layer is a layer of paragraph (bounded) text;
-    otherwise `False`.
-    """
-
-    box_text_pos: list[float] | None = None
-    """
-    The layer coordinates from a paragraph (box) Text layer's anchor point
-    as a ``[width, height]`` array of pixel dimensions.
-
-    Note:
-        This functionality was added in After Effects 13.2 (CC 2014.2).
-
-    Warning:
-        Only valid when [box_text][TextDocument.box_text] is `True`.
-    """
-
-    box_text_size: list[int] | None = None
-    """
-    The size of a paragraph (box) Text layer as a ``[width, height]`` array
-    of pixel dimensions.
-
-    Warning:
-        Only valid when [box_text][TextDocument.box_text] is `True`.
-    """
-
-    box_vertical_alignment: BoxVerticalAlignment | None = None
-    """
-    Enables the automated vertical alignment of the composed text in the
-    box. Defaults to ``BoxVerticalAlignment.TOP``.
-
-    Note:
-        This functionality was added in After Effects 24.6.
-    """
-
-    composed_line_count: int | None = None
-    """
-    The number of composed lines in the Text layer, may be zero if all text
-    is overset.
-
-    The [TextDocument][] instance is initialized from the composed state
-    and subsequent changes to the [TextDocument][] instance does not cause
-    recomposition. Even if you remove all the text from the [TextDocument][]
-    instance, the value returned here remains unchanged.
-    """
-
-    composer_engine: ComposerEngine | None = None
-    """
-    The Text layer's paragraph composer engine option. By default new Text
-    layers will use ``ComposerEngine.UNIVERSAL_TYPE_ENGINE``; the other
-    enum value will only be encountered in projects created before the
-    Universal Type Engine became the default in After Effects 22.1.1.
-
-    If this attribute has a mixed value, it will be read as `None`.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value reflects all paragraphs in the Text layer. If you change
-        this value, it will set all paragraphs in the Text layer to the
-        specified setting.
-    """
-
-    digit_set: DigitSet | None = None
-    """
-    The Text layer's digit set option.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    direction: ParagraphDirection | None = None
-    """
-    The Text layer's paragraph direction option.
-
-    If this attribute has a mixed value, it will be read as `None`.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value reflects all paragraphs in the Text layer. If you change
-        this value, it will set all paragraphs in the Text layer to the
-        specified setting.
-    """
-
-    end_indent: float | None = None
-    """
-    The Text layer's paragraph end indent option.
-
-    If this attribute has a mixed value, it will be read as `None`.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value reflects all paragraphs in the Text layer. If you change
-        this value, it will set all paragraphs in the Text layer to the
-        specified setting.
-    """
-
-    every_line_composer: bool | None = None
-    """
-    The Text layer's Every-Line Composer paragraph option. If set to
-    `False`, the [TextDocument][] will use the Single-Line Composer.
-
-    If this attribute has a mixed value, it will be read as `None`.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value reflects all paragraphs in the Text layer. If you change
-        this value, it will set all paragraphs in the Text layer to the
-        specified setting.
-    """
-
-    faux_bold: bool | None = None
-    """
-    `True` if a Text layer has faux bold enabled; otherwise `False`.
-
-    Note:
-        The read functionality was added in After Effects 13.2 (CC 2014.2).
-        The write functionality was added in After Effects 24.0.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    faux_italic: bool | None = None
-    """
-    `True` if a Text layer has faux italic enabled; otherwise `False`.
-
-    Note:
-        The read functionality was added in After Effects 13.2 (CC 2014.2).
-        The write functionality was added in After Effects 24.0.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    fill_color: list[float] | None = None
-    """
-    The Text layer's fill color, as an array of ``[r, g, b]``
-    floating-point values. For example, in an 8-bpc project, a red value
-    of 255 would be 1.0, and in a 32-bpc project, an overbright blue value
-    can be something like 3.2.
-
-    Setting this value will also set
-    [apply_fill][TextDocument.apply_fill] to `True` across the affected
-    characters.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    first_line_indent: float | None = None
-    """
-    The Text layer's paragraph first line indent option.
-
-    If this attribute has a mixed value, it will be read as `None`.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value reflects all paragraphs in the Text layer. If you change
-        this value, it will set all paragraphs in the Text layer to the
-        specified setting.
-    """
-
-    font: str | None = None
-    """
-    The Text layer's font specified by its PostScript name.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    font_baseline_option: FontBaselineOption | None = None
-    """
-    The Text layer's font baseline option. This is for setting a
-    [TextDocument][] to superscript or subscript.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    font_caps_option: FontCapsOption | None = None
-    """
-    The Text layer's font caps option.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    font_family: str | None = None
-    """
-    The name of the font family.
-
-    Note:
-        This functionality was added in After Effects 13.1 (CC 2014.1).
-
-    Warning:
-        This value only reflects the first character in the Text layer.
-    """
-
-    font_location: str | None = None
-    """
-    Path of font file, providing its location on disk.
-
-    Note:
-        This functionality was added in After Effects 13.1 (CC 2014.1).
-
-    Warning:
-        Not guaranteed to be returned for all font types; return value may
-        be empty string for some kinds of fonts.
-
-    Warning:
-        This value only reflects the first character in the Text layer.
-    """
-
-    font_object: FontObject | None = None
-    """
-    The Text layer's [FontObject][] specified by its PostScript name.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value only reflects the first character in the Text layer.
-    """
-
-    font_size: float | None = None
-    """
-    The Text layer's font size in pixels.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    font_style: str | None = None
-    """
-    Style information, e.g., "bold", "italic".
-
-    Note:
-        This functionality was added in After Effects 13.1 (CC 2014.1).
-
-    Warning:
-        This value only reflects the first character in the Text layer.
-    """
-
-    hanging_roman: bool | None = None
-    """
-    The Text layer's Roman Hanging Punctuation paragraph option. This is
-    only meaningful to box Text layers -- it allows punctuation to fit
-    outside the box rather than flow to the next line.
-
-    If this attribute has a mixed value, it will be read as `None`.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value reflects all paragraphs in the Text layer. If you change
-        this value, it will set all paragraphs in the Text layer to the
-        specified setting.
-    """
-
-    horizontal_scale: float | None = None
-    """
-    This Text layer's horizontal scale in pixels.
-
-    Note:
-        This functionality was added in After Effects 13.2 (CC 2014.2).
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    justification: ParagraphJustification | None = None
-    """
-    The paragraph justification for the Text layer.
-
-    Text layers with mixed justification values will be read as
-    ``ParagraphJustification.MULTIPLE_JUSTIFICATIONS``.
-
-    Setting a [TextDocument][] to use
-    ``ParagraphJustification.MULTIPLE_JUSTIFICATIONS`` will result in
-    ``ParagraphJustification.CENTER_JUSTIFY`` instead.
-
-    Warning:
-        This value reflects all paragraphs in the Text layer. If you change
-        this value, it will set all paragraphs in the Text layer to the
-        specified setting.
-    """
-
-    kerning: int | None = None
-    """
-    The Text layer's kerning option.
-
-    Returns zero for ``AutoKernType.METRIC_KERN`` and
-    ``AutoKernType.OPTICAL_KERN``.
-
-    Setting this value will also set ``AutoKernType.NO_AUTO_KERN`` to
-    `True` across the affected characters.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    leading: float | None = None
-    """
-    The Text layer's spacing between lines.
-
-    Returns zero if [auto_leading][TextDocument.auto_leading] is `True`.
-
-    Setting this value will also set
-    [auto_leading][TextDocument.auto_leading] to `True` across the
-    affected characters.
-
-    Note:
-        This functionality was added in After Effects 14.2 (CC 2017.1).
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting. The minimum accepted value to set is 0,
-        but this will be silently clipped to 0.01.
-    """
-
-    leading_type: LeadingType | None = None
-    """
-    The Text layer's paragraph leading type option.
-
-    If this attribute has a mixed value, it will be read as `None`.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value reflects all paragraphs in the Text layer. If you change
-        this value, it will set all paragraphs in the Text layer to the
-        specified setting.
-    """
-
-    ligature: bool | None = None
-    """
-    The Text layer's ligature option.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    line_join_type: LineJoinType | None = None
-    """
-    The Text layer's line join type option for Stroke.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    line_orientation: LineOrientation | None = None
-    """
-    The Text layer's line orientation, in general horizontal vs vertical,
-    which affects how all text in the layer is composed.
-
-    Note:
-        This functionality was added in After Effects 24.2.
-    """
-
-    no_break: bool | None = None
-    """
-    The Text layer's no break attribute.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    paragraph_count: int | None = None
-    """
-    The number of paragraphs in the text layer, always greater than or
-    equal to 1.
-    """
-
-    point_text: bool | None = None
-    """
-    `True` if a Text layer is a layer of point (unbounded) text; otherwise
-    `False`.
-    """
-
-    small_caps: bool | None = None
-    """
-    `True` if a Text layer has small caps enabled; otherwise `False`.
-    To set this value, use
-    [font_caps_option][TextDocument.font_caps_option].
-
-    Note:
-        This functionality was added in After Effects 13.2 (CC 2014.2).
-
-    Warning:
-        This value only reflects the first character in the Text layer.
-    """
-
-    space_after: float | None = None
-    """
-    The Text layer's paragraph space after option.
-
-    If this attribute has a mixed value, it will be read as `None`.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value reflects all paragraphs in the Text layer. If you change
-        this value, it will set all paragraphs in the Text layer to the
-        specified setting.
-    """
-
-    space_before: float | None = None
-    """
-    The Text layer's paragraph space before option.
-
-    If this attribute has a mixed value, it will be read as `None`.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value reflects all paragraphs in the Text layer. If you change
-        this value, it will set all paragraphs in the Text layer to the
-        specified setting.
-    """
-
-    start_indent: float | None = None
-    """
-    The Text layer's paragraph start indent option.
-
-    If this attribute has a mixed value, it will be read as `None`.
-
-    Note:
-        This functionality was added in After Effects 24.0.
-
-    Warning:
-        This value reflects all paragraphs in the Text layer. If you change
-        this value, it will set all paragraphs in the Text layer to the
-        specified setting.
-    """
-
-    stroke_color: list[float] | None = None
-    """
-    The Text layer's stroke color, as an array of ``[r, g, b]``
-    floating-point values. For example, in an 8-bpc project, a red value
-    of 255 would be 1.0, and in a 32-bpc project, an overbright blue value
-    can be something like 3.2.
-
-    Setting this value will also set
-    [apply_stroke][TextDocument.apply_stroke] to `True` across the
-    affected characters.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    stroke_over_fill: bool | None = None
-    """
-    Indicates the rendering order for the fill and stroke of a Text layer.
-    When `True`, the stroke appears over the fill.
-
-    The Text layer can override the per-character attribute setting if the
-    Text layer is set to use All Strokes Over All Fills or All Fills Over
-    All Strokes in the Character Panel. Thus the value returned here might
-    be different than the actual attribute value set on the character.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    stroke_width: float | None = None
-    """
-    The Text layer's stroke thickness in pixels.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting. The minimum accepted value to set is 0,
-        but this will be silently clipped to 0.01.
-    """
-
-    subscript: bool | None = None
-    """
-    `True` if a Text layer has subscript enabled; otherwise `False`.
-    To set this value, use
-    [font_baseline_option][TextDocument.font_baseline_option].
-
-    Note:
-        This functionality was added in After Effects 13.2 (CC 2014.2).
-
-    Warning:
-        This value only reflects the first character in the Text layer.
-    """
-
-    superscript: bool | None = None
-    """
-    `True` if a Text layer has superscript enabled; otherwise `False`.
-    To set this value, use
-    [font_baseline_option][TextDocument.font_baseline_option].
-
-    Note:
-        This functionality was added in After Effects 13.2 (CC 2014.2).
-
-    Warning:
-        This value only reflects the first character in the Text layer.
-    """
-
-    tracking: float | None = None
-    """
-    The Text layer's spacing between characters.
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
-
-    tsume: float | None = None
-    """
-    This Text layer's tsume value as a normalized percentage, from
-    0.0 to 1.0.
-
-    Note:
-        This functionality was added in After Effects 13.2 (CC 2014.2).
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting. This attribute accepts values from
-        0.0 to 100.0, however the value is expecting a normalized value
-        from 0.0 to 1.0. Using a value higher than 1.0 will produce
-        unexpected results.
-    """
-
-    vertical_scale: float | None = None
-    """
-    This Text layer's vertical scale in pixels.
-
-    Note:
-        This functionality was added in After Effects 13.2 (CC 2014.2).
-
-    Warning:
-        This value only reflects the first character in the Text layer. If
-        you change this value, it will set all characters in the Text layer
-        to the specified setting.
-    """
+    # Explicit annotation so to_dict serializes it (bypasses SKIP_PROPERTIES)
+    text: str
+
+    # -- Character-style CosField descriptors (_char_style dict) -----------
+
+    font_size: float | None = CosField.float("_char_style", "1")  # type: ignore[assignment]
+    """The Text layer's font size in pixels. Read / Write."""
+
+    faux_bold: bool | None = CosField.bool("_char_style", "2")  # type: ignore[assignment]
+    """`True` if a Text layer has faux bold enabled. Read / Write."""
+
+    faux_italic: bool | None = CosField.bool("_char_style", "3")  # type: ignore[assignment]
+    """`True` if a Text layer has faux italic enabled. Read / Write."""
+
+    tracking: float | None = CosField.float("_char_style", "8")  # type: ignore[assignment]
+    """The Text layer's spacing between characters. Read / Write."""
+
+    auto_kern_type: AutoKernType | None = AutoKernType.NO_AUTO_KERN
+    """The Text layer's auto kern type option. Read / Write."""
+
+    horizontal_scale: float | None = CosField.float("_char_style", "6")  # type: ignore[assignment]
+    """This Text layer's horizontal scale in pixels. Read / Write."""
+
+    vertical_scale: float | None = CosField.float("_char_style", "7")  # type: ignore[assignment]
+    """This Text layer's vertical scale in pixels. Read / Write."""
+
+    baseline_shift: float | None = CosField.float("_char_style", "9")  # type: ignore[assignment]
+    """This Text layer's baseline shift in pixels. Read / Write."""
+
+    font_caps_option: FontCapsOption | None = CosField.enum(  # type: ignore[assignment]
+        FontCapsOption,
+        "_char_style",
+        "12",
+        map=_FONT_CAPS_MAP,
+        reverse_map=_REVERSE_FONT_CAPS_MAP,
+    )
+    """The Text layer's font caps option. Read / Write."""
+
+    font_baseline_option: FontBaselineOption | None = CosField.enum(  # type: ignore[assignment]
+        FontBaselineOption,
+        "_char_style",
+        "13",
+        map=_FONT_BASELINE_MAP,
+        reverse_map=_REVERSE_FONT_BASELINE_MAP,
+    )
+    """The Text layer's font baseline option. Read / Write."""
+
+    tsume: float | None = CosField.float("_char_style", "17")  # type: ignore[assignment]
+    """This Text layer's tsume value (0.0 to 1.0). Read / Write."""
+
+    apply_fill: bool | None = CosField.bool("_char_style", "56")  # type: ignore[assignment]
+    """When `True`, the Text layer shows a fill. Read / Write."""
+
+    apply_stroke: bool | None = CosField.bool("_char_style", "57")  # type: ignore[assignment]
+    """When `True`, the Text layer shows a stroke. Read / Write."""
+
+    stroke_over_fill: bool | None = CosField.bool("_char_style", "58")  # type: ignore[assignment]
+    """When `True`, the stroke appears over the fill. Read / Write."""
+
+    stroke_width: float | None = CosField.float("_char_style", "63")  # type: ignore[assignment]
+    """The Text layer's stroke thickness in pixels. Read / Write."""
+
+    # -- Paragraph-style CosField descriptors (_para_style dict) -----------
+
+    justification: ParagraphJustification | None = CosField.enum(  # type: ignore[assignment]
+        ParagraphJustification,
+        "_para_style",
+        "0",
+        map=_JUSTIFICATION_MAP,
+        reverse_map=_REVERSE_JUSTIFICATION_MAP,
+    )
+    """The paragraph justification for the Text layer. Read / Write."""
+
+    first_line_indent: float | None = CosField.float("_para_style", "1")  # type: ignore[assignment]
+    """The Text layer's paragraph first line indent. Read / Write."""
+
+    start_indent: float | None = CosField.float("_para_style", "2")  # type: ignore[assignment]
+    """The Text layer's paragraph start indent. Read / Write."""
+
+    end_indent: float | None = CosField.float("_para_style", "3")  # type: ignore[assignment]
+    """The Text layer's paragraph end indent. Read / Write."""
+
+    space_before: float | None = CosField.float("_para_style", "4")  # type: ignore[assignment]
+    """The Text layer's paragraph space before. Read / Write."""
+
+    space_after: float | None = CosField.float("_para_style", "5")  # type: ignore[assignment]
+    """The Text layer's paragraph space after. Read / Write."""
+
+    auto_leading: bool | None = CosField.bool("_para_style", "6")  # type: ignore[assignment]
+    """The Text layer's auto leading option. Read / Write."""
+
+    leading_type: LeadingType | None = CosField.enum(  # type: ignore[assignment]
+        LeadingType,
+        "_para_style",
+        "8",
+        map=_LEADING_TYPE_MAP,
+        reverse_map=_REVERSE_LEADING_TYPE_MAP,
+    )
+    """The Text layer's paragraph leading type. Read / Write."""
+
+    auto_hyphenate: bool | None = CosField.bool("_para_style", "9")  # type: ignore[assignment]
+    """The Text layer's auto hyphenate option. Read / Write."""
+
+    hanging_roman: bool | None = CosField.bool("_para_style", "21")  # type: ignore[assignment]
+    """The Text layer's Roman Hanging Punctuation. Read / Write."""
+
+    kerning: int | None = 0
+    """The Text layer's kerning value. Read / Write."""
+
+    baseline_direction: BaselineDirection | None = (
+        BaselineDirection.BASELINE_WITH_STREAM
+    )
+    """The Text layer's baseline direction. Read / Write."""
+
+    ligature: bool | None = False
+    """When `True`, ligature is used. Read / Write."""
+
+    no_break: bool | None = False
+    """When `True`, the no-break attribute is applied. Read / Write."""
+
+    digit_set: DigitSet | None = DigitSet.DEFAULT_DIGITS
+    """The Text layer's digit set option. Read / Write."""
+
+    line_join_type: LineJoinType | None = LineJoinType.LINE_JOIN_MITER
+    """The Text layer's line join type for strokes. Read / Write."""
+
+    direction: ParagraphDirection | None = ParagraphDirection.DIRECTION_LEFT_TO_RIGHT
+    """The Text layer's paragraph direction. Read / Write."""
+
+    line_orientation: LineOrientation | None = LineOrientation.HORIZONTAL
+    """The Text layer's line orientation. Read / Write."""
+
+    # -- Constructor -------------------------------------------------------
+
+    def __init__(
+        self,
+        *,
+        _char_style: dict[str, Any] | None = None,
+        _para_style: dict[str, Any] | None = None,
+        _doc: dict[str, Any] | None = None,
+        _fonts: list[FontObject] | None = None,
+        _cos_data: dict[str, Any] | None = None,
+        _btdk_body: Any | None = None,
+        # Fallback kwargs for fields without COS backing
+        text: str | None = None,
+        font: str | None = None,
+        font_object: FontObject | None = None,
+        fill_color: list[float] | None = None,
+        stroke_color: list[float] | None = None,
+        paragraph_count: int | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self._char_style = _char_style
+        self._para_style = _para_style
+        self._doc = _doc
+        self._fonts = _fonts or []
+        self._cos_data = _cos_data
+        self._btdk_body = _btdk_body
+        # Instance overrides for non-descriptor fields
+        if text is not None:
+            self.__dict__["text"] = text
+        if font is not None:
+            self.__dict__["font"] = font
+        if font_object is not None:
+            self.__dict__["font_object"] = font_object
+        if fill_color is not None:
+            self.__dict__["fill_color"] = fill_color
+        if stroke_color is not None:
+            self.__dict__["stroke_color"] = stroke_color
+        if paragraph_count is not None:
+            self.__dict__["paragraph_count"] = paragraph_count
+        # Accept any CosField-backed kwargs as instance overrides
+        for key, val in kwargs.items():
+            if val is not None:
+                self.__dict__[key] = val
+
+    # -- Computed properties -----------------------------------------------
+
+    @property
+    def text(self) -> str:
+        """The text value for the Source Text property. Read / Write."""
+        if "text" in self.__dict__:
+            return str(self.__dict__["text"])
+        if self._doc is not None:
+            val = self._doc.get("0", {}).get("0")
+            if val is not None:
+                return str(val).rstrip("\r\n")
+        return ""
+
+    @text.setter
+    def text(self, value: str) -> None:
+        self.__dict__.pop("text", None)
+        if self._doc is not None:
+            inner = self._doc.setdefault("0", {})
+            inner["0"] = value
+            self._propagate_cos()
+        else:
+            self.__dict__["text"] = value
+
+    @property
+    def font(self) -> str | None:
+        """The Text layer's font PostScript name. Read / Write."""
+        if "font" in self.__dict__:
+            result: str | None = self.__dict__["font"]
+            return result
+        if self._char_style is not None:
+            font_idx = self._char_style.get("0")
+            if isinstance(font_idx, int) and 0 <= font_idx < len(self._fonts):
+                return self._fonts[font_idx].post_script_name
+        return None
+
+    @font.setter
+    def font(self, value: str | None) -> None:
+        self.__dict__.pop("font", None)
+        if value is None:
+            self.__dict__["font"] = None
+            return
+        if self._char_style is not None:
+            for idx, fo in enumerate(self._fonts):
+                if fo.post_script_name == value:
+                    self._char_style["0"] = idx
+                    self.__dict__.pop("font_object", None)
+                    self._propagate_cos()
+                    return
+        self.__dict__["font"] = value
+
+    @property
+    def font_object(self) -> FontObject | None:
+        """The Text layer's [FontObject][]. Read / Write."""
+        if "font_object" in self.__dict__:
+            result: FontObject | None = self.__dict__["font_object"]
+            return result
+        if self._char_style is not None:
+            font_idx = self._char_style.get("0")
+            if isinstance(font_idx, int) and 0 <= font_idx < len(self._fonts):
+                return self._fonts[font_idx]
+        return None
+
+    @font_object.setter
+    def font_object(self, value: FontObject | None) -> None:
+        self.__dict__["font_object"] = value
+
+    @property
+    def fill_color(self) -> list[float] | None:
+        """The Text layer's fill color as `[r, g, b]`. Read / Write."""
+        if "fill_color" in self.__dict__:
+            result: list[float] | None = self.__dict__["fill_color"]
+            return result
+        if self._char_style is not None:
+            return _parse_color(self._char_style.get("53"))
+        return None
+
+    @fill_color.setter
+    def fill_color(self, value: list[float] | None) -> None:
+        self.__dict__.pop("fill_color", None)
+        if self._char_style is not None:
+            if value is None:
+                self._char_style.pop("53", None)
+            else:
+                self._char_style["53"] = _build_color_paint(value)
+            self._propagate_cos()
+        else:
+            self.__dict__["fill_color"] = value
+
+    @property
+    def stroke_color(self) -> list[float] | None:
+        """The Text layer's stroke color as `[r, g, b]`. Read / Write."""
+        if "stroke_color" in self.__dict__:
+            result: list[float] | None = self.__dict__["stroke_color"]
+            return result
+        if self._char_style is not None:
+            return _parse_color(self._char_style.get("54"))
+        return None
+
+    @stroke_color.setter
+    def stroke_color(self, value: list[float] | None) -> None:
+        self.__dict__.pop("stroke_color", None)
+        if self._char_style is not None:
+            if value is None:
+                self._char_style.pop("54", None)
+            else:
+                self._char_style["54"] = _build_color_paint(value)
+            self._propagate_cos()
+        else:
+            self.__dict__["stroke_color"] = value
+
+    @property
+    def leading(self) -> float | None:
+        """The Text layer's spacing between lines. Read / Write.
+
+        When auto-leading is enabled, returns font_size * auto_leading_factor.
+        """
+        if "leading" in self.__dict__:
+            result: float | None = self.__dict__["leading"]
+            return result
+        if self._char_style is not None:
+            raw = self._char_style.get("10")
+            if isinstance(raw, (int, float)):
+                if raw == 0 and self.auto_leading and self._para_style is not None:
+                    factor = self._para_style.get("7", 1.2)
+                    fs = self.font_size
+                    if fs is not None:
+                        return fs * float(factor)
+                return float(raw)
+        return None
+
+    @leading.setter
+    def leading(self, value: float | None) -> None:
+        self.__dict__.pop("leading", None)
+        if self._char_style is not None and value is not None:
+            self._char_style["10"] = value
+            self._propagate_cos()
+        else:
+            self.__dict__["leading"] = value
+
+    @property
+    def paragraph_count(self) -> int | None:
+        """The number of paragraphs in the text layer. Read-only."""
+        if "paragraph_count" in self.__dict__:
+            result: int | None = self.__dict__["paragraph_count"]
+            return result
+        if self._doc is not None:
+            para_runs = self._doc.get("0", {}).get("5", {}).get("0")
+            if isinstance(para_runs, list):
+                return len(para_runs)
+        return None
+
+    @paragraph_count.setter
+    def paragraph_count(self, value: int | None) -> None:
+        self.__dict__["paragraph_count"] = value
+
+    @property
+    def all_caps(self) -> bool | None:
+        """`True` if a Text layer has All Caps enabled. Read-only."""
+        caps = self.font_caps_option
+        if caps is None:
+            return None
+        return caps == FontCapsOption.FONT_ALL_CAPS
+
+    @property
+    def small_caps(self) -> bool | None:
+        """`True` if a Text layer has Small Caps enabled. Read-only."""
+        caps = self.font_caps_option
+        if caps is None:
+            return None
+        return caps == FontCapsOption.FONT_SMALL_CAPS
+
+    @property
+    def superscript(self) -> bool | None:
+        """`True` if a Text layer has superscript enabled. Read-only."""
+        baseline = self.font_baseline_option
+        if baseline is None:
+            return None
+        return baseline == FontBaselineOption.FONT_FAUXED_SUPERSCRIPT
+
+    @property
+    def subscript(self) -> bool | None:
+        """`True` if a Text layer has subscript enabled. Read-only."""
+        baseline = self.font_baseline_option
+        if baseline is None:
+            return None
+        return baseline == FontBaselineOption.FONT_FAUXED_SUBSCRIPT
+
+    @property
+    def every_line_composer(self) -> bool | None:
+        """The Text layer's Every-Line Composer option. Read / Write.
+
+        `True` when Every-Line Composer is used, `False` for Single-Line.
+        """
+        if "every_line_composer" in self.__dict__:
+            result: bool | None = self.__dict__["every_line_composer"]
+            return result
+        if self._para_style is not None:
+            # COS key "15" stores single-line composer flag (inverted)
+            val = self._para_style.get("15")
+            if val is not None:
+                return not val
+        return None
+
+    @every_line_composer.setter
+    def every_line_composer(self, value: bool | None) -> None:
+        self.__dict__.pop("every_line_composer", None)
+        if self._para_style is not None and value is not None:
+            self._para_style["15"] = not value
+            self._propagate_cos()
+        else:
+            self.__dict__["every_line_composer"] = value
+
+    @property
+    def composer_engine(self) -> ComposerEngine | None:
+        """The Text layer's composer engine type. Read-only."""
+        if self._cos_data is not None:
+            engine_info = self._cos_data.get("1", {}).get("4")
+            if isinstance(engine_info, dict):
+                engine_name = engine_info.get("3")
+                if engine_name == "DVA":
+                    return ComposerEngine.LATIN_CJK_ENGINE
+                if engine_name == "Universal":
+                    return ComposerEngine.UNIVERSAL_TYPE_ENGINE
+        return None
+
+    @property
+    def box_text(self) -> bool | None:
+        """`True` if this is a box (paragraph) text layer. Read-only."""
+        if self._doc is not None:
+            frame_data = self._doc.get("1", {})
+            # Box text has a "3" key with the bounding box coordinates
+            return "3" in frame_data
+        return None
+
+    @property
+    def point_text(self) -> bool | None:
+        """`True` if this is a point text layer. Read-only."""
+        bt = self.box_text
+        if bt is None:
+            return None
+        return not bt
+
+    @property
+    def composed_line_count(self) -> int | None:
+        """The number of composed lines in the Text layer. Read-only."""
+        txt = self.text
+        if not txt:
+            return None
+        return txt.count("\n") + 1
+
+    # -- COS write-back ----------------------------------------------------
+
+    def _propagate_cos(self) -> None:
+        """Serialize COS data back to the btdk chunk's binary_data."""
+        if self._cos_data is not None and self._btdk_body is not None:
+            self._btdk_body.binary_data = serialize(self._cos_data)
+            propagate_check(self._btdk_body)

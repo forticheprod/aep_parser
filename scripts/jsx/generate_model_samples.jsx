@@ -2111,6 +2111,35 @@ var AEP_EXPORT_AS_LIBRARY = true;
     }
 
     // =========================================================================
+    // Guide Samples
+    // Covers: Item.guides
+    // =========================================================================
+
+    function generateGuideSamples(outputPath) {
+        var folder = ensureFolder(outputPath + "/composition");
+        var proj, c;
+
+        // No guides (default)
+        proj = createProject("guides_none");
+        proj.items.addComp("TestComp", 1920, 1080, 1, 1, 24);
+        saveProject(proj, folder.fsName);
+
+        // Horizontal guide only
+        proj = createProject("guides_horizontal");
+        c = proj.items.addComp("TestComp", 1920, 1080, 1, 1, 24);
+        c.addGuide(0, 540);
+        saveProject(proj, folder.fsName);
+
+        // Both horizontal and vertical guides
+        proj = createProject("guides_both");
+        c = proj.items.addComp("TestComp", 1920, 1080, 1, 1, 24);
+        c.addGuide(0, 270);   // horizontal at 270px
+        c.addGuide(0, 810);   // horizontal at 810px
+        c.addGuide(1, 960);   // vertical at 960px
+        saveProject(proj, folder.fsName);
+    }
+
+    // =========================================================================
     // RenderQueue Model Samples
     // Covers: RenderQueue, RenderQueueItem, OutputModule
     // Generates all render_queue *.aep samples
@@ -2845,8 +2874,11 @@ var AEP_EXPORT_AS_LIBRARY = true;
             // $.writeln("--- Folder samples ---");
             // generateFolderSamples(OUTPUT_FOLDER);
 
-            $.writeln("--- Marker samples ---");
-            generateMarkerSamples(OUTPUT_FOLDER);
+            // $.writeln("--- Marker samples ---");
+            // generateMarkerSamples(OUTPUT_FOLDER);
+
+            $.writeln("--- Guide samples ---");
+            generateGuideSamples(OUTPUT_FOLDER);
 
             // $.writeln("--- Mask samples ---");
             // generateMaskSamples(OUTPUT_FOLDER);

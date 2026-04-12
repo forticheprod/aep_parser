@@ -2,10 +2,27 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import typing
+
+from ...kaitai.descriptors import ChunkField
+from ...kaitai.utils import propagate_check
+from ..validators import validate_number
+
+if typing.TYPE_CHECKING:
+    from ...kaitai import Aep
+    from ..items.composition import CompItem
 
 
-@dataclass
+def _interp_transform(raw: int) -> int:
+    """Map binary interpolation (0=non-Hold, 2=Hold) to ExtendScript (0/1)."""
+    return 1 if raw == 2 else 0
+
+
+def _interp_reverse(value: int) -> int:
+    """Map ExtendScript interpolation (0/1) back to binary (0/2)."""
+    return 2 if value == 1 else 0
+
+
 class FeatherPoint:
     """A single variable-width mask feather point.
 
@@ -19,36 +36,53 @@ class FeatherPoint:
         that they were created.
     """
 
-    seg_loc: int
+    seg_loc = ChunkField[int](
+        "_fp", "seg_loc", validate=validate_number(min=0, integer=True)
+    )
     """Mask path segment number where this feather point is located
-    (0-based, segments are portions of the path between vertices)."""
+    (0-based, segments are portions of the path between vertices).
+    Read / Write."""
 
-    rel_seg_loc: float
+    rel_seg_loc = ChunkField[float](
+        "_fp", "rel_seg_loc", validate=validate_number(min=0.0, max=1.0)
+    )
     """Relative position on the segment, from 0.0 (at the starting
-    vertex) to 1.0 (at the next vertex)."""
+    vertex) to 1.0 (at the next vertex). Read / Write."""
 
-    radius: float
+    radius = ChunkField[float]("_fp", "radius")
     """Feather radius (amount). Negative values indicate inner feather
-    points; positive values indicate outer feather."""
+    points; positive values indicate outer feather. Read / Write."""
 
-    type: int
-    """Feather point direction: 0 (outer feather point) or
-    1 (inner feather point)."""
-
-    interp: int
+    interp = ChunkField[int](
+        "_fp",
+        "interp_raw",
+        transform=_interp_transform,
+        reverse=_interp_reverse,
+    )
     """Radius interpolation type: 0 for non-Hold feather points,
-    1 for Hold feather points."""
+    1 for Hold feather points. Read / Write."""
 
-    tension: float
-    """Feather tension amount, from 0.0 (0%) to 1.0 (100%)."""
+    tension = ChunkField[float](
+        "_fp", "tension", validate=validate_number(min=0.0, max=1.0)
+    )
+    """Feather tension amount, from 0.0 (0%) to 1.0 (100%). Read / Write."""
 
-    rel_corner_angle: float
+    rel_corner_angle = ChunkField[float]("_fp", "corner_angle")
     """Relative angle percentage between the two normals on either side
     of a curved outer feather boundary at a corner on a mask path.
-    The angle value is 0% for feather points not at corners."""
+    The angle value is 0% for feather points not at corners.
+    Read / Write."""
+
+    def __init__(self, *, _fp: Aep.FeatherPoint) -> None:
+        self._fp = _fp
+
+    @property
+    def type(self) -> int:
+        """Feather point direction: 0 (outer feather point) or
+        1 (inner feather point). Read-only."""
+        return 1 if self.radius < 0 else 0
 
 
-@dataclass
 class Shape:
     """
     The Shape object encapsulates information describing a shape in a shape layer, or
@@ -101,124 +135,180 @@ class Shape:
     See: https://ae-scripting.docsforadobe.dev/other/shape/
     """
 
-    closed: bool
-    """
-    When `True`, the first and last vertices are connected to form a closed curve. When
-    `False`, the closing segment is not drawn.
-    """
-
-    vertices: list[list[float]]
-    """
-    The anchor points of the shape. Specify each point as an array of two floating-point
-    values, and collect the point pairs into an array for the complete set of points.
-    """
-
-    in_tangents: list[list[float]]
-    """
-    The incoming tangent vectors, or direction handles, associated with the vertices of
-    the shape. Specify each vector as an array of two floating-point values, and collect
-    the vectors into an array the same length as the vertices array.
-
-    Each tangent value defaults to [0,0]. When the mask shape is not roto_bezier, this
-    results in a straight line segment.
-
-    If the shape is in a roto_bezier mask, all tangent values are ignored and the
-    tangents are automatically calculated.
-    """
-
-    out_tangents: list[list[float]]
-    """
-    The outgoing tangent vectors, or direction handles, associated with the vertices of
-    the shape. Specify each vector as an array of two floating-point values, and collect
-    the vectors into an array the same length as the vertices array.
-
-    Each tangent value defaults to [0,0]. When the mask shape is not roto_bezier, this
-    results in a straight line segment.
-
-    If the shape is in a roto_bezier mask, all tangent values are ignored and the
-    tangents are automatically calculated.
-    """
-
-    feather_points: list[FeatherPoint] = field(default_factory=list)
-    """List of variable-width mask feather points."""
+    def __init__(
+        self,
+        *,
+        _shph: Aep.ShphBody | None = None,
+        _points: list[Aep.ShapePoint] | None = None,
+        _is_mask: bool = False,
+        _composition: CompItem | None = None,
+        closed: bool | None = None,
+        feather_points: list[FeatherPoint] | None = None,
+    ) -> None:
+        self._shph = _shph
+        self._points = _points
+        self._is_mask = _is_mask
+        self._composition = _composition
+        if _shph is None and closed is not None:
+            self._closed_fallback = closed
+        self.feather_points = feather_points if feather_points is not None else []
+        """List of variable-width mask feather points."""
 
     @property
-    def feather_seg_locs(self) -> list[int]:
-        """An array containing each feather point's mask path segment
-        number (section of the mask path between vertices, numbered
-        starting at 0).
+    def _comp_size(self) -> tuple[float, float] | None:
+        """Composition size for mask shape denormalization, read lazily."""
+        if self._composition is not None:
+            return (float(self._composition.width), float(self._composition.height))
+        return None
 
-        Note:
-            Equivalent to
-            `[pt.seg_loc for pt in self.feather_points]`.
-        """
-        return [pt.seg_loc for pt in self.feather_points]
+    def _denormalize_point(self, pt: Aep.ShapePoint) -> list[float]:
+        """Convert a normalized [0,1] shape point to absolute coordinates."""
+        shph = self._shph
+        assert shph is not None
+        x = shph.top_left_x * (1 - pt.x) + shph.bottom_right_x * pt.x
+        y = shph.top_left_y * (1 - pt.y) + shph.bottom_right_y * pt.y
+        return [x, y]
 
-    @property
-    def feather_rel_seg_locs(self) -> list[float]:
-        """An array containing each feather point's relative position,
-        from 0 to 1, on its mask path segment.
-
-        Note:
-            Equivalent to
-            `[pt.rel_seg_loc for pt in self.feather_points]`.
-        """
-        return [pt.rel_seg_loc for pt in self.feather_points]
-
-    @property
-    def feather_radii(self) -> list[float]:
-        """An array containing each feather point's radius (feather
-        amount); inner feather points have negative values.
-
-        Note:
-            Equivalent to
-            `[pt.radius for pt in self.feather_points]`.
-        """
-        return [pt.radius for pt in self.feather_points]
+    def _normalize_point(self, x: float, y: float) -> tuple[float, float]:
+        """Convert absolute coordinates back to normalized [0,1]."""
+        shph = self._shph
+        assert shph is not None
+        dx = shph.bottom_right_x - shph.top_left_x
+        dy = shph.bottom_right_y - shph.top_left_y
+        nx = (x - shph.top_left_x) / dx if dx != 0 else 0.0
+        ny = (y - shph.top_left_y) / dy if dy != 0 else 0.0
+        return nx, ny
 
     @property
-    def feather_types(self) -> list[int]:
-        """An array containing each feather point's direction, either
-        0 (outer feather point) or 1 (inner feather point).
-
-        Note:
-            Equivalent to
-            `[pt.type for pt in self.feather_points]`.
+    def vertices(self) -> list[list[float]]:
         """
-        return [pt.type for pt in self.feather_points]
+        The anchor points of the shape. Specify each point as an array of two
+        floating-point values, and collect the point pairs into an array for the
+        complete set of points.
+        """
+        if self._points is None or self._shph is None:
+            return []
+        result: list[list[float]] = []
+        for i in range(0, len(self._points), 3):
+            result.append(self._denormalize_point(self._points[i]))
+        if self._is_mask and self._comp_size is not None:
+            w, h = self._comp_size
+            result = [[x * w, y * h] for x, y in result]
+        return result
+
+    @vertices.setter
+    def vertices(self, value: list[list[float]]) -> None:
+        if self._points is None or self._shph is None:
+            return
+        coords = value
+        if self._is_mask and self._comp_size is not None:
+            w, h = self._comp_size
+            coords = [[x / w, y / h] for x, y in coords]
+        for j, (x, y) in enumerate(coords):
+            i = j * 3
+            nx, ny = self._normalize_point(x, y)
+            self._points[i].x = nx
+            self._points[i].y = ny
+        propagate_check(self._shph)
 
     @property
-    def feather_interps(self) -> list[int]:
-        """An array containing each feather point's radius
-        interpolation type (0 for non-Hold feather points, 1 for Hold
-        feather points).
-
-        Note:
-            Equivalent to
-            `[pt.interp for pt in self.feather_points]`.
+    def in_tangents(self) -> list[list[float]]:
         """
-        return [pt.interp for pt in self.feather_points]
+        The incoming tangent vectors, or direction handles, associated with the vertices
+        of the shape. Specify each vector as an array of two floating-point values, and
+        collect the vectors into an array the same length as the vertices array.
+
+        Each tangent value defaults to [0,0]. When the mask shape is not roto_bezier,
+        this results in a straight line segment.
+
+        If the shape is in a roto_bezier mask, all tangent values are ignored and the
+        tangents are automatically calculated.
+        """
+        if self._points is None or self._shph is None:
+            return []
+        result: list[list[float]] = []
+        for i in range(0, len(self._points), 3):
+            v = self._denormalize_point(self._points[i])
+            in_idx = (i - 1) % len(self._points)
+            t = self._denormalize_point(self._points[in_idx])
+            result.append([t[0] - v[0], t[1] - v[1]])
+        if self._is_mask and self._comp_size is not None:
+            w, h = self._comp_size
+            result = [[x * w, y * h] for x, y in result]
+        return result
+
+    @in_tangents.setter
+    def in_tangents(self, value: list[list[float]]) -> None:
+        if self._points is None or self._shph is None:
+            return
+        tangents = value
+        if self._is_mask and self._comp_size is not None:
+            w, h = self._comp_size
+            tangents = [[x / w, y / h] for x, y in tangents]
+        for j, (tx, ty) in enumerate(tangents):
+            i = j * 3
+            v = self._denormalize_point(self._points[i])
+            abs_x, abs_y = v[0] + tx, v[1] + ty
+            nx, ny = self._normalize_point(abs_x, abs_y)
+            in_idx = (i - 1) % len(self._points)
+            self._points[in_idx].x = nx
+            self._points[in_idx].y = ny
+        propagate_check(self._shph)
 
     @property
-    def feather_tensions(self) -> list[float]:
-        """An array containing each feather point's tension amount,
-        from 0.0 (0% tension) to 1.0 (100% tension).
-
-        Note:
-            Equivalent to
-            `[pt.tension for pt in self.feather_points]`.
+    def out_tangents(self) -> list[list[float]]:
         """
-        return [pt.tension for pt in self.feather_points]
+        The outgoing tangent vectors, or direction handles, associated with the vertices
+        of the shape. Specify each vector as an array of two floating-point values, and
+        collect the vectors into an array the same length as the vertices array.
+
+        Each tangent value defaults to [0,0]. When the mask shape is not roto_bezier,
+        this results in a straight line segment.
+
+        If the shape is in a roto_bezier mask, all tangent values are ignored and the
+        tangents are automatically calculated.
+        """
+        if self._points is None or self._shph is None:
+            return []
+        result: list[list[float]] = []
+        for i in range(0, len(self._points), 3):
+            v = self._denormalize_point(self._points[i])
+            t = self._denormalize_point(self._points[i + 1])
+            result.append([t[0] - v[0], t[1] - v[1]])
+        if self._is_mask and self._comp_size is not None:
+            w, h = self._comp_size
+            result = [[x * w, y * h] for x, y in result]
+        return result
+
+    @out_tangents.setter
+    def out_tangents(self, value: list[list[float]]) -> None:
+        if self._points is None or self._shph is None:
+            return
+        tangents = value
+        if self._is_mask and self._comp_size is not None:
+            w, h = self._comp_size
+            tangents = [[x / w, y / h] for x, y in tangents]
+        for j, (tx, ty) in enumerate(tangents):
+            i = j * 3
+            v = self._denormalize_point(self._points[i])
+            abs_x, abs_y = v[0] + tx, v[1] + ty
+            nx, ny = self._normalize_point(abs_x, abs_y)
+            self._points[i + 1].x = nx
+            self._points[i + 1].y = ny
+        propagate_check(self._shph)
 
     @property
-    def feather_rel_corner_angles(self) -> list[float]:
-        """An array containing each feather point's relative angle
-        percentage between the two normals on either side of a curved
-        outer feather boundary at a corner on a mask path. The angle
-        value is 0% for feather points not at corners.
+    def closed(self) -> bool:
+        """When `True`, the first and last vertices are connected to form a closed
+        curve. When `False`, the closing segment is not drawn."""
+        if self._shph is not None:
+            return not self._shph.open
+        return self._closed_fallback
 
-        Note:
-            Equivalent to
-            `[pt.rel_corner_angle for pt in self.feather_points]`.
-        """
-        return [pt.rel_corner_angle for pt in self.feather_points]
+    @closed.setter
+    def closed(self, value: bool) -> None:
+        if self._shph is not None:
+            self._shph.open = not value
+            propagate_check(self._shph)
+        else:
+            self._closed_fallback = value

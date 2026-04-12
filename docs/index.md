@@ -25,29 +25,21 @@ AEP Parser is a Python library that parses Adobe After Effects project files (.a
 ```python
 import aep_parser
 
-# Parse an After Effects project file
-app = aep_parser.parse("path/to/your/project.aep")
-project = app.project
+app = aep_parser.parse("myproject.aep")
+comp = app.project.compositions[0]
 
-# Access application-level information
-print(f"AE Version: {app.version}")
+# Modify composition settings
+comp.frame_rate = 30
 
-# Access project information
-print(f"Frame Rate: {project.frame_rate}")
-print(f"Bits per Channel: {project.bits_per_channel}")
+# Modify a layer property
+opacity = comp.layers[0].transform.opacity
+opacity.value = 50
 
-# Access project items
-for item in project:
-    print(f"Item: {item.name} ({type(item).__name__})")
+# Save to a new file
+app.save("modified.aep")
 ```
 
-## Features
-
-- **Full Project Parsing**: Parse complete After Effects projects including compositions, footage, layers, and effects
-- **Render Queue**: Access render queue items, render settings, and output module configurations
-- **Type Safety**: Fully typed Python dataclasses for all AE objects
-- **Comprehensive**: Support for layers, properties, effects, keyframes, markers, and more
-- **Python 3.7+**: Compatible with Python 3.7 and above
+See the [Quick Start guide](quickstart.md) for examples.
 
 ## Key Concepts
 
@@ -57,24 +49,29 @@ An After Effects project has a hierarchical structure:
 
 ```
 Application
-├── Viewer
-│   └── View
-│       └── ViewOptions
 └── Project
     ├── FolderItem
     │   ├── CompItem
-    │   │   ├── AVLayer ───┐
-    │   │   ├── TextLayer ─┤
-    │   │   ├── ShapeLayer ┤
-    │   │   ├── CameraLayer┤
-    │   │   └── LightLayer ┘──▶ PropertyGroup
-    │   │                       ├── Property
-    │   │                       │   └── Keyframe
-    │   │                       └── PropertyGroup (nested)
-    │   └── FootageItem
-    │       ├── FileSource
+    │   │   ├── AVLayer ──────────┐
+    │   │   ├── TextLayer ────────┤
+    │   │   ├── ShapeLayer ───────┤
+    │   │   ├── ThreeDModelLayer ─┤
+    │   │   ├── CameraLayer ──────┤
+    │   │   ├── LightLayer ───────┘──▶ PropertyGroup
+    │   │   ├── Guide                  ├── Property
+    │   │   └── Viewer                 │   ├── Keyframe
+    │   │       └── View               │   │   └── KeyframeEase
+    │   │           └── ViewOptions    │   ├── MarkerValue
+    │   └── FootageItem                │   └── Shape
+    │       ├── Viewer                 │       └── FeatherPoint
+    │       │   └── View               ├── MaskPropertyGroup
+    │       │       └── ViewOptions    └── PropertyGroup (nested)
+    │       ├── FileSource                 └── ...
     │       ├── SolidSource
     │       └── PlaceholderSource
+    ├── TextDocument
+    │   └── FontObject
+    │
     └── RenderQueue
         └── RenderQueueItem
             └── OutputModule
@@ -82,17 +79,19 @@ Application
 
 ### Data Model
 
-The library provides dataclasses that mirror After Effects' object model:
+The library provides classes that mirror After Effects' object model:
 
 - `Application`: Application-level object (version, build number, active viewer)
 - `Viewer`, `View`, `ViewOptions`: Viewer panels and view settings
 - `Project`: Root project object
-- `CompItem`, `FootageItem`, `FolderItem`: Project items
-- `AVLayer`, `TextLayer`, `ShapeLayer`, etc.: Layer types
-- `Property`, `PropertyGroup`: Layer properties
-- `Keyframe`, `MarkerValue`: Animation data
-- `FileSource`, `SolidSource`, `PlaceholderSource`: Footage sources
-- `RenderQueue`, `RenderQueueItem`, `RenderSettings`, `OutputModule`: Render queue
+- `Item`, `AVItem`, `FolderItem`, `CompItem`, `FootageItem`: Project items
+- `AVLayer`, `TextLayer`, `ShapeLayer`, `ThreeDModelLayer`, `CameraLayer`, `LightLayer`: Layer types
+- `PropertyBase`, `Property`, `PropertyGroup`, `MaskPropertyGroup`: Layer properties
+- `Keyframe`, `KeyframeEase`, `MarkerValue`, `Shape`, `FeatherPoint`: Animation and property value data
+- `Guide`: Composition ruler guide
+- `FootageSource`, `FileSource`, `SolidSource`, `PlaceholderSource`: Footage sources
+- `TextDocument`, `FontObject`: Text layer data
+- `RenderQueue`, `RenderQueueItem`, `OutputModule`: Render queue
 
 ## API Reference
 

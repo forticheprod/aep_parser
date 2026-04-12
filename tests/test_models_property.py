@@ -3,31 +3,28 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pytest
 from conftest import get_first_layer, get_sample_files, load_expected, parse_project
 
 from aep_parser import Project
+from aep_parser import parse as parse_aep
 from aep_parser.enums import (
     KeyframeInterpolationType,
+    Label,
     MaskFeatherFalloff,
     MaskMode,
     MaskMotionBlur,
     PropertyType,
     PropertyValueType,
 )
-from aep_parser.models import MaskPropertyGroup
-
-if TYPE_CHECKING:
-    from aep_parser import Property
-
+from aep_parser.models import Layer, MaskPropertyGroup, Property, PropertyGroup
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "property"
 BUGS_DIR = Path(__file__).parent.parent / "samples" / "bugs"
 
 
-def _find_property(layer, match_name: str) -> Property | None:
+def _find_property(layer: Layer, match_name: str) -> Property | None:
     """Find a property in the layer's transform by match_name."""
     for prop in layer.transform:
         if prop.match_name == match_name:
@@ -108,7 +105,7 @@ class TestKeyframes:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "keyframe_LINEAR.aep"))
         position = _find_property(layer, "ADBE Position")
         assert position is not None
-        assert position.animated
+        assert position._animated
         assert len(position.keyframes) == 2
         for kf in position.keyframes:
             assert kf.out_interpolation_type == KeyframeInterpolationType.LINEAR
@@ -120,7 +117,7 @@ class TestKeyframes:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "keyframe_BEZIER.aep"))
         position = _find_property(layer, "ADBE Position")
         assert position is not None
-        assert position.animated
+        assert position._animated
         assert len(position.keyframes) == 2
         for kf in position.keyframes:
             assert kf.out_interpolation_type == KeyframeInterpolationType.BEZIER
@@ -132,7 +129,7 @@ class TestKeyframes:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "keyframe_HOLD.aep"))
         opacity = _find_property(layer, "ADBE Opacity")
         assert opacity is not None
-        assert opacity.animated
+        assert opacity._animated
         assert len(opacity.keyframes) == 3
         # Keyframe 2 (index 1) is HOLD
         assert (
@@ -188,7 +185,7 @@ class TestPropertyStructure:
         # Only ADBE Rotate Z is animated; ADBE Rotate X is static
         rotate_x = _find_property(layer, "ADBE Rotate X")
         assert rotate_x is not None
-        assert not rotate_x.animated
+        assert not rotate_x._animated
         assert rotate_x.is_time_varying is False
 
 
@@ -201,7 +198,7 @@ class TestPropertyDimensions:
         opacity = _find_property(layer, "ADBE Opacity")
         assert opacity is not None
         assert opacity.dimensions == 1
-        assert opacity.animated
+        assert opacity._animated
         assert len(opacity.keyframes) == 2
 
     def test_property_2D_position(self) -> None:
@@ -215,7 +212,7 @@ class TestPropertyDimensions:
                 assert item["layers"][0]["threeDLayer"] is False
         position = _find_property(layer, "ADBE Position")
         assert position is not None
-        assert position.animated
+        assert position._animated
         assert len(position.keyframes) == 2
 
     def test_property_3D_position(self) -> None:
@@ -229,7 +226,7 @@ class TestPropertyDimensions:
                 assert item["layers"][0]["threeDLayer"] is True
         position = _find_property(layer, "ADBE Position")
         assert position is not None
-        assert position.animated
+        assert position._animated
         assert len(position.keyframes) == 2
 
     def test_property_rotation(self) -> None:
@@ -239,7 +236,7 @@ class TestPropertyDimensions:
         rotation = _find_property(layer, "ADBE Rotate Z")
         assert rotation is not None
         assert rotation.dimensions == 1
-        assert rotation.animated
+        assert rotation._animated
         assert len(rotation.keyframes) == 2
         # Verify against JSON
         for prop in _get_json_transform_properties(expected):
@@ -252,7 +249,7 @@ class TestPropertyDimensions:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "property_scale.aep"))
         scale = _find_property(layer, "ADBE Scale")
         assert scale is not None
-        assert scale.animated
+        assert scale._animated
         assert len(scale.keyframes) == 2
         # Verify against JSON
         for prop in _get_json_transform_properties(expected):
@@ -319,8 +316,8 @@ class TestOrientation:
         assert orientation.name == "Orientation"
         assert orientation.match_name == "ADBE Orientation"
         assert orientation.is_spatial is True
-        assert orientation.vector is True
-        assert not orientation.animated
+        assert orientation._vector is True
+        assert not orientation._animated
 
     def test_orientation_animated_keyframe_values(self) -> None:
         """Animated orientation keyframes carry 3-component values from otda."""
@@ -329,7 +326,7 @@ class TestOrientation:
         )
         orientation = _find_property(layer, "ADBE Orientation")
         assert orientation is not None
-        assert orientation.animated
+        assert orientation._animated
         assert len(orientation.keyframes) == 2
         assert orientation.keyframes[0].value == [5.0, 0.0, 0.0]
         assert orientation.keyframes[1].value == [0.0, 0.0, 0.0]
@@ -353,8 +350,8 @@ class TestOrientation:
         assert orientation is not None
         assert orientation.dimensions == 3
         assert orientation.is_spatial is True
-        assert orientation.vector is True
-        assert orientation.value is None
+        assert orientation._vector is True
+        assert orientation.value == [5.0, 0.0, 0.0]
 
 
 class TestEffectProperties:
@@ -379,7 +376,7 @@ class TestEffectProperties:
         """Two Gaussian Blur effects on the same layer are both parsed.
 
         When the same effect type is applied more than once, only the first
-        instance carries a ``parT`` chunk at layer level. The parser falls
+        instance carries a `parT` chunk at layer level. The parser falls
         back to project-level EfdG definitions for subsequent instances.
         """
         project = parse_project(SAMPLES_DIR / "2_gaussian.aep")
@@ -753,7 +750,7 @@ class TestIsModified:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "property_1D_opacity.aep"))
         opacity = _find_property(layer, "ADBE Opacity")
         assert opacity is not None
-        assert opacity.animated
+        assert opacity._animated
         assert opacity.is_modified is True
 
     def test_expression_enabled_is_modified(self) -> None:
@@ -765,16 +762,15 @@ class TestIsModified:
         assert position.is_modified is True
 
     def test_expression_disabled_not_modified(self) -> None:
-        """Property with disabled expression is not modified by the expression."""
+        """Property with disabled expression is still modified (expression text present)."""
         layer = get_first_layer(parse_project(SAMPLES_DIR / "expression_disabled.aep"))
         opacity = _find_property(layer, "ADBE Opacity")
         assert opacity is not None
         assert opacity.expression_enabled is False
-        # Expression is disabled, so the expression itself doesn't trigger
-        # is_modified. However the static value (100.0) equals the default
-        # so the property should not be modified either.
-        if opacity.default_value is not None:
-            assert opacity.is_modified is False
+        # AE considers a property modified whenever an expression exists,
+        # regardless of whether the expression is enabled.
+        assert opacity.expression is not None
+        assert opacity.is_modified is True
 
     def test_scale_at_default_not_modified(self) -> None:
         """Scale [100,100,100] at default is is_modified=False."""
@@ -789,11 +785,9 @@ class TestIsModified:
         """Effect properties at their default values have is_modified=False."""
         layer = get_first_layer(parse_project(SAMPLES_DIR / "is_modified_false.aep"))
         assert layer.effects is not None
-        from aep_parser.models.properties.property import Property as PropCls
-
         for effect in layer.effects:
             for prop in effect.properties:
-                if isinstance(prop, PropCls) and prop.default_value is not None:
+                if isinstance(prop, Property) and prop.default_value is not None:
                     # In this sample all effect params are at defaults
                     assert prop.is_modified is False, (
                         f"{prop.match_name}: value={prop.value!r}, "
@@ -819,13 +813,11 @@ class TestIsModified:
 
     def test_no_default_value_not_modified(self) -> None:
         """Property with no default_value returns is_modified=False (conservative)."""
-        from aep_parser.models.properties.property import Property as PropCls
-
         layer = get_first_layer(parse_project(SAMPLES_DIR / "property_1D_opacity.aep"))
         # Check a property that might not have a default
         for prop in layer.transform.properties:
-            if isinstance(prop, PropCls) and prop.default_value is None:
-                if not prop.animated and not (
+            if isinstance(prop, Property) and prop.default_value is None:
+                if not prop._animated and not (
                     prop.expression and prop.expression_enabled
                 ):
                     assert prop.is_modified is False, (
@@ -974,12 +966,10 @@ class TestTransformSynthesis:
     def test_synthesized_value_equals_default(self) -> None:
         """Non-animated transform properties at default have is_modified=False."""
         layer = get_first_layer(parse_project(SAMPLES_DIR / "property_1D_opacity.aep"))
-        from aep_parser.models.properties.property import Property as PropCls
-
         # All non-animated transform properties should have a default and
         # be at that default (the sample only animates Opacity).
         for prop in layer.transform.properties:
-            if isinstance(prop, PropCls) and not prop.animated:
+            if isinstance(prop, Property) and not prop._animated:
                 assert prop.default_value is not None, (
                     f"{prop.match_name} should have a default_value"
                 )
@@ -1000,7 +990,7 @@ class TestTransformSynthesis:
         for match_name in ("ADBE Orientation", "ADBE Rotate X", "ADBE Rotate Y"):
             prop = _find_property(layer, match_name)
             assert prop is not None
-            assert not prop.animated, f"{match_name} should not be animated"
+            assert not prop._animated, f"{match_name} should not be animated"
             assert prop.expression == ""
             assert prop.keyframes == []
 
@@ -1037,9 +1027,9 @@ LAYER_SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "layer
 class TestUnitsText:
     """Tests for Property.units_text.
 
-    The ``units_text`` attribute is determined by the property's ``match_name``
-    and returns one of ``"pixels"``, ``"degrees"``, ``"percent"``,
-    ``"seconds"``, ``"dB"``, or ``""`` (no unit).
+    The `units_text` attribute is determined by the property's `match_name`
+    and returns one of `"pixels"`, `"degrees"`, `"percent"`,
+    `"seconds"`, `"dB"`, or `""` (no unit).
     """
 
     # -- Transform properties ------------------------------------------------
@@ -1101,8 +1091,8 @@ class TestUnitsText:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "mask_add.aep"))
         assert layer.masks is not None
         mask = layer.masks.properties[0]
-        # Mask children: [0]=Feather, [1]=Opacity, [2]=Expansion(Offset)
-        feather = mask.properties[0]
+        # Mask children: [0]=MaskPath, [1]=Feather, [2]=Opacity, [3]=Expansion
+        feather = mask.properties[1]
         assert feather.match_name == "ADBE Mask Feather"
         assert feather.units_text == "pixels"
 
@@ -1111,7 +1101,7 @@ class TestUnitsText:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "mask_add.aep"))
         assert layer.masks is not None
         mask = layer.masks.properties[0]
-        opacity = mask.properties[1]
+        opacity = mask.properties[2]
         assert opacity.match_name == "ADBE Mask Opacity"
         assert opacity.units_text == "percent"
 
@@ -1149,17 +1139,6 @@ class TestUnitsText:
                 break
         assert blurriness is not None
         assert blurriness.units_text == ""
-
-    # -- Time Remapping ------------------------------------------------------
-
-    def test_time_remapping_seconds(self) -> None:
-        """Time Remapping reports 'seconds'."""
-        layer = get_first_layer(parse_project(SAMPLES_DIR / "keyframe_BEZIER.aep"))
-        for prop_group in layer.properties:
-            if prop_group.match_name == "ADBE Time Remapping":
-                assert prop_group.units_text == "seconds"
-                return
-        pytest.skip("Time Remapping not found in this sample")
 
     # -- Unknown match name --------------------------------------------------
 
@@ -1504,7 +1483,7 @@ class TestLinearHoldEase:
 
 
 def _get_mask_shape(layer) -> Property:  # type: ignore[type-arg]
-    """Return the ``ADBE Mask Shape`` property from the first mask."""
+    """Return the `ADBE Mask Shape` property from the first mask."""
     assert layer.masks is not None
     mask = layer.masks.properties[0]
     for prop in mask.properties:
@@ -1537,16 +1516,10 @@ class TestShapeValue:
             assert t == [0, 0]
 
     def test_closed_square_no_feather(self) -> None:
-        """Closed square mask has empty feather arrays."""
+        """Closed square mask has no feather points."""
         layer = get_first_layer(parse_project(SAMPLES_DIR / "shape_closed_square.aep"))
         shape = _get_mask_shape(layer).value
-        assert shape.feather_seg_locs == []
-        assert shape.feather_radii == []
-        assert shape.feather_types == []
-        assert shape.feather_interps == []
-        assert shape.feather_tensions == []
-        assert shape.feather_rel_seg_locs == []
-        assert shape.feather_rel_corner_angles == []
+        assert shape.feather_points == []
 
     def test_closed_oval_tangents(self) -> None:
         """Closed oval mask has non-zero tangents."""
@@ -1569,13 +1542,22 @@ class TestShapeValue:
         """Feather points mask has 2 outer feather points at segments 1 and 2."""
         layer = get_first_layer(parse_project(SAMPLES_DIR / "shape_feather_points.aep"))
         shape = _get_mask_shape(layer).value
-        assert shape.feather_seg_locs == [1, 2]
-        assert shape.feather_rel_seg_locs == [0.15, 0.5]
-        assert shape.feather_radii == [30.0, 100.0]
-        assert shape.feather_types == [0, 0]
-        assert shape.feather_interps == [0, 0]
-        assert shape.feather_tensions == [0.0, 0.0]
-        assert shape.feather_rel_corner_angles == [0.0, 0.0]
+        assert len(shape.feather_points) == 2
+        fp0, fp1 = shape.feather_points
+        assert fp0.seg_loc == 1
+        assert fp0.rel_seg_loc == 0.15
+        assert fp0.radius == 30.0
+        assert fp0.type == 0
+        assert fp0.interp == 0
+        assert fp0.tension == 0.0
+        assert fp0.rel_corner_angle == 0.0
+        assert fp1.seg_loc == 2
+        assert fp1.rel_seg_loc == 0.5
+        assert fp1.radius == 100.0
+        assert fp1.type == 0
+        assert fp1.interp == 0
+        assert fp1.tension == 0.0
+        assert fp1.rel_corner_angle == 0.0
 
     def test_feather_inner_hold(self) -> None:
         """Feather with inner/outer types and hold/non-hold interpolation."""
@@ -1583,12 +1565,18 @@ class TestShapeValue:
             parse_project(SAMPLES_DIR / "shape_feather_inner_hold.aep")
         )
         shape = _get_mask_shape(layer).value
-        assert shape.feather_seg_locs == [0, 1, 2, 3]
-        assert shape.feather_radii == [50.0, -30.0, 80.0, -20.0]
-        assert shape.feather_types == [0, 1, 0, 1]
-        assert shape.feather_interps == [0, 0, 1, 1]
-        assert shape.feather_tensions == [0.0, 0.5, 1.0, 0.25]
-        assert shape.feather_rel_corner_angles == [0.0, 0.0, 0.0, 0.0]
+        assert len(shape.feather_points) == 4
+        assert [fp.seg_loc for fp in shape.feather_points] == [0, 1, 2, 3]
+        assert [fp.radius for fp in shape.feather_points] == [50.0, -30.0, 80.0, -20.0]
+        assert [fp.type for fp in shape.feather_points] == [0, 1, 0, 1]
+        assert [fp.interp for fp in shape.feather_points] == [0, 0, 1, 1]
+        assert [fp.tension for fp in shape.feather_points] == [0.0, 0.5, 1.0, 0.25]
+        assert [fp.rel_corner_angle for fp in shape.feather_points] == [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        ]
 
     def test_animated_keyframes(self) -> None:
         """Animated mask shape has 2 keyframes with different vertices."""
@@ -1615,5 +1603,848 @@ class TestShapeValue:
         layer = get_first_layer(parse_project(SAMPLES_DIR / "shape_many_points.aep"))
         shape = _get_mask_shape(layer).value
         assert len(shape.vertices) == 300
-        assert shape.feather_seg_locs == [0, 128, 255, 256, 270, 299]
-        assert shape.feather_radii == [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]
+        assert [fp.seg_loc for fp in shape.feather_points] == [0, 128, 255, 256, 270, 299]
+        assert [fp.radius for fp in shape.feather_points] == [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]
+
+
+
+
+class TestRoundtripPropertyEnabled:
+    """Roundtrip: toggle Layer.enabled and verify save/reload."""
+
+    def test_disable_layer(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "is_modified_false.aep").project
+        layer = project.compositions[0].layers[0]
+        assert layer.enabled is True
+
+        layer.enabled = False
+        out = tmp_path / "disabled_layer.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        layer2 = project2.compositions[0].layers[0]
+        assert layer2.enabled is False
+
+    def test_reenable_layer(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "is_modified_false.aep").project
+        layer = project.compositions[0].layers[0]
+
+        layer.enabled = False
+        out = tmp_path / "step1.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        layer2 = project2.compositions[0].layers[0]
+        layer2.enabled = True
+        out2 = tmp_path / "step2.aep"
+        project2.save(out2)
+
+        project3 = parse_aep(out2).project
+        layer3 = project3.compositions[0].layers[0]
+        assert layer3.enabled is True
+
+
+class TestRoundtripMaskMode:
+    """Roundtrip: change MaskPropertyGroup.mask_mode."""
+
+    def test_change_mask_mode(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "mask_add.aep").project
+        layer = project.compositions[0].layers[0]
+        mask = layer.masks[0]
+        assert isinstance(mask, MaskPropertyGroup)
+        assert mask.mask_mode == MaskMode.ADD
+
+        mask.mask_mode = MaskMode.SUBTRACT
+        out = tmp_path / "mask_subtract.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        mask2 = project2.compositions[0].layers[0].masks[0]
+        assert isinstance(mask2, MaskPropertyGroup)
+        assert mask2.mask_mode == MaskMode.SUBTRACT
+
+
+class TestRoundtripMaskInverted:
+    """Roundtrip: toggle MaskPropertyGroup.inverted."""
+
+    def test_invert_mask(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "mask_add.aep").project
+        layer = project.compositions[0].layers[0]
+        mask = layer.masks[0]
+        assert isinstance(mask, MaskPropertyGroup)
+        assert mask.inverted is False
+
+        mask.inverted = True
+        out = tmp_path / "mask_inverted.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        mask2 = project2.compositions[0].layers[0].masks[0]
+        assert isinstance(mask2, MaskPropertyGroup)
+        assert mask2.inverted is True
+
+
+class TestRoundtripMaskLocked:
+    """Roundtrip: toggle MaskPropertyGroup.locked."""
+
+    def test_lock_mask(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "mask_add.aep").project
+        layer = project.compositions[0].layers[0]
+        mask = layer.masks[0]
+        assert isinstance(mask, MaskPropertyGroup)
+        assert mask.locked is False
+
+        mask.locked = True
+        out = tmp_path / "mask_locked.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        mask2 = project2.compositions[0].layers[0].masks[0]
+        assert isinstance(mask2, MaskPropertyGroup)
+        assert mask2.locked is True
+
+
+class TestRoundtripMaskMotionBlur:
+    """Roundtrip: change MaskPropertyGroup.mask_motion_blur."""
+
+    def test_change_motion_blur(self, tmp_path: Path) -> None:
+        project = parse_aep(
+            SAMPLES_DIR / "mask_motion_blur_same_as_layer.aep"
+        ).project
+        layer = project.compositions[0].layers[0]
+        mask = layer.masks[0]
+        assert isinstance(mask, MaskPropertyGroup)
+        assert mask.mask_motion_blur == MaskMotionBlur.SAME_AS_LAYER
+
+        mask.mask_motion_blur = MaskMotionBlur.ON
+        out = tmp_path / "mask_motion_blur_on.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        mask2 = project2.compositions[0].layers[0].masks[0]
+        assert isinstance(mask2, MaskPropertyGroup)
+        assert mask2.mask_motion_blur == MaskMotionBlur.ON
+
+
+class TestRoundtripMaskColor:
+    """Roundtrip: change MaskPropertyGroup.color."""
+
+    def test_change_color(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "mask_add.aep").project
+        layer = project.compositions[0].layers[0]
+        mask = layer.masks[0]
+        assert isinstance(mask, MaskPropertyGroup)
+
+        mask.color = [0.5, 0.25, 0.75]
+        out = tmp_path / "mask_color.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        mask2 = project2.compositions[0].layers[0].masks[0]
+        assert isinstance(mask2, MaskPropertyGroup)
+        # Colors are stored as uint8, so precision is 1/255
+        assert abs(mask2.color[0] - 0.5) < 0.005
+        assert abs(mask2.color[1] - 0.25) < 0.005
+        assert abs(mask2.color[2] - 0.75) < 0.005
+
+
+class TestRoundtripMaskFeatherFalloff:
+    """Roundtrip: change MaskPropertyGroup.mask_feather_falloff."""
+
+    def test_change_feather_falloff(self, tmp_path: Path) -> None:
+        project = parse_aep(
+            SAMPLES_DIR / "mask_feather_falloff_smooth.aep"
+        ).project
+        layer = project.compositions[0].layers[0]
+        mask = layer.masks[0]
+        assert isinstance(mask, MaskPropertyGroup)
+        assert mask.mask_feather_falloff == MaskFeatherFalloff.FFO_SMOOTH
+
+        mask.mask_feather_falloff = MaskFeatherFalloff.FFO_LINEAR
+        out = tmp_path / "mask_feather_falloff_linear.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        mask2 = project2.compositions[0].layers[0].masks[0]
+        assert isinstance(mask2, MaskPropertyGroup)
+        assert mask2.mask_feather_falloff == MaskFeatherFalloff.FFO_LINEAR
+
+
+class TestRoundtripFeatherPointRadius:
+    """Roundtrip: modify FeatherPoint.radius and verify save/reload."""
+
+    def test_modify_feather_radius(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "shape_feather_points.aep").project
+        layer = project.compositions[0].layers[0]
+        mask = layer.masks[0]
+        shape = mask.properties[0].value
+        assert len(shape.feather_points) == 2
+        assert shape.feather_points[0].radius == 30.0
+
+        shape.feather_points[0].radius = 55.0
+        out = tmp_path / "modified_feather_radius.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        shape2 = project2.compositions[0].layers[0].masks[0].properties[0].value
+        assert shape2.feather_points[0].radius == 55.0
+        # Second feather point unchanged
+        assert shape2.feather_points[1].radius == 100.0
+
+    def test_modify_feather_seg_loc(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "shape_feather_points.aep").project
+        layer = project.compositions[0].layers[0]
+        shape = layer.masks[0].properties[0].value
+        assert shape.feather_points[0].seg_loc == 1
+
+        shape.feather_points[0].seg_loc = 3
+        out = tmp_path / "modified_feather_seg_loc.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        shape2 = project2.compositions[0].layers[0].masks[0].properties[0].value
+        assert shape2.feather_points[0].seg_loc == 3
+
+    def test_modify_feather_tension(self, tmp_path: Path) -> None:
+        project = parse_aep(
+            SAMPLES_DIR / "shape_feather_inner_hold.aep"
+        ).project
+        layer = project.compositions[0].layers[0]
+        shape = layer.masks[0].properties[0].value
+        assert shape.feather_points[1].tension == 0.5
+
+        shape.feather_points[1].tension = 0.75
+        out = tmp_path / "modified_feather_tension.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        shape2 = project2.compositions[0].layers[0].masks[0].properties[0].value
+        assert shape2.feather_points[1].tension == 0.75
+
+    def test_feather_type_follows_radius_sign(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "shape_feather_points.aep").project
+        layer = project.compositions[0].layers[0]
+        shape = layer.masks[0].properties[0].value
+        # Both are outer (positive radius)
+        assert shape.feather_points[0].type == 0
+
+        # Make it inner by setting negative radius
+        shape.feather_points[0].radius = -30.0
+        out = tmp_path / "modified_feather_type.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        shape2 = project2.compositions[0].layers[0].masks[0].properties[0].value
+        assert shape2.feather_points[0].type == 1
+        assert shape2.feather_points[0].radius == -30.0
+
+
+class TestValidateFeatherPoint:
+    """Validation tests for FeatherPoint field constraints."""
+
+    def test_seg_loc_rejects_negative(self) -> None:
+        project = parse_aep(SAMPLES_DIR / "shape_feather_points.aep").project
+        fp = project.compositions[0].layers[0].masks[0].properties[0].value
+        with pytest.raises(ValueError, match="must be >= 0"):
+            fp.feather_points[0].seg_loc = -1
+
+    def test_seg_loc_rejects_float(self) -> None:
+        project = parse_aep(SAMPLES_DIR / "shape_feather_points.aep").project
+        fp = project.compositions[0].layers[0].masks[0].properties[0].value
+        with pytest.raises(TypeError, match="expected an integer"):
+            fp.feather_points[0].seg_loc = 1.5
+
+    def test_rel_seg_loc_rejects_negative(self) -> None:
+        project = parse_aep(SAMPLES_DIR / "shape_feather_points.aep").project
+        fp = project.compositions[0].layers[0].masks[0].properties[0].value
+        with pytest.raises(ValueError, match="must be >= 0"):
+            fp.feather_points[0].rel_seg_loc = -0.1
+
+    def test_rel_seg_loc_rejects_above_one(self) -> None:
+        project = parse_aep(SAMPLES_DIR / "shape_feather_points.aep").project
+        fp = project.compositions[0].layers[0].masks[0].properties[0].value
+        with pytest.raises(ValueError, match="must be <= 1"):
+            fp.feather_points[0].rel_seg_loc = 1.1
+
+    def test_tension_rejects_negative(self) -> None:
+        project = parse_aep(
+            SAMPLES_DIR / "shape_feather_inner_hold.aep"
+        ).project
+        fp = project.compositions[0].layers[0].masks[0].properties[0].value
+        with pytest.raises(ValueError, match="must be >= 0"):
+            fp.feather_points[1].tension = -0.1
+
+    def test_tension_rejects_above_one(self) -> None:
+        project = parse_aep(
+            SAMPLES_DIR / "shape_feather_inner_hold.aep"
+        ).project
+        fp = project.compositions[0].layers[0].masks[0].properties[0].value
+        with pytest.raises(ValueError, match="must be <= 1"):
+            fp.feather_points[1].tension = 1.1
+
+
+class TestRoundtripKeyframeLabel:
+    """Roundtrip: modify Keyframe.label and verify save/reload."""
+
+    def test_modify_keyframe_label(self, tmp_path: Path) -> None:
+        project = parse_aep(
+            SAMPLES_DIR / "keyframe_bezier_ease_in_out_1D.aep"
+        ).project
+        layer = project.compositions[0].layers[0]
+        # Find the animated opacity property
+        prop = _find_property(layer, "ADBE Opacity")
+        assert len(prop.keyframes) >= 2
+        original_label = prop.keyframes[0].label
+        assert original_label != Label.RED
+
+        prop.keyframes[0].label = Label.RED
+        out = tmp_path / "modified_kf_label.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        layer2 = project2.compositions[0].layers[0]
+        prop2 = _find_property(layer2, "ADBE Opacity")
+        assert prop2.keyframes[0].label == Label.RED
+
+    def test_modify_keyframe_roving(self, tmp_path: Path) -> None:
+        project = parse_aep(
+            SAMPLES_DIR / "keyframe_bezier_ease_in_out_1D.aep"
+        ).project
+        layer = project.compositions[0].layers[0]
+        prop = _find_property(layer, "ADBE Opacity")
+        assert len(prop.keyframes) >= 2
+        # Roving can only meaningfully be set on middle keyframes
+        if len(prop.keyframes) >= 3:
+            prop.keyframes[1].roving = True
+            out = tmp_path / "modified_kf_roving.aep"
+            project.save(out)
+
+            project2 = parse_aep(out).project
+            prop2 = _find_property(
+                project2.compositions[0].layers[0], "ADBE Opacity"
+            )
+            assert prop2.keyframes[1].roving is True
+
+
+class TestRoundtripKeyframeInterpolationType:
+    """Roundtrip: modify Keyframe interpolation type."""
+
+    def test_change_interpolation_to_hold(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "keyframe_LINEAR.aep").project
+        layer = project.compositions[0].layers[0]
+        prop = _find_property(layer, "ADBE Position")
+        assert len(prop.keyframes) >= 2
+        assert (
+            prop.keyframes[0].out_interpolation_type
+            == KeyframeInterpolationType.LINEAR
+        )
+
+        prop.keyframes[0].out_interpolation_type = (
+            KeyframeInterpolationType.HOLD
+        )
+        out = tmp_path / "modified_kf_interp.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        prop2 = _find_property(
+            project2.compositions[0].layers[0], "ADBE Position"
+        )
+        assert (
+            prop2.keyframes[0].out_interpolation_type
+            == KeyframeInterpolationType.HOLD
+        )
+
+    def test_change_in_interpolation(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "keyframe_BEZIER.aep").project
+        layer = project.compositions[0].layers[0]
+        prop = _find_property(layer, "ADBE Position")
+        assert len(prop.keyframes) >= 2
+
+        prop.keyframes[1].in_interpolation_type = (
+            KeyframeInterpolationType.LINEAR
+        )
+        out = tmp_path / "modified_kf_in_interp.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        prop2 = _find_property(
+            project2.compositions[0].layers[0], "ADBE Position"
+        )
+        assert (
+            prop2.keyframes[1].in_interpolation_type
+            == KeyframeInterpolationType.LINEAR
+        )
+
+
+class TestRoundtripExpression:
+    """Roundtrip: modify Property.expression and verify save/reload."""
+
+    def test_change_expression(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "expression_enabled.aep").project
+        layer = project.compositions[0].layers[0]
+        # Find any property with a non-empty expression
+        prop = None
+        for p in layer.transform:
+            if p.expression:
+                prop = p
+                break
+        assert prop is not None, "No property with expression found"
+        match_name = prop.match_name
+
+        prop.expression = "wiggle(5, 50)"
+        out = tmp_path / "modified_expr.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        prop2 = _find_property(
+            project2.compositions[0].layers[0], match_name
+        )
+        assert prop2.expression == "wiggle(5, 50)"
+
+
+class TestRoundtripShapeClosed:
+    """Roundtrip: toggle Shape.closed and verify save/reload."""
+
+    def test_open_closed_mask(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "is_mask_true.aep").project
+        layer = project.compositions[0].layers[0]
+        mask = layer.masks[0]
+        assert isinstance(mask, MaskPropertyGroup)
+        mask_path = mask.property(name="ADBE Mask Shape")
+        shape = mask_path.value
+        assert shape.closed is True
+
+        shape.closed = False
+        out = tmp_path / "mask_opened.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        mask2 = project2.compositions[0].layers[0].masks[0]
+        mask_path2 = mask2.property(name="ADBE Mask Shape")
+        assert mask_path2.value.closed is False
+
+    def test_close_open_mask(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "is_mask_true.aep").project
+        layer = project.compositions[0].layers[0]
+        mask = layer.masks[0]
+        mask_path = mask.property(name="ADBE Mask Shape")
+        shape = mask_path.value
+
+        # Open the mask
+        shape.closed = False
+        out = tmp_path / "step1.aep"
+        project.save(out)
+
+        # Re-close it
+        project2 = parse_aep(out).project
+        mask2 = project2.compositions[0].layers[0].masks[0]
+        mask_path2 = mask2.property(name="ADBE Mask Shape")
+        mask_path2.value.closed = True
+        out2 = tmp_path / "step2.aep"
+        project2.save(out2)
+
+        project3 = parse_aep(out2).project
+        mask3 = project3.compositions[0].layers[0].masks[0]
+        mask_path3 = mask3.property(name="ADBE Mask Shape")
+        assert mask_path3.value.closed is True
+
+
+class TestRoundtripKeyframeEase:
+    """Roundtrip: modify KeyframeEase speed/influence."""
+
+    def test_change_bezier_ease(self, tmp_path: Path) -> None:
+        project = parse_aep(
+            SAMPLES_DIR / "keyframe_BEZIER.aep"
+        ).project
+        layer = project.compositions[0].layers[0]
+        prop = _find_property(layer, "ADBE Position")
+        assert prop is not None
+        assert len(prop.keyframes) >= 2
+
+        kf = prop.keyframes[0]
+        assert len(kf.out_temporal_ease) >= 1
+        kf.out_temporal_ease[0].speed = 42.0
+        kf.out_temporal_ease[0].influence = 75.0
+
+        out = tmp_path / "modified_ease.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        prop2 = _find_property(
+            project2.compositions[0].layers[0], "ADBE Position"
+        )
+        assert prop2 is not None
+        assert abs(prop2.keyframes[0].out_temporal_ease[0].speed - 42.0) < 0.01
+        assert abs(
+            prop2.keyframes[0].out_temporal_ease[0].influence - 75.0
+        ) < 0.01
+
+
+class TestValidateKeyframeEaseInfluence:
+    """Validation tests for KeyframeEase.influence bounds (0.1-100.0)."""
+
+    def test_influence_rejects_below_min(self) -> None:
+        project = parse_aep(SAMPLES_DIR / "keyframe_BEZIER.aep").project
+        layer = project.compositions[0].layers[0]
+        prop = _find_property(layer, "ADBE Position")
+        assert prop is not None
+        kf = prop.keyframes[0]
+        with pytest.raises(ValueError, match="must be between 0.1 and 100.0"):
+            kf.out_temporal_ease[0].influence = 0.0
+
+    def test_influence_rejects_above_max(self) -> None:
+        project = parse_aep(SAMPLES_DIR / "keyframe_BEZIER.aep").project
+        layer = project.compositions[0].layers[0]
+        prop = _find_property(layer, "ADBE Position")
+        assert prop is not None
+        kf = prop.keyframes[0]
+        with pytest.raises(ValueError, match="must be between 0.1 and 100.0"):
+            kf.out_temporal_ease[0].influence = 100.1
+
+
+class TestRoundtripPropertyValue:
+    """Roundtrip: modify Property.value and verify save/reload."""
+
+    def test_change_scalar_value(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "is_modified_false.aep").project
+        layer = project.compositions[0].layers[0]
+        prop = _find_property(layer, "ADBE Rotate X")
+        assert prop is not None
+        assert prop._cdat is not None
+
+        prop.value = 45.0
+        out = tmp_path / "modified_rotate.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        prop2 = _find_property(
+            project2.compositions[0].layers[0], "ADBE Rotate X"
+        )
+        assert abs(prop2.value - 45.0) < 0.01
+
+    def test_change_multidim_value(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "is_modified_false.aep").project
+        layer = project.compositions[0].layers[0]
+        prop = _find_property(layer, "ADBE Orientation")
+        assert prop is not None
+        assert prop._cdat is not None
+
+        prop.value = [10.0, 20.0, 30.0]
+        out = tmp_path / "modified_orientation.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        prop2 = _find_property(
+            project2.compositions[0].layers[0], "ADBE Orientation"
+        )
+        assert abs(prop2.value[0] - 10.0) < 0.01
+        assert abs(prop2.value[1] - 20.0) < 0.01
+        assert abs(prop2.value[2] - 30.0) < 0.01
+
+
+class TestRoundtripExpressionCreate:
+    """Roundtrip: add an expression to a property that had none."""
+
+    def test_create_expression_on_empty(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "is_modified_false.aep").project
+        layer = project.compositions[0].layers[0]
+        prop = _find_property(layer, "ADBE Rotate X")
+        assert prop is not None
+        assert prop.expression == ""
+        assert prop._expression_utf8 is None
+
+        prop.expression = "time * 90"
+        assert prop._expression_utf8 is not None
+        out = tmp_path / "new_expression.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        prop2 = _find_property(
+            project2.compositions[0].layers[0], "ADBE Rotate X"
+        )
+        assert prop2.expression == "time * 90"
+
+
+class TestRoundtripExpressionEnabled:
+    """Roundtrip: toggle Property.expression_enabled."""
+
+    def test_disable_expression(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "expression_enabled.aep").project
+        layer = project.compositions[0].layers[0]
+        prop = None
+        for p in layer.transform:
+            if p.expression and p.expression_enabled:
+                prop = p
+                break
+        assert prop is not None
+        match_name = prop.match_name
+
+        prop.expression_enabled = False
+        out = tmp_path / "disabled_expr.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        prop2 = _find_property(
+            project2.compositions[0].layers[0], match_name
+        )
+        assert prop2.expression_enabled is False
+        assert prop2.expression != ""
+
+    def test_enable_expression(self, tmp_path: Path) -> None:
+        project = parse_aep(
+            SAMPLES_DIR / "expression_disabled.aep"
+        ).project
+        layer = project.compositions[0].layers[0]
+        prop = None
+        for p in layer.transform:
+            if p.expression and not p.expression_enabled:
+                prop = p
+                break
+        assert prop is not None
+        match_name = prop.match_name
+
+        prop.expression_enabled = True
+        out = tmp_path / "enabled_expr.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        prop2 = _find_property(
+            project2.compositions[0].layers[0], match_name
+        )
+        assert prop2.expression_enabled is True
+
+
+class TestRoundtripRotoBezier:
+    """Roundtrip: toggle MaskPropertyGroup.roto_bezier."""
+
+    def test_disable_roto_bezier(self, tmp_path: Path) -> None:
+        project = parse_aep(
+            SAMPLES_DIR / "mask_rotobezier_on.aep"
+        ).project
+        layer = project.compositions[0].layers[0]
+        mask = layer.masks[0]
+        assert isinstance(mask, MaskPropertyGroup)
+        assert mask.roto_bezier is True
+
+        mask.roto_bezier = False
+        out = tmp_path / "modified_roto.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        mask2 = project2.compositions[0].layers[0].masks[0]
+        assert isinstance(mask2, MaskPropertyGroup)
+        assert mask2.roto_bezier is False
+
+
+class TestRoundtripDimensionsSeparated:
+    """Roundtrip: toggle Property.dimensions_separated and verify save/reload."""
+
+    def test_separate_dimensions(self, tmp_path: Path) -> None:
+        project = parse_aep(
+            SAMPLES_DIR / "transform_separated.aep"
+        ).project
+        layer = project.compositions[0].layers[0]
+        prop = _find_property(layer, "ADBE Position")
+        assert prop is not None
+        assert prop.dimensions_separated is True
+
+        prop.dimensions_separated = False
+        out = tmp_path / "unseparated.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        prop2 = _find_property(
+            project2.compositions[0].layers[0], "ADBE Position"
+        )
+        assert prop2.dimensions_separated is False
+
+    def test_unseparate_dimensions(self, tmp_path: Path) -> None:
+        project = parse_aep(
+            SAMPLES_DIR / "transform_separated.aep"
+        ).project
+        layer = project.compositions[0].layers[0]
+        prop = _find_property(layer, "ADBE Position")
+        assert prop is not None
+        assert prop.dimensions_separated is True
+
+        prop.dimensions_separated = False
+        out = tmp_path / "unseparated.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        prop2 = _find_property(
+            project2.compositions[0].layers[0], "ADBE Position"
+        )
+        assert prop2.dimensions_separated is False
+
+
+class TestRoundtripName:
+    """Roundtrip: modify PropertyBase.name and verify save/reload."""
+
+    def test_modify_effect_group_name(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "2_gaussian.aep").project
+        layer = get_first_layer(project)
+        effect = layer.effects.properties[0]
+        assert effect.name == "Gaussian Blur"
+
+        effect.name = "My Blur"
+        out = tmp_path / "renamed_effect.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        layer2 = get_first_layer(project2)
+        assert layer2.effects.properties[0].name == "My Blur"
+
+    def test_modify_mask_name(self, tmp_path: Path) -> None:
+        project = parse_aep(SAMPLES_DIR / "mask_add.aep").project
+        layer = get_first_layer(project)
+        mask = layer.masks.properties[0]
+        assert isinstance(mask, MaskPropertyGroup)
+
+        mask.name = "Custom Mask"
+        out = tmp_path / "renamed_mask.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        layer2 = get_first_layer(project2)
+        mask2 = layer2.masks.properties[0]
+        assert mask2.name == "Custom Mask"
+
+
+class TestRoundtripProxyBody:
+    """Roundtrip: modify synthesized (ProxyBody-backed) property attributes."""
+
+    @staticmethod
+    def _find_synthesized_effect_prop(
+        layer: Layer, effect_index: int, match_name: str
+    ) -> Property:
+        """Find a synthesized effect property by match name."""
+        effect = layer.effects.properties[effect_index]
+        assert isinstance(effect, PropertyGroup)
+        for prop in effect.properties:
+            if isinstance(prop, Property) and prop.match_name == match_name:
+                return prop
+        raise AssertionError(f"Property {match_name} not found in effect")
+
+    def test_modify_synthesized_value(self, tmp_path: Path) -> None:
+        """Modify the value of a synthesized (default) effect property."""
+        project = parse_aep(SAMPLES_DIR / "2_gaussian.aep").project
+        layer = get_first_layer(project)
+        # Blurriness is the main slider - find it
+        blur = self._find_synthesized_effect_prop(
+            layer, 0, "ADBE Gaussian Blur 2-0001"
+        )
+        original = blur.value
+        blur.value = 42.0
+        out = tmp_path / "proxy_value.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        layer2 = get_first_layer(project2)
+        blur2 = self._find_synthesized_effect_prop(
+            layer2, 0, "ADBE Gaussian Blur 2-0001"
+        )
+        assert blur2.value == 42.0
+        assert blur2.value != original
+
+    def test_modify_synthesized_enabled(self, tmp_path: Path) -> None:
+        """Modify the enabled flag of a synthesized effect property."""
+        project = parse_aep(SAMPLES_DIR / "2_gaussian.aep").project
+        layer = get_first_layer(project)
+        blur = self._find_synthesized_effect_prop(
+            layer, 0, "ADBE Gaussian Blur 2-0001"
+        )
+        assert blur.enabled is True
+        blur.enabled = False
+        out = tmp_path / "proxy_enabled.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        layer2 = get_first_layer(project2)
+        blur2 = self._find_synthesized_effect_prop(
+            layer2, 0, "ADBE Gaussian Blur 2-0001"
+        )
+        assert blur2.enabled is False
+
+    def test_modify_synthesized_name(self, tmp_path: Path) -> None:
+        """Modify the name of a synthesized effect property."""
+        project = parse_aep(SAMPLES_DIR / "2_gaussian.aep").project
+        layer = get_first_layer(project)
+        blur = self._find_synthesized_effect_prop(
+            layer, 0, "ADBE Gaussian Blur 2-0001"
+        )
+        blur.name = "Custom Blur Name"
+        out = tmp_path / "proxy_name.aep"
+        project.save(out)
+
+        project2 = parse_aep(out).project
+        layer2 = get_first_layer(project2)
+        blur2 = self._find_synthesized_effect_prop(
+            layer2, 0, "ADBE Gaussian Blur 2-0001"
+        )
+        assert blur2.name == "Custom Blur Name"
+
+
+class TestValueValidation:
+    """Tests for Property.value setter min/max validation."""
+
+    def test_scalar_below_min_raises(self) -> None:
+        """Setting a scalar value below min_value raises ValueError."""
+        project = parse_project(SAMPLES_DIR / "property_1D_opacity.aep")
+        layer = get_first_layer(project)
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        assert opacity.has_min
+        assert opacity.min_value == 0
+        with pytest.raises(ValueError, match="must be >= 0"):
+            opacity.value = -10.0
+
+    def test_scalar_above_max_raises(self) -> None:
+        """Setting a scalar value above max_value raises ValueError."""
+        project = parse_project(SAMPLES_DIR / "property_1D_opacity.aep")
+        layer = get_first_layer(project)
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        assert opacity.has_max
+        assert opacity.max_value == 100
+        with pytest.raises(ValueError, match="must be <= 100"):
+            opacity.value = 150.0
+
+    def test_valid_value_accepted(self) -> None:
+        """Setting a value within bounds does not raise."""
+        project = parse_project(SAMPLES_DIR / "property_1D_opacity.aep")
+        layer = get_first_layer(project)
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        opacity.value = 50.0
+        assert opacity.value == 50.0
+
+    def test_wrong_list_length_raises(self) -> None:
+        """Setting a list with wrong number of dimensions raises ValueError."""
+        project = parse_project(SAMPLES_DIR / "property_3D_position.aep")
+        layer = get_first_layer(project)
+        position = _find_property(layer, "ADBE Position")
+        assert position is not None
+        assert position.dimensions == 3
+        with pytest.raises(ValueError, match="expected 3 elements, got 2"):
+            position.value = [100.0, 200.0]
+
+    def test_list_on_scalar_raises(self) -> None:
+        """Setting a list on a scalar (1D) property raises TypeError."""
+        project = parse_project(SAMPLES_DIR / "property_1D_opacity.aep")
+        layer = get_first_layer(project)
+        opacity = _find_property(layer, "ADBE Opacity")
+        assert opacity is not None
+        assert opacity.dimensions == 1
+        with pytest.raises(TypeError, match="expected a number, got list"):
+            opacity.value = [50.0, 60.0]
+
+    def test_scalar_on_multidim_raises(self) -> None:
+        """Setting a scalar on a multi-dimensional property raises TypeError."""
+        project = parse_project(SAMPLES_DIR / "property_3D_position.aep")
+        layer = get_first_layer(project)
+        position = _find_property(layer, "ADBE Position")
+        assert position is not None
+        assert position.dimensions == 3
+        with pytest.raises(TypeError, match="expected a sequence of 3 elements"):
+            position.value = 42.0

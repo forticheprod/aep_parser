@@ -14,23 +14,23 @@ class AutoKernType(IntEnum):
     See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentautokerntype
     """
 
-    NO_AUTO_KERN = 0
-    METRIC_KERN = 1
-    OPTICAL_KERN = 2
+    NO_AUTO_KERN = 11413
+    METRIC_KERN = 11414
+    OPTICAL_KERN = 11415
 
 
 class BaselineDirection(IntEnum):
     """Baseline direction option for text characters.
 
     This is significant for Japanese language in vertical texts.
-    ``BASELINE_VERTICAL_CROSS_STREAM`` is also known as Tate-Chu-Yoko.
+    `BASELINE_VERTICAL_CROSS_STREAM` is also known as Tate-Chu-Yoko.
 
     See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentbaselinedirection
     """
 
-    BASELINE_WITH_STREAM = 0
-    BASELINE_VERTICAL_ROTATED = 1
-    BASELINE_VERTICAL_CROSS_STREAM = 2
+    BASELINE_WITH_STREAM = 11612
+    BASELINE_VERTICAL_ROTATED = 11613
+    BASELINE_VERTICAL_CROSS_STREAM = 11614
 
 
 class BoxAutoFitPolicy(IntEnum):
@@ -80,8 +80,8 @@ class ComposerEngine(IntEnum):
     See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentcomposerengine
     """
 
-    LATIN_CJK_ENGINE = 0
-    UNIVERSAL_TYPE_ENGINE = 1
+    LATIN_CJK_ENGINE = 10413
+    UNIVERSAL_TYPE_ENGINE = 10414
 
 
 class DigitSet(IntEnum):
@@ -90,11 +90,11 @@ class DigitSet(IntEnum):
     See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentdigitset
     """
 
-    DEFAULT_DIGITS = 0
-    ARABIC_DIGITS = 1
-    HINDI_DIGITS = 2
-    FARSI_DIGITS = 3
-    ARABIC_DIGITS_RTL = 4
+    DEFAULT_DIGITS = 12012
+    ARABIC_DIGITS = 12013
+    HINDI_DIGITS = 12014
+    FARSI_DIGITS = 12015
+    ARABIC_DIGITS_RTL = 12016
 
 
 class FontBaselineOption(IntEnum):
@@ -103,9 +103,9 @@ class FontBaselineOption(IntEnum):
     See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentfontbaselineoption
     """
 
-    FONT_NORMAL_BASELINE = 0
-    FONT_FAUXED_SUPERSCRIPT = 1
-    FONT_FAUXED_SUBSCRIPT = 2
+    FONT_NORMAL_BASELINE = 11212
+    FONT_FAUXED_SUPERSCRIPT = 11213
+    FONT_FAUXED_SUBSCRIPT = 11214
 
 
 class FontCapsOption(IntEnum):
@@ -114,10 +114,10 @@ class FontCapsOption(IntEnum):
     See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentfontcapsoption
     """
 
-    FONT_NORMAL_CAPS = 0
-    FONT_SMALL_CAPS = 1
-    FONT_ALL_CAPS = 2
-    FONT_ALL_SMALL_CAPS = 3
+    FONT_NORMAL_CAPS = 11012
+    FONT_SMALL_CAPS = 11013
+    FONT_ALL_CAPS = 11014
+    FONT_ALL_SMALL_CAPS = 11015
 
 
 class LeadingType(IntEnum):
@@ -126,8 +126,8 @@ class LeadingType(IntEnum):
     See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentleadingtype
     """
 
-    ROMAN_LEADING_TYPE = 0
-    JAPANESE_LEADING_TYPE = 1
+    ROMAN_LEADING_TYPE = 10812
+    JAPANESE_LEADING_TYPE = 10813
 
 
 class LineJoinType(IntEnum):
@@ -136,9 +136,9 @@ class LineJoinType(IntEnum):
     See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentlinejointype
     """
 
-    LINE_JOIN_MITER = 0
-    LINE_JOIN_ROUND = 1
-    LINE_JOIN_BEVEL = 2
+    LINE_JOIN_MITER = 11812
+    LINE_JOIN_ROUND = 11813
+    LINE_JOIN_BEVEL = 11814
 
 
 class LineOrientation(IntEnum):
@@ -147,9 +147,9 @@ class LineOrientation(IntEnum):
     See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentlineorientation
     """
 
-    HORIZONTAL = 0
-    VERTICAL_RIGHT_TO_LEFT = 1
-    VERTICAL_LEFT_TO_RIGHT = 2
+    HORIZONTAL = 13212
+    VERTICAL_RIGHT_TO_LEFT = 13213
+    VERTICAL_LEFT_TO_RIGHT = 13214
 
 
 class ParagraphDirection(IntEnum):
@@ -158,8 +158,8 @@ class ParagraphDirection(IntEnum):
     See: https://ae-scripting.docsforadobe.dev/text/textdocument/#textdocumentdirection
     """
 
-    DIRECTION_LEFT_TO_RIGHT = 0
-    DIRECTION_RIGHT_TO_LEFT = 1
+    DIRECTION_LEFT_TO_RIGHT = 10212
+    DIRECTION_RIGHT_TO_LEFT = 10213
 
 
 class ParagraphJustification(IntEnum):

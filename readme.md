@@ -48,37 +48,20 @@ pip install aep-parser
 ```python
 import aep_parser
 
-# Parse an After Effects project
-app = aep_parser.parse("path/to/project.aep")
-project = app.project
+app = aep_parser.parse("myproject.aep")
+comp = app.project.compositions[0]
 
-# Access application-level info
-print(f"AE Version: {app.version}")
+# Modify composition settings
+comp.frame_rate = 24
 
-# Access every item
-for item in project:
-    print(f"{item.name} ({type(item).__name__})")
+# Modify a layer property
+comp.layers[0].transform.opacity.value = 50
 
-# Get a composition by name and its layers
-comp = next(c for c in project.compositions if c.name == "Comp 1")
-for layer in comp.layers:
-    print(f"  Layer: {layer.name}, in={layer.in_point}s, out={layer.out_point}s")
-
-    # Access layer's source (for AVLayer)
-    if hasattr(layer, "source") and layer.source:
-        print(f"    Source: {layer.source.name}")
-        # Get file path if source is footage with a file
-        if hasattr(layer.source, "file"):
-            print(f"    File: {layer.source.file}")
-
-# Access render queue
-for rq_item in project.render_queue.items:
-    print(f"Render: {rq_item.comp_name}")
-    for om in rq_item.output_modules:
-        # Settings are a dict with ExtendScript keys
-        video_on = om.settings.get("Video Output", False)
-        print(f"  Output: {om.name}, video={video_on}")
+# Save to a new file
+app.save("modified.aep")
 ```
+
+_For more examples, see the [Quick Start guide](https://forticheprod.github.io/aep_parser/quickstart/)._
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

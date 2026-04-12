@@ -1,10 +1,6 @@
 # Render Settings
 
-Render settings are stored as a [RenderSettings][aep_parser.models.settings.RenderSettings] `TypedDict` on the `RenderQueueItem.settings` attribute, with ExtendScript-compatible keys matching the format from `RenderQueueItem.getSettings(GetSettingsFormat.NUMBER)`.
-
-::: aep_parser.models.settings.RenderSettings
-    options:
-      show_bases: false
+Render settings are accessed via `RenderQueueItem.settings`, a [SettingsView][aep_parser.models.renderqueue.settings.SettingsView] dict with ExtendScript-compatible keys matching the format from `RenderQueueItem.get_settings(GetSettingsFormat.NUMBER)`.
 
 ## Available Keys
 

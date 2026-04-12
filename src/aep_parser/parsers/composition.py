@@ -3,7 +3,6 @@ from __future__ import annotations
 import typing
 from typing import Any
 
-from ..enums import Label
 from ..kaitai.utils import (
     ChunkNotFoundError,
     filter_by_list_type,
@@ -11,159 +10,138 @@ from ..kaitai.utils import (
     find_by_type,
 )
 from ..models.items.composition import CompItem
+from .essential_graphics import parse_essential_graphics
 from .layer import parse_layer
 
 if typing.TYPE_CHECKING:
     from ..kaitai import Aep
     from ..models.items.folder import FolderItem
+    from ..models.layers.layer import Layer
+    from ..models.project import Project
     from ..models.properties.property import Property
 
 
 def parse_composition(
     child_chunks: list[Aep.Chunk],
-    item_id: int,
-    item_name: str,
-    label: Label,
+    _idta: Aep.IdtaBody,
+    _name_utf8: Aep.Utf8Body,
+    _cmta: Aep.Utf8Body | None,
+    _item_list: Aep.ListBody,
+    project: Project,
     parent_folder: FolderItem,
-    comment: str,
     effect_param_defs: dict[str, dict[str, dict[str, Any]]],
+    otln_entries: list[Aep.OtlnEntry] | None = None,
 ) -> CompItem:
     """
     Parse a composition item.
 
     Args:
         child_chunks: child chunks of the composition LIST chunk.
-        item_id: The unique item ID.
-        item_name: The composition name.
-        label: The label color. Colors are represented by their number (0 for
-            None, or 1 to 16 for one of the preset colors in the Labels
-            preferences).
+        _idta: The idta chunk body.
+        _name_utf8: The Utf8 chunk body containing the composition name.
+        _cmta: The cmta chunk body (None if no comment).
+        project: The project.
         parent_folder: The composition's parent folder.
-        comment: The composition comment.
         effect_param_defs: Project-level effect parameter definitions, used as
             fallback when layer-level parT chunks are missing.
     """
     cdta_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
     try:
-        cdrp_chunk = find_by_type(chunks=child_chunks, chunk_type="cdrp")
-        drop_frame = bool(cdrp_chunk.drop_frame)
+        cdrp_body = find_by_type(chunks=child_chunks, chunk_type="cdrp").body
     except ChunkNotFoundError:
-        drop_frame = False
+        cdrp_body = None
 
-    # Normalize bg_color from 0-255 to 0-1 range to match ExtendScript output
-    bg_color = [c / 255 for c in cdta_chunk.bg_color]
+    prin_list = find_by_list_type(chunks=child_chunks, list_type="PRin")
+    prin_chunk = find_by_type(chunks=prin_list.body.chunks, chunk_type="prin")
 
     composition = CompItem(
-        comment=comment,
-        id=item_id,
-        label=label,
-        name=item_name,
-        type_name="Composition",
+        _cdrp=cdrp_body,
+        _cdta=cdta_chunk.body,
+        _cmta=_cmta,
+        _idta=_idta,
+        _item_list=_item_list,
+        _name_utf8=_name_utf8,
+        _prin=prin_chunk.body,
+        project=project,
         parent_folder=parent_folder,
-        draft3d=cdta_chunk.draft3d,
-        duration=cdta_chunk.duration,
-        frame_duration=int(
-            cdta_chunk.frame_duration
-        ),  # in JSX API, this value is 1 / frame_rate (the duration of a frame). Here, duration * frame_rate
-        frame_rate=cdta_chunk.frame_rate,
-        height=cdta_chunk.height,
-        pixel_aspect=cdta_chunk.pixel_aspect,
-        width=cdta_chunk.width,
-        bg_color=bg_color,
-        frame_blending=cdta_chunk.frame_blending,
-        hide_shy_layers=cdta_chunk.hide_shy_layers,
-        layers=[],
-        marker_property=None,
-        motion_blur=cdta_chunk.motion_blur,
-        motion_blur_adaptive_sample_limit=cdta_chunk.motion_blur_adaptive_sample_limit,
-        motion_blur_samples_per_frame=cdta_chunk.motion_blur_samples_per_frame,
-        preserve_nested_frame_rate=cdta_chunk.preserve_nested_frame_rate,
-        preserve_nested_resolution=cdta_chunk.preserve_nested_resolution,
-        shutter_angle=cdta_chunk.shutter_angle,
-        shutter_phase=cdta_chunk.shutter_phase,
-        resolution_factor=cdta_chunk.resolution_factor,
-        time_scale=cdta_chunk.time_scale,
-        in_point=cdta_chunk.in_point,
-        frame_in_point=int(cdta_chunk.frame_in_point),
-        out_point=cdta_chunk.out_point,
-        frame_out_point=int(cdta_chunk.frame_out_point),
-        frame_time=int(cdta_chunk.frame_time),
-        time=cdta_chunk.time,
-        display_start_time=cdta_chunk.display_start_time,
-        display_start_frame=int(cdta_chunk.display_start_frame),
-        drop_frame=drop_frame,
     )
 
-    composition.marker_property = _get_markers(
+    composition._marker_property = _get_markers(
         child_chunks=child_chunks,
         composition=composition,
     )
 
+    eg_result = parse_essential_graphics(child_chunks)
+    if eg_result is not None:
+        composition._eg_template_name_utf8 = eg_result[0]
+        composition._eg_controllers = list(eg_result[1])
+
     # Parse composition's layers
     layer_sub_chunks = filter_by_list_type(chunks=child_chunks, list_type="Layr")
 
-    # Build layer_id-to-index mapping for LAYER control effect properties.
+    # Build layer_id-to-index mapping for Layer control effect properties.
     # ExtendScript reports 1-based layer indices; the binary stores internal
     # layer IDs (ldta.layer_id).  Pre-scan all layer chunks so the mapping
     # is available when parsing effect properties.
-    layer_id_to_index: dict[int, int] = {}
     for idx, lc in enumerate(layer_sub_chunks, 1):
-        ldta = find_by_type(chunks=lc.chunks, chunk_type="ldta")
-        layer_id_to_index[ldta.layer_id] = idx
+        ldta = find_by_type(chunks=lc.body.chunks, chunk_type="ldta")
+        composition._layer_id_to_index[ldta.body.layer_id] = idx
 
     for layer_chunk in layer_sub_chunks:
         layer = parse_layer(
             layer_chunk=layer_chunk,
             composition=composition,
             effect_param_defs=effect_param_defs,
-            layer_id_to_index=layer_id_to_index,
         )
         composition.layers.append(layer)
 
-    # Apply effect selected states from Ewst/ewot chunks
-    selected_states = _parse_effect_selected(child_chunks)
-    effect_idx = 0
+    # Link effect ewot entries for chunk-backed selected state
+    ewot_entries = _collect_ewot_entries(child_chunks)
+    entry_idx = 0
     for layer in composition.layers:
         if layer.effects is None:
             continue
         for effect in layer.effects:
-            if effect_idx < len(selected_states):
-                effect.selected = selected_states[effect_idx]
-            effect_idx += 1
+            if entry_idx < len(ewot_entries):
+                effect._ewot_entry = ewot_entries[entry_idx]
+            entry_idx += 1
+
+    # Apply layer selection from otln entries
+    if otln_entries is not None:
+        _apply_otln_to_layers(otln_entries, composition.layers)
 
     return composition
 
 
-def _parse_effect_selected(child_chunks: list[Aep.Chunk]) -> list[bool]:
-    """Parse effect selected states from LIST:Ewst / ewot chunks.
+def _collect_ewot_entries(child_chunks: list[Aep.Chunk]) -> list[Aep.EwotEntry]:
+    """Collect effect-group ewot entries from LIST:Ewst / ewot chunks.
 
-    The ``ewot`` chunk inside ``LIST:Ewst`` stores per-property flags for
+    The `ewot` chunk inside `LIST:Ewst` stores per-property flags for
     the effect workspace.  Each entry is 4 bytes: the first byte contains
-    flags where bit 6 (``0x40``) indicates *selected*.  Entries whose first
-    byte has bit 7 (``0x80``) set are child properties of an effect; entries
-    **without** bit 7 are effect-group-level entries.  By filtering to the
-    group-level entries and checking bit 6 we obtain a boolean per effect.
+    flags where bit 6 (`0x40`) indicates *selected*.  Entries whose first
+    byte has bit 7 (`0x80`) set are child properties of an effect; entries
+    **without** bit 7 are effect-group-level entries.
 
     Args:
         child_chunks: The composition item's child chunks.
 
     Returns:
-        Ordered list of booleans, one per effect across all layers.
+        Ordered list of ewot entries, one per effect across all layers.
     """
-    selected: list[bool] = []
+    entries: list[Aep.EwotEntry] = []
     ewst_chunks = filter_by_list_type(chunks=child_chunks, list_type="Ewst")
     for ewst_chunk in ewst_chunks:
         try:
-            ewot_chunk = find_by_type(chunks=ewst_chunk.chunks, chunk_type="ewot")
+            ewot_chunk = find_by_type(chunks=ewst_chunk.body.chunks, chunk_type="ewot")
         except ChunkNotFoundError:
             continue
 
-        for entry in ewot_chunk.entries:
+        for entry in ewot_chunk.body.entries:
             # Entries without is_child_property are effect group nodes
             if not entry.is_child_property:
-                selected.append(entry.selected)
+                entries.append(entry)
 
-    return selected
+    return entries
 
 
 def _get_markers(
@@ -189,3 +167,29 @@ def _get_markers(
         return None
 
     return markers_layer.marker
+
+
+def _apply_otln_to_layers(entries: list[Aep.OtlnEntry], layers: list[Layer]) -> None:
+    """Store otln root entries on matching layers.
+
+    Layer boundaries are found using ``is_layer_marker`` entries that appear
+    exactly once per layer. The first entry of each layer block is the
+    layer root (a GROUP entry with ``is_property=0``, ``is_sub_entry=0``).
+    """
+    if not entries or not layers:
+        return
+    markers = [i for i, e in enumerate(entries) if e.is_layer_marker]
+    if len(markers) != len(layers):
+        return
+    # First layer always starts at index 0
+    layer_starts = [0]
+    for m in markers[:-1]:
+        # Scan forward from marker to find next GROUP entry (next layer root)
+        for j in range(m + 1, len(entries)):
+            e = entries[j]
+            if not e.is_property and not e.is_sub_entry:
+                layer_starts.append(j)
+                break
+    for layer_idx, layer in enumerate(layers):
+        if layer_idx < len(layer_starts):
+            layer._otln_entry = entries[layer_starts[layer_idx]]

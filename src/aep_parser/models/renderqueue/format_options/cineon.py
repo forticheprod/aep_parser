@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import typing
 
-from aep_parser.enums import CineonFileFormat
+from ....enums import CineonFileFormat
+from ....kaitai.descriptors import ChunkField
+from ...validators import validate_number, validate_one_of
+
+if typing.TYPE_CHECKING:
+    from ....kaitai import Aep
 
 
-@dataclass
 class CineonFormatOptions:
     """Cineon/DPX format-specific render options.
 
@@ -24,44 +28,78 @@ class CineonFormatOptions:
         ```
     """
 
-    ten_bit_black_point: int
+    def __init__(self, *, _body: Aep.CineonRoptData) -> None:
+        self._body = _body
+
+    ten_bit_black_point = ChunkField[int](
+        "_body",
+        "ten_bit_black_point",
+        validate=validate_number(min=0, max=1023, integer=True),
+    )
     """
-    The 10-bit black point value (0–1023). Defines the code value that
-    maps to the black point on a logarithmic scale.
+    The 10-bit black point value (0-1023). Defines the code value that
+    maps to the black point on a logarithmic scale. Read / Write.
     """
 
-    ten_bit_white_point: int
+    ten_bit_white_point = ChunkField[int](
+        "_body",
+        "ten_bit_white_point",
+        validate=validate_number(min=0, max=1023, integer=True),
+    )
     """
-    The 10-bit white point value (0–1023). Defines the code value that
-    maps to the white point on a logarithmic scale.
-    """
-
-    converted_black_point: float
-    """
-    The converted black point value, normalized to the 0.0–1.0 range.
-    This is the linear-light equivalent of the 10-bit black point.
+    The 10-bit white point value (0-1023). Defines the code value that
+    maps to the white point on a logarithmic scale. Read / Write.
     """
 
-    converted_white_point: float
+    converted_black_point = ChunkField[float](
+        "_body",
+        "converted_black_point",
+    )
     """
-    The converted white point value, normalized to the 0.0–1.0 range.
-    This is the linear-light equivalent of the 10-bit white point.
+    The converted black point value, normalized to the 0.0-1.0 range.
+    This is the linear-light equivalent of the 10-bit black point. Read / Write.
     """
 
-    current_gamma: float
-    """The gamma value applied during the Cineon/DPX conversion."""
+    converted_white_point = ChunkField[float](
+        "_body",
+        "converted_white_point",
+    )
+    """
+    The converted white point value, normalized to the 0.0-1.0 range.
+    This is the linear-light equivalent of the 10-bit white point. Read / Write.
+    """
 
-    highlight_expansion: int
-    """The highlight expansion value."""
+    current_gamma = ChunkField[float](
+        "_body",
+        "current_gamma",
+    )
+    """The gamma value applied during the Cineon/DPX conversion. Read / Write."""
 
-    logarithmic_conversion: bool
-    """Whether logarithmic conversion is enabled."""
+    highlight_expansion = ChunkField[int](
+        "_body",
+        "highlight_expansion",
+    )
+    """The highlight expansion value. Read / Write."""
 
-    file_format: CineonFileFormat
+    logarithmic_conversion = ChunkField.bool(
+        "_body",
+        "logarithmic_conversion",
+    )
+    """Whether logarithmic conversion is enabled. Read / Write."""
+
+    file_format = ChunkField.enum(
+        CineonFileFormat,
+        "_body",
+        "file_format",
+    )
     """
     The file format for the Cineon output. See [CineonFileFormat][] for
-    possible values.
+    possible values. Read / Write.
     """
 
-    bit_depth: int
-    """The bit depth per channel (8, 10, 12, or 16)."""
+    bit_depth = ChunkField[int](
+        "_body",
+        "bit_depth",
+        validate=validate_one_of([8, 10, 12, 16]),
+    )
+    """The bit depth per channel (8, 10, 12, or 16). Read / Write."""

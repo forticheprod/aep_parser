@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import typing
+
+from ....kaitai.descriptors import ChunkField
+
+if typing.TYPE_CHECKING:
+    from ....kaitai import Aep
 
 
-@dataclass
 class TiffFormatOptions:
     """TIFF format-specific render options.
 
@@ -21,8 +25,17 @@ class TiffFormatOptions:
         ```
     """
 
-    lzw_compression: bool
-    """Whether LZW compression is enabled."""
+    def __init__(self, *, _body: Aep.TiffRoptData) -> None:
+        self._body = _body
 
-    ibm_pc_byte_order: bool
-    """Whether IBM PC byte order (little-endian) is used."""
+    lzw_compression = ChunkField.bool(
+        "_body",
+        "lzw_compression",
+    )
+    """Whether LZW compression is enabled. Read / Write."""
+
+    ibm_pc_byte_order = ChunkField.bool(
+        "_body",
+        "ibm_pc_byte_order",
+    )
+    """Whether IBM PC byte order (little-endian) is used. Read / Write."""
