@@ -6,9 +6,8 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-from conftest import get_sample_files, load_expected, parse_project
+from conftest import get_rqi, load_expected, parse_project
 
-from aep_parser import Project
 from aep_parser import parse as parse_aep
 from aep_parser.enums import (
     ConvertToLinearLight,
@@ -24,20 +23,11 @@ from aep_parser.enums import (
     RQItemStatus,
     TimeSpanSource,
 )
-from aep_parser.models.renderqueue import OutputModule, RenderQueue
+from aep_parser.models.renderqueue import OutputModule
 from aep_parser.resolvers.output import resolve_output_filename
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "renderqueue"
 OM_SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "output_module"
-
-
-@pytest.mark.parametrize("sample_name", get_sample_files(SAMPLES_DIR))
-def test_parse_renderqueue_sample(sample_name: str) -> None:
-    """Each renderqueue sample can be parsed without error."""
-    aep_path = SAMPLES_DIR / f"{sample_name}.aep"
-    project = parse_project(aep_path)
-    assert isinstance(project, Project)
-    assert isinstance(project.render_queue, RenderQueue)
 
 
 class TestRenderQueueBasic:
@@ -85,29 +75,27 @@ class TestOutputModule:
         exp_oms = expected["renderQueue"]["items"][0]["outputModules"]
         assert len(rqi.output_modules) == len(exp_oms) == 2
 
-    @pytest.mark.parametrize(
-        "sample_name, expected_value",
-        [
-            ("include_source_xmp_data_on", True),
-            ("include_source_xmp_data_off", False),
-        ],
-    )
-    def test_include_source_xmp(self, sample_name: str, expected_value: bool) -> None:
-        project = parse_project(OM_SAMPLES_DIR / f"{sample_name}.aep")
-        om = project.render_queue.items[0].output_modules[0]
-        assert om.include_source_xmp is expected_value
+    def test_include_source_xmp_on(self) -> None:
+        project = parse_project(OM_SAMPLES_DIR / "om_misc.aep")
+        rqi = get_rqi(project, "include_source_xmp_data_on")
+        om = rqi.output_modules[0]
+        assert om.include_source_xmp is True
 
-    @pytest.mark.parametrize(
-        "sample_name, expected_value",
-        [
-            ("crop_checked", True),
-            ("crop_unchecked", False),
-        ],
-    )
-    def test_crop(self, sample_name: str, expected_value: bool) -> None:
-        project = parse_project(OM_SAMPLES_DIR / f"{sample_name}.aep")
+    def test_include_source_xmp_off(self) -> None:
+        project = parse_project(OM_SAMPLES_DIR / "include_source_xmp_data_off.aep")
         om = project.render_queue.items[0].output_modules[0]
-        assert om.settings["Crop"] is expected_value
+        assert om.include_source_xmp is False
+
+    def test_crop_checked(self) -> None:
+        project = parse_project(OM_SAMPLES_DIR / "om_crop.aep")
+        rqi = get_rqi(project, "crop_checked")
+        om = rqi.output_modules[0]
+        assert om.settings["Crop"] is True
+
+    def test_crop_unchecked(self) -> None:
+        project = parse_project(OM_SAMPLES_DIR / "crop_unchecked.aep")
+        om = project.render_queue.items[0].output_modules[0]
+        assert om.settings["Crop"] is False
 
     def test_crop_bottom_10(self) -> None:
         expected = load_expected(OM_SAMPLES_DIR, "crop_bottom_10")
@@ -150,10 +138,14 @@ class TestCompLinking:
     """Tests for render queue item composition linking."""
 
     def test_comp_name_matches(self) -> None:
-        expected = load_expected(SAMPLES_DIR, "base")
-        project = parse_project(SAMPLES_DIR / "base.aep")
-        rqi = project.render_queue.items[0]
-        exp_rqi = expected["renderQueue"]["items"][0]
+        expected = load_expected(SAMPLES_DIR, "render_settings")
+        project = parse_project(SAMPLES_DIR / "render_settings.aep")
+        rqi = get_rqi(project, "base")
+        exp_rqi = next(
+            item
+            for item in expected["renderQueue"]["items"]
+            if item["compName"] == "base"
+        )
         assert rqi.comp_name == exp_rqi["compName"]
 
     def test_2_rqitems_comp_linking(self) -> None:
@@ -192,10 +184,14 @@ class TestSkipFrames:
     @pytest.mark.parametrize("n", [0, 1, 2, 3])
     def test_skip_frames(self, n: int) -> None:
         sample_name = f"skip_frames_{n}"
-        expected = load_expected(SAMPLES_DIR, sample_name)
-        project = parse_project(SAMPLES_DIR / f"{sample_name}.aep")
-        rqi = project.render_queue.items[0]
-        exp_rqi = expected["renderQueue"]["items"][0]
+        expected = load_expected(SAMPLES_DIR, "skip_frames")
+        project = parse_project(SAMPLES_DIR / "skip_frames.aep")
+        rqi = get_rqi(project, sample_name)
+        exp_rqi = next(
+            item
+            for item in expected["renderQueue"]["items"]
+            if item["compName"] == sample_name
+        )
         assert rqi.skip_frames == exp_rqi["skipFrames"] == n
 
 
@@ -408,18 +404,18 @@ class TestRoundtripLogType:
     """Roundtrip tests for RenderQueueItem.log_type."""
 
     def test_modify_log_type(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.log_type = LogType.ERRORS_AND_PER_FRAME_INFO
 
         out = tmp_path / "modified_log_type.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.log_type == LogType.ERRORS_AND_PER_FRAME_INFO
 
     def test_log_type_validation_rejects_invalid(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         with pytest.raises(ValueError, match="Invalid value"):
             rqi.log_type = 9999
 
@@ -428,14 +424,14 @@ class TestRoundtripQueueItemNotify:
     """Roundtrip tests for RenderQueueItem.queue_item_notify."""
 
     def test_modify_queue_item_notify(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         original = rqi.queue_item_notify
         rqi.queue_item_notify = not original
 
         out = tmp_path / "modified_notify.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.queue_item_notify is (not original)
 
 
@@ -443,31 +439,31 @@ class TestRoundtripStatus:
     """Roundtrip tests for RenderQueueItem.status."""
 
     def test_set_status_directly(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.status = RQItemStatus.UNQUEUED
 
         out = tmp_path / "modified_status.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.status == RQItemStatus.UNQUEUED
 
     def test_modify_status_via_render(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.render = False
 
         out = tmp_path / "modified_status.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.status == RQItemStatus.UNQUEUED
         assert rqi2.render is False
 
     def test_status_resets_start_time_and_elapsed(self, tmp_path: Path) -> None:
         """Setting render resets start_time and elapsed_seconds
         for QUEUED/UNQUEUED statuses."""
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         # Prime with non-zero values via underlying chunk body
         rqi._ldat.start_time = 1000000
         rqi._ldat.elapsed_seconds = 42
@@ -478,7 +474,7 @@ class TestRoundtripStatus:
 
         out = tmp_path / "status_reset.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.start_time is None
         assert rqi2.elapsed_seconds == 0
         assert rqi2.status == RQItemStatus.QUEUED
@@ -488,25 +484,25 @@ class TestRoundtripRender:
     """Roundtrip tests for RenderQueueItem.render setter."""
 
     def test_set_render_false(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.render = False
 
         out = tmp_path / "render_false.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.render is False
         assert rqi2.status == RQItemStatus.UNQUEUED
 
     def test_set_render_true(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.render = False
         rqi.render = True
 
         out = tmp_path / "render_true.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.render is True
         assert rqi2.status == RQItemStatus.QUEUED
 
@@ -515,13 +511,13 @@ class TestRoundtripName:
     """Roundtrip tests for RenderQueueItem.name (template name)."""
 
     def test_modify_name(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.name = "Custom Template"
 
         out = tmp_path / "modified_name.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.name == "Custom Template"
 
 
@@ -529,23 +525,23 @@ class TestRoundtripTimeSpan:
     """Roundtrip tests for time span frame fields."""
 
     def test_modify_time_span_start_frame(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.time_span_start_frame = 10
 
         out = tmp_path / "modified_ts_start.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.time_span_start_frame == 10
 
     def test_modify_time_span_duration_frames(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.time_span_duration_frames = 48
 
         out = tmp_path / "modified_ts_dur.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.time_span_duration_frames == 48
 
 
@@ -553,14 +549,14 @@ class TestRoundtripStartTime:
     """Tests for RenderQueueItem.start_time (read-only)."""
 
     def test_start_time_is_read_only(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         with pytest.raises(AttributeError, match="read-only"):
             rqi.start_time = datetime(2025, 6, 15, 12, 0, 0)
 
     def test_start_time_default_is_none(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         assert rqi.start_time is None
 
 
@@ -568,8 +564,8 @@ class TestReadOnlyFields:
     """Tests that read-only fields raise on write."""
 
     def test_elapsed_seconds_is_read_only(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         with pytest.raises(AttributeError, match="read-only"):
             rqi.elapsed_seconds = 999
 
@@ -578,92 +574,92 @@ class TestSetSetting:
     """Tests for RenderQueueItem.set_setting."""
 
     def test_set_enum_value(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.set_setting("Quality", RenderQuality.DRAFT)
 
         out = tmp_path / "quality_enum.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.settings["Quality"] == RenderQuality.DRAFT
 
     def test_set_int_value(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.set_setting("Quality", 1)  # DRAFT
 
         out = tmp_path / "quality_int.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.settings["Quality"] == RenderQuality.DRAFT
 
     def test_set_string_value(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.set_setting("Motion Blur", "On for Checked Layers")
 
         out = tmp_path / "mblur_str.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.settings["Motion Blur"] == MotionBlurSetting.ON_FOR_CHECKED_LAYERS
 
     def test_set_resolution(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.set_setting("Resolution", [2, 2])
 
         out = tmp_path / "resolution.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.settings["Resolution"] == [2, 2]
 
     def test_set_skip_existing_files(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.set_setting("Skip Existing Files", True)
 
         out = tmp_path / "skip_existing.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.settings["Skip Existing Files"] is True
 
     def test_set_frame_rate(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.set_setting("Use this frame rate", 30.0)
 
         out = tmp_path / "frame_rate.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.settings["Use this frame rate"] == pytest.approx(30.0)
 
     def test_unknown_key_raises(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         with pytest.raises(KeyError, match="Unknown setting"):
             rqi.set_setting("Nonexistent", 42)
 
     def test_read_only_key_raises(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         with pytest.raises(AttributeError, match="read-only"):
             rqi.set_setting("Use comp's frame rate", 30.0)
 
     def test_invalid_enum_int_raises(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         with pytest.raises(ValueError, match="Invalid int value"):
             rqi.set_setting("Quality", 9999)
 
     def test_invalid_enum_str_raises(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         with pytest.raises(ValueError, match="Invalid string"):
             rqi.set_setting("Quality", "SuperHD")
 
     def test_invalid_type_raises(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         with pytest.raises(TypeError, match="Expected"):
             rqi.set_setting("Quality", [1, 2, 3])
 
@@ -672,8 +668,8 @@ class TestSetSettings:
     """Tests for RenderQueueItem.set_settings."""
 
     def test_set_multiple(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.set_settings(
             {
                 "Quality": RenderQuality.DRAFT,
@@ -683,7 +679,7 @@ class TestSetSettings:
 
         out = tmp_path / "multi_settings.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.settings["Quality"] == RenderQuality.DRAFT
         assert rqi2.settings["Resolution"] == [2, 2]
 
@@ -725,15 +721,17 @@ class TestRoundtripOutputModuleIncludeSourceXmp:
 
     def test_modify_include_source_xmp(self, tmp_path: Path) -> None:
         project = parse_aep(
-            OM_SAMPLES_DIR / "include_source_xmp_data_on.aep"
+            OM_SAMPLES_DIR / "om_misc.aep"
         ).project
-        om = project.render_queue.items[0].output_modules[0]
+        rqi = get_rqi(project, "include_source_xmp_data_on")
+        om = rqi.output_modules[0]
         assert om.include_source_xmp is True
         om.include_source_xmp = False
 
         out = tmp_path / "xmp_off.aep"
         project.save(out)
-        om2 = parse_aep(out).project.render_queue.items[0].output_modules[0]
+        rqi2 = get_rqi(parse_aep(out).project, "include_source_xmp_data_on")
+        om2 = rqi2.output_modules[0]
         assert om2.include_source_xmp is False
 
     def test_enable_include_source_xmp(self, tmp_path: Path) -> None:
@@ -754,18 +752,21 @@ class TestRoundtripOutputModulePostRenderAction:
     """Roundtrip tests for OutputModule.post_render_action."""
 
     def test_modify_post_render_action(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        om = project.render_queue.items[0].output_modules[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
+        om = rqi.output_modules[0]
         om.post_render_action = PostRenderAction.IMPORT
 
         out = tmp_path / "pra_import.aep"
         project.save(out)
-        om2 = parse_aep(out).project.render_queue.items[0].output_modules[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
+        om2 = rqi2.output_modules[0]
         assert om2.post_render_action == PostRenderAction.IMPORT
 
     def test_post_render_action_validation_rejects_invalid(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        om = project.render_queue.items[0].output_modules[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
+        om = rqi.output_modules[0]
         with pytest.raises(ValueError, match="Invalid value"):
             om.post_render_action = 9999
 
@@ -774,13 +775,15 @@ class TestRoundtripFileTemplate:
     """Roundtrip tests for OutputModule.file_template property."""
 
     def test_file_template_read(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        om = project.render_queue.items[0].output_modules[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
+        om = rqi.output_modules[0]
         assert om.file_template  # should be non-empty
 
     def test_file_template_roundtrip(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        om = project.render_queue.items[0].output_modules[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
+        om = rqi.output_modules[0]
         original = om.file_template
         assert original  # non-empty
 
@@ -792,7 +795,8 @@ class TestRoundtripFileTemplate:
 
         out = tmp_path / "ft_roundtrip.aep"
         project.save(out)
-        om2 = parse_aep(out).project.render_queue.items[0].output_modules[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
+        om2 = rqi2.output_modules[0]
         assert om2.file_template == new_template
 
 
@@ -800,25 +804,25 @@ class TestRoundtripSkipFrames:
     """Roundtrip tests for RenderQueueItem.skip_frames setter."""
 
     def test_set_skip_frames(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "skip_frames_0.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "skip_frames.aep").project
+        rqi = get_rqi(project, "skip_frames_0")
         assert rqi.skip_frames == 0
         rqi.skip_frames = 1
 
         out = tmp_path / "skip1.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "skip_frames_0")
         assert rqi2.skip_frames == 1
 
     def test_set_skip_frames_back_to_0(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "skip_frames_1.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "skip_frames.aep").project
+        rqi = get_rqi(project, "skip_frames_1")
         assert rqi.skip_frames == 1
         rqi.skip_frames = 0
 
         out = tmp_path / "skip0.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "skip_frames_1")
         assert rqi2.skip_frames == 0
 
 
@@ -826,28 +830,27 @@ class TestRoundtripTimeSpanStart:
     """Roundtrip tests for RenderQueueItem.time_span_start setter."""
 
     def test_set_time_span_start(self, tmp_path: Path) -> None:
-        sample = "time_span_custom_start_01s_23f_duration_24s13f.aep"
-        project = parse_aep(SAMPLES_DIR / sample).project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "time_span.aep").project
+        rqi = get_rqi(project, "time_span_custom_start_1s23f")
         rqi.time_span_start = 2.0
 
         out = tmp_path / "ts_start.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "time_span_custom_start_1s23f")
         assert rqi2.time_span_start == pytest.approx(2.0, abs=0.04)
 
     def test_set_time_span_start_switches_to_custom(
         self, tmp_path: Path
     ) -> None:
         project = parse_aep(
-            SAMPLES_DIR / "time_span_length_of_comp.aep"
+            SAMPLES_DIR / "time_span.aep"
         ).project
-        rqi = project.render_queue.items[0]
+        rqi = get_rqi(project, "time_span_length_of_comp")
         rqi.time_span_start = 1.0
 
         out = tmp_path / "ts_custom.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "time_span_length_of_comp")
         assert rqi2.time_span_start == pytest.approx(1.0, abs=0.04)
 
 
@@ -855,14 +858,13 @@ class TestRoundtripTimeSpanDuration:
     """Roundtrip tests for RenderQueueItem.time_span_duration setter."""
 
     def test_set_time_span_duration(self, tmp_path: Path) -> None:
-        sample = "time_span_custom_start_00_duration_24s13f.aep"
-        project = parse_aep(SAMPLES_DIR / sample).project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "time_span.aep").project
+        rqi = get_rqi(project, "time_span_custom_24s13f")
         rqi.time_span_duration = 5.0
 
         out = tmp_path / "ts_dur.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "time_span_custom_24s13f")
         assert rqi2.time_span_duration == pytest.approx(5.0, abs=0.04)
 
 
@@ -870,27 +872,26 @@ class TestRoundtripTimeSpanEnd:
     """Roundtrip tests for time_span_end and time_span_end_frame setters."""
 
     def test_set_time_span_end(self, tmp_path: Path) -> None:
-        sample = "time_span_custom_start_01s_23f_duration_24s13f.aep"
-        project = parse_aep(SAMPLES_DIR / sample).project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "time_span.aep").project
+        rqi = get_rqi(project, "time_span_custom_start_1s23f")
         start = rqi.time_span_start
         rqi.time_span_end = start + 3.0
 
         out = tmp_path / "ts_end.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "time_span_custom_start_1s23f")
         assert rqi2.time_span_duration == pytest.approx(3.0, abs=0.04)
         assert rqi2.time_span_end == pytest.approx(start + 3.0, abs=0.04)
 
     def test_set_time_span_end_frame(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.time_span_start_frame = 5
         rqi.time_span_end_frame = 30
 
         out = tmp_path / "ts_end_frame.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.time_span_start_frame == 5
         assert rqi2.time_span_duration_frames == 25
         assert rqi2.time_span_end_frame == 30
@@ -900,32 +901,31 @@ class TestRoundtripSettingsResolution:
     """Roundtrip tests for Resolution via SettingsView dict access."""
 
     def test_asymmetric_resolution(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.settings["Resolution"] = [7, 3]
 
         out = tmp_path / "res_asymmetric.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.settings["Resolution"] == [7, 3]
 
     def test_resolution_full_to_custom_roundtrip(self, tmp_path: Path) -> None:
-        sample = "custom_resolution_custom_7_horizontal_3_vertical.aep"
-        project = parse_aep(SAMPLES_DIR / sample).project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "resolution.aep").project
+        rqi = get_rqi(project, "resolution_custom_7x3")
         assert rqi.settings["Resolution"] == [7, 3]
 
         rqi.settings["Resolution"] = [1, 1]
         out = tmp_path / "res_full.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "resolution_custom_7x3")
         assert rqi2.settings["Resolution"] == [1, 1]
 
         # And back to a different custom value
         rqi2.settings["Resolution"] = [8, 3]
         out2 = tmp_path / "res_custom_again.aep"
         rqi2._project.save(out2)
-        rqi3 = parse_aep(out2).project.render_queue.items[0]
+        rqi3 = get_rqi(parse_aep(out2).project, "resolution_custom_7x3")
         assert rqi3.settings["Resolution"] == [8, 3]
 
 
@@ -933,42 +933,42 @@ class TestRoundtripSettingsFrameRate:
     """Roundtrip tests for Use this frame rate (integer+fractional split)."""
 
     def test_fractional_frame_rate_29_97(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.settings["Frame Rate"] = FrameRateSetting.USE_THIS_FRAME_RATE
         rqi.settings["Use this frame rate"] = 29.97
 
         out = tmp_path / "fr_29_97.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.settings["Frame Rate"] == FrameRateSetting.USE_THIS_FRAME_RATE
         assert rqi2.settings["Use this frame rate"] == pytest.approx(29.97, abs=0.01)
 
     def test_integer_frame_rate_24(self, tmp_path: Path) -> None:
         project = parse_aep(
-            SAMPLES_DIR / "use_this_frame_rate_24.aep"
+            SAMPLES_DIR / "frame_rate.aep"
         ).project
-        rqi = project.render_queue.items[0]
+        rqi = get_rqi(project, "frame_rate_24")
         assert rqi.settings["Use this frame rate"] == pytest.approx(24.0)
 
         rqi.settings["Use this frame rate"] = 60.0
         out = tmp_path / "fr_60.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "frame_rate_24")
         assert rqi2.settings["Use this frame rate"] == pytest.approx(60.0)
 
     def test_existing_fractional_roundtrip(self, tmp_path: Path) -> None:
         """Parse and save 29.97 without modification preserves the value."""
         project = parse_aep(
-            SAMPLES_DIR / "use_this_frame_rate_29_97.aep"
+            SAMPLES_DIR / "frame_rate.aep"
         ).project
-        rqi = project.render_queue.items[0]
+        rqi = get_rqi(project, "frame_rate_29_97")
         original = rqi.settings["Use this frame rate"]
         assert original == pytest.approx(29.97, abs=0.01)
 
         out = tmp_path / "fr_29_97_unchanged.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "frame_rate_29_97")
         assert rqi2.settings["Use this frame rate"] == pytest.approx(
             original, abs=0.001
         )
@@ -978,8 +978,8 @@ class TestRoundtripSettingsMultiWrite:
     """Roundtrip tests for multiple settings writes with save/reparse."""
 
     def test_multiple_settings(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
 
         rqi.settings["Quality"] = RenderQuality.DRAFT
         rqi.settings["Resolution"] = [3, 3]
@@ -988,7 +988,7 @@ class TestRoundtripSettingsMultiWrite:
 
         out = tmp_path / "batch_multi.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.settings["Quality"] == RenderQuality.DRAFT
         assert rqi2.settings["Resolution"] == [3, 3]
         assert rqi2.settings["Motion Blur"] == MotionBlurSetting.ON_FOR_CHECKED_LAYERS
@@ -996,15 +996,15 @@ class TestRoundtripSettingsMultiWrite:
 
     def test_frame_rate_pair(self, tmp_path: Path) -> None:
         """Set the frame rate toggle and value together."""
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
 
         rqi.settings["Frame Rate"] = FrameRateSetting.USE_THIS_FRAME_RATE
         rqi.settings["Use this frame rate"] = 23.976
 
         out = tmp_path / "batch_fr.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.settings["Frame Rate"] == FrameRateSetting.USE_THIS_FRAME_RATE
         assert rqi2.settings["Use this frame rate"] == pytest.approx(23.976, abs=0.01)
 
@@ -1013,8 +1013,8 @@ class TestRoundtripSettingsBulkAssign:
     """Roundtrip tests for bulk settings assignment via .settings setter."""
 
     def test_assign_settings_dict(self, tmp_path: Path) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.settings = {
             "Quality": RenderQuality.WIREFRAME,
             "Resolution": [4, 4],
@@ -1023,7 +1023,7 @@ class TestRoundtripSettingsBulkAssign:
 
         out = tmp_path / "bulk_assign.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.settings["Quality"] == RenderQuality.WIREFRAME
         assert rqi2.settings["Resolution"] == [4, 4]
         assert rqi2.settings["Skip Existing Files"] is True
@@ -1049,26 +1049,26 @@ class TestRoundtripSettingsReadOnly:
     """Tests that read-only settings raise on dict-style write."""
 
     def test_time_span_start_writable(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         # Time Span Start is now writable - verify no error
         rqi.settings["Time Span Start"] = 1.0
 
     def test_time_span_duration_writable(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         # Time Span Duration is now writable - verify no error
         rqi.settings["Time Span Duration"] = 5.0
 
     def test_comps_frame_rate_read_only(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         with pytest.raises(AttributeError, match="read-only"):
             rqi.settings["Use comp's frame rate"] = 30.0
 
     def test_unknown_key_via_dict_raises(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         with pytest.raises(KeyError):
             rqi.settings["Nonexistent"]
         with pytest.raises(KeyError, match="Unknown setting"):
@@ -1115,9 +1115,10 @@ class TestRoundtripOutputModuleCrop:
 
     def test_set_all_crop_values(self, tmp_path: Path) -> None:
         project = parse_aep(
-            OM_SAMPLES_DIR / "crop_checked.aep"
+            OM_SAMPLES_DIR / "om_crop.aep"
         ).project
-        om = project.render_queue.items[0].output_modules[0]
+        rqi = get_rqi(project, "crop_checked")
+        om = rqi.output_modules[0]
 
         om.settings["Crop Top"] = 20
         om.settings["Crop Left"] = 30
@@ -1126,7 +1127,8 @@ class TestRoundtripOutputModuleCrop:
 
         out = tmp_path / "crop_all.aep"
         project.save(out)
-        om2 = parse_aep(out).project.render_queue.items[0].output_modules[0]
+        rqi2 = get_rqi(parse_aep(out).project, "crop_checked")
+        om2 = rqi2.output_modules[0]
         assert om2.settings["Crop Top"] == 20
         assert om2.settings["Crop Left"] == 30
         assert om2.settings["Crop Bottom"] == 40
@@ -1156,28 +1158,32 @@ class TestRoundtripOutputModuleSettings:
 
     def test_set_resize_quality(self, tmp_path: Path) -> None:
         project = parse_aep(
-            OM_SAMPLES_DIR / "resize_quality_low.aep"
+            OM_SAMPLES_DIR / "om_resize.aep"
         ).project
-        om = project.render_queue.items[0].output_modules[0]
+        rqi = get_rqi(project, "resize_quality_low")
+        om = rqi.output_modules[0]
         assert om.settings["Resize Quality"] == ResizeQuality.LOW
 
         om.settings["Resize Quality"] = ResizeQuality.HIGH
         out = tmp_path / "rq_high.aep"
         project.save(out)
-        om2 = parse_aep(out).project.render_queue.items[0].output_modules[0]
+        rqi2 = get_rqi(parse_aep(out).project, "resize_quality_low")
+        om2 = rqi2.output_modules[0]
         assert om2.settings["Resize Quality"] == ResizeQuality.HIGH
 
     def test_read_only_om_settings(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        om = project.render_queue.items[0].output_modules[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
+        om = rqi.output_modules[0]
         with pytest.raises(AttributeError, match="read-only"):
             om.settings["Output File Info"] = {}
         with pytest.raises(AttributeError, match="read-only"):
             om.settings["Output Color Space"] = "sRGB"
 
     def test_om_settings_contain_required_keys(self) -> None:
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        om = project.render_queue.items[0].output_modules[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
+        om = rqi.output_modules[0]
         settings = om.settings
         assert "Channels" in settings
         assert "Depth" in settings
@@ -1188,11 +1194,11 @@ class TestRoundtripOutputModuleSettings:
 
     def test_time_span_via_settings(self, tmp_path: Path) -> None:
         """Time Span key in RQI settings roundtrips correctly."""
-        project = parse_aep(SAMPLES_DIR / "base.aep").project
-        rqi = project.render_queue.items[0]
+        project = parse_aep(SAMPLES_DIR / "render_settings.aep").project
+        rqi = get_rqi(project, "base")
         rqi.settings["Time Span"] = TimeSpanSource.WORK_AREA_ONLY
 
         out = tmp_path / "ts_work_area.aep"
         project.save(out)
-        rqi2 = parse_aep(out).project.render_queue.items[0]
+        rqi2 = get_rqi(parse_aep(out).project, "base")
         assert rqi2.settings["Time Span"] == TimeSpanSource.WORK_AREA_ONLY

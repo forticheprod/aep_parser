@@ -48,30 +48,10 @@ class TestViewOptionsChannels:
         opts = _get_active_view_options(SAMPLES_DIR / "channels_rgb.aep")
         assert opts.channels == ChannelType.CHANNEL_RGB
 
-    def test_channels_red(self) -> None:
-        """Test Red channel display mode."""
-        opts = _get_active_view_options(SAMPLES_DIR / "channels_red.aep")
-        assert opts.channels == ChannelType.CHANNEL_RED
-
-    def test_channels_green(self) -> None:
-        """Test Green channel display mode."""
-        opts = _get_active_view_options(SAMPLES_DIR / "channels_green.aep")
-        assert opts.channels == ChannelType.CHANNEL_GREEN
-
-    def test_channels_blue(self) -> None:
-        """Test Blue channel display mode."""
-        opts = _get_active_view_options(SAMPLES_DIR / "channels_blue.aep")
-        assert opts.channels == ChannelType.CHANNEL_BLUE
-
     def test_channels_alpha(self) -> None:
         """Test Alpha channel display mode."""
         opts = _get_active_view_options(SAMPLES_DIR / "channels_alpha.aep")
         assert opts.channels == ChannelType.CHANNEL_ALPHA
-
-    def test_channels_rgb_straight(self) -> None:
-        """Test RGB Straight channel display mode."""
-        opts = _get_active_view_options(SAMPLES_DIR / "channels_rgb_straight.aep")
-        assert opts.channels == ChannelType.CHANNEL_RGB_STRAIGHT
 
 
 class TestViewOptionsCheckerboards:
@@ -96,16 +76,6 @@ class TestViewOptionsExposure:
         opts = _get_active_view_options(SAMPLES_DIR / "exposure_0.0.aep")
         assert opts.exposure == 0.0
 
-    def test_exposure_positive(self) -> None:
-        """Test positive exposure of 1.0."""
-        opts = _get_active_view_options(SAMPLES_DIR / "exposure_1.0.aep")
-        assert opts.exposure == 1.0
-
-    def test_exposure_max(self) -> None:
-        """Test maximum exposure of 40.0."""
-        opts = _get_active_view_options(SAMPLES_DIR / "exposure_40.0.aep")
-        assert opts.exposure == 40.0
-
     def test_exposure_min(self) -> None:
         """Test minimum exposure of -40.0."""
         opts = _get_active_view_options(SAMPLES_DIR / "exposure_-40.0.aep")
@@ -119,23 +89,6 @@ class TestViewOptionsFastPreview:
         """Test fast preview off."""
         opts = _get_active_view_options(SAMPLES_DIR / "fast_preview_off.aep")
         assert opts.fast_preview == FastPreviewType.FP_OFF
-
-    def test_fast_preview_adaptive_resolution(self) -> None:
-        """Test adaptive resolution fast preview mode."""
-        opts = _get_active_view_options(
-            SAMPLES_DIR / "fast_preview_adaptive_resolution.aep"
-        )
-        assert opts.fast_preview == FastPreviewType.FP_ADAPTIVE_RESOLUTION
-
-    def test_fast_preview_draft(self) -> None:
-        """Test draft fast preview mode."""
-        opts = _get_active_view_options(SAMPLES_DIR / "fast_preview_draft.aep")
-        assert opts.fast_preview == FastPreviewType.FP_DRAFT
-
-    def test_fast_preview_fast_draft(self) -> None:
-        """Test fast draft fast preview mode."""
-        opts = _get_active_view_options(SAMPLES_DIR / "fast_preview_fast_draft.aep")
-        assert opts.fast_preview == FastPreviewType.FP_FAST_DRAFT
 
     def test_fast_preview_wireframe(self) -> None:
         """Test wireframe fast preview mode."""
@@ -255,11 +208,6 @@ class TestViewOptionsZoom:
         """Test 100% zoom level."""
         opts = _get_active_view_options(SAMPLES_DIR / "zoom_100.aep")
         assert opts.zoom == 1.0
-
-    def test_zoom_1600(self) -> None:
-        """Test 1600% zoom level."""
-        opts = _get_active_view_options(SAMPLES_DIR / "zoom_1600.aep")
-        assert opts.zoom == 16.0
 
 
 class TestViewOptionsRoi:

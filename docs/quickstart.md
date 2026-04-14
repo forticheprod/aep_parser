@@ -59,7 +59,8 @@ for rq_item in project.render_queue:
 
 ```python
 app = aep_parser.parse("myproject.aep")
-comp = app.project.compositions[0]
+project = app.project
+comp = project.compositions[0]
 
 # Change composition settings
 comp.name = "Final Comp"
@@ -71,5 +72,5 @@ opacity = layer.transform.opacity
 opacity.value = 50
 
 # Save to a new file (produces a byte-identical RIFX structure)
-app.save("modified.aep")
+project.save("modified.aep")
 ```

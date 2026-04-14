@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from conftest import parse_project
+from conftest import get_comp, parse_project
 
 from aep_parser import parse as parse_aep
 from aep_parser.enums import Label
@@ -33,9 +33,9 @@ class TestRoundtripItemLabel:
 
     def test_modify_item_label(self, tmp_path: Path) -> None:
         project = parse_aep(
-            COMP_SAMPLES_DIR / "bgColor_custom.aep"
+            COMP_SAMPLES_DIR / "bgColor.aep"
         ).project
-        comp = project.compositions[0]
+        comp = get_comp(project, "bgColor_custom")
         original_label = comp.label
 
         comp.label = Label.FUCHSIA
@@ -44,7 +44,7 @@ class TestRoundtripItemLabel:
         project.save(out)
 
         project2 = parse_aep(out).project
-        comp2 = project2.compositions[0]
+        comp2 = get_comp(project2, "bgColor_custom")
         assert comp2.label == Label.FUCHSIA
 
 
@@ -53,16 +53,16 @@ class TestRoundtripItemComment:
 
     def test_modify_item_comment(self, tmp_path: Path) -> None:
         project = parse_aep(
-            COMP_SAMPLES_DIR / "bgColor_custom.aep"
+            COMP_SAMPLES_DIR / "bgColor.aep"
         ).project
-        comp = project.compositions[0]
+        comp = get_comp(project, "bgColor_custom")
 
         comp.comment = "roundtrip item comment"
         out = tmp_path / "modified_comment.aep"
         project.save(out)
 
         project2 = parse_aep(out).project
-        comp2 = project2.compositions[0]
+        comp2 = get_comp(project2, "bgColor_custom")
         assert comp2.comment == "roundtrip item comment"
 
 
@@ -71,15 +71,15 @@ class TestRoundtripItemName:
 
     def test_modify_item_name(self, tmp_path: Path) -> None:
         project = parse_aep(
-            COMP_SAMPLES_DIR / "bgColor_custom.aep"
+            COMP_SAMPLES_DIR / "bgColor.aep"
         ).project
-        comp = project.compositions[0]
+        comp = get_comp(project, "bgColor_custom")
 
         comp.name = "Renamed Composition"
         out = tmp_path / "modified_name.aep"
         project.save(out)
 
         project2 = parse_aep(out).project
-        comp2 = project2.compositions[0]
+        comp2 = get_comp(project2, "Renamed Composition")
         assert comp2.name == "Renamed Composition"
 

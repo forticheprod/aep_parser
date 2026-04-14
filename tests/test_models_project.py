@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-from conftest import get_sample_files, load_expected, parse_project
+from conftest import load_expected, parse_project
 
-from aep_parser import Project
 from aep_parser import parse as parse_aep
 from aep_parser.enums import (
     BitsPerChannel,
@@ -21,14 +19,6 @@ from aep_parser.enums import (
 )
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "project"
-
-
-@pytest.mark.parametrize("sample_name", get_sample_files(SAMPLES_DIR))
-def test_parse_project_sample(sample_name: str) -> None:
-    """Each project sample can be parsed without error."""
-    aep_path = SAMPLES_DIR / f"{sample_name}.aep"
-    project = parse_project(aep_path)
-    assert isinstance(project, Project)
 
 
 class TestBitsPerChannel:

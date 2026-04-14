@@ -12,9 +12,12 @@ from aep_parser import Application, Project
 from aep_parser import parse as _parse_aep
 
 if TYPE_CHECKING:
+    from aep_parser.models.items.comp import CompItem
+
     from aep_parser.models.items.folder import FolderItem
     from aep_parser.models.items.footage import FootageItem
     from aep_parser.models.layers.layer import Layer
+    from aep_parser.models.renderqueue.render_queue_item import RenderQueueItem
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples"
 
@@ -52,42 +55,6 @@ def get_sample_files(samples_dir: Path) -> list[str]:
     return [f.stem for f in samples_dir.glob("*.aep")]
 
 
-def get_comp_from_json(expected: dict) -> dict:
-    """Extract first composition from expected JSON."""
-    if "items" in expected:
-        for item in expected["items"]:
-            if item.get("typeName") == "Composition":
-                return item
-    return {}
-
-
-def get_layer_from_json(expected: dict) -> dict:
-    """Extract first layer from expected JSON."""
-    if "items" in expected:
-        for item in expected["items"]:
-            if "layers" in item and len(item["layers"]) > 0:
-                return item["layers"][0]
-    return {}
-
-
-def get_footage_from_json(expected: dict) -> dict:
-    """Extract first footage item from expected JSON."""
-    if "items" in expected:
-        for item in expected["items"]:
-            if item.get("typeName") == "Footage":
-                return item
-    return {}
-
-
-def get_folder_from_json(expected: dict) -> dict:
-    """Extract first folder from expected JSON."""
-    if "items" in expected:
-        for item in expected["items"]:
-            if item.get("typeName") == "Folder":
-                return item
-    return {}
-
-
 def get_first_layer(project: Project) -> Layer:
     """Get the first layer from the first composition that has layers."""
     assert len(project.compositions) >= 1
@@ -104,38 +71,129 @@ def get_first_footage(project: Project) -> FootageItem | None:
     return None
 
 
-def get_first_folder(project: Project) -> FolderItem | None:
-    """Get the first user-created folder (not root)."""
+# ---- Name-based lookup helpers for consolidated samples ----
+
+
+def get_comp(project: Project, name: str) -> CompItem:
+    """Get a composition by name from a project."""
+    for comp in project.compositions:
+        if comp.name == name:
+            return comp
+    raise ValueError(
+        f"Composition '{name}' not found. "
+        f"Available: {[c.name for c in project.compositions]}"
+    )
+
+
+def get_layer(project: Project, comp_name: str) -> Layer:
+    """Get the first layer from a named composition."""
+    comp = get_comp(project, comp_name)
+    if not comp.layers:
+        raise ValueError(f"Composition '{comp_name}' has no layers")
+    return comp.layers[0]
+
+
+def get_footage(project: Project, name: str) -> FootageItem:
+    """Get a footage item by name."""
+    for item in project.footages:
+        if item.name == name:
+            return item
+    raise ValueError(
+        f"Footage '{name}' not found. "
+        f"Available: {[f.name for f in project.footages]}"
+    )
+
+
+def get_folder(project: Project, name: str) -> FolderItem:
+    """Get a folder by name."""
     for folder in project.folders:
-        if folder.name != "root":
+        if folder.name == name:
             return folder
-    return None
+    raise ValueError(
+        f"Folder '{name}' not found. "
+        f"Available: {[f.name for f in project.folders]}"
+    )
 
 
-def get_comp_marker_from_json(expected: dict) -> dict:
-    """Extract first composition marker from expected JSON."""
-    if "items" in expected:
-        for item in expected["items"]:
-            if item.get("typeName") == "Composition":
-                markers = item.get("markers", [])
-                if isinstance(markers, list) and len(markers) > 0:
-                    return markers[0]
+def get_rqi(project: Project, comp_name: str) -> RenderQueueItem:
+    """Get a render queue item by its composition name."""
+    for rqi in project.render_queue.items:
+        if rqi.comp.name == comp_name:
+            return rqi
+    raise ValueError(f"RQI for comp '{comp_name}' not found")
+
+
+# ---- First-item JSON helpers (for non-consolidated single-comp samples) ----
+
+
+def get_comp_from_json(expected: dict) -> dict:
+    """Extract first composition from expected JSON."""
+    for item in expected.get("items", []):
+        if item.get("typeName") == "Composition":
+            return item
     return {}
 
 
-def get_layer_marker_from_json(expected: dict) -> dict:
-    """Extract first layer marker value from expected JSON.
+def get_layer_from_json(expected: dict) -> dict:
+    """Extract first layer from expected JSON."""
+    for item in expected.get("items", []):
+        if "layers" in item and len(item["layers"]) > 0:
+            return item["layers"][0]
+    return {}
 
-    Looks for the ADBE Marker property in the layer's properties array
-    and returns the first keyframe's value.
-    """
-    if "items" in expected:
-        for item in expected["items"]:
-            if item.get("typeName") == "Composition" and "layers" in item:
-                for layer in item["layers"]:
-                    for prop in layer.get("properties", []):
-                        if prop.get("matchName") == "ADBE Marker":
-                            kfs = prop.get("keyframes", [])
-                            if kfs:
-                                return kfs[0].get("value", {})
+
+# ---- Name-based JSON lookup helpers ----
+
+
+def get_comp_from_json_by_name(expected: dict, name: str) -> dict:
+    """Get a specific composition from JSON by name."""
+    for item in expected.get("items", []):
+        if item.get("typeName") == "Composition" and item.get("name") == name:
+            return item
+    return {}
+
+
+def get_layer_from_json_by_comp(expected: dict, comp_name: str) -> dict:
+    """Get first layer from a named composition in JSON."""
+    comp = get_comp_from_json_by_name(expected, comp_name)
+    if comp and "layers" in comp and comp["layers"]:
+        return comp["layers"][0]
+    return {}
+
+
+def get_footage_from_json_by_name(expected: dict, name: str) -> dict:
+    """Get a specific footage item from JSON by name."""
+    for item in expected.get("items", []):
+        if item.get("typeName") == "Footage" and item.get("name") == name:
+            return item
+    return {}
+
+
+def get_folder_from_json_by_name(expected: dict, name: str) -> dict:
+    """Get a specific folder from JSON by name."""
+    for item in expected.get("items", []):
+        if item.get("typeName") == "Folder" and item.get("name") == name:
+            return item
+    return {}
+
+
+def get_comp_marker_from_json_by_name(expected: dict, comp_name: str) -> dict:
+    """Get first composition marker from a named composition in JSON."""
+    comp = get_comp_from_json_by_name(expected, comp_name)
+    markers = comp.get("markers", [])
+    if isinstance(markers, list) and markers:
+        return markers[0]
+    return {}
+
+
+def get_layer_marker_from_json_by_comp(expected: dict, comp_name: str) -> dict:
+    """Get first layer marker value from a named composition in JSON."""
+    comp = get_comp_from_json_by_name(expected, comp_name)
+    if comp and "layers" in comp:
+        for layer in comp["layers"]:
+            for prop in layer.get("properties", []):
+                if prop.get("matchName") == "ADBE Marker":
+                    kfs = prop.get("keyframes", [])
+                    if kfs:
+                        return kfs[0].get("value", {})
     return {}

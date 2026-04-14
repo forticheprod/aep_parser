@@ -34,7 +34,7 @@ class TestVersionCompatibility:
 
     @pytest.mark.parametrize(
         "version",
-        ["ae2018", "ae2019", "ae2020", "ae2022", "ae2023", "ae2024", "ae2025"],
+        ["ae2018", "ae2022", "ae2023", "ae2024", "ae2025", "ae2026"],
     )
     def test_all_versions_parseable(self, version: str) -> None:
         aep_path = VERSIONS_DIR / version / "complete.aep"

@@ -31,7 +31,7 @@ from aep_parser.models.renderqueue.format_options import (
 )
 
 FORMAT_DIR = (
-    Path(__file__).parent.parent / "samples" / "models" / "output_module" / "format"
+    Path(__file__).parent.parent / "samples" / "models" / "format_options"
 )
 CINEON_DIR = FORMAT_DIR / "cineon"
 AVI_DIR = FORMAT_DIR / "avi"
@@ -191,27 +191,13 @@ class TestCineonFormatOptions:
 class TestAviFormatOptions:
     """Tests for AVI format options parsed from Ropt chunks (now XmlFormatOptions)."""
 
-    def test_base_format_code(self) -> None:
-        """AVI base sample has format_code '.AVI'."""
+    def test_base_defaults(self) -> None:
+        """AVI base sample has expected default values."""
         opts = _avi_opts("base")
         assert opts.format_code == ".AVI"
-
-    def test_base_video_codec(self) -> None:
-        """Base AVI uses the default "None" codec (DIB)."""
-        opts = _avi_opts("base")
         assert opts.video_codec == VideoCodec.NONE
-
-    def test_base_audio_codec(self) -> None:
-        opts = _avi_opts("base")
         assert opts.audio_codec == AudioCodec.UNCOMPRESSED
-
-    def test_base_frame_rate(self) -> None:
-        opts = _avi_opts("base")
         assert opts.frame_rate == 24.0
-
-    def test_base_has_params(self) -> None:
-        """Base AVI has expected parameter keys."""
-        opts = _avi_opts("base")
         assert "ADBEVideoCodec" in opts.params
         assert "ADBEVideoQuality" in opts.params
         assert "ADBEVideoWidth" in opts.params
@@ -308,50 +294,24 @@ def _format_opts(fmt_dir: str, name: str = "base") -> XmlFormatOptions:
 class TestH264FormatOptions:
     """Tests for H.264 format options (XML-based)."""
 
-    def test_format_code(self) -> None:
+    def test_base_defaults(self) -> None:
+        """Base H.264 sample has expected default values."""
         opts = _format_opts("h.264")
         assert opts.format_code == "H264"
-
-    def test_video_codec(self) -> None:
-        opts = _format_opts("h.264")
         assert opts.video_codec == VideoCodec.AVC1
-
-    def test_audio_codec(self) -> None:
-        opts = _format_opts("h.264")
         assert opts.audio_codec == AudioCodec.AAC
-
-    def test_frame_rate(self) -> None:
-        opts = _format_opts("h.264")
         assert opts.frame_rate == 24.0
-
-    def test_has_params(self) -> None:
-        opts = _format_opts("h.264")
         assert len(opts.params) > 0
-
-    def test_mpeg_audio_format_aac(self) -> None:
-        """Base H.264 sample uses AAC audio format."""
-        opts = _format_opts("h.264")
         assert opts.mpeg_audio_format == MPEGAudioFormat.AAC
+        assert opts.mpeg_multiplexer == MPEGMultiplexer.MP4
+        assert opts.mpeg_mux_stream_compatibility == MPEGMuxStreamCompatibility.STD
 
-    def test_mpeg_audio_format_mpeg(self) -> None:
-        """MPEG audio format sample has ADBEMPEGAudioFormat set to MPEG."""
+    def test_audio_format_mpeg(self) -> None:
+        """MPEG audio format sample has MPEG format and layer I."""
         project = parse_project(FORMAT_DIR / "h.264" / "audio_format_mpeg.aep")
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, XmlFormatOptions)
         assert opts.mpeg_audio_format == MPEGAudioFormat.MPEG
-
-    def test_mpeg_multiplexer(self) -> None:
-        opts = _format_opts("h.264")
-        assert opts.mpeg_multiplexer == MPEGMultiplexer.MP4
-
-    def test_mpeg_mux_stream_compatibility(self) -> None:
-        opts = _format_opts("h.264")
-        assert opts.mpeg_mux_stream_compatibility == MPEGMuxStreamCompatibility.STD
-
-    def test_mpeg_audio_layer_i(self) -> None:
-        project = parse_project(FORMAT_DIR / "h.264" / "audio_format_mpeg.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, XmlFormatOptions)
         assert opts.params["ADBEMPEGAudioLayer"] == "1"
 
     def test_mpeg_audio_layer_ii(self) -> None:
@@ -393,72 +353,31 @@ class TestH264FormatOptions:
 class TestMp3FormatOptions:
     """Tests for MP3 format options (XML-based)."""
 
-    def test_type(self) -> None:
+    def test_base_defaults(self) -> None:
+        """MP3 base sample has expected default values."""
         opts = _format_opts("mp3")
         assert isinstance(opts, XmlFormatOptions)
-
-    def test_format_code(self) -> None:
-        opts = _format_opts("mp3")
         assert opts.format_code == "Mp3 "
-
-    def test_video_codec_none(self) -> None:
-        """MP3 is audio-only, so video_codec should be None."""
-        opts = _format_opts("mp3")
         assert opts.video_codec is None
-
-    def test_frame_rate_none(self) -> None:
-        """MP3 is audio-only, so frame_rate should be None."""
-        opts = _format_opts("mp3")
         assert opts.frame_rate is None
-
-    def test_audio_codec_uncompressed(self) -> None:
-        opts = _format_opts("mp3")
         assert opts.audio_codec == AudioCodec.UNCOMPRESSED
-
-    def test_has_params(self) -> None:
-        opts = _format_opts("mp3")
         assert len(opts.params) > 0
 
 
 class TestQuickTimeFormatOptions:
     """Tests for QuickTime format options (XML-based)."""
 
-    def test_type(self) -> None:
+    def test_base_defaults(self) -> None:
+        """QuickTime base sample has expected default values."""
         opts = _format_opts("quicktime")
         assert isinstance(opts, XmlFormatOptions)
-
-    def test_format_code(self) -> None:
-        opts = _format_opts("quicktime")
         assert opts.format_code == "MooV"
-
-    def test_video_codec(self) -> None:
-        opts = _format_opts("quicktime")
         assert opts.video_codec == VideoCodec.ANIMATION
-
-    def test_frame_rate(self) -> None:
-        opts = _format_opts("quicktime")
         assert opts.frame_rate == 24.0
-
-    def test_audio_codec_none(self) -> None:
-        """QuickTime base sample has no ADBEAudioCodec param."""
-        opts = _format_opts("quicktime")
         assert opts.audio_codec is None
-
-    def test_mpeg_audio_format_none(self) -> None:
-        """QuickTime base sample has no ADBEMPEGAudioFormat param."""
-        opts = _format_opts("quicktime")
         assert opts.mpeg_audio_format is None
-
-    def test_mpeg_multiplexer(self) -> None:
-        opts = _format_opts("quicktime")
         assert opts.mpeg_multiplexer == MPEGMultiplexer.MP4
-
-    def test_mpeg_mux_stream_compatibility(self) -> None:
-        opts = _format_opts("quicktime")
         assert opts.mpeg_mux_stream_compatibility == MPEGMuxStreamCompatibility.STD
-
-    def test_has_params(self) -> None:
-        opts = _format_opts("quicktime")
         assert len(opts.params) > 0
 
     def test_video_codec_apple_prores_422(self) -> None:
@@ -557,61 +476,35 @@ class TestQuickTimeFormatOptions:
 class TestWavFormatOptions:
     """Tests for WAV format options (XML-based)."""
 
-    def test_type(self) -> None:
+    def test_base_defaults(self) -> None:
+        """WAV base sample has expected default values."""
         opts = _format_opts("wav")
         assert isinstance(opts, XmlFormatOptions)
-
-    def test_format_code(self) -> None:
-        opts = _format_opts("wav")
         assert opts.format_code == "wao_"
-
-    def test_video_codec_none(self) -> None:
-        """WAV is audio-only, so video_codec should be None."""
-        opts = _format_opts("wav")
         assert opts.video_codec is None
-
-    def test_frame_rate_none(self) -> None:
-        """WAV is audio-only, so frame_rate should be None."""
-        opts = _format_opts("wav")
         assert opts.frame_rate is None
-
-    def test_audio_codec_uncompressed(self) -> None:
-        opts = _format_opts("wav")
         assert opts.audio_codec == AudioCodec.UNCOMPRESSED
+        assert len(opts.params) > 0
 
     def test_audio_codec_ima_adpcm(self) -> None:
-        project = parse_project(FORMAT_DIR / "wav" / "audio_codec_ima_adpcm.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, XmlFormatOptions)
+        opts = _format_opts("wav", "audio_codec_ima_adpcm")
         assert opts.audio_codec == AudioCodec.IMA_ADPCM
 
     def test_audio_codec_microsoft_adpcm(self) -> None:
-        project = parse_project(FORMAT_DIR / "wav" / "audio_codec_microsoft_adpcm.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, XmlFormatOptions)
+        opts = _format_opts("wav", "audio_codec_microsoft_adpcm")
         assert opts.audio_codec == AudioCodec.MICROSOFT_ADPCM
 
     def test_audio_codec_ccitt_a_law(self) -> None:
-        project = parse_project(FORMAT_DIR / "wav" / "audio_codec_ccitt_a-law.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, XmlFormatOptions)
+        opts = _format_opts("wav", "audio_codec_ccitt_a-law")
         assert opts.audio_codec == AudioCodec.CCITT_A_LAW
 
     def test_audio_codec_ccitt_u_law(self) -> None:
-        project = parse_project(FORMAT_DIR / "wav" / "audio_codec_ccitt_u-law.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, XmlFormatOptions)
+        opts = _format_opts("wav", "audio_codec_ccitt_u-law")
         assert opts.audio_codec == AudioCodec.CCITT_U_LAW
 
     def test_audio_codec_gsm_6_10(self) -> None:
-        project = parse_project(FORMAT_DIR / "wav" / "audio_codec_gsm_6.10.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, XmlFormatOptions)
+        opts = _format_opts("wav", "audio_codec_gsm_6.10")
         assert opts.audio_codec == AudioCodec.GSM_6_10
-
-    def test_has_params(self) -> None:
-        opts = _format_opts("wav")
-        assert len(opts.params) > 0
 
 
 class TestJpegFormatOptions:
@@ -623,14 +516,13 @@ class TestJpegFormatOptions:
         assert isinstance(opts, JpegFormatOptions)
         return opts
 
-    def test_type(self) -> None:
-        self._opts("base")
+    def test_base_defaults(self) -> None:
+        opts = self._opts("base")
+        assert opts.quality == 5
+        assert opts.scans == 3
 
     def test_quality_0(self) -> None:
         assert self._opts("quality_0").quality == 0
-
-    def test_quality_5(self) -> None:
-        assert self._opts("base").quality == 5
 
     def test_quality_10(self) -> None:
         assert self._opts("quality_10").quality == 10
@@ -647,11 +539,10 @@ class TestJpegFormatOptions:
             == JpegFormatType.BASELINE_OPTIMIZED
         )
 
-    def test_progressive(self) -> None:
-        assert self._opts("progressive_3").format_type == JpegFormatType.PROGRESSIVE
-
-    def test_scans_3(self) -> None:
-        assert self._opts("progressive_3").scans == 3
+    def test_progressive_3(self) -> None:
+        opts = self._opts("progressive_3")
+        assert opts.format_type == JpegFormatType.PROGRESSIVE
+        assert opts.scans == 3
 
     def test_scans_4(self) -> None:
         assert self._opts("progressive_4").scans == 4
@@ -660,16 +551,20 @@ class TestJpegFormatOptions:
         assert self._opts("progressive_5").scans == 5
 
     def test_scans_non_progressive(self) -> None:
-        assert self._opts("base").scans == 3
+        assert self._opts("baseline_standard").scans == 3
 
 
 class TestOpenExrFormatOptions:
     """Tests for OpenEXR format options."""
 
-    def test_type(self) -> None:
+    def test_base_defaults(self) -> None:
         project = parse_project(FORMAT_DIR / "openexr" / "base.aep")
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, OpenExrFormatOptions)
+        assert opts.compression == OpenExrCompression.ZIP
+        assert opts.luminance_chroma is False
+        assert opts.thirty_two_bit_float is False
+        assert opts.dwa_compression_level is None
 
     def test_compression_none(self) -> None:
         project = parse_project(FORMAT_DIR / "openexr" / "compression_none.aep")
@@ -682,12 +577,6 @@ class TestOpenExrFormatOptions:
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, OpenExrFormatOptions)
         assert opts.compression == OpenExrCompression.RLE
-
-    def test_compression_zip(self) -> None:
-        project = parse_project(FORMAT_DIR / "openexr" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, OpenExrFormatOptions)
-        assert opts.compression == OpenExrCompression.ZIP
 
     def test_compression_zip16(self) -> None:
         project = parse_project(FORMAT_DIR / "openexr" / "compression_zip16.aep")
@@ -724,18 +613,14 @@ class TestOpenExrFormatOptions:
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, OpenExrFormatOptions)
         assert opts.compression == OpenExrCompression.DWAA
+        assert opts.dwa_compression_level == 45.0
 
     def test_compression_dwab(self) -> None:
         project = parse_project(FORMAT_DIR / "openexr" / "compression_dwab_200.0.aep")
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, OpenExrFormatOptions)
         assert opts.compression == OpenExrCompression.DWAB
-
-    def test_luminance_chroma_off(self) -> None:
-        project = parse_project(FORMAT_DIR / "openexr" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, OpenExrFormatOptions)
-        assert opts.luminance_chroma is False
+        assert opts.dwa_compression_level == 200.0
 
     def test_luminance_chroma_on(self) -> None:
         project = parse_project(
@@ -745,12 +630,6 @@ class TestOpenExrFormatOptions:
         assert isinstance(opts, OpenExrFormatOptions)
         assert opts.luminance_chroma is True
 
-    def test_32_bit_float_off(self) -> None:
-        project = parse_project(FORMAT_DIR / "openexr" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, OpenExrFormatOptions)
-        assert opts.thirty_two_bit_float is False
-
     def test_32_bit_float_on(self) -> None:
         project = parse_project(
             FORMAT_DIR / "openexr" / "compression_zip_32_bit_float.aep"
@@ -758,18 +637,6 @@ class TestOpenExrFormatOptions:
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, OpenExrFormatOptions)
         assert opts.thirty_two_bit_float is True
-
-    def test_dwa_compression_level_none_for_zip(self) -> None:
-        project = parse_project(FORMAT_DIR / "openexr" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, OpenExrFormatOptions)
-        assert opts.dwa_compression_level is None
-
-    def test_dwa_compression_level_dwaa_default(self) -> None:
-        project = parse_project(FORMAT_DIR / "openexr" / "compression_dwaa_45.0.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, OpenExrFormatOptions)
-        assert opts.dwa_compression_level == 45.0
 
     def test_dwa_compression_level_dwaa_custom(self) -> None:
         project = parse_project(FORMAT_DIR / "openexr" / "compression_dwaa_1.0.aep")
@@ -795,28 +662,18 @@ class TestOpenExrFormatOptions:
 class TestPngFormatOptions:
     """Tests for PNG format options (typed binary)."""
 
-    def test_type(self) -> None:
-        project = parse_project(FORMAT_DIR / "png" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, PngFormatOptions)
-
-    def test_width(self) -> None:
+    def test_base_defaults(self) -> None:
         project = parse_project(FORMAT_DIR / "png" / "base.aep")
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, PngFormatOptions)
         assert opts.width == 1920
-
-    def test_height(self) -> None:
-        project = parse_project(FORMAT_DIR / "png" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, PngFormatOptions)
         assert opts.height == 1080
-
-    def test_bit_depth(self) -> None:
-        project = parse_project(FORMAT_DIR / "png" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, PngFormatOptions)
         assert opts.bit_depth == 16
+        assert opts.include_hdr10_metadata is False
+        assert opts.luminance_min is None
+        assert opts.luminance_max is None
+        assert opts.content_light_max is None
+        assert opts.content_light_average is None
 
     def test_compression_none(self) -> None:
         project = parse_project(FORMAT_DIR / "png" / "compression_none.aep")
@@ -830,22 +687,11 @@ class TestPngFormatOptions:
         assert isinstance(opts, PngFormatOptions)
         assert opts.compression == PngCompression.INTERLACED
 
-    def test_include_hdr10_metadata_off(self) -> None:
-        project = parse_project(FORMAT_DIR / "png" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, PngFormatOptions)
-        assert opts.include_hdr10_metadata is False
-
     def test_include_hdr10_metadata_on(self) -> None:
         project = parse_project(FORMAT_DIR / "png" / "include_hdr10_metadata_on.aep")
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, PngFormatOptions)
         assert opts.include_hdr10_metadata is True
-
-    def test_color_primaries_default(self) -> None:
-        project = parse_project(FORMAT_DIR / "png" / "include_hdr10_metadata_on.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, PngFormatOptions)
         assert opts.color_primaries == Hdr10ColorPrimaries.P3_D65
 
     def test_color_primaries_rec709(self) -> None:
@@ -866,35 +712,17 @@ class TestPngFormatOptions:
         assert isinstance(opts, PngFormatOptions)
         assert opts.color_primaries == Hdr10ColorPrimaries.P3_D65
 
-    def test_luminance_min_default(self) -> None:
-        project = parse_project(FORMAT_DIR / "png" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, PngFormatOptions)
-        assert opts.luminance_min is None
-
     def test_luminance_min_zero(self) -> None:
         project = parse_project(FORMAT_DIR / "png" / "luminance_min_0.aep")
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, PngFormatOptions)
         assert opts.luminance_min == 0.0
 
-    def test_luminance_max_default(self) -> None:
-        project = parse_project(FORMAT_DIR / "png" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, PngFormatOptions)
-        assert opts.luminance_max is None
-
     def test_luminance_max_set(self) -> None:
         project = parse_project(FORMAT_DIR / "png" / "luminance_max_1.797693e+308.aep")
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, PngFormatOptions)
         assert opts.luminance_max == 1.7976931348623157e308
-
-    def test_content_light_max_default(self) -> None:
-        project = parse_project(FORMAT_DIR / "png" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, PngFormatOptions)
-        assert opts.content_light_max is None
 
     def test_content_light_max_set(self) -> None:
         project = parse_project(
@@ -903,12 +731,6 @@ class TestPngFormatOptions:
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, PngFormatOptions)
         assert opts.content_light_max == 1.7976931348623157e308
-
-    def test_content_light_average_default(self) -> None:
-        project = parse_project(FORMAT_DIR / "png" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, PngFormatOptions)
-        assert opts.content_light_average is None
 
     def test_content_light_average_set(self) -> None:
         project = parse_project(
@@ -922,21 +744,11 @@ class TestPngFormatOptions:
 class TestTargaFormatOptions:
     """Tests for Targa format options (binary)."""
 
-    def test_type(self) -> None:
-        project = parse_project(FORMAT_DIR / "targa" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, TargaFormatOptions)
-
-    def test_base_bits_per_pixel(self) -> None:
+    def test_base_defaults(self) -> None:
         project = parse_project(FORMAT_DIR / "targa" / "base.aep")
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, TargaFormatOptions)
         assert opts.bits_per_pixel == 32
-
-    def test_base_rle_compression_off(self) -> None:
-        project = parse_project(FORMAT_DIR / "targa" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, TargaFormatOptions)
         assert opts.rle_compression is False
 
     def test_24_bits_per_pixel(self) -> None:
@@ -956,32 +768,17 @@ class TestTargaFormatOptions:
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, TargaFormatOptions)
         assert opts.rle_compression is True
-
-    def test_rle_compression_on_bits_per_pixel(self) -> None:
-        project = parse_project(FORMAT_DIR / "targa" / "rle_compression_on.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, TargaFormatOptions)
         assert opts.bits_per_pixel == 24
 
 
 class TestTiffFormatOptions:
     """Tests for TIFF format options."""
 
-    def test_type(self) -> None:
-        project = parse_project(FORMAT_DIR / "tiff" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, TiffFormatOptions)
-
-    def test_base_lzw_compression_off(self) -> None:
+    def test_base_defaults(self) -> None:
         project = parse_project(FORMAT_DIR / "tiff" / "base.aep")
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, TiffFormatOptions)
         assert opts.lzw_compression is False
-
-    def test_base_ibm_pc_byte_order_off(self) -> None:
-        project = parse_project(FORMAT_DIR / "tiff" / "base.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, TiffFormatOptions)
         assert opts.ibm_pc_byte_order is False
 
     def test_lzw_compression_on(self) -> None:
@@ -989,11 +786,6 @@ class TestTiffFormatOptions:
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, TiffFormatOptions)
         assert opts.lzw_compression is True
-
-    def test_lzw_compression_on_ibm_pc_off(self) -> None:
-        project = parse_project(FORMAT_DIR / "tiff" / "lze_compression_on.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, TiffFormatOptions)
         assert opts.ibm_pc_byte_order is False
 
     def test_ibm_pc_byte_order_on(self) -> None:
@@ -1001,11 +793,6 @@ class TestTiffFormatOptions:
         opts = project.render_queue.items[0].output_modules[0].format_options
         assert isinstance(opts, TiffFormatOptions)
         assert opts.ibm_pc_byte_order is True
-
-    def test_ibm_pc_byte_order_on_lzw_off(self) -> None:
-        project = parse_project(FORMAT_DIR / "tiff" / "ibm_pc_byte_order_on.aep")
-        opts = project.render_queue.items[0].output_modules[0].format_options
-        assert isinstance(opts, TiffFormatOptions)
         assert opts.lzw_compression is False
 
 

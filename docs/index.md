@@ -26,7 +26,8 @@ AEP Parser is a Python library that parses Adobe After Effects project files (.a
 import aep_parser
 
 app = aep_parser.parse("myproject.aep")
-comp = app.project.compositions[0]
+project = app.project
+comp = project.compositions[0]
 
 # Modify composition settings
 comp.frame_rate = 30
@@ -36,7 +37,7 @@ opacity = comp.layers[0].transform.opacity
 opacity.value = 50
 
 # Save to a new file
-app.save("modified.aep")
+project.save("modified.aep")
 ```
 
 See the [Quick Start guide](quickstart.md) for examples.
