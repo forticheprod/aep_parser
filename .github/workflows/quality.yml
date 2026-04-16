@@ -24,12 +24,32 @@ jobs:
         run: uv sync --extra dev
       - name: Type check with mypy
         run: uv run mypy src/aep_parser
-  pytest-37:
-    runs-on: ubuntu-22.04
+  lfs:
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
       with:
         lfs: true
+    - name: Create LFS archive
+      run: tar cf lfs-objects.tar .git/lfs
+    - uses: actions/upload-artifact@v4
+      with:
+        name: lfs-objects
+        path: lfs-objects.tar
+        retention-days: 1
+  pytest-37:
+    needs: lfs
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/download-artifact@v4
+      with:
+        name: lfs-objects
+    - name: Restore LFS objects
+      run: |
+        tar xf lfs-objects.tar
+        rm lfs-objects.tar
+        git lfs checkout
     - name: Set up Python 3.7
       uses: actions/setup-python@v6
       with:
@@ -39,11 +59,18 @@ jobs:
     - name: Test with pytest
       run: PYTHONPATH=src pytest -v --no-header -ra --tb=short
   pytest:
+    needs: lfs
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
+    - uses: actions/download-artifact@v4
       with:
-        lfs: true
+        name: lfs-objects
+    - name: Restore LFS objects
+      run: |
+        tar xf lfs-objects.tar
+        rm lfs-objects.tar
+        git lfs checkout
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
