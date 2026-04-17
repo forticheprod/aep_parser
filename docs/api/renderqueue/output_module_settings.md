@@ -1,33 +1,33 @@
 # Output Module Settings
 
-Output module settings are accessed via `OutputModule.settings`, a [SettingsView][aep_parser.models.renderqueue.settings.SettingsView] dict with ExtendScript-compatible keys matching the format from `OutputModule.get_settings(GetSettingsFormat.NUMBER)`.
+Output module settings are accessed via `OutputModule.settings`, a [SettingsView][py_aep.models.renderqueue.settings.SettingsView] dict with ExtendScript-compatible keys matching the format from `OutputModule.get_settings(GetSettingsFormat.NUMBER)`.
 
 ## Available Keys
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `"Audio Bit Depth"` | [AudioBitDepth][aep_parser.enums.AudioBitDepth] | Audio bit depth |
-| `"Audio Channels"` | [AudioChannels][aep_parser.enums.AudioChannels] | Audio channel configuration |
-| `"Audio Sample Rate"` | [AudioSampleRate][aep_parser.enums.AudioSampleRate] | Audio sample rate in Hz |
-| `"Channels"` | [OutputChannels][aep_parser.enums.OutputChannels] | Output channels configuration |
-| `"Color"` | [OutputColorMode][aep_parser.enums.OutputColorMode] | Color mode (straight or premultiplied alpha) |
-| `"Convert to Linear Light"` | [ConvertToLinearLight][aep_parser.enums.ConvertToLinearLight] | Whether to convert to linear light on export |
+| `"Audio Bit Depth"` | [AudioBitDepth][py_aep.enums.AudioBitDepth] | Audio bit depth |
+| `"Audio Channels"` | [AudioChannels][py_aep.enums.AudioChannels] | Audio channel configuration |
+| `"Audio Sample Rate"` | [AudioSampleRate][py_aep.enums.AudioSampleRate] | Audio sample rate in Hz |
+| `"Channels"` | [OutputChannels][py_aep.enums.OutputChannels] | Output channels configuration |
+| `"Color"` | [OutputColorMode][py_aep.enums.OutputColorMode] | Color mode (straight or premultiplied alpha) |
+| `"Convert to Linear Light"` | [ConvertToLinearLight][py_aep.enums.ConvertToLinearLight] | Whether to convert to linear light on export |
 | `"Crop Bottom"` | `int` | Crop pixels from the bottom |
 | `"Crop Left"` | `int` | Crop pixels from the left |
 | `"Crop Right"` | `int` | Crop pixels from the right |
 | `"Crop Top"` | `int` | Crop pixels from the top |
 | `"Crop"` | `bool` | Whether the Crop checkbox is enabled |
-| `"Depth"` | [OutputColorDepth][aep_parser.enums.OutputColorDepth] | Output color depth in total bits per pixel |
-| `"Format"` | [OutputFormat][aep_parser.enums.OutputFormat] | Output format |
+| `"Depth"` | [OutputColorDepth][py_aep.enums.OutputColorDepth] | Output color depth in total bits per pixel |
+| `"Format"` | [OutputFormat][py_aep.enums.OutputFormat] | Output format |
 | `"Include Project Link"` | `bool` | Whether to include a project link in the output |
 | `"Include Source XMP Metadata"` | `bool` | Whether to include source XMP metadata |
 | `"Lock Aspect Ratio"` | `bool` | Whether the aspect ratio is locked when resizing |
-| `"Output Audio"` | [OutputAudio][aep_parser.enums.OutputAudio] | Audio output mode |
+| `"Output Audio"` | [OutputAudio][py_aep.enums.OutputAudio] | Audio output mode |
 | `"Output Color Space"` | `str` | Output color space name, or empty string if unset |
 | `"Output File Info"` | `dict[str, str]` | Output file path info (see [sub-keys](#output-file-info-sub-keys) below) |
-| `"Post-Render Action"` | [PostRenderActionSetting][aep_parser.enums.PostRenderActionSetting] | Action after rendering |
+| `"Post-Render Action"` | [PostRenderActionSetting][py_aep.enums.PostRenderActionSetting] | Action after rendering |
 | `"Preserve RGB"` | `bool` | When `true`, disables color management conversions for this output module |
-| `"Resize Quality"` | [ResizeQuality][aep_parser.enums.ResizeQuality] | Resize quality |
+| `"Resize Quality"` | [ResizeQuality][py_aep.enums.ResizeQuality] | Resize quality |
 | `"Resize to"` | `list[int]` | Target resize dimensions `[width, height]` |
 | `"Resize"` | `bool` | Whether resizing is enabled |
 | `"Starting #"` | `int` | Starting frame number for file sequences |

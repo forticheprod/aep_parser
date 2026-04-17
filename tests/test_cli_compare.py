@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from aep_parser.cli.compare import (
+from py_aep.cli.compare import (
     ByteDifference,
     ChunkDifference,
     MultiFileDifference,

@@ -1,6 +1,6 @@
 # Contributing Guide
 
-This guide helps you understand the AEP Parser codebase and contribute new features, fixes, and improvements.
+This guide helps you understand the py_aep codebase and contribute new features, fixes, and improvements.
 
 ## Quick Start
 
@@ -16,26 +16,26 @@ This guide helps you understand the AEP Parser codebase and contribute new featu
 
 ### Architecture Overview
 
-AEP Parser transforms binary .aep files into typed Python objects through a three-stage pipeline:
+py_aep transforms binary .aep files into typed Python objects through a three-stage pipeline:
 
 ```
 .aep file > Kaitai Parser > Raw Chunks > Parsers > Model Classes
 ```
 
 **Stage 1: Binary Parsing (Kaitai)**
-- `src/aep_parser/kaitai/aep.ksy` - Schema defining RIFX chunk structure
-- `src/aep_parser/kaitai/aep.py` - Auto-generated Python parser (don't edit manually)
-- `src/aep_parser/kaitai/utils.py` - Helper functions for navigating chunks
-- `src/aep_parser/kaitai/descriptors.py` - ChunkField descriptor for write-through to binary
-- `src/aep_parser/kaitai/patches.py` - Monkey-patches on auto-generated Kaitai body classes (e.g. `_recompute_size` for variable-size bodies used by `propagate_check`)
+- `src/py_aep/kaitai/aep.ksy` - Schema defining RIFX chunk structure
+- `src/py_aep/kaitai/aep.py` - Auto-generated Python parser (don't edit manually)
+- `src/py_aep/kaitai/utils.py` - Helper functions for navigating chunks
+- `src/py_aep/kaitai/descriptors.py` - ChunkField descriptor for write-through to binary
+- `src/py_aep/kaitai/patches.py` - Monkey-patches on auto-generated Kaitai body classes (e.g. `_recompute_size` for variable-size bodies used by `propagate_check`)
 
 **Stage 2: Data Transformation (Parsers)**
-- `src/aep_parser/parsers/` - Locate chunks and pass chunk bodies to model constructors
+- `src/py_aep/parsers/` - Locate chunks and pass chunk bodies to model constructors
 - Entry point: `parse()` in `__init__.py`
 - Pattern: Each parser receives chunks + context, passes `chunk.body` to the model
 
 **Stage 3: Data Models**
-- `src/aep_parser/models/` - Classes using ChunkField descriptors, mirroring AE's object model
+- `src/py_aep/models/` - Classes using ChunkField descriptors, mirroring AE's object model
 - `items/` - CompItem, FootageItem, FolderItem
 - `layers/` - Layer types (AVLayer, TextLayer, ShapeLayer, etc.)
 - `properties/` - Effects and animation (Property, PropertyGroup, Keyframe, MarkerValue)
@@ -44,12 +44,12 @@ AEP Parser transforms binary .aep files into typed Python objects through a thre
 - `text/` - TextDocument and FontObject (COS-dict-backed via CosField descriptors)
 
 **Supporting Modules**
-- `src/aep_parser/enums/` - Enumerations matching ExtendScript values
-- `src/aep_parser/resolvers/` - Business logic for computing derived values
-- `src/aep_parser/cos/` - COS (PDF-like) format parser for embedded text data
-- `src/aep_parser/validators.py` - Field validators for model attributes
-- `src/aep_parser/reverses.py` - Generic reverse transform factories
-- `src/aep_parser/transforms.py` - Generic forward transform factories
+- `src/py_aep/enums/` - Enumerations matching ExtendScript values
+- `src/py_aep/resolvers/` - Business logic for computing derived values
+- `src/py_aep/cos/` - COS (PDF-like) format parser for embedded text data
+- `src/py_aep/validators.py` - Field validators for model attributes
+- `src/py_aep/reverses.py` - Generic reverse transform factories
+- `src/py_aep/transforms.py` - Generic forward transform factories
 
 ### Key Concepts
 
@@ -65,7 +65,7 @@ cdta_chunk.body.time_scale  # a typed body field
 
 **Chunk navigation**: Use helper functions from `kaitai/utils.py`:
 ```python
-from aep_parser.kaitai.utils import find_by_type, find_by_list_type, filter_by_type
+from py_aep.kaitai.utils import find_by_type, find_by_list_type, filter_by_type
 
 data_chunk = find_by_type(chunks=child_chunks, chunk_type="cdta")
 comp_chunk = find_by_list_type(chunks=root_chunks, list_type="Comp")
@@ -219,8 +219,8 @@ During `_parse_effect_properties()`:
 
 ```bash
 # Clone the repository
-git clone https://github.com/forticheprod/aep_parser.git
-cd aep_parser
+git clone https://github.com/forticheprod/py-aep.git
+cd py-aep
 
 # Install with dev dependencies (pick one)
 uv sync --extra dev    # recommended
@@ -237,10 +237,10 @@ uv run pytest
 uv run pytest
 
 # Run with coverage
-uv run pytest --cov=src/aep_parser --cov-report html --cov-report term:skip-covered
+uv run pytest --cov=src/py_aep --cov-report html --cov-report term:skip-covered
 
 # Type checking
-uv run mypy src/aep_parser
+uv run mypy src/py_aep
 
 # Linting and formatting
 uv run ruff check src/ ; uv run ruff format src/
@@ -312,7 +312,7 @@ Located in `scripts/jsx/`, these scripts help generate test samples and validati
 
 **Using Python REPL**:
 ```python
-from aep_parser import parse
+from py_aep import parse
 
 app = parse("samples/models/composition/bgColor_custom.aep")
 comp = app.project.compositions[0]
@@ -351,8 +351,8 @@ Then regenerate:
 
 ```bash
 kaitai-struct-compiler --target python \
-  --outdir src/aep_parser/kaitai \
-  src/aep_parser/kaitai/aep.ksy \
+  --outdir src/py_aep/kaitai \
+  src/py_aep/kaitai/aep.ksy \
   --read-write --no-auto-read
 ```
 
@@ -542,7 +542,7 @@ uv run pytest tests/test_models_layer.py
 uv run pytest tests/test_models_layer.py::test_layer_motion_blur -v
 
 # Run with coverage
-uv run pytest --cov=src/aep_parser --cov-report html --cov-report term:skip-covered
+uv run pytest --cov=src/py_aep --cov-report html --cov-report term:skip-covered
 ```
 
 ### Test Structure
@@ -601,7 +601,7 @@ Test samples should be minimal and focused:
 uv run ruff check src/ ; uv run ruff format src/
 
 # Type checking
-uv run mypy src/aep_parser
+uv run mypy src/py_aep
 ```
 
 `kaitai/aep.py` is auto-generated and excluded from linting.
@@ -634,7 +634,7 @@ Use [scoped cross-references](https://mkdocstrings.github.io/python/usage/config
 """The [CompItem][] that contains this layer."""
 
 # Explicit path - for cross-module or ambiguous references
-"""See [FileSource][aep_parser.models.sources.file.FileSource]."""
+"""See [FileSource][py_aep.models.sources.file.FileSource]."""
 
 # Don't use Sphinx-style notation
 """Returns a :class:`CompItem` instance."""  # Wrong
@@ -642,8 +642,8 @@ Use [scoped cross-references](https://mkdocstrings.github.io/python/usage/config
 
 ## Getting Help
 
-- **Issue tracker**: [GitHub Issues](https://github.com/forticheprod/aep_parser/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/forticheprod/aep_parser/discussions)
+- **Issue tracker**: [GitHub Issues](https://github.com/forticheprod/py-aep/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/forticheprod/py-aep/discussions)
 - **After Effects Scripting**: [Official Scripting Guide](https://ae-scripting.docsforadobe.dev/)
 - **Kaitai Struct**: [Documentation](https://doc.kaitai.io/)
 - **Lottie Docs**: [AEP format documentation](https://github.com/hunger-zh/lottie-docs/blob/main/docs/aep.md)

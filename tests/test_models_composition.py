@@ -13,17 +13,17 @@ from conftest import (
     parse_project,
 )
 
-from aep_parser import parse as parse_aep
-from aep_parser.enums import GuideOrientationType
-from aep_parser.models.layers import (
+from py_aep import parse as parse_aep
+from py_aep.enums import GuideOrientationType
+from py_aep.models.layers import (
     AVLayer,
     CameraLayer,
     LightLayer,
     ShapeLayer,
     TextLayer,
 )
-from aep_parser.models.sources.file import FileSource
-from aep_parser.models.sources.solid import SolidSource
+from py_aep.models.sources.file import FileSource
+from py_aep.models.sources.solid import SolidSource
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "composition"
 LAYER_SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "layer"

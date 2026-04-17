@@ -1,1 +1,1 @@
-::: aep_parser.models.renderqueue.output_module.OutputModule
+::: py_aep.models.renderqueue.output_module.OutputModule

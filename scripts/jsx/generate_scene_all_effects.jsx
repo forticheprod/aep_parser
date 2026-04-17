@@ -4,7 +4,8 @@
 app.beginUndoGroup("Apply Chunked Effects");
 
 // Where to save the generated projects
-var saveDir = "C:\\Users\\aurore.delaunay\\git\\aep_parser\\samples\\assets\\";
+var repoRoot = new File($.fileName).parent.parent;
+var saveDir = repoRoot.fsName + "/samples/assets/";
 var assetPath = saveDir + "mov_23_976.mov";
 
 var chunkSize = 10;

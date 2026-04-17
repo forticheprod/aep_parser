@@ -32,7 +32,7 @@ Usage (macOS)::
         "/Library/Application Support/Adobe/Color/Profiles/Recommended"
 
 Output is a Python dict literal that can be pasted into
-`src/aep_parser/parsers/mappings.py`.
+`src/py_aep/parsers/mappings.py`.
 """
 
 from __future__ import annotations

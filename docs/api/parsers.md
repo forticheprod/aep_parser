@@ -2,6 +2,6 @@
 
 ## Main Entry Point
 
-::: aep_parser.parse
+::: py_aep.parse
     options:
       heading_level: 3

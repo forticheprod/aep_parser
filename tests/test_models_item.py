@@ -6,8 +6,8 @@ from pathlib import Path
 
 from conftest import get_comp, parse_project
 
-from aep_parser import parse as parse_aep
-from aep_parser.enums import Label
+from py_aep import parse as parse_aep
+from py_aep.enums import Label
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "item"
 COMP_SAMPLES_DIR = (

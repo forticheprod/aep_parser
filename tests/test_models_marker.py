@@ -15,11 +15,11 @@ from conftest import (
     parse_project,
 )
 
-from aep_parser import Project
-from aep_parser.enums import Label
+from py_aep import Project
+from py_aep.enums import Label
 
 if TYPE_CHECKING:
-    from aep_parser import MarkerValue
+    from py_aep import MarkerValue
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "marker"
 

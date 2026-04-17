@@ -1,1 +1,1 @@
-::: aep_parser.models.sources.footage.FootageSource
+::: py_aep.models.sources.footage.FootageSource

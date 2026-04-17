@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 from conftest import parse_project
 
-from aep_parser import parse
-from aep_parser.enums import (
+from py_aep import parse
+from py_aep.enums import (
     AudioCodec,
     CineonFileFormat,
     Hdr10ColorPrimaries,
@@ -20,7 +20,7 @@ from aep_parser.enums import (
     PngCompression,
     VideoCodec,
 )
-from aep_parser.models.renderqueue.format_options import (
+from py_aep.models.renderqueue.format_options import (
     CineonFormatOptions,
     JpegFormatOptions,
     OpenExrFormatOptions,

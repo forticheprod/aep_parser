@@ -11,7 +11,7 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from aep_parser import parse as parse_aep
+from py_aep import parse as parse_aep
 
 NS = {
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",

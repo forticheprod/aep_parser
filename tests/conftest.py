@@ -1,4 +1,4 @@
-"""Shared test fixtures and helpers for aep_parser tests."""
+"""Shared test fixtures and helpers for py_aep tests."""
 
 from __future__ import annotations
 
@@ -8,16 +8,16 @@ from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from aep_parser import Application, Project
-from aep_parser import parse as _parse_aep
+from py_aep import Application, Project
+from py_aep import parse as _parse_aep
 
 if TYPE_CHECKING:
-    from aep_parser.models.items.comp import CompItem
+    from py_aep.models.items.comp import CompItem
 
-    from aep_parser.models.items.folder import FolderItem
-    from aep_parser.models.items.footage import FootageItem
-    from aep_parser.models.layers.layer import Layer
-    from aep_parser.models.renderqueue.render_queue_item import RenderQueueItem
+    from py_aep.models.items.folder import FolderItem
+    from py_aep.models.items.footage import FootageItem
+    from py_aep.models.layers.layer import Layer
+    from py_aep.models.renderqueue.render_queue_item import RenderQueueItem
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples"
 

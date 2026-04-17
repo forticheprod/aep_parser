@@ -1,1 +1,1 @@
-::: aep_parser.models.items.footage.FootageItem
+::: py_aep.models.items.footage.FootageItem

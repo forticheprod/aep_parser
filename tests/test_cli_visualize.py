@@ -12,8 +12,8 @@ from pathlib import Path
 import pytest
 from conftest import parse_app
 
-from aep_parser import Application
-from aep_parser.cli.visualize import (
+from py_aep import Application
+from py_aep.cli.visualize import (
     build_project_node,
     format_dot,
     format_json,

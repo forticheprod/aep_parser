@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 from conftest import get_first_layer, load_expected, parse_project
 
-from aep_parser import Property
+from py_aep import Property
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "property"
 VAT_DIR = SAMPLES_DIR / "value_at_time"

@@ -1,5 +1,5 @@
 /**
- * Export After Effects Project to JSON for testing aep_parser.
+ * Export After Effects Project to JSON for testing py_aep.
  * 
  * This script dynamically discovers and exports all readable attributes
  * from AE objects, making tests low-maintenance when new attributes are added.

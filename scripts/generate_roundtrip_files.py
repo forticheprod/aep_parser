@@ -21,14 +21,14 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-# Add project root to path so aep_parser is importable
+# Add project root to path so py_aep is importable
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from aep_parser import parse as parse_aep  # noqa: E402
+from py_aep import parse as parse_aep  # noqa: E402
 
 if TYPE_CHECKING:
-    from aep_parser.models.application import Application
+    from py_aep.models.application import Application
 
 DEFAULT_BASE = ROOT / "samples" / "versions" / "ae2025" / "complete.aep"
 OUTPUT_DIR = ROOT / "samples" / "roundtrip"
@@ -117,7 +117,7 @@ _register(
 # -- 4. Layer flags & AVLayer booleans --------------------------------------
 
 def _layer_flags(app: Application) -> None:
-    from aep_parser.enums import BlendingMode, Label, LayerQuality, LayerSamplingQuality
+    from py_aep.enums import BlendingMode, Label, LayerQuality, LayerSamplingQuality
 
     comp = app.project.compositions[0]
     layer = comp.layers[0]
@@ -152,8 +152,8 @@ _register(
 # -- 5. Layer timing, orient & multiple layers ------------------------------
 
 def _layer_timing(app: Application) -> None:
-    from aep_parser.enums import AutoOrientType, FrameBlendingType, Label
-    from aep_parser.models.layers.av_layer import AVLayer
+    from py_aep.enums import AutoOrientType, FrameBlendingType, Label
+    from py_aep.models.layers.av_layer import AVLayer
 
     comp = app.project.compositions[0]
     layer = comp.layers[0]
@@ -182,7 +182,7 @@ _register(
 # -- 6. Project settings ---------------------------------------------------
 
 def _project_settings(app: Application) -> None:
-    from aep_parser.enums import (
+    from py_aep.enums import (
         BitsPerChannel,
         FramesCountType,
         TimeDisplayType,
@@ -213,7 +213,7 @@ _register(
 # -- 7. Masks ---------------------------------------------------------------
 
 def _masks(app: Application) -> None:
-    from aep_parser.enums import MaskFeatherFalloff, MaskMode, MaskMotionBlur
+    from py_aep.enums import MaskFeatherFalloff, MaskMode, MaskMotionBlur
 
     comp = app.project.compositions[0]
     for layer in comp.layers:
@@ -241,8 +241,8 @@ _register(
 # -- 8. Items (names, labels, comments) & solid source colors ---------------
 
 def _items(app: Application) -> None:
-    from aep_parser.enums import Label
-    from aep_parser.models.sources.solid import SolidSource
+    from py_aep.enums import Label
+    from py_aep.models.sources.solid import SolidSource
 
     proj = app.project
     # Rename and relabel items
@@ -275,7 +275,7 @@ _register(
 # -- 9. Render queue & output module ----------------------------------------
 
 def _render_queue(app: Application) -> None:
-    from aep_parser.enums import LogType, PostRenderAction
+    from py_aep.enums import LogType, PostRenderAction
 
     rq = app.project.render_queue
     if not rq or not rq.items:
@@ -299,7 +299,7 @@ _register(
 # -- 10. All at once --------------------------------------------------------
 
 def _everything(app: Application) -> None:
-    from aep_parser.enums import (
+    from py_aep.enums import (
         AutoOrientType,
         BitsPerChannel,
         BlendingMode,
@@ -309,7 +309,7 @@ def _everything(app: Application) -> None:
         MaskMode,
         TimeDisplayType,
     )
-    from aep_parser.models.sources.solid import SolidSource
+    from py_aep.models.sources.solid import SolidSource
 
     app.build_name = "99.9x999"
 

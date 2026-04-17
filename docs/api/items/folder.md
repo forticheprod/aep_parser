@@ -1,1 +1,1 @@
-::: aep_parser.models.items.folder.FolderItem
+::: py_aep.models.items.folder.FolderItem

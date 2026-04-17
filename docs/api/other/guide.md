@@ -1,1 +1,1 @@
-::: aep_parser.models.guide.Guide
+::: py_aep.models.guide.Guide

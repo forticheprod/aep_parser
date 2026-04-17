@@ -1,3 +1,3 @@
-::: aep_parser.models.properties.shape.FeatherPoint
+::: py_aep.models.properties.shape.FeatherPoint
 
-::: aep_parser.models.properties.shape.Shape
+::: py_aep.models.properties.shape.Shape

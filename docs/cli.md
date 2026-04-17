@@ -1,10 +1,10 @@
 # Command Line Tools
 
-AEP Parser provides three command-line utilities for working with After Effects project files. These tools are installed automatically when you install the package.
+py_aep provides three command-line utilities for working with After Effects project files. These tools are installed automatically when you install the package.
 
 ## Installation
 
-All CLI tools are available after installing aep_parser:
+All CLI tools are available after installing py_aep:
 
 === "uv"
 
@@ -15,7 +15,7 @@ All CLI tools are available after installing aep_parser:
 === "pip"
 
     ```bash
-    pip install aep_parser
+    pip install py_aep
     ```
 
 ---

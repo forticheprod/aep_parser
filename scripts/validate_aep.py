@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-AEP Parser Validation Tool.
+py_aep Validation Tool.
 
 This is a development wrapper script. After installing the package,
 use the `aep-validate` command instead.
@@ -19,7 +19,7 @@ from pathlib import Path
 # Add src to path for development
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from aep_parser.cli.validate import main
+from py_aep.cli.validate import main
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -1,1 +1,1 @@
-::: aep_parser.models.text.font_object.FontObject
+::: py_aep.models.text.font_object.FontObject

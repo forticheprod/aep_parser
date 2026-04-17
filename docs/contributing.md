@@ -1,6 +1,6 @@
 # Contributing Guide
 
-See the full [Contributing Guide](https://github.com/forticheprod/aep_parser/blob/main/CONTRIBUTING.md) on GitHub.
+See the full [Contributing Guide](https://github.com/forticheprod/py-aep/blob/main/CONTRIBUTING.md) on GitHub.
 
 ## Quick Start
 
@@ -35,7 +35,7 @@ The contributing guide covers:
 
 ## Quick Links
 
-- [GitHub Repository](https://github.com/forticheprod/aep_parser)
-- [Issue Tracker](https://github.com/forticheprod/aep_parser/issues)
+- [GitHub Repository](https://github.com/forticheprod/py-aep)
+- [Issue Tracker](https://github.com/forticheprod/py-aep/issues)
 - [After Effects Scripting Guide](https://ae-scripting.docsforadobe.dev/)
 - [Kaitai Struct Documentation](https://doc.kaitai.io/)

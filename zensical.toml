@@ -1,9 +1,9 @@
 [project]
-site_name = "AEP Parser"
+site_name = "py_aep"
 site_description = "A Python library for parsing Adobe After Effects project files (.aep)"
-site_url = "https://forticheprod.github.io/aep_parser/"
-repo_url = "https://github.com/forticheprod/aep_parser"
-repo_name = "forticheprod/aep_parser"
+site_url = "https://forticheprod.github.io/py-aep/"
+repo_url = "https://github.com/forticheprod/py-aep"
+repo_name = "forticheprod/py-aep"
 edit_uri = "edit/main/docs/"
 extra_css = ["stylesheets/extra.css"]
 nav = [

@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from conftest import parse_project
 
-from aep_parser.enums import PostRenderAction
+from py_aep.enums import PostRenderAction
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "renderqueue"
 OM_SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "output_module"

@@ -1,6 +1,6 @@
 # Known Limitations
 
-This page documents limitations of aep_parser that arise from the nature of
+This page documents limitations of py_aep that arise from the nature of
 parsing a binary file format rather than querying a running After Effects
 instance.
 
@@ -46,7 +46,7 @@ be derived from the `.aep` file alone:
 When `Property.expression_enabled` is `True`, the `value` attribute contains
 the **last static or keyframed value** stored in the binary file - not the
 result of evaluating the expression. After Effects computes expression results
-at runtime using its expression engine; aep_parser has no expression evaluator.
+at runtime using its expression engine; py_aep has no expression evaluator.
 
 ```python
 prop = layer.transform.property(name="ADBE Position")
@@ -138,7 +138,7 @@ linkage between overrides and their source controller definitions
 
 ## Missing Classes
 
-The following ExtendScript classes do not exist in aep_parser:
+The following ExtendScript classes do not exist in py_aep:
 
 | Class | Reason |
 |-------|--------|

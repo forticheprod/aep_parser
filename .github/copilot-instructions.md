@@ -1,4 +1,4 @@
-# AEP Parser - AI Coding Agent Instructions
+# py_aep - AI Coding Agent Instructions
 
 ## Project Overview
 A Python library for parsing Adobe After Effects project files (.aep). The binary RIFX format is decoded using [Kaitai Struct](https://kaitai.io/), then transformed into typed Python dataclasses representing the AE object model (Application > Project > Items > Layers > Properties).
@@ -18,20 +18,20 @@ Properties go through three stages. See [CONTRIBUTING.md](../CONTRIBUTING.md#pro
 3. **Post-processing**: `set_transform_defaults()` > `set_layer_property_defaults()` > `_synthesize_children()` > `_fill_from_specs()` > `_apply_min_max_bounds()`. Synthesis uses `_PropSpec` (leaf Property) and `_GroupSpec` (empty PropertyGroup) with `ProxyBody` for chunk bodies.
 
 ### Key Directories
-- **`src/aep_parser/kaitai/`** - Binary parsing layer
+- **`src/py_aep/kaitai/`** - Binary parsing layer
   - `aep.ksy` - Kaitai schema defining RIFX chunk structure (auto-generates `aep.py`)
   - `utils.py` - Chunk filtering helpers (`find_by_type`, `filter_by_list_type`)
   - `patches.py` - Monkey-patches on auto-generated Kaitai body classes (e.g. `_recompute_size` for variable-size bodies)
-- **`src/aep_parser/__init__.py`** - Public API entry point: `parse()`
-- **`src/aep_parser/parsers/`** - Transform raw chunks into models
+- **`src/py_aep/__init__.py`** - Public API entry point: `parse()`
+- **`src/py_aep/parsers/`** - Transform raw chunks into models
   - `application.py`, `project.py`, `match_names.py`, `render_queue.py`, ...
   - Pattern: Each parser receives chunks + context, returns a model instance
-- **`src/aep_parser/models/`** - Typed dataclasses mirroring AE's object model
+- **`src/py_aep/models/`** - Typed dataclasses mirroring AE's object model
   - `application.py`, `items/`, `layers/`, `properties/`, `sources/`, `renderqueue/`, ...
-- **`src/aep_parser/enums/`** - Enumerations matching ExtendScript values (`general.py`, `property.py`, `render_settings.py`, ...)
-- **`src/aep_parser/resolvers/`** - Business logic for computing derived values (e.g. `output.py` resolves render filenames, dimensions, timecodes)
-- **`src/aep_parser/cli/`** - `visualize.py`, `validate.py`, `compare.py`
-- **`src/aep_parser/cos/`** - COS (PDF) format parser for embedded text data
+- **`src/py_aep/enums/`** - Enumerations matching ExtendScript values (`general.py`, `property.py`, `render_settings.py`, ...)
+- **`src/py_aep/resolvers/`** - Business logic for computing derived values (e.g. `output.py` resolves render filenames, dimensions, timecodes)
+- **`src/py_aep/cli/`** - `visualize.py`, `validate.py`, `compare.py`
+- **`src/py_aep/cos/`** - COS (PDF) format parser for embedded text data
 - **`scripts/`** - Dev/analysis scripts; `jsx/` has ExtendScript JSON exporters
 - **`samples/`** - Test .aep files covering specific features
 
@@ -41,8 +41,8 @@ Properties go through three stages. See [CONTRIBUTING.md](../CONTRIBUTING.md#pro
 uv sync --extra dev                  # Install with dev dependencies
 uv sync --extra docs                 # Install with docs dependencies
 uv run pytest                        # Run tests (parallel)
-uv run pytest --cov=src/aep_parser --cov-report html --cov-report term:skip-covered  # With coverage
-uv run mypy src/aep_parser           # Type checking
+uv run pytest --cov=src/py_aep --cov-report html --cov-report term:skip-covered  # With coverage
+uv run mypy src/py_aep           # Type checking
 uv run ruff check src/ ; uv run ruff format src/  # Linting (excludes auto-generated kaitai/aep.py)
 uv run zensical build --strict         # Build documentation
 uv run zensical serve --strict         # Serve documentation locally (with live reload)
@@ -103,7 +103,7 @@ See `docs/flags_tutorial.md` for reverse-engineering bitflags:
 
 ### Chunk Navigation Pattern
 ```python
-from aep_parser.kaitai.utils import find_by_type, find_by_list_type, filter_by_type
+from py_aep.kaitai.utils import find_by_type, find_by_list_type, filter_by_type
 
 ldta_chunk = find_by_type(chunks=child_chunks, chunk_type="ldta")
 fold_chunk = find_by_list_type(chunks=root_chunks, list_type="Fold")
@@ -157,7 +157,7 @@ When adding new mappings:
 ## Regenerating Kaitai Parser
 When modifying `aep.ksy`, regenerate:
 ```powershell
-kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_parser/kaitai/aep.ksy --read-write --no-auto-read
+kaitai-struct-compiler --target python --outdir src/py_aep/kaitai src/py_aep/kaitai/aep.ksy --read-write --no-auto-read
 ```
 **Integer division pitfall:** Kaitai's `/` on two integers compiles to `//` (floor division). Multiply one operand by `1.0` for true division: `value: 'dividend * 1.0 / divisor'`.
 
@@ -168,7 +168,7 @@ kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_pa
 - Model docstrings should reference [AE Scripting Guide](https://ae-scripting.docsforadobe.dev/)
 
 ## CLI Tools
-Installed via `uv sync --extra dev`. Also invocable as `uv run python -m aep_parser.cli.{visualize,validate,compare}`.
+Installed via `uv sync --extra dev`. Also invocable as `uv run python -m py_aep.cli.{visualize,validate,compare}`.
 
 - **`aep-visualize`** - Tree visualization of a parsed project
 - **`aep-validate`** - Compare parsed output against ExtendScript JSON. **Use after any parsing change.**
@@ -188,7 +188,7 @@ aep-compare file.aep --dump "LIST:Fold/ftts" # dump raw bytes
 ```
 
 ## Documentation
-Zensical; auto-deployed to [GitHub Pages](https://forticheprod.github.io/aep_parser/) on push to `main`. Build locally: `zensical serve --strict`.
+Zensical; auto-deployed to [GitHub Pages](https://forticheprod.github.io/py-aep/) on push to `main`. Build locally: `zensical serve --strict`.
 
 ### Docstring Conventions
 - **Functions**: Google-style (Args, Returns, Raises sections)
@@ -206,12 +206,12 @@ Zensical; auto-deployed to [GitHub Pages](https://forticheprod.github.io/aep_par
 - Use mkdocstrings [scoped cross-references](https://mkdocstrings.github.io/python/usage/configuration/docstrings/#scoped_crossrefs), **not** Sphinx `:class:`/`:func:`:
   ```python
   """The [CompItem][] that contains this layer."""                    # ✓ short
-  """See [FileSource][aep_parser.models.sources.file.FileSource]."""  # ✓ explicit
+  """See [FileSource][py_aep.models.sources.file.FileSource]."""  # ✓ explicit
   """Returns a :class:`CompItem` instance."""                         # ✗ Sphinx
   ```
 
 ### Adding Documentation Pages
 1. Create markdown file in `docs/api/`
-2. Reference Python objects: `::: aep_parser.models.my_module.MyClass`
+2. Reference Python objects: `::: py_aep.models.my_module.MyClass`
 3. Add to `nav:` in `zensical.toml`
 4. Verify: `zensical serve --strict`

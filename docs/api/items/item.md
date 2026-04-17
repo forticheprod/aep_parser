@@ -1,1 +1,1 @@
-::: aep_parser.models.items.item.Item
+::: py_aep.models.items.item.Item

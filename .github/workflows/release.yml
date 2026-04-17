@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/aep_parser
+      url: https://pypi.org/p/py-aep
     permissions:
       id-token: write
     steps:

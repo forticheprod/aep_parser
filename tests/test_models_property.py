@@ -14,9 +14,9 @@ from conftest import (
     parse_project,
 )
 
-from aep_parser import Project
-from aep_parser import parse as parse_aep
-from aep_parser.enums import (
+from py_aep import Project
+from py_aep import parse as parse_aep
+from py_aep.enums import (
     KeyframeInterpolationType,
     Label,
     MaskFeatherFalloff,
@@ -25,7 +25,7 @@ from aep_parser.enums import (
     PropertyType,
     PropertyValueType,
 )
-from aep_parser.models import Layer, MaskPropertyGroup, Property, PropertyGroup
+from py_aep.models import Layer, MaskPropertyGroup, Property, PropertyGroup
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "property"
 BUGS_DIR = Path(__file__).parent.parent / "samples" / "bugs"

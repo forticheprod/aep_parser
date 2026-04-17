@@ -123,7 +123,7 @@ class TestLayerSelectedWrite:
 
     def test_round_trip(self, tmp_path: Path) -> None:
         """Toggle selection, save, re-parse, verify."""
-        from aep_parser import parse as parse_aep
+        from py_aep import parse as parse_aep
 
         app = parse_aep(SELECTION_DIR / "selection_layer.aep")
         app.project.compositions[0].layers[0].selected = False
