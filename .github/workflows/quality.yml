@@ -1,14 +1,18 @@
 name: Quality
 on:
+  pull_request:
+    types: [labeled]
   workflow_dispatch:
 jobs:
   ruff:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run-quality')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - name: Ruff
         uses: astral-sh/ruff-action@v3
   mypy:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run-quality')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -23,6 +27,7 @@ jobs:
       - name: Type check with mypy
         run: uv run mypy src/py_aep
   lfs:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run-quality')
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
@@ -37,6 +42,7 @@ jobs:
         retention-days: 1
   pytest-37:
     needs: lfs
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run-quality')
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v6
@@ -58,6 +64,7 @@ jobs:
       run: PYTHONPATH=src pytest -v --no-header -ra --tb=short
   pytest:
     needs: lfs
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'run-quality')
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
