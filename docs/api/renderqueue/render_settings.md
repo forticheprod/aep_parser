@@ -1,29 +1,29 @@
 # Render Settings
 
-Render settings are accessed via `RenderQueueItem.settings`, a [SettingsView][aep_parser.models.renderqueue.settings.SettingsView] dict with ExtendScript-compatible keys matching the format from `RenderQueueItem.get_settings(GetSettingsFormat.NUMBER)`.
+Render settings are accessed via `RenderQueueItem.settings`, a [SettingsView][py_aep.models.renderqueue.settings.SettingsView] dict with ExtendScript-compatible keys matching the format from `RenderQueueItem.get_settings(GetSettingsFormat.NUMBER)`.
 
 ## Available Keys
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `"3:2 Pulldown"` | [PulldownSetting][aep_parser.enums.PulldownSetting] | Pulldown phase setting |
-| `"Color Depth"` | [ColorDepthSetting][aep_parser.enums.ColorDepthSetting] | Color depth setting |
-| `"Disk Cache"` | [DiskCacheSetting][aep_parser.enums.DiskCacheSetting] | Disk cache setting |
-| `"Effects"` | [EffectsSetting][aep_parser.enums.EffectsSetting] | Effects setting |
-| `"Field Render"` | [FieldRender][aep_parser.enums.FieldRender] | Field render setting |
-| `"Frame Blending"` | [FrameBlendingSetting][aep_parser.enums.FrameBlendingSetting] | Frame blending setting |
-| `"Frame Rate"` | [FrameRateSetting][aep_parser.enums.FrameRateSetting] | Frame rate source |
-| `"Guide Layers"` | [GuideLayers][aep_parser.enums.GuideLayers] | Guide layers setting |
-| `"Motion Blur"` | [MotionBlurSetting][aep_parser.enums.MotionBlurSetting] | Motion blur setting |
-| `"Proxy Use"` | [ProxyUseSetting][aep_parser.enums.ProxyUseSetting] | Proxy use setting |
-| `"Quality"` | [RenderQuality][aep_parser.enums.RenderQuality] | Quality setting |
+| `"3:2 Pulldown"` | [PulldownSetting][py_aep.enums.PulldownSetting] | Pulldown phase setting |
+| `"Color Depth"` | [ColorDepthSetting][py_aep.enums.ColorDepthSetting] | Color depth setting |
+| `"Disk Cache"` | [DiskCacheSetting][py_aep.enums.DiskCacheSetting] | Disk cache setting |
+| `"Effects"` | [EffectsSetting][py_aep.enums.EffectsSetting] | Effects setting |
+| `"Field Render"` | [FieldRender][py_aep.enums.FieldRender] | Field render setting |
+| `"Frame Blending"` | [FrameBlendingSetting][py_aep.enums.FrameBlendingSetting] | Frame blending setting |
+| `"Frame Rate"` | [FrameRateSetting][py_aep.enums.FrameRateSetting] | Frame rate source |
+| `"Guide Layers"` | [GuideLayers][py_aep.enums.GuideLayers] | Guide layers setting |
+| `"Motion Blur"` | [MotionBlurSetting][py_aep.enums.MotionBlurSetting] | Motion blur setting |
+| `"Proxy Use"` | [ProxyUseSetting][py_aep.enums.ProxyUseSetting] | Proxy use setting |
+| `"Quality"` | [RenderQuality][py_aep.enums.RenderQuality] | Quality setting |
 | `"Resolution"` | `list[int]` | Resolution factor `[x, y]` (e.g. `[1, 1]` = Full, `[2, 2]` = Half, `[3, 3]` = Third, `[4, 4]` = Quarter) |
 | `"Skip Existing Files"` | `bool` | Whether to skip rendering if output file exists |
-| `"Solo Switches"` | [SoloSwitchesSetting][aep_parser.enums.SoloSwitchesSetting] | Solo switches setting |
+| `"Solo Switches"` | [SoloSwitchesSetting][py_aep.enums.SoloSwitchesSetting] | Solo switches setting |
 | `"Time Span Duration"` | `float` | Duration in seconds |
 | `"Time Span End"` | `float` | End time in seconds |
 | `"Time Span Start"` | `float` | Start time in seconds |
-| `"Time Span"` | [TimeSpanSource][aep_parser.enums.TimeSpanSource] | Time span source |
+| `"Time Span"` | [TimeSpanSource][py_aep.enums.TimeSpanSource] | Time span source |
 | `"Use comp's frame rate"` | `float` | The composition's frame rate |
 | `"Use this frame rate"` | `float` | Custom frame rate value (when `"Frame Rate"` is `USE_THIS_FRAME_RATE`) |
 

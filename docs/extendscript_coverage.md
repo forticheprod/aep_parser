@@ -1,6 +1,6 @@
 # ExtendScript Coverage
 
-Implementation progress of ExtendScript API attributes in aep_parser.
+Implementation progress of ExtendScript API attributes in py_aep.
 
 Each row lists the attributes from the
 [After Effects Scripting Guide](https://ae-scripting.docsforadobe.dev/)
@@ -9,7 +9,7 @@ Only attributes are counted - methods are excluded.
 
 - ✅ = all attributes implemented
 - 🚧 = partially implemented
-- ❌ = class does not exist in aep_parser
+- ❌ = class does not exist in py_aep
 
 
 ## General

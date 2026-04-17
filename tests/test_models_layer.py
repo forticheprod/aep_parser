@@ -16,8 +16,8 @@ from conftest import (
     parse_project,
 )
 
-from aep_parser import parse as parse_aep
-from aep_parser.enums import (
+from py_aep import parse as parse_aep
+from py_aep.enums import (
     AutoOrientType,
     BlendingMode,
     FrameBlendingType,
@@ -28,16 +28,16 @@ from aep_parser.enums import (
     PropertyType,
     TrackMatteType,
 )
-from aep_parser.models.layers import (
+from py_aep.models.layers import (
     AVLayer,
     CameraLayer,
     LightLayer,
     ShapeLayer,
     TextLayer,
 )
-from aep_parser.models.layers.three_d_model_layer import ThreeDModelLayer
-from aep_parser.models.properties.property_base import PropertyBase
-from aep_parser.models.properties.property_group import PropertyGroup
+from py_aep.models.layers.three_d_model_layer import ThreeDModelLayer
+from py_aep.models.properties.property_base import PropertyBase
+from py_aep.models.properties.property_group import PropertyGroup
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "layer"
 BUGS_DIR = Path(__file__).parent.parent / "samples" / "bugs"

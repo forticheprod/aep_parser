@@ -1,15 +1,15 @@
-::: aep_parser.enums.general
+::: py_aep.enums.general
 
-::: aep_parser.enums.property
+::: py_aep.enums.property
 
-::: aep_parser.enums.render_settings
+::: py_aep.enums.render_settings
 
-::: aep_parser.enums.render_queue
+::: py_aep.enums.render_queue
 
-::: aep_parser.enums.output_module
+::: py_aep.enums.output_module
 
-::: aep_parser.enums.format_options
+::: py_aep.enums.format_options
 
-::: aep_parser.enums.text_document
+::: py_aep.enums.text_document
 
-::: aep_parser.enums.font_object
+::: py_aep.enums.font_object

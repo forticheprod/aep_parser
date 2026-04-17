@@ -1,1 +1,1 @@
-::: aep_parser.models.application.Application
+::: py_aep.models.application.Application

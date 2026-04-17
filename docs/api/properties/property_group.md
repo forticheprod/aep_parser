@@ -1,1 +1,1 @@
-::: aep_parser.models.properties.property_group.PropertyGroup
+::: py_aep.models.properties.property_group.PropertyGroup

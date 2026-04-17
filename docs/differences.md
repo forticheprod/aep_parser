@@ -1,15 +1,15 @@
 # Differences from ExtendScript
 
-This page documents the intentional design differences between aep_parser and
+This page documents the intentional design differences between py_aep and
 the After Effects ExtendScript API. These are not bugs - they are choices made
 to provide a more Pythonic, convenient, or complete interface.
 
 ## Naming Conventions
 
-ExtendScript uses `camelCase` for attributes and methods. aep_parser uses
+ExtendScript uses `camelCase` for attributes and methods. py_aep uses
 `snake_case` following Python conventions:
 
-| ExtendScript | aep_parser |
+| ExtendScript | py_aep |
 |---|---|
 | `blendingMode` | `blending_mode` |
 | `frameRate` | `frame_rate` |
@@ -17,7 +17,7 @@ ExtendScript uses `camelCase` for attributes and methods. aep_parser uses
 
 ## Indexing
 
-ExtendScript collections are **1-based**. Python lists and aep_parser are
+ExtendScript collections are **1-based**. Python lists and py_aep are
 **0-based**:
 
 === "ExtendScript"
@@ -27,7 +27,7 @@ ExtendScript collections are **1-based**. Python lists and aep_parser are
     var firstKey = prop.keyValue(1);
     ```
 
-=== "aep_parser"
+=== "py_aep"
 
     ```python
     first_layer = comp.layers[0]
@@ -42,7 +42,7 @@ work directly without offset arithmetic.
 
 ExtendScript uses indexed accessor methods (`item(index)`, `layer(index)`) on
 custom collection objects (`ItemCollection`, `LayerCollection`,
-`OMCollection`, `RQItemCollection`). aep_parser uses standard Python lists:
+`OMCollection`, `RQItemCollection`). py_aep uses standard Python lists:
 
 === "ExtendScript"
 
@@ -52,7 +52,7 @@ custom collection objects (`ItemCollection`, `LayerCollection`,
     }
     ```
 
-=== "aep_parser"
+=== "py_aep"
 
     ```python
     for layer in comp.layers:
@@ -62,7 +62,7 @@ custom collection objects (`ItemCollection`, `LayerCollection`,
 ## Keyframes
 
 ExtendScript accesses keyframe data through `Property.key*()` methods that take
-a 1-based key index. aep_parser exposes keyframes as a list of `Keyframe`
+a 1-based key index. py_aep exposes keyframes as a list of `Keyframe`
 dataclass objects on `Property.keyframes`:
 
 === "ExtendScript"
@@ -73,7 +73,7 @@ dataclass objects on `Property.keyframes`:
     var inType = prop.keyInInterpolationType(1);
     ```
 
-=== "aep_parser"
+=== "py_aep"
 
     ```python
     kf = prop.keyframes[0]
@@ -89,7 +89,7 @@ need separate method calls for each attribute.
 ## Feather Points
 
 ExtendScript exposes mask feather data as parallel arrays on `Shape`
-(`featherSegLocs`, `featherRadii`, etc.). aep_parser exposes a list of
+(`featherSegLocs`, `featherRadii`, etc.). py_aep exposes a list of
 `FeatherPoint` objects on `Shape.feather_points`:
 
 === "ExtendScript"
@@ -100,7 +100,7 @@ ExtendScript exposes mask feather data as parallel arrays on `Shape`
     var types = shape.featherTypes;
     ```
 
-=== "aep_parser"
+=== "py_aep"
 
     ```python
     for fp in shape.feather_points:
@@ -115,7 +115,7 @@ tension, and corner angle together.
 ## Markers
 
 In ExtendScript, `CompItem.markerProperty` and `Layer.marker` are
-`Property` objects accessed via `keyValue()`. In aep_parser,
+`Property` objects accessed via `keyValue()`. In py_aep,
 `CompItem.marker_property` and `Layer.marker` expose the underlying
 `Property` (with keyframes holding marker times), while
 `CompItem.markers` and `Layer.markers` provide a convenient flat
@@ -128,7 +128,7 @@ In ExtendScript, `CompItem.markerProperty` and `Layer.marker` are
     marker.comment;
     ```
 
-=== "aep_parser"
+=== "py_aep"
 
     ```python
     marker = comp.markers[0]
@@ -139,10 +139,10 @@ In ExtendScript, `CompItem.markerProperty` and `Layer.marker` are
 
 ## Frame-Based Time Attributes
 
-ExtendScript expresses all times in seconds (floating-point). aep_parser adds
+ExtendScript expresses all times in seconds (floating-point). py_aep adds
 integer frame-based equivalents for convenience:
 
-| ExtendScript (seconds) | aep_parser (seconds) | aep_parser (frames) |
+| ExtendScript (seconds) | py_aep (seconds) | py_aep (frames) |
 |---|---|---|
 | `Layer.inPoint` | `layer.in_point` | `layer.frame_in_point` |
 | `Layer.outPoint` | `layer.out_point` | `layer.frame_out_point` |
@@ -203,7 +203,7 @@ item.is_folder        # True if item is a FolderItem
 
 ## Extra Attributes
 
-aep_parser exposes additional attributes parsed from the binary format that are
+py_aep exposes additional attributes parsed from the binary format that are
 not available in ExtendScript:
 
 ### Property
@@ -236,7 +236,7 @@ not available in ExtendScript:
 |-----------|-------------|
 | `time_scale` | Internal time scale divisor for keyframe times |
 | `display_start_time` | Display start time in seconds |
-| `guides` | List of [Guide][aep_parser.models.guide.Guide] objects (ruler guides for alignment) |
+| `guides` | List of [Guide][py_aep.models.guide.Guide] objects (ruler guides for alignment) |
 
 ### Layer
 
@@ -263,7 +263,7 @@ not available in ExtendScript:
 
 ## Enums
 
-aep_parser provides **98 enum classes** across 8 modules, covering values that
+py_aep provides **98 enum classes** across 8 modules, covering values that
 ExtendScript exposes as plain integers or doesn't expose at all:
 
 - Format options enums: `VideoCodec`, `AudioCodec`, `OpenExrCompression`, etc.
@@ -274,7 +274,7 @@ ExtendScript exposes as plain integers or doesn't expose at all:
 
 ## Output Module Format Options
 
-ExtendScript provides no access to format-specific render settings. aep_parser
+ExtendScript provides no access to format-specific render settings. py_aep
 parses these from the binary and exposes them as typed dataclasses:
 
 - `CineonFormatOptions` - black/white points, gamma, bit depth

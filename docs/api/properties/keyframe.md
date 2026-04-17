@@ -1,1 +1,1 @@
-::: aep_parser.models.properties.keyframe.Keyframe
+::: py_aep.models.properties.keyframe.Keyframe

@@ -1,31 +1,31 @@
-# AEP Parser Documentation
+# py_aep Documentation
 
-Welcome to the AEP Parser documentation! This library provides a Python interface for parsing Adobe After Effects project files (.aep).
+Welcome to the py_aep documentation! This library provides a Python interface for parsing Adobe After Effects project files (.aep).
 
 ## About
 
-AEP Parser is a Python library that parses Adobe After Effects project files (.aep), which are binary files encoded in RIFX format. The library uses [Kaitai Struct](https://kaitai.io/) to parse the binary format and provides a clean, typed Python API to access project data.
+py_aep is a Python library that parses Adobe After Effects project files (.aep), which are binary files encoded in RIFX format. The library uses [Kaitai Struct](https://kaitai.io/) to parse the binary format and provides a clean, typed Python API to access project data.
 
 ## Installation
 
 === "uv"
 
     ```bash
-    uv add aep-parser
+    uv add py-aep
     ```
 
 === "pip"
 
     ```bash
-    pip install aep-parser
+    pip install py-aep
     ```
 
 ## Quick Start
 
 ```python
-import aep_parser
+import py_aep
 
-app = aep_parser.parse("myproject.aep")
+app = py_aep.parse("myproject.aep")
 project = app.project
 comp = project.compositions[0]
 
@@ -100,7 +100,7 @@ Browse the [API Reference](api/index.md) for detailed documentation of all class
 
 ## Contributing
 
-Contributions are welcome! See the [Contributing Guide](contributing.md) to get started, or visit the [GitHub repository](https://github.com/forticheprod/aep_parser) for more information.
+Contributions are welcome! See the [Contributing Guide](contributing.md) to get started, or visit the [GitHub repository](https://github.com/forticheprod/py-aep) for more information.
 
 ## License
 

@@ -1,1 +1,1 @@
-::: aep_parser.models.items.composition.CompItem
+::: py_aep.models.items.composition.CompItem

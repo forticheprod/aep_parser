@@ -19,11 +19,11 @@ Always consult the ExtendScript scripting guide for accurate docstrings, types, 
 .aep file > Kaitai (kaitai/aep.ksy) > Raw chunks > Parsers > Model dataclasses
 ```
 
-- **`src/aep_parser/kaitai/aep.ksy`** - Binary schema (Kaitai Struct). All binary decoding lives here. Never use the `struct` module.
-- **`src/aep_parser/kaitai/aep.py`** - Auto-generated from `aep.ksy`. Never edit directly.
-- **`src/aep_parser/parsers/`** - Transform raw chunks into model instances.
-- **`src/aep_parser/models/`** - Typed dataclasses mirroring AE's object model.
-- **`src/aep_parser/enums/`** - Enumerations matching ExtendScript values.
+- **`src/py_aep/kaitai/aep.ksy`** - Binary schema (Kaitai Struct). All binary decoding lives here. Never use the `struct` module.
+- **`src/py_aep/kaitai/aep.py`** - Auto-generated from `aep.ksy`. Never edit directly.
+- **`src/py_aep/parsers/`** - Transform raw chunks into model instances.
+- **`src/py_aep/models/`** - Typed dataclasses mirroring AE's object model.
+- **`src/py_aep/enums/`** - Enumerations matching ExtendScript values.
 - **`samples/`** - Test `.aep` files and their `.json` ExtendScript exports.
 - **`scripts/`** - CLI and investigation scripts.
 
@@ -40,15 +40,15 @@ uv run aep-compare samples/models/<category>/file1.aep samples/models/<category>
 - Use `--list` to list chunks, `--dump "LIST:Fold/xxxx"` to inspect raw bytes
 
 ### 2. Update Kaitai Schema
-- Edit `src/aep_parser/kaitai/aep.ksy` to add the new field
+- Edit `src/py_aep/kaitai/aep.ksy` to add the new field
 - Regenerate the parser:
 ```powershell
-kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_parser/kaitai/aep.ksy
+kaitai-struct-compiler --target python --outdir src/py_aep/kaitai src/py_aep/kaitai/aep.ksy
 ```
 
 ### 3. Update Parser and Model
-- Add/update the model dataclass in `src/aep_parser/models/` with docstrings copied from AE equivalents
-- Add/update the parser in `src/aep_parser/parsers/` to extract the new field from chunks
+- Add/update the model dataclass in `src/py_aep/models/` with docstrings copied from AE equivalents
+- Add/update the parser in `src/py_aep/parsers/` to extract the new field from chunks
 - If the binary value differs from ExtendScript value, add mapping in `enums/` or `parsers/mappings.py`
 
 ### 4. Update Tests and Documentation
@@ -60,7 +60,7 @@ kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_pa
 Run all checks through the venv and fix any errors:
 ```powershell
 uv run pytest
-uv run mypy src/aep_parser
+uv run mypy src/py_aep
 uv run ruff check src/ ; uv run ruff format src/
 uv run zensical build --strict
 ```
@@ -73,7 +73,7 @@ uv run aep-validate sample.aep sample.json --verbose
 
 ## Constraints
 
-- DO NOT edit `src/aep_parser/kaitai/aep.py` - it is auto-generated from `aep.ksy`
+- DO NOT edit `src/py_aep/kaitai/aep.py` - it is auto-generated from `aep.ksy`
 - DO NOT use the `struct` module for binary decoding - all binary parsing must be in `aep.ksy`
 - DO NOT use `python.exe -c` - run Python code through temporary files
 - DO NOT use `List[int]` - use `list[int]` with `from __future__ import annotations`
@@ -96,7 +96,7 @@ uv run aep-validate sample.aep sample.json --verbose
 ## Chunk Navigation
 
 ```python
-from aep_parser.kaitai.utils import find_by_type, find_by_list_type, filter_by_type
+from py_aep.kaitai.utils import find_by_type, find_by_list_type, filter_by_type
 ldta_chunk = find_by_type(chunks=child_chunks, chunk_type="ldta")
 ```
 

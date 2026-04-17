@@ -19,7 +19,7 @@ from pathlib import Path
 # Add src to path for development
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from aep_parser.cli.compare import main
+from py_aep.cli.compare import main
 
 if __name__ == "__main__":
     sys.exit(main())

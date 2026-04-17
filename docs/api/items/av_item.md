@@ -1,1 +1,1 @@
-::: aep_parser.models.items.av_item.AVItem
+::: py_aep.models.items.av_item.AVItem

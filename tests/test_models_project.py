@@ -6,8 +6,8 @@ from pathlib import Path
 
 from conftest import load_expected, parse_project
 
-from aep_parser import parse as parse_aep
-from aep_parser.enums import (
+from py_aep import parse as parse_aep
+from py_aep.enums import (
     BitsPerChannel,
     ColorManagementSystem,
     FeetFramesFilmType,

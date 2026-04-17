@@ -1,12 +1,12 @@
-# aep_parser
-`aep_parser` is a Python package for working with After Effects AEP files as described in [specification](https://www.youtube.com/watch?v=xvFZjo5PgG0). Yeah no there is no file specification, just a lot of reverse-engineering and guesswork.
+# py_aep
+`py_aep` is a Python package for working with After Effects AEP files.
 
-<center><strong><a href="https://forticheprod.github.io/aep_parser/">Explore the docs »</a></strong></center>
+<center><strong><a href="https://forticheprod.github.io/py-aep/">Explore the docs »</a></strong></center>
 
 
 ## About
 
-After Effects files (.aep) are mostly binary files, encoded in RIFX format. This package uses [Kaitai Struct](https://kaitai.io/) to parse .aep files and return a Project object containing items, layers, effects and properties. The API is as close as possible to the [ExtendScript API](https://ae-scripting.docsforadobe.dev/), with a few nice additions like iterators.
+After Effects files (.aep) are mostly binary files, encoded in RIFX format. This package uses [Kaitai Struct](https://kaitai.io/) to parse .aep files and return an Application object containing a project, items, layers, effects and properties. The API is as close as possible to the [ExtendScript API](https://ae-scripting.docsforadobe.dev/), with a few nice additions like iterators.
 
 
 ## Features
@@ -38,21 +38,21 @@ After Effects files (.aep) are mostly binary files, encoded in RIFX format. This
 
 ### uv (recommended)
 ```sh
-uv add aep-parser
+uv add py-aep
 ```
 
 ### pip
 ```sh
-pip install aep-parser
+pip install py-aep
 ```
 
 
 ## Getting started
 
 ```python
-import aep_parser
+import py_aep
 
-app = aep_parser.parse("myproject.aep")
+app = py_aep.parse("myproject.aep")
 project = app.project
 comp = project.compositions[0]
 
@@ -66,19 +66,19 @@ comp.layers[0].transform.opacity.value = 50
 project.save("modified.aep")
 ```
 
-_For more examples, see the [Quick Start guide](https://forticheprod.github.io/aep_parser/quickstart/)._
+_For more examples, see the [Quick Start guide](https://forticheprod.github.io/py-aep/quickstart/)._
 
 
 ## Roadmap
 
-See the [open issues](https://github.com/forticheprod/aep_parser/issues) for a list of proposed features and known issues.
+See the [open issues](https://github.com/forticheprod/py-aep/issues) for a list of proposed features and known issues.
 
 If you encounter a bug, please submit an issue and attach a basic scene to reproduce your issue.
 
 
 ## Contributing
 
-See the full [Contributing Guide](https://github.com/forticheprod/aep_parser/blob/main/CONTRIBUTING.md) on GitHub.
+See the full [Contributing Guide](https://github.com/forticheprod/py-aep/blob/main/CONTRIBUTING.md) on GitHub.
 
 
 ## Contact
@@ -88,7 +88,7 @@ Aurore Delaunay - del-github@blurme.net
 
 ## Acknowledgments
 
-* [aftereffects-aep-parser in Go](https://github.com/boltframe/aftereffects-aep-parser)
+* [aftereffects-py-aep in Go](https://github.com/boltframe/aftereffects-py-aep)
 * [Kaitai Struct](https://kaitai.io)
 * [The invaluable Lottie Docs](https://github.com/hunger-zh/lottie-docs/blob/main/docs/aep.md)
 * [After Effects Scripting Guide](https://ae-scripting.docsforadobe.dev/)

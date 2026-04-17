@@ -1,6 +1,6 @@
 """Tests for ViewOptions model parsing using samples from models/view/.
 
-These tests verify that aep_parser correctly reads viewer panel settings
+These tests verify that py_aep correctly reads viewer panel settings
 (channels, exposure, zoom, fast preview, toggle flags, etc.) from the
 `fips` chunks in the binary AEP format.
 
@@ -18,15 +18,15 @@ from typing import TYPE_CHECKING
 import pytest
 from conftest import parse_app
 
-from aep_parser import (
+from py_aep import (
     ChannelType,
     FastPreviewType,
     ViewerType,
 )
-from aep_parser import parse as parse_aep
+from py_aep import parse as parse_aep
 
 if TYPE_CHECKING:
-    from aep_parser import Application, ViewOptions
+    from py_aep import Application, ViewOptions
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "view"
 

@@ -1,1 +1,1 @@
-::: aep_parser.models.project.Project
+::: py_aep.models.project.Project

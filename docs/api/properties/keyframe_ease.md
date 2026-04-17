@@ -1,1 +1,1 @@
-::: aep_parser.models.properties.keyframe_ease.KeyframeEase
+::: py_aep.models.properties.keyframe_ease.KeyframeEase

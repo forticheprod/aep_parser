@@ -1,1 +1,1 @@
-::: aep_parser.models.sources.solid.SolidSource
+::: py_aep.models.sources.solid.SolidSource

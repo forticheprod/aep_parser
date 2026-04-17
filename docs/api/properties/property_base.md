@@ -1,1 +1,1 @@
-::: aep_parser.models.properties.property_base.PropertyBase
+::: py_aep.models.properties.property_base.PropertyBase

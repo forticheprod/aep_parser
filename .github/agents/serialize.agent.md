@@ -5,7 +5,7 @@ model: ["Claude Opus 4.6", "Claude Sonnet 4.6", "Claude Haiku 4.5"]
 argument-hint: "Name the model class to convert (e.g. RenderQueueItem, SolidSource)"
 ---
 
-You are a Python refactoring specialist. Your sole job is to convert `@dataclass` models in `aep_parser` into chunk-backed descriptor classes so that attribute mutations write through to the underlying Kaitai binary chunks, enabling serialization roundtrips.
+You are a Python refactoring specialist. Your sole job is to convert `@dataclass` models into chunk-backed descriptor classes so that attribute mutations write through to the underlying Kaitai binary chunks, enabling serialization roundtrips.
 
 ## Reference Files (read before starting)
 
@@ -13,13 +13,13 @@ Read these files to understand the patterns. They are the source of truth - this
 
 | File | What to learn |
 |------|---------------|
-| `src/aep_parser/models/project.py` | **Primary reference.** Multiple chunk bodies, ChunkField, ChunkField.bool, ChunkField.enum, reverse helpers, custom `@property` setters (linear_blending, expression_engine), validators, `__init__` layout |
-| `src/aep_parser/models/items/composition.py` | Many descriptors on one `_cdta` body, generic reverse factories (`reverse_fractional`, `reverse_ratio`, `reverse_frame_ticks`), `invalidates` chains, `validate_number` with dynamic `lambda self:` bounds, `default=` on ChunkField |
-| `src/aep_parser/models/application.py` | Minimal example - ChunkField with dict-returning `reverse` for instance-mode fields, ChunkField.bool, custom reverse function |
-| `src/aep_parser/kaitai/descriptors.py` | ChunkField / ChunkField.bool / ChunkField.enum API, `propagate_check`, enum validation |
-| `src/aep_parser/validators.py` | `validate_number`, `validate_sequence`, `validate_one_of` |
-| `src/aep_parser/reverses.py` | `reverse_ratio`, `reverse_frame_ticks`, `reverse_fractional`, `denormalize_values` |
-| `src/aep_parser/transforms.py` | `normalize_values` |
+| `src/py_aep/models/project.py` | **Primary reference.** Multiple chunk bodies, ChunkField, ChunkField.bool, ChunkField.enum, reverse helpers, custom `@property` setters (linear_blending, expression_engine), validators, `__init__` layout |
+| `src/py_aep/models/items/composition.py` | Many descriptors on one `_cdta` body, generic reverse factories (`reverse_fractional`, `reverse_ratio`, `reverse_frame_ticks`), `invalidates` chains, `validate_number` with dynamic `lambda self:` bounds, `default=` on ChunkField |
+| `src/py_aep/models/application.py` | Minimal example - ChunkField with dict-returning `reverse` for instance-mode fields, ChunkField.bool, custom reverse function |
+| `src/py_aep/kaitai/descriptors.py` | ChunkField / ChunkField.bool / ChunkField.enum API, `propagate_check`, enum validation |
+| `src/py_aep/validators.py` | `validate_number`, `validate_sequence`, `validate_one_of` |
+| `src/py_aep/reverses.py` | `reverse_ratio`, `reverse_frame_ticks`, `reverse_fractional`, `denormalize_values` |
+| `src/py_aep/transforms.py` | `normalize_values` |
 | `tests/test_models_composition.py` | **Roundtrip test pattern** - `TestRoundtrip*` classes: parse -> modify -> save -> re-parse -> assert |
 
 ## Procedure
@@ -75,7 +75,7 @@ Follow `tests/test_models_composition.py` `TestRoundtrip*` pattern: parse sample
 ### 7. Run checks
 ```powershell
 uv run pytest
-uv run mypy src/aep_parser
+uv run mypy src/py_aep
 uv run ruff check src/ ; uv run ruff format src/
 ```
 
@@ -84,8 +84,8 @@ uv run ruff check src/ ; uv run ruff format src/
 - DO NOT use `ChunkField` (or `.bool` / `.enum`) without `reverse` on a Kaitai `instances:` field unless `read_only=True`. Writing to an instance only stamps the cached value; the underlying `seq:` fields are unchanged and the write is silently lost on save. Use instance-mode ChunkField (dict-returning `reverse`) or a `@property` setter instead.
 - DO NOT convert non-chunk fields to descriptors unless they can be converted to Kaitai instances - keep as regular attributes
 - DO NOT use `@dataclass` on converted classes - conflicts with descriptors
-- DO NOT modify `src/aep_parser/kaitai/aep.py` - auto-generated
-- You may modify `aep.ksy` to: (1) rename fields to match `{prefix}_dividend`/`{prefix}_divisor` convention, or (2) add computed `instances:` to then use instance-mode `ChunkField` (with dict-returning `reverse`). After changes, regenerate: `kaitai-struct-compiler --target python --outdir src/aep_parser/kaitai src/aep_parser/kaitai/aep.ksy --read-write --no-auto-read`
+- DO NOT modify `src/py_aep/kaitai/aep.py` - auto-generated
+- You may modify `aep.ksy` to: (1) rename fields to match `{prefix}_dividend`/`{prefix}_divisor` convention, or (2) add computed `instances:` to then use instance-mode `ChunkField` (with dict-returning `reverse`). After changes, regenerate: `kaitai-struct-compiler --target python --outdir src/py_aep/kaitai src/py_aep/kaitai/aep.ksy --read-write --no-auto-read`
 - Preserve public API - attribute names and types must not change, unless different from ExtendScript
 - Keep `from __future__ import annotations` in every file
 - Keep `__eq__ = object.__eq__` when the original class had `eq=False`

@@ -20,8 +20,8 @@ import pytest
 from conftest import load_expected, parse_project
 
 if TYPE_CHECKING:
-    from aep_parser import Project
-    from aep_parser.models.items.composition import CompItem
+    from py_aep import Project
+    from py_aep.models.items.composition import CompItem
 
 BUGS_DIR = Path(__file__).parent.parent / "samples" / "bugs"
 AEP_PATH = BUGS_DIR / "29.97_fps_time_scale_3.125.aep"

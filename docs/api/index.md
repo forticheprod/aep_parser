@@ -1,6 +1,6 @@
 # API Reference
 
-Welcome to the AEP Parser API reference. This section provides detailed documentation for all modules, classes, and functions in the library.
+Welcome to the py_aep API reference. This section provides detailed documentation for all modules, classes, and functions in the library.
 
 ## Main Entry Point
 

@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 from conftest import get_rqi, load_expected, parse_project
 
-from aep_parser import parse as parse_aep
-from aep_parser.enums import (
+from py_aep import parse as parse_aep
+from py_aep.enums import (
     ConvertToLinearLight,
     FieldRender,
     FrameRateSetting,
@@ -23,8 +23,8 @@ from aep_parser.enums import (
     RQItemStatus,
     TimeSpanSource,
 )
-from aep_parser.models.renderqueue import OutputModule
-from aep_parser.resolvers.output import resolve_output_filename
+from py_aep.models.renderqueue import OutputModule
+from py_aep.resolvers.output import resolve_output_filename
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "renderqueue"
 OM_SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "output_module"

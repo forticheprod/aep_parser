@@ -15,13 +15,13 @@ from conftest import (
     parse_project,
 )
 
-from aep_parser import (
+from py_aep import (
     AlphaMode,
     FieldSeparationType,
     LinearLightMode,
     PulldownPhase,
 )
-from aep_parser import parse as parse_aep
+from py_aep import parse as parse_aep
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "models" / "footage"
 

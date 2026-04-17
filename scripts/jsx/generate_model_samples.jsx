@@ -1,5 +1,5 @@
 /**
- * Generate CONSOLIDATED Test Samples for aep_parser Model Testing
+ * Generate CONSOLIDATED Test Samples for py_aep Model Testing
  *
  * Creates FEWER .aep files, each containing MULTIPLE comps/items.
  *

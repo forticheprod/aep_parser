@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
       - name: Type check with mypy
-        run: uv run mypy src/aep_parser
+        run: uv run mypy src/py_aep
   lfs:
     runs-on: ubuntu-latest
     steps:

@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 from conftest import parse_project
 
-from aep_parser import Project
-from aep_parser.cli.validate import validate_aep
+from py_aep import Project
+from py_aep.cli.validate import validate_aep
 
 VERSIONS_DIR = Path(__file__).parent.parent / "samples" / "versions"
 

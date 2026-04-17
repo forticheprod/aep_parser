@@ -6,7 +6,7 @@ from pathlib import Path
 
 from conftest import load_expected, parse_project
 
-from aep_parser.cli.validate import (
+from py_aep.cli.validate import (
     ValidationResult,
     compare_layer,
     compare_marker,
@@ -17,7 +17,7 @@ from aep_parser.cli.validate import (
     to_dict,
     validate_aep,
 )
-from aep_parser.enums import BlendingMode
+from py_aep.enums import BlendingMode
 
 SAMPLES_DIR = Path(__file__).parent.parent / "samples"
 

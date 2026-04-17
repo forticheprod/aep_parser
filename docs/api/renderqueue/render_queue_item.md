@@ -1,1 +1,1 @@
-::: aep_parser.models.renderqueue.render_queue_item.RenderQueueItem
+::: py_aep.models.renderqueue.render_queue_item.RenderQueueItem

@@ -3,9 +3,9 @@
 ## Parse a project
 
 ```python
-import aep_parser
+import py_aep
 
-app = aep_parser.parse("myproject.aep")
+app = py_aep.parse("myproject.aep")
 project = app.project
 
 print(f"AE version: {app.version}")
@@ -58,7 +58,7 @@ for rq_item in project.render_queue:
 ## Modify and save
 
 ```python
-app = aep_parser.parse("myproject.aep")
+app = py_aep.parse("myproject.aep")
 project = app.project
 comp = project.compositions[0]
 
